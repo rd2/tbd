@@ -3,12 +3,16 @@
 /.config
 /coverage/
 /InstalledFiles
+/html/
 /pkg/
 /spec/reports/
+/spec/test/
+/spec/files/*/
 /spec/examples.txt
-/test/tmp/
-/test/version_tmp/
+.rspec_status
+/test/
 /tmp/
+/lib/.rubocop*
 
 # Used by dotenv library to load environment variables.
 # .env
@@ -54,3 +58,10 @@ build-iPhoneSimulator/
 
 # Used by RuboCop. Remote config files pulled in from inherit_from directive.
 # .rubocop-https?--*
+*.rubocop-http*
+
+runner.conf
+/.idea
+
+# (Mac)
+*.DS_Store
