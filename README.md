@@ -1,6 +1,8 @@
 # Thermal Bridging &amp; Derating (tbd)
 
-(to do)
+This is a repo for an OpenStudio Measure that thermally derates opaque constructions (e.g. walls, roofs) based on major thermal bridges (e.g. balconies, corners, fenestration perimeters). It relies on both the OpenStudio API and the AutomaticMagic Topolys gem.
+
+(to complete)
 
 # Development
 
