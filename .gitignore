@@ -1,67 +1,45 @@
-*.gem
-*.rbc
-/.config
+/gems
 /coverage/
-/InstalledFiles
 /html/
 /pkg/
 /spec/reports/
 /spec/test/
 /spec/files/*/
-/spec/examples.txt
-.rspec_status
 /test/
 /tmp/
-/lib/.rubocop*
 
-# Used by dotenv library to load environment variables.
-# .env
+# graphviz output
+shell.dot
+shell.pdf
 
-# Ignore Byebug command history file.
-.byebug_history
-
-## Specific to RubyMotion:
-.dat*
-.repl_history
-build/
-*.bridgesupport
-build-iPhoneOS/
-build-iPhoneSimulator/
-
-## Specific to RubyMotion (use of CocoaPods):
-#
-# We recommend against adding the Pods directory to your .gitignore. However
-# you should judge for yourself, the pros and cons are mentioned at:
-# https://guides.cocoapods.org/using/using-cocoapods.html#should-i-check-the-pods-directory-into-source-control
-#
-# vendor/Pods/
+# rspec failure tracking
+.rspec_status
 
 ## Documentation cache and generated files:
 /.yardoc/
 /_yardoc/
 /doc/
-/rdoc/
 
 ## Environment normalization:
 /.bundle/
-/vendor/bundle
-/lib/bundler/man/
 
 # for a library or gem, you might want to ignore these files since the code is
 # intended to run in multiple environments; otherwise, check them in:
-# Gemfile.lock
-# .ruby-version
-# .ruby-gemset
+/Gemfile.lock
+/.ruby-version
 
-# unless supporting rvm < 1.11.0 or doing something fancy, ignore this:
-.rvmrc
-
-# Used by RuboCop. Remote config files pulled in from inherit_from directive.
-# .rubocop-https?--*
+# Ignore IDE files
+/.idea
 *.rubocop-http*
 
+# measures tests
+lib/measures/.rubocop.yml
+lib/measures/test_results/*
+lib/measures/*/tests/output
+/lib/measures/test_results
+/lib/measures/.rubocop*
+
 runner.conf
-/.idea
 
 # (Mac)
 *.DS_Store
