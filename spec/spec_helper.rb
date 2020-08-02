@@ -1,5 +1,5 @@
 require "bundler/setup"
-require "tbd"
+#require "tbd"
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
