@@ -1,4 +1,4 @@
-# tbd or Thermal Bridging &amp; Derating
+# Thermal Bridging &amp; Derating (tbd)
 
 (to do)
 
