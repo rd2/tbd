@@ -1,0 +1,221 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Draft JSON Schema for Thermal Bridging & Derating",
+  "version": "0.1.0",
+  "type": "object",
+  "required": [
+    "psis",
+    "edges"
+  ],
+  "properties": {
+    "psis": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/PSI"
+      },
+      "uniqueItems": true
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Edge"
+      },
+      "uniqueItems": true
+    },
+    "surfaces": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Surface"
+      },
+      "uniqueItems": true
+    },
+    "spaces": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Space"
+      },
+      "uniqueItems": true
+    },
+    "stories": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Story"
+      },
+      "uniqueItems": true
+    },
+    "units": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Unit"
+      },
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "PSI": {
+      "description": "Set of PSI-values (in W/K per m) for thermal bridges",
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "rimjoist": {
+          "title": "Floor/wall edge PSI",
+          "type": "number",
+          "minimum": 0
+        },
+        "parapet": {
+          "title": "Roof/wall or exposed-floor/wall edge PSI",
+          "type": "number",
+          "minimum": 0
+        },
+        "fenestration": {
+          "title": "Window, door, skylight perimeter PSI",
+          "type": "number",
+          "minimum": 0
+        },
+        "concave": {
+          "title": "Wall corner [0°,135°) PSI",
+          "type": "number",
+          "minimum": 0
+        },
+        "convex": {
+          "title": "Wall corner (225°,360°] PSI",
+          "type": "number",
+          "minimum": 0
+        },
+        "balcony": {
+          "title": "Floor/balcony edge PSI ",
+          "type": "number",
+          "minimum": 0
+        },
+        "party": {
+          "title": "Party wall edge PSI",
+          "type": "number",
+          "minimum": 0
+        },
+        "grade": {
+          "title": "Floor/foundation edge PSI",
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "minProperties": 2,
+      "additionalProperties": false
+    },
+    "Edge": {
+      "description": "Surface edge as thermal bridge",
+      "type": "object",
+      "required": [
+        "name",
+        "psi",
+        "length",
+        "surfaces"
+      ],
+      "properties": {
+        "name": {
+          "title": "unique edge name (set automatically by e.g. OS)",
+          "type": "string"
+        },
+        "psi": {
+          "title": "PSI-set name",
+          "type": "string"
+        },
+        "length": {
+          "title": "edge length (m)",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "surfaces": {
+          "title": "surfaces connected to edge",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "Surface": {
+      "description": "Surface default PSI-set (optional)",
+      "type": "object",
+      "required": [
+        "name",
+        "psi"
+      ],
+      "properties": {
+        "name": {
+          "title": "e.g. OS or E+ surface name",
+          "type": "string"
+        },
+        "psi": {
+          "title": "PSI-set name",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Space": {
+      "description": "Space default PSI-set (optional for OS)",
+      "type": "object",
+      "required": [
+        "name",
+        "psi"
+      ],
+      "properties": {
+        "name": {
+          "title": "e.g. OS space or E+ zone name",
+          "type": "string"
+        },
+        "psi": {
+          "title": "PSI-set name",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Story": {
+      "title": "Story default PSI-set (optional for OS)",
+      "type": "object",
+      "required": [
+        "name",
+        "psi"
+      ],
+      "properties": {
+        "name": {
+          "title": "e.g. OS story name",
+          "type": "string"
+        },
+        "psi": {
+          "title": "PSI-set name",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Unit": {
+      "title": "Building unit default PSI-set (optional for OS)",
+      "type": "object",
+      "required": [
+        "name",
+        "psi"
+      ],
+      "properties": {
+        "name": {
+          "title": "e.g. OS unit name",
+          "type": "string"
+        },
+        "psi": {
+          "title": "PSI-set name",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
