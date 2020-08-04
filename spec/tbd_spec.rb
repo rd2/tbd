@@ -6,7 +6,7 @@ def get_clean_env
   new_env["BUNDLER_ORIG_MANPATH"] = nil
   new_env["BUNDLER_ORIG_PATH"] = nil
   new_env["BUNDLER_VERSION"] = nil
-  new_env["BUNDLER_BIN_PATH"] = nil
+  new_env["BUNDLE_BIN_PATH"] = nil
   new_env["RUBYLIB"] = nil
   new_env["RUBYOPT"] = nil
   new_env["GEM_PATH"] = nil

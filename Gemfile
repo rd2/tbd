@@ -1,6 +1,8 @@
-source "https://rubygems.org"
+source "http://rubygems.org"
 
-git_source(:github) {|repo_name| "https://github.com/#{repo_name}" }
+gem "pry"
 
-# Specify your gem's dependencies in tbd.gemspec
+gem "topolys", github: "automaticmagic/topolys", branch: "master"
+#gem "topolys", path: "../topolys/"
+
 gemspec

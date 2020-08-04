@@ -1,5 +1,4 @@
-
-lib = File.expand_path("lib", __dirE__)
+lib = File.expand_path('lib', __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "tbd/version"
 
@@ -9,7 +8,7 @@ Gem::Specification.new do |spec|
   spec.platform      = Gem::PLatform::RUBY
   spec.authors       = ["Denis Bourgeois & Dan Macumber"]
   spec.email         = ["denis@rd2.ca"]
-  spec.homepage      = "https://github.com/rd2/tbd.git"
+  spec.homepage      = "https://github.com/rd2/tbd"
   spec.summary       = ""
   spec.description   = ""
 

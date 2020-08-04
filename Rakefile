@@ -20,7 +20,7 @@ task :update_library_files do
   end
   puts lib_files
 
-  measure_resources = Dir.glob(".lib/measures/*/resources")
+  measure_resources = Dir.glob("./lib/measures/*/resources")
 
   lib_files.each do |lib_file|
     measure_resources.each do |measure_resource|
