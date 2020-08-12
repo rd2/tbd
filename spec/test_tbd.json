@@ -1,42 +1,20 @@
 {
-  "psis": [
-    {
-      "name": "bad_psi",
-      "balcony": 1
-    },
-    {
-      "name": "good_psi",
-      "balcony": 0.5
-    }
-  ],
-  "edges": [
-    {
-      "name": "1001001",
-      "length": 1,
-      "psi": "bad_psi",
-      "surfaces": [
-        "s1",
-        "s3"
-      ]
-    },
-    {
-      "name": "2002002",
-      "length": 0.5,
-      "psi": "good_psi",
-      "surfaces": [
-        "s1",
-        "s2"
-      ]
-    }
-  ],
-  "stories": [
-    {
-      "name": "a00a00a",
-      "psi": "bad_psi"
-    },
-    {
-      "name": "b00b00b",
-      "psi": "good_psi"
-    }
-  ]
+	"$schema": "http://json-schema.org/draft-04/schema#",
+	"title": "TBD Schema (extension of Topolys)",
+	"description": "Schema for Thermal Bridging and Derating",
+	"edges": [{
+		"attributes": {
+			"length": 4,
+			"psi": "Poor",
+			"rimjoist": true,
+			"balcony": true,
+			"surface": "NorthWall Lobby"
+		}
+	}],
+	"faces": [{
+		"attributes": {
+			"surface": "NorthWall Lobby",
+			"psi": "Better"
+		}
+	}]
 }

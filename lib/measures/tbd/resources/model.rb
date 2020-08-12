@@ -77,11 +77,117 @@ module Topolys
       @shells = []
       @cells = []
     end
-    
+
     def all_objects 
       @vertices + @edges + @directed_edges + @wires + @faces + @shells + @cells
     end
-    
+
+    def to_json
+      result= {
+        vertices: @vertices.map { |v| v.to_json },
+        edges: @edges.map { |e| e.to_json },  
+        directed_edges: @directed_edges.map { |de| de.to_json },  
+        wires: @wires.map { |w| w.to_json },  
+        faces: @faces.map { |f| f.to_json },  
+        shells: @shells.map { |s| s.to_json },  
+        cells: @cells.map { |c| c.to_json }
+      }
+      return result
+    end
+
+    def self.from_json(obj)
+      model = Model.new
+      id_map = {}
+      
+      obj[:vertices].each do |v|
+        p = v[:point]
+        point = Point3D.new(p[:x], p[:y], p[:z])
+        vertex = model.get_vertex(point)
+        set_id(vertex, v[:id])
+        vertex.attributes = v[:attributes] if v[:attributes]
+        id_map[v[:id]] = vertex
+      end
+
+      obj[:edges].each do |e|
+        v0 = id_map[e[:v0]]
+        v1 = id_map[e[:v1]]
+        edge = model.get_edge(v0, v1)
+        set_id(edge, e[:id])
+        edge.attributes = e[:attributes] if e[:attributes]
+        id_map[e[:id]] = edge
+      end
+
+      obj[:directed_edges].each do |de|
+        edge = id_map[de[:edge]]
+        inverted = de[:inverted]
+        directed_edge = nil
+        if inverted
+          directed_edge = model.get_directed_edge(edge.v1, edge.v0)
+        else
+          directed_edge = model.get_directed_edge(edge.v0, edge.v1)
+        end
+        set_id(directed_edge, de[:id])
+        directed_edge.attributes = de[:attributes] if de[:attributes]
+        id_map[de[:id]] = directed_edge
+      end
+
+      obj[:wires].each do |w|
+        vertices = []
+        w[:directed_edges].each do |id|
+          directed_edge = id_map[id]
+          vertices << directed_edge.v0
+        end
+        wire = model.get_wire(vertices)
+        set_id(wire, w[:id])
+        wire.attributes = w[:attributes] if w[:attributes]
+        id_map[w[:id]] = wire
+      end
+
+      obj[:faces].each do |f|
+        outer = id_map[f[:outer]]
+        holes = []
+        f[:holes].each do |id|
+          holes << id_map[id]
+        end
+        face = model.get_face(outer, holes)
+        set_id(face, f[:id])
+        face.attributes = f[:attributes] if f[:attributes]
+        id_map[f[:id]] = face
+      end
+
+      obj[:shells].each do |s|
+        faces = []
+        s[:faces].each do |id|
+          faces << id_map[id]
+        end
+        shell = model.get_shell(faces)
+        set_id(shell, s[:id])
+        shell.attributes = s[:attributes] if s[:attributes]
+        id_map[s[:id]] = shell
+      end
+
+      return model
+    end
+
+    def self.schema_file
+      return File.join(File.dirname(__FILE__), "./schema/topolys.json")
+    end
+
+    def self.schema
+      s = File.read(schema_file)
+      return JSON.parse(s)
+    end
+
+    def to_s
+      JSON.pretty_generate(to_json) 
+    end
+
+    def save(file)
+      File.open(file, 'w') do |file|
+        file.puts self.to_s
+      end
+    end
+
     def to_graphviz
       result = "digraph model {\n"
       result += "  rankdir=LR\n"
@@ -324,7 +430,17 @@ module Topolys
     end
     
     private
-    
+
+    ##
+    # Set id on an object, used in deserialization
+    #
+    # @param [Object] obj Object to modify
+    # @param [String] id New id
+    def self.set_id(obj, id)
+      # simulate friend access to set id on object
+      obj.instance_variable_set(:@id, id) 
+    end
+
     ##
     # Projects a vertex to be on an edge
     #
@@ -473,11 +589,20 @@ module Topolys
     def hash
       @id
     end
+
+    # @return [Hash] Hash containing JSON serialized fields
+    def to_json
+      result = { id: @id}
+      result[:attributes] = @attributes if !@attributes.empty?
+      return result
+    end
     
+    # @return [String] Short id used for Graphviz
     def short_id
       @id.slice(0,6)
     end
     
+    # @return [String] Short name used for Graphviz
     def short_name
       "#{self.class.to_s.gsub('Topolys::','').gsub('DirectedEdge', 'DEdge')}_#{short_id}"
     end
@@ -576,6 +701,12 @@ module Topolys
       recalculate
     end
     
+    def to_json
+      result = super
+      result[:point] = { x: @point.x, y: @point.y, z: @point.z }
+      return result
+    end
+
     def recalculate
       super()
     end
@@ -620,7 +751,14 @@ module Topolys
       
       recalculate
     end
-    
+
+    def to_json
+      result = super
+      result[:v0] = @v0.id
+      result[:v1] = @v1.id
+      return result
+    end
+
     def recalculate
       super()
     
@@ -703,7 +841,14 @@ module Topolys
       
       recalculate
     end
-    
+
+    def to_json
+      result = super
+      result[:edge] = @edge.id
+      result[:inverted] = @inverted
+      return result
+    end
+
     def recalculate
       super()
       
@@ -772,7 +917,13 @@ module Topolys
 
       recalculate
     end
-    
+
+    def to_json
+      result = super
+      result[:directed_edges] = @directed_edges.map { |de| de.id }
+      return result
+    end
+
     def recalculate
       super()
       
@@ -939,7 +1090,14 @@ module Topolys
 
       recalculate
     end
-    
+
+    def to_json
+      result = super
+      result[:outer] = @outer.id
+      result[:holes] = @holes.map { |h| h.id }
+      return result
+    end
+
     def recalculate
       super()
       
@@ -1035,7 +1193,13 @@ module Topolys
 
       recalculate
     end
-    
+
+    def to_json
+      result = super
+      result[:faces] = @faces.map { |h| h.id }
+      return result
+    end
+
     def recalculate
       
       # unlink from any previous faces
