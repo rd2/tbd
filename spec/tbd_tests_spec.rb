@@ -149,14 +149,15 @@ RSpec.describe TBD do
     os_r4_shade.setName("r4_shade")
     os_r4_shade.setShadingSurfaceGroup(os_s)
 
-    os_v = OpenStudio::Point3dVector.new
-    os_v << OpenStudio::Point3d.new(47.4, 40.2, 44.0)
-    os_v << OpenStudio::Point3d.new(47.4, 41.7, 44.0)
-    os_v << OpenStudio::Point3d.new(45.7, 41.7, 44.0)
-    os_v << OpenStudio::Point3d.new(45.7, 40.2, 44.0)
-    os_N_balcony = OpenStudio::Model::ShadingSurface.new(os_v, os_model)
-    os_N_balcony.setName("N_balcony") # 1.70m as thermal bridge
-    os_N_balcony.setShadingSurfaceGroup(os_s)
+# commenting out balconies as they generate 'Not sequential' Topolys errors
+    #os_v = OpenStudio::Point3dVector.new
+    #os_v << OpenStudio::Point3d.new(47.4, 40.2, 44.0)
+    #os_v << OpenStudio::Point3d.new(47.4, 41.7, 44.0)
+    #os_v << OpenStudio::Point3d.new(45.7, 41.7, 44.0)
+    #os_v << OpenStudio::Point3d.new(45.7, 40.2, 44.0)
+    #os_N_balcony = OpenStudio::Model::ShadingSurface.new(os_v, os_model)
+    #os_N_balcony.setName("N_balcony") # 1.70m as thermal bridge
+    #os_N_balcony.setShadingSurfaceGroup(os_s)
 
 # commenting out balconies as they generate 'Not sequential' Topolys errors
     #os_v = OpenStudio::Point3dVector.new
@@ -196,15 +197,15 @@ RSpec.describe TBD do
     os_g_N_wall.setSpace(os_g)                        # 201.3m2
 
 # commenting out doors as they generate 'Not sequential' Topolys errors
-    #os_v = OpenStudio::Point3dVector.new
-    #os_v << OpenStudio::Point3d.new( 47.4, 29.8, 46.0) #   2.0m
-    #os_v << OpenStudio::Point3d.new( 47.4, 29.8, 44.0) #   1.0m
-    #os_v << OpenStudio::Point3d.new( 46.4, 29.8, 44.0) #   2.0m
-    #os_v << OpenStudio::Point3d.new( 46.4, 29.8, 46.0) #   1.0m
-    #os_g_N_door = OpenStudio::Model::SubSurface.new(os_v, os_model)
-    #os_g_N_door.setName("g_N_door")
-    #os_g_N_door.setSubSurfaceType("Door")
-    #os_g_N_door.setSurface(os_g_N_wall)                #   2.0m2
+    os_v = OpenStudio::Point3dVector.new
+    os_v << OpenStudio::Point3d.new( 47.4, 40.2, 46.0) #   2.0m
+    os_v << OpenStudio::Point3d.new( 47.4, 40.2, 44.0) #   1.0m
+    os_v << OpenStudio::Point3d.new( 46.4, 40.2, 44.0) #   2.0m
+    os_v << OpenStudio::Point3d.new( 46.4, 40.2, 46.0) #   1.0m
+    os_g_N_door = OpenStudio::Model::SubSurface.new(os_v, os_model)
+    os_g_N_door.setName("g_N_door")
+    os_g_N_door.setSubSurfaceType("Door")
+    os_g_N_door.setSurface(os_g_N_wall)                #   2.0m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new(54.0, 29.8, 49.5) #  5.5m
