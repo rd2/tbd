@@ -149,7 +149,6 @@ RSpec.describe TBD do
     os_r4_shade.setName("r4_shade")
     os_r4_shade.setShadingSurfaceGroup(os_s)
 
-# commenting out balconies as they generate 'Not sequential' Topolys errors
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new(47.4, 40.2, 44.0)
     os_v << OpenStudio::Point3d.new(47.4, 41.7, 44.0)
@@ -159,7 +158,6 @@ RSpec.describe TBD do
     os_N_balcony.setName("N_balcony") # 1.70m as thermal bridge
     os_N_balcony.setShadingSurfaceGroup(os_s)
 
-# commenting out balconies as they generate 'Not sequential' Topolys errors
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new(28.1, 29.8, 44.0)
     os_v << OpenStudio::Point3d.new(28.1, 28.3, 44.0)
@@ -168,6 +166,7 @@ RSpec.describe TBD do
     os_S_balcony = OpenStudio::Model::ShadingSurface.new(os_v, os_model)
     os_S_balcony.setName("S_balcony") # 19.3m as thermal bridge
     os_S_balcony.setShadingSurfaceGroup(os_s)
+
 
     # 1st space: gallery (g) with elevator (e) surfaces
     os_v = OpenStudio::Point3dVector.new
@@ -195,7 +194,6 @@ RSpec.describe TBD do
     os_g_N_wall.setName("g_N_wall")
     os_g_N_wall.setSpace(os_g)                        # 201.3m2
 
-# commenting out doors as they generate 'Not sequential' Topolys errors
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 47.4, 40.2, 46.0) #   2.0m
     os_v << OpenStudio::Point3d.new( 47.4, 40.2, 44.0) #   1.0m
@@ -228,7 +226,6 @@ RSpec.describe TBD do
     os_g_S_wall.setName("g_S_wall")
     os_g_S_wall.setSpace(os_g)                        # 190.48m2
 
-# commenting out doors as they generate 'Not sequential' Topolys errors
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 46.4, 29.8, 46.0) #  2.0m
     os_v << OpenStudio::Point3d.new( 46.4, 29.8, 44.0) #  1.0m
@@ -504,7 +501,7 @@ RSpec.describe TBD do
     t_model = Topolys::Model.new
 
     # Fetch OpenStudio planar surfaces & key attributes
-    surfaces = []
+    surfaces = {}
     os_model.getPlanarSurfaces.each do |planar|
       next if planar.planarSurfaceGroup.empty?
       group = planar.planarSurfaceGroup.get
@@ -522,9 +519,8 @@ RSpec.describe TBD do
         end
       end
 
-      # site-specific (or absolute, or true) surface normal
-      # this is here only for temporary testing of Topolys equivalence
-      # (Topolys is in absolute coordinates only)
+      # Site-specific (or absolute, or true) surface normal, here only for
+      # temporary testing of Topolys equivalence (in absolute coordinates).
       n = OpenStudio::Vector3d.new(planar.outwardNormal.x * Math.cos( r ) -
                                    planar.outwardNormal.y * Math.sin( r ), # x
                                    planar.outwardNormal.x * Math.sin( r ) +
@@ -538,13 +534,13 @@ RSpec.describe TBD do
       #
       # type: initially e.g. "OS_Surface", "OS_SubSurface", "OS_ShadingSurface"
       # interior partition surfaces (e.g. daylight shelves) are ignored
-      type = planar.iddObjectType.valueName
-      ground = false
-      boundary = nil
-      dad = nil
-      shade = false
-      space = nil
-      sort = 9
+      type      = planar.iddObjectType.valueName
+      ground    = false
+      boundary  = nil
+      dad       = nil
+      shade     = false
+      space     = nil
+      sort      = 9
 
       # reset some values ...
       surface = planar.to_Surface
@@ -567,6 +563,10 @@ RSpec.describe TBD do
         type = sub.subSurfaceType
         if /door/i.match(type)
           sort = 3
+        elsif /window/i.match(type)
+          sort = 4
+        else
+          sort = 5
         end
         boundary = sub.outsideBoundaryCondition
         dad = sub.surface.get.nameString unless sub.surface.empty?
@@ -574,33 +574,35 @@ RSpec.describe TBD do
       shading = planar.to_ShadingSurface
       unless shading.empty?
         shading = shading.get
-        type = 'Shading'
-        sort = 4
+        type = "shading"
+        sort = 6
         shade = true
       end
 
       # this content of the hash will evolve over the next few iterations
-      surfaces << {
-        id: id,
-        type: type,
+      surfaces[id] = {
+        type:     type,
+        ground:   ground,
         boundary: boundary,
-        gross: planar.grossArea,
-        net: planar.netArea,
-        points: points,
-        minz: minz,
-        sort: sort
+        dad:      dad,
+        shade:    shade,
+        space:    space,
+        gross:    planar.grossArea,
+        net:      planar.netArea,
+        points:   points,
+        minz:     minz,
+        sort:     sort
       }
-    end # surfaces is populated
-    
+    end # surfaces populated
+
     # sort surfaces before adding to Topolys
-    surfaces.sort! { |x, y| x[:sort] <=> y[:sort] }
+    s = surfaces.sort_by{ |id, properties| properties[:sort] }.to_h
 
     # add a Topolys Face for each OpenStudio Surface
-    surfaces.each do |s|
-      puts "#{s[:id]}, #{s[:type]}, #{s[:sort]}"
-      vertices = t_model.get_vertices(s[:points])
+    s.each do |id, properties|
+      vertices = t_model.get_vertices(properties[:points])
       wire = t_model.get_wire(vertices)
-      #face = t_model.get_face(wire, [])
+      face = t_model.get_face(wire, [])
     end
   end
 
