@@ -221,20 +221,28 @@ module Topolys
 
     # @param [Vertex] vertex
     # @param [Edge] edge
-    # @return [Bool] Returns true if vertex lies on edge but is not already a member of the edge
-    def vertex_intersect_edge?(vertex, edge)
-      return false if vertex.id == edge.v0.id || vertex.id == edge.v1.id
+    # @return [Point3D] Point3D of vertex projected on edge or nil
+    def vertex_intersect_edge(vertex, edge)
+      return nil if vertex.id == edge.v0.id || vertex.id == edge.v1.id
 
-      a = (vertex.point-edge.v0.point).magnitude
-      b = (vertex.point-edge.v1.point).magnitude
-      c = edge.magnitude
+      vector1 = (edge.v1.point - edge.v0.point)
+      vector1.normalize!
 
-      #puts "#{a}, #{b}, #{c}, #{@tol}"
-      if (a+b)*(a+b)-(c*c) < 4*@tol2
-        return true
+      vector2 = (vertex.point - edge.v0.point)
+
+      length = vector1.dot(vector2)
+      if length < 0 || length > edge.length
+        return nil
       end
 
-      return false
+      new_point = edge.v0.point + (vector1*length)
+
+      distance = (vertex.point - new_point).magnitude
+      if distance > @tol
+        return nil
+      end
+
+      return new_point
     end
 
     # @param [Point3D] point
@@ -263,8 +271,15 @@ module Topolys
 
       # check if this vertex needs to be inserted on any edge
       @edges.each do |edge|
-        if vertex_intersect_edge?(v, edge)
-          insert_vertex_on_edge(v, edge)
+        if new_point = vertex_intersect_edge(v, edge)
+
+          # simulate friend access to set point on vertex
+          v.instance_variable_set(:@point, new_point)
+          v.recalculate
+
+          # now split the edge with this vertex
+          split_edge(edge, v)
+          break
         end
       end
 
@@ -452,51 +467,6 @@ module Topolys
     def self.set_id(obj, id)
       # simulate friend access to set id on object
       obj.instance_variable_set(:@id, id)
-    end
-
-    ##
-    # Projects a vertex to be on an edge
-    #
-    # @param [Vertex] vertex Vertex to modify
-    # @param [Edge] edge Edge to project the vertex to
-    def insert_vertex_on_edge(vertex, edge)
-
-      vector1 = (edge.v1.point - edge.v0.point)
-      vector1.normalize!
-
-      vector2 = (vertex.point - edge.v0.point)
-
-      length = vector1.dot(vector2)
-      new_point = edge.v0.point + (vector1*length)
-
-      distance = (vertex.point - new_point).magnitude
-      if distance > @tol
-        puts "vertex.point = #{vertex.point}"
-        puts "edge.v0.point = #{edge.v0.point}"
-        puts "edge.v1.point = #{edge.v1.point}"
-        puts "vector1 = #{vector1}"
-        puts "vector2 = #{vector2}"
-        puts "length = #{length}"
-        puts "new_point = #{new_point}"
-
-        a = (vertex.point-edge.v0.point).magnitude
-        b = (vertex.point-edge.v1.point).magnitude
-        c = edge.magnitude
-        puts "a = #{a}"
-        puts "b = #{b}"
-        puts "c = #{c}"
-        puts "(a+b-c).abs = #{(a+b-c).abs}"
-        puts "(a+b)*(a+b)-c*c) = #{((a+b)*(a+b)-c*c)}"
-        puts "4*@tol2 = #{4*@tol2}"
-      end
-      raise "distance = #{distance}" if distance > @tol
-
-      # simulate friend access to set point on vertex
-      vertex.instance_variable_set(:@point, new_point)
-      vertex.recalculate
-
-      # now split the edge with this vertex
-      split_edge(edge, vertex)
     end
 
     ##
