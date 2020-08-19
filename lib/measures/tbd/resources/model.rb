@@ -1121,7 +1121,7 @@ module Topolys
       # check that holes are on same plane as outer
       plane = @outer.plane
       @holes.each do |hole|
-        hold.points.each do |point|
+        hole.points.each do |point|
           raise "Point not on plane" if (point - plane.project(point)).magnitude > Topolys.planar_tol
         end
       end
