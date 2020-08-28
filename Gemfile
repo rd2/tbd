@@ -2,7 +2,7 @@ source "http://rubygems.org"
 
 gem "pry"
 
-gem "topolys", github: "automaticmagic/topolys", branch: "holes"
+gem "topolys", github: "automaticmagic/topolys", branch: "master"
 #gem "topolys", path: "../topolys/"
 
 gemspec

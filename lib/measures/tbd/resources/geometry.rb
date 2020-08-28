@@ -3,11 +3,11 @@ module Topolys
   # Point3D, Vector3D, and Plane3D represents the 3D position and orientation
   # of geometry in Topolys.  Geometry is separate from topology (connections).
 
-  class Point3D 
-  
+  class Point3D
+
     # @return [Float] X, Y, or Z coordinate
     attr_reader :x, :y, :z
-    
+
     ##
     # Initializes a Point3D object
     #
@@ -22,11 +22,11 @@ module Topolys
       @y = y
       @z = z
     end
-    
+
     def to_s
       "[#{@x}, #{@y}, #{@z}]"
     end
-    
+
     ##
     # Adds a 3D vector to self
     #
@@ -40,7 +40,7 @@ module Topolys
       z = @z + vector.z
       return Topolys::Point3D.new(x, y, z)
     end
-    
+
     ##
     # Generates a 3D vector which goes from other to self
     #
@@ -54,14 +54,14 @@ module Topolys
       z = @z - other.z
       return Topolys::Vector3D.new(x, y, z)
     end
-    
+
   end # Point3D
 
   class Vector3D
-      
+
     # @return [Float] X, Y, or Z component
     attr_reader :x, :y, :z
-    
+
     ##
     # Initializes a Vector3D object
     #
@@ -76,23 +76,23 @@ module Topolys
       @y = y
       @z = z
     end
-    
+
     def to_s
       "[#{@x}, #{@y}, #{@z}]"
     end
-    
+
     def Vector3D.x_axis
       Vector3D.new(1,0,0)
     end
-    
+
     def Vector3D.y_axis
       Vector3D.new(0,1,0)
     end
-    
+
     def Vector3D.z_axis
       Vector3D.new(0,0,1)
     end
-    
+
     ##
     # Adds 2x 3D vectors - overrides '+' operator
     #
@@ -194,7 +194,7 @@ module Topolys
       z = @x * other.y - @y * other.x
       return Topolys::Vector3D.new(x, y, z)
     end
-    
+
     ##
     # Gets the outer product between self & another 3D vector
     #
@@ -215,7 +215,7 @@ module Topolys
       result[2,2] = @z*other.z
       return result
     end
-    
+
     ##
     # Gets angle [0,PI) between self & another 3D vector
     #
@@ -232,13 +232,13 @@ module Topolys
   end # Vector3D
 
   class Plane3D
-  
+
     # @return [Point3D] arbitrary point on plane
     attr_reader :point
-    
+
     # @return [Vector3D] normalized vector perpendicular to plane
     attr_reader :normal
-    
+
     ##
     # Initializes a Plane3D object from a point and an outward normal
     #
@@ -248,22 +248,22 @@ module Topolys
       raise "Incorrect point argument for Plane3D, expected Point3D but got #{point.class}" unless point.is_a?(Topolys::Point3D)
       raise "Incorrect normal argument for Plane3D, expected Vector3D but got #{normal.class}" unless normal.is_a?(Topolys::Vector3D)
       raise "Incorrect normal argument for Plane3D, magnitude too small" unless normal.magnitude > Float::EPSILON
-      
+
       @point = Point3D.new(point.x, point.y, point.z)
       @normal = Vector3D.new(normal.x, normal.y, normal.z)
       @normal.normalize!
-      
+
       # coefficients for equation of a plane
       @a = @normal.x
       @b = @normal.y
       @c = @normal.z
       @d = -(@a*@point.x + @b*@point.y + @c*@point.z)
     end
-    
+
     def to_s
       "[#{@a}, #{@b}, #{@c}, #{@d}]"
     end
-    
+
     ##
     # Initializes a Plane3D object from three non-colinear points
     #
@@ -274,10 +274,10 @@ module Topolys
       return nil unless point1.is_a?(Topolys::Point3D)
       return nil unless point2.is_a?(Topolys::Point3D)
       return nil unless point3.is_a?(Topolys::Point3D)
-      
+
       normal = (point2-point1).cross(point3-point1)
       return nil unless normal.magnitude > Float::EPSILON
-      
+
       return Plane3D.new(point1, normal)
     end
 
@@ -291,15 +291,15 @@ module Topolys
       return nil unless point.is_a?(Topolys::Point3D)
       return nil unless xaxis.is_a?(Topolys::Vector3D)
       return nil unless yaxis.is_a?(Topolys::Vector3D)
-      
+
       normal = xaxis.cross(yaxis)
       return nil unless normal.magnitude > Float::EPSILON
-      
+
       return Plane3D.new(point, normal)
     end
-    
+
     # TODO: implement methods below
-    
+
     ##
     # Project a Point3d to this plane
     #
@@ -312,5 +312,36 @@ module Topolys
     end
 
   end # Plane3D
+
+  class BoundingBox
+
+    attr_reader :minx, :maxx, :miny, :maxy, :minz, :maxz
+
+    def initialize
+      @minx = Float::INFINITY
+      @miny = Float::INFINITY
+      @minz = Float::INFINITY
+      @maxx = -Float::INFINITY
+      @maxy = -Float::INFINITY
+      @maxz = -Float::INFINITY
+    end
+
+    def add_point(point)
+      @minx = [point.x, @minx].min
+      @miny = [point.y, @miny].min
+      @minz = [point.z, @minz].min
+      @maxx = [point.x, @maxx].max
+      @maxy = [point.y, @maxy].max
+      @maxz = [point.z, @maxz].max
+    end
+
+    def include?(point)
+      result = ((point.x >= @minx) && (point.x <= @maxx)) &&
+               ((point.y >= @miny) && (point.y <= @maxy)) &&
+               ((point.z >= @minz) && (point.z <= @maxz))
+      return result
+    end
+
+ end # BoundingBox
 
 end # TOPOLYS

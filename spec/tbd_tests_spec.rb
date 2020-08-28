@@ -5,11 +5,156 @@ require "psi"
 RSpec.describe TBD do
   it "can process thermal bridging and derating of complex architecture" do
     # The following populates both OpenStudio and Topolys models of "Lo scrigno"
-    # (or Jewel Box), by Renzo Piano (Lingetto Factory, Turin); a cantilevered,
+    # (or Jewel Box), by Renzo Piano (Lingotto Factory, Turin); a cantilevered,
     # single space art gallery (space #1), above a slanted plenum (space #2),
     # and resting on four main pillars. For the purposes of the spec, vertical
     # access (elevator and stairs, fully glazed) are modelled as extensions
     # of either space.
+
+    # Returns site/space transformation & rotation
+    def transforms(model, group)
+      if model && group
+        unless model.is_a?(OpenStudio::Model::Model)
+          raise "Expected OpenStudio model - got #{model.class}"
+        end
+        unless group.is_a?(OpenStudio::Model::Space)               ||
+               group.is_a?(OpenStudio::Model::ShadingSurfaceGroup)
+          raise "Expected OpenStudio group - got a #{group.class}"
+        end
+        t = group.siteTransformation
+        r = group.directionofRelativeNorth + model.getBuilding.northAxis
+        return t, r
+      end
+    end
+
+    # Returns site-specific (or absolute) surface normal
+    def trueNormal(s, r)
+      if s && r
+        c = OpenStudio::Model::PlanarSurface
+        raise "Expected #{c} - got #{s.class}" unless s.is_a?(c)
+        raise "Expected a numeric - got #{r.class}" unless r.is_a?(Numeric)
+
+        n = OpenStudio::Vector3d.new(s.outwardNormal.x * Math.cos(r) -
+                                     s.outwardNormal.y * Math.sin(r), # x
+                                     s.outwardNormal.x * Math.sin(r) +
+                                     s.outwardNormal.y * Math.cos(r), # y
+                                     s.outwardNormal.z)               # z
+        return n
+      end
+    end
+
+    # Returns Topolys vertices and a Topolys wire from Topolys points. As
+    # a side effect, it will - if successful - also populate the Topolys
+    # model with the vertices and wire.
+    def topolysObjects(model, points)
+      if model && points
+        unless model.is_a?(Topolys::Model)
+          raise "Expected Topolys model - got #{model.class}"
+        end
+        unless points.is_a?(Array)
+          raise "Expected array of Topolys points - got a #{points.class}"
+        end
+        unless points.size > 2
+          raise "Expected more than 2 points - got #{points.size}"
+        end
+
+        vertices = model.get_vertices(points)
+        wire = model.get_wire(vertices)
+        return vertices, wire
+      end
+    end
+
+    # Populates hash of TBD kids, relying on Topolys. As
+    # a side effect, it will - if successful - also populate the Topolys
+    # model with Topolys vertices, wires, holes.
+    def populateTBDkids(model, kids)
+      holes = []
+      if model && kids
+        unless model.is_a?(Topolys::Model)
+          raise "Expected Topolys model - got #{model.class}"
+        end
+        unless kids.is_a?(Hash)
+          raise "Expected hash of TBD surafces - got a #{kids.class}"
+        end
+        kids.each do |id, properties|
+          vtx, hole = topolysObjects(model, properties[:points])
+          hole.attributes[:id] = id
+          properties[:hole] = hole
+          holes << hole
+        end
+      end
+      return holes
+    end
+
+    # Populates hash of TBD surfaces, relying on Topolys. As
+    # a side effect, it will - if successful - also populate the Topolys
+    # model with Topolys vertices, wires, holes & faces.
+    def populateTBDdads(model, dads)
+      tbd_holes = {}
+
+      if model && dads
+        unless model.is_a?(Topolys::Model)
+          raise "Expected Topolys model - got #{model.class}"
+        end
+        unless dads.is_a?(Hash)
+          raise "Expected hash of TBD surfaces - got a #{dads.class}"
+        end
+
+        dads.each do |id, properties|
+          vertices, wire = topolysObjects(model, properties[:points])
+
+          # create surface holes for kids
+          holes = []
+          if properties.has_key?(:windows)
+            holes += populateTBDkids(model, properties[:windows])
+          end
+          if properties.has_key?(:doors)
+            holes += populateTBDkids(model, properties[:doors])
+          end
+          if properties.has_key?(:skylights)
+            holes += populateTBDkids(model, properties[:skylights])
+          end
+
+          face = model.get_face(wire, holes)
+          raise "Cannot build face for #{id}" if face.nil?
+
+          face.attributes[:id] = id
+          properties[:face] = face
+
+          # populate hash of created holes (to return)
+          holes.each do |h| tbd_holes[h.attributes[:id]] = h; end
+        end
+      end
+      return tbd_holes
+    end
+
+    def tbdSurfaceEdges(surfaces, edges)
+      if surfaces
+        unless surfaces.is_a?(Hash)
+          raise "Expected hash of TBD surfaces - got a #{surfaces.class}"
+        end
+        unless edges.is_a?(Hash)
+          raise "Expected hash of TBD edges - got a #{edges.class}"
+        end
+
+        surfaces.each do |id, properties|
+          unless properties.has_key?(:face)
+            raise "Missing Topolys face for #{id}"
+          end
+          properties[:face].wires.each do |wire|
+            wire.edges.each do |e|
+              unless edges.has_key?(e.id)
+                edges[e.id] = {length: e.length, surfaces: {}, v0: e.v0, v1: e.v1}
+              end
+              unless edges[e.id][:surfaces].has_key?(id)
+                edges[e.id][:surfaces][id] = wire.id
+              end
+            end
+          end
+        end
+      end
+    end
+
     os_model = OpenStudio::Model::Model.new
     os_g = OpenStudio::Model::Space.new(os_model) # gallery "g" & elevator "e"
     os_g.setName("scrigno_gallery")
@@ -346,7 +491,7 @@ RSpec.describe TBD do
     os_g_floor.setOutsideBoundaryCondition("Space")
 
 
-    # 2nd space: plenum (p) with stariwell (s) surfaces
+    # 2nd space: plenum (p) with stairwell (s) surfaces
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 17.4, 40.2, 44.0) # 10.4m
     os_v << OpenStudio::Point3d.new( 17.4, 29.8, 44.0) # 36.6m
@@ -383,7 +528,7 @@ RSpec.describe TBD do
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 28.0, 29.8, 44.0) #   1.60m
-    os_v << OpenStudio::Point3d.new( 28.0, 29.8, 42.41) #   2.73m
+    os_v << OpenStudio::Point3d.new( 28.0, 29.8, 42.4) #   2.73m
     os_v << OpenStudio::Point3d.new( 30.7, 29.8, 42.0) #  10.00m
     os_v << OpenStudio::Point3d.new( 40.7, 29.8, 42.0) #  13.45m
     os_v << OpenStudio::Point3d.new( 54.0, 29.8, 44.0) #  25.00m
@@ -502,429 +647,308 @@ RSpec.describe TBD do
     # create the Topolys Model
     t_model = Topolys::Model.new
 
-    # Fetch OpenStudio planar surfaces & key attributes
+    # Fetch OpenStudio (opaque) surfaces & key attributes
+    # puts OpenStudio::Model::Surface::validSurfaceTypeValues
     surfaces = {}
-    os_model.getPlanarSurfaces.each do |planar|
-      next if planar.planarSurfaceGroup.empty?
-      group = planar.planarSurfaceGroup.get
-      id = planar.nameString
+    os_model.getSurfaces.each do |s|
+      next if s.space.empty? # TBD ignores orphaned surfaces; log warning?
+      space = s.space.get
+      id = s.nameString
 
       # site transformation & rotation
-      t = group.siteTransformation
-      r = group.directionofRelativeNorth + os_model.getBuilding.northAxis
-
-      # shading surface groups may also be linked to (rotated) spaces
-      shading = group.to_ShadingSurfaceGroup
-      unless shading.empty?
-        unless shading.get.space.empty?
-          r += shading.get.space.get.directionofRelativeNorth
-        end
-      end
+      t, r = transforms(os_model, space)
 
       # Site-specific (or absolute, or true) surface normal, here only for
       # temporary testing of Topolys equivalence (in absolute coordinates).
-      n = OpenStudio::Vector3d.new(planar.outwardNormal.x * Math.cos( r ) -
-                                   planar.outwardNormal.y * Math.sin( r ), # x
-                                   planar.outwardNormal.x * Math.sin( r ) +
-                                   planar.outwardNormal.y * Math.cos( r ), # y
-                                   planar.outwardNormal.z )                # z
+      n = trueNormal(s, r)
 
-      points = (t*planar.vertices).map{|v| Topolys::Point3D.new(v.x, v.y, v.z)}
-      minz = (points.map{|p| p.z}).min
+      type = :floor
+      type = :ceiling if /ceiling/i.match(s.surfaceType)
+      type = :wall if /wall/i.match(s.surfaceType)
 
-      # Default values (some for short-term testing)
-      #
-      # type: initially e.g. "OS_Surface", "OS_SubSurface", "OS_ShadingSurface"
-      # interior partition surfaces (e.g. daylight shelves) are ignored
-      type      = planar.iddObjectType.valueName
-      ground    = false
-      boundary  = nil
-      dad       = nil
-      shade     = false
-      space     = nil
-      sort      = 9
+      ground = s.isGroundSurface
+      boundary = s.outsideBoundaryCondition
 
-      # reset some values ...
-      surface = planar.to_Surface
-      unless surface.empty?
-        surface = surface.get
-        type = surface.surfaceType
-        if /floor/i.match(type)
-          type = "floor"
-          sort = 0
-        elsif /ceiling/i.match(type)
-          type = "ceiling"
-          sort = 1
-        elsif /wall/i.match(type)
-          type = "wall"
-          sort = 2
-        end
-        ground = surface.isGroundSurface
-        boundary = surface.outsideBoundaryCondition
-        space = group
-      end
-      sub = planar.to_SubSurface
-      unless sub.empty?
-        sub = sub.get
-        type = sub.subSurfaceType
-        if /door/i.match(type)
-          sort = 3
-        elsif /window/i.match(type)
-          sort = 4
-        else # may need to further distinguish between subsurface types
-          sort = 5
-        end
-        type = "subsurface"
-        boundary = sub.outsideBoundaryCondition
-        dad = sub.surface.get.nameString unless sub.surface.empty?
-        space = group
-      end
-      shading = planar.to_ShadingSurface
-      unless shading.empty?
-        shading = shading.get
-        type = "shading"
-        sort = 9
-        shade = true
-      end
+      points = (t * s.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
+      minz = (points.map{ |p| p.z }).min
 
-      # this content of the hash will evolve over the next few iterations
+      # content of the hash will evolve over the next few iterations
       surfaces[id] = {
         type:     type,
         ground:   ground,
         boundary: boundary,
-        dad:      dad,
-        shade:    shade,
         space:    space,
-        gross:    planar.grossArea,
-        net:      planar.netArea,
+        gross:    s.grossArea,
+        net:      s.netArea,
         points:   points,
         minz:     minz,
-        sort:     sort
+        n:        n
       }
-    end # surfaces populated
+    end # (opaque) surfaces populated
 
-    # sort surfaces before adding to Topolys
-    s = surfaces.sort_by{ |id, properties| properties[:sort] }.to_h
+    # Fetch OpenStudio subsurfaces & key attributes
+    # puts OpenStudio::Model::SubSurface::validSubSurfaceTypeValues
+    os_model.getSubSurfaces.each do |s|
+      next if s.space.empty?    # TBD ignores orphaned subs; log warning?
+      next if s.surface.empty?  # TBD ignores orphaned subs; log warning?
+      space = s.space.get
+      dad = s.surface.get.nameString
+      id = s.nameString
 
-    # add a Topolys Face for each OpenStudio Surface
-    s.each do |id, properties|
-      vertices = t_model.get_vertices(properties[:points])
-      wire = t_model.get_wire(vertices)
-      face = t_model.get_face(wire, [])
-      face.attributes[:name] = id         # reference OpenStudio surface
-      face.attributes[:type] = properties[:type]
-      properties[:face] = face            # reference Topolys face
+      # site transformation & rotation
+      t, r = transforms(os_model, space)
+      n = trueNormal(s, r)
+
+      type = :skylight
+      type = :window if /window/i.match(s.subSurfaceType)
+      type = :door if /door/i.match(s.subSurfaceType)
+
+      points = (t * s.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
+      minz = (points.map{ |p| p.z }).min
+
+      # For every kid, there's a dad somewhere ...
+      surfaces.each do |identifier, properties|
+        if identifier == dad
+          sub = { points: points, minz: minz, n: n }
+          if type == :window
+            properties[:windows] = {} unless properties.has_key?(:windows)
+            properties[:windows][id] = sub
+          elsif type == :door
+            properties[:doors] = {} unless properties.has_key?(:doors)
+            properties[:doors][id] = sub
+          else # skylight
+            properties[:skylights] = {} unless properties.has_key?(:skylights)
+            properties[:skylights][id] = sub
+          end
+        end
+      end
+    end # (opaque) surface "dads" populated with subsurface "kids"
+
+    # Sort kids
+    surfaces.values.each do |p|
+      if p.has_key?(:windows)
+        p[:windows] = p[:windows].sort_by{ |_, pp| pp[:minz] }.to_h
+      end
+      if p.has_key?(:doors)
+        p[:doors] = p[:doors].sort_by{ |_, pp| pp[:minz] }.to_h
+      end
+      if p.has_key?(:skylights)
+        p[:skylights] = p[:skylights].sort_by{ |_, pp| pp[:minz] }.to_h
+      end
     end
 
-    # Under normal circumstances, there should be a one-to-one correspondance
-    # between OpenStudio & Topolys sur/faces. In other cases, such as a
-    # subsurface taking up all of the exposed area of its (opaque) parent
-    # (i.e. a fully glazed wall or fully glazed ceiling), Topolys will remove
-    # overlapped faces with more recent entries, hence the importance of the
-    # 'sort' order. In such circumstances, the overlapped OpenStudio surface
-    # acts as a virtual placeholder to accomodate the child subsurface, and as
-    # such plays no role in the EnergyPlus simulation itself.
+    expect(surfaces["g_top"   ].has_key?(:windows  )).to be(false)
+    expect(surfaces["g_top"   ].has_key?(:doors    )).to be(false)
+    expect(surfaces["g_top"   ].has_key?(:skylights)).to be(true)
 
-    # In the Scrigno model, the art gallery roof is entirely glazed (and so
-    # the gallery roof should not exist in the Topolys model). In the 'surfaces'
-    # hash here, both gallery roof (g_top) and skylight (g_sky) reference the
-    # same Topolys face, i.e. the skylight.
+    expect(surfaces["g_top"   ][:skylights].size).to eq(1)
+    expect(surfaces["g_S_wall"][:doors    ].size).to eq(1)
+    expect(surfaces["g_N_wall"][:doors    ].size).to eq(1)
 
-    # number of OpenStudio surfaces VS number of Topolys faces
-    expect(surfaces.size).to eq(36)
-    expect(t_model.faces.size).to eq(35)
+    expect(surfaces["g_top"   ][:skylights].has_key?("g_sky"   )).to be(true)
+    expect(surfaces["g_S_wall"][:doors    ].has_key?("g_S_door")).to be(true)
+    expect(surfaces["g_N_wall"][:doors    ].has_key?("g_N_door")).to be(true)
 
-    # The gallery roof in the OpenStudio model ...
-    expect(s.has_key?("g_top")).to be(true)
+    expect(surfaces["g_top"   ].has_key?(:type)).to be(true)
 
-    identifiers = {}
-    s.each do |id, properties| identifiers[properties[:face].id] = id; end
-    expect(identifiers.size).to eq(35)
+    # Split "surfaces" hash into "floors", "ceilings" and "walls" hashes
+    floors = surfaces.select{ |i, p| p[:type] == :floor }
+    floors = floors.sort_by{ |i, p| [p[:minz], p[:space]] }.to_h
+    expect(floors.size).to eq(7)
 
-    # ... while missing as a Topolys face, i.e. the gallery roof
-    expect(identifiers.has_value?("g_top")).to be(false)
-    expect(surfaces["g_top"][:face] == surfaces["g_sky"][:face]).to be(true)
+    ceilings = surfaces.select{ |i, p| p[:type] == :ceiling }
+    ceilings = ceilings.sort_by{ |i, p| [p[:minz], p[:space]] }.to_h
+    expect(ceilings.size).to eq(3)
 
-    #s.each do |id, properties|
-    #  puts "#{id}:
-    #  #{properties[:face].id}
-    #  #{properties[:face].attributes[:name]}
-    #  #{properties[:face].attributes[:type]}"
-    #end
+    walls = surfaces.select{|i, p| p[:type] == :wall }
+    walls = walls.sort_by{ |i, p| [p[:minz], p[:space]] }.to_h
+    expect(walls.size).to eq(17)
 
-    # There are several ways to handle virtual parent surfaces, e.g. removing
-    # them altogether from the "surfaces" hash. Another would be to simply
-    # check if any "dad" VS "child" pair point to the same Topolys face - if so,
-    # ignore "dad". The orphaned subsurface can only share edges (thermal
-    # bridges) with neighbouring surfaces.
+    # Remove ":type" (now redundant)
+    surfaces.values.each do |p| p.delete_if { |ii, _| ii == :type }; end
 
-    # --------------
+    # Fetch OpenStudio shading surfaces & key attributes
+    shades = {}
+    os_model.getShadingSurfaces.each do |s|
+      next if s.shadingSurfaceGroup.empty? # ignoring orphaned shades ... log?
+       group = s.shadingSurfaceGroup.get
+       id = s.nameString
 
-    # the following breaks from the preceding model (look for 'X' suffixes
-    # as an indication of cloned objects from the preceding example).
+       # site transformation & rotation
+       t, r = transforms(os_model, group)
 
-    os_modelX = OpenStudio::Model::Model.new
-    os_X = OpenStudio::Model::Space.new(os_modelX)
-    os_sX = OpenStudio::Model::ShadingSurfaceGroup.new(os_modelX)
+       # shading surface groups may also be linked to (rotated) spaces
+       shading = group.to_ShadingSurfaceGroup
+       unless shading.empty?
+         unless shading.get.space.empty?
+           r += shading.get.space.get.directionofRelativeNorth
+         end
+       end
+       n = trueNormal(s, r)
 
-    # Split gallery floor into 2 distinct floor slabs. Their common,
-    # horizontal edge should (in principle) meet the longer North-facing
-    # wall at its midpoint.
-    os_v = OpenStudio::Point3dVector.new
-    os_v << OpenStudio::Point3d.new( 17.4, 29.8, 44.0)
-    os_v << OpenStudio::Point3d.new( 17.4, 40.2, 44.0)
-    os_v << OpenStudio::Point3d.new( 35.7, 40.2, 44.0)
-    os_v << OpenStudio::Point3d.new( 35.7, 29.8, 44.0)
-    os_floorX1 = OpenStudio::Model::Surface.new(os_v, os_modelX)
-    os_floorX1.setName("floorX1")
-    os_floorX1.setSpace(os_X)
+       points = (t * s.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
+       minz = (points.map{ |p| p.z }).min
 
-    os_v = OpenStudio::Point3dVector.new
-    os_v << OpenStudio::Point3d.new( 35.7, 29.8, 44.0)
-    os_v << OpenStudio::Point3d.new( 35.7, 40.2, 44.0)
-    os_v << OpenStudio::Point3d.new( 54.0, 40.2, 44.0)
-    os_v << OpenStudio::Point3d.new( 54.0, 29.8, 44.0)
-    os_floorX2 = OpenStudio::Model::Surface.new(os_v, os_modelX)
-    os_floorX2.setName("floorX2")
-    os_floorX2.setSpace(os_X)
+       shades[id] = {
+         group:  group,
+         points: points,
+         minz:   minz,
+         n:      n
+       }
+    end # shading surfaces populated
+    expect(shades.size).to eq(6)
 
-    os_v = OpenStudio::Point3dVector.new
-    os_v << OpenStudio::Point3d.new( 54.0, 40.2, 49.5)
-    os_v << OpenStudio::Point3d.new( 54.0, 40.2, 44.0)
-    os_v << OpenStudio::Point3d.new( 17.4, 40.2, 44.0)
-    os_v << OpenStudio::Point3d.new( 17.4, 40.2, 49.5)
-    os_N_wallX = OpenStudio::Model::Surface.new(os_v, os_modelX)
-    os_N_wallX.setName("N_wallX")
-    os_N_wallX.setSpace(os_X)
+    # Mutually populate TBD & Topolys surfaces. Keep track of created "holes".
+    holes = {}
+    floor_holes = populateTBDdads(t_model, floors)
+    ceiling_holes = populateTBDdads(t_model, ceilings)
+    wall_holes = populateTBDdads(t_model, walls)
 
-    #os_v = OpenStudio::Point3dVector.new
-    #os_v << OpenStudio::Point3d.new( 54.0, 40.2, 44.0)
-    #os_v << OpenStudio::Point3d.new( 54.0, 41.2, 44.0)
-    #os_v << OpenStudio::Point3d.new( 17.4, 41.2, 49.5)
-    #os_v << OpenStudio::Point3d.new( 17.4, 40.2, 49.5)
-    #os_N_shadeX = OpenStudio::Model::ShadingSurface.new(os_v, os_modelX)
-    #os_N_shadeX.setName("N_shadeX")
-    #os_N_shadeX.setShadingSurfaceGroup(os_sX)
+    holes.merge!(floor_holes)
+    holes.merge!(ceiling_holes)
+    holes.merge!(wall_holes)
 
-    os_v = OpenStudio::Point3dVector.new
-    os_v << OpenStudio::Point3d.new( 47.4, 40.2, 49.5)
-    os_v << OpenStudio::Point3d.new( 47.4, 40.2, 44.0)
-    os_v << OpenStudio::Point3d.new( 46.4, 40.2, 44.0)
-    os_v << OpenStudio::Point3d.new( 46.4, 40.2, 49.5)
-    os_N_doorX = OpenStudio::Model::SubSurface.new(os_v, os_modelX)
-    os_N_doorX.setName("N_doorX")
-    os_N_doorX.setSubSurfaceType("Door")
-    os_N_doorX.setSurface(os_N_wallX)
+    expect(floor_holes.size).to eq(0)
+    expect(ceiling_holes.size).to eq(1)
+    expect(wall_holes.size).to eq(2)
+    expect(holes.size).to eq(3)
 
-    t_modelX = Topolys::Model.new
+    # Testing normals
+    floors.values.each do |properties|
+      t_x = properties[:face].outer.plane.normal.x
+      t_y = properties[:face].outer.plane.normal.y
+      t_z = properties[:face].outer.plane.normal.z
 
-    surfaceX = {}
-    os_modelX.getPlanarSurfaces.each do |planar|
-      next if planar.planarSurfaceGroup.empty?
-      group = planar.planarSurfaceGroup.get
-      id = planar.nameString
-      t = group.siteTransformation
-      r = group.directionofRelativeNorth + os_model.getBuilding.northAxis
-      shading = group.to_ShadingSurfaceGroup
-      unless shading.empty?
-        unless shading.get.space.empty?
-          r += shading.get.space.get.directionofRelativeNorth
-        end
-      end
-      points = (t*planar.vertices).map{|v| Topolys::Point3D.new(v.x, v.y, v.z)}
-      minz = (points.map{|p| p.z}).min
-
-      type      = planar.iddObjectType.valueName
-      ground    = false
-      boundary  = nil
-      dad       = nil
-      shade     = false
-      space     = nil
-      sort      = 9
-
-      surface = planar.to_Surface
-      unless surface.empty?
-        surface = surface.get
-        type = surface.surfaceType
-        if /floor/i.match(type)
-          sort = 0
-        elsif /ceiling/i.match(type)
-          sort = 1
-        elsif /wall/i.match(type)
-          sort = 2
-        end
-        ground = surface.isGroundSurface
-        boundary = surface.outsideBoundaryCondition
-      end
-      sub = planar.to_SubSurface
-      unless sub.empty?
-        sub = sub.get
-        type = sub.subSurfaceType
-        if /door/i.match(type)
-          sort = 3
-        elsif /window/i.match(type)
-          sort = 4
-        else # may need to further distinguish between subsurface types
-          sort = 5
-        end
-        boundary = sub.outsideBoundaryCondition
-        dad = sub.surface.get.nameString unless sub.surface.empty?
-      end
-      shading = planar.to_ShadingSurface
-      unless shading.empty?
-        shading = shading.get
-        type = "shading"
-        sort = 9
-        shade = true
-      end
-
-      surfaceX[id] = {
-        type:     type,
-        ground:   ground,
-        boundary: boundary,
-        dad:      dad,
-        shade:    shade,
-        space:    space,
-        gross:    planar.grossArea,
-        net:      planar.netArea,
-        points:   points,
-        minz:     minz,
-        sort:     sort
-      }
+      expect(properties[:n].x).to be_within(0.001).of(t_x)
+      expect(properties[:n].y).to be_within(0.001).of(t_y)
+      expect(properties[:n].z).to be_within(0.001).of(t_z)
     end
-    sX = surfaceX.sort_by{ |id, properties| properties[:sort] }.to_h
 
-    #sX.each do |id, properties|
-    #  vertices = t_modelX.get_vertices(properties[:points])
-    #  wire = t_modelX.get_wire(vertices)
-    #  face = t_modelX.get_face(wire, [])
-    #  face.attributes[:name] = id         # reference OpenStudio surface
-    #  properties[:face] = face            # reference Topolys face
-    #end
+    # OpenStudio (opaque) surfaces VS number of Topolys (opaque) faces
+    expect(surfaces.size).to eq(27)
+    expect(t_model.faces.size).to eq(27)
 
-    # "N_wallX"
-    # "N_shadeX"
-    # "N_doorX"
+    populateTBDdads(t_model, shades)
+    expect(t_model.faces.size).to eq(33)
 
-    # Shading
-#    v_N_shadeX = t_modelX.get_vertices(sX["N_shadeX"][:points])
-#    wire_N_shadeX = t_modelX.get_wire(v_N_shadeX)
-#    face_N_shadeX = t_modelX.get_face(wire_N_shadeX, [])
+    # Demo : Shared edges between an (opaque) Topolys face (outer edges) and
+    # one of its kids' (holes)' edges are the same Ruby and Topolys objects
+    # Good. Care should nonetheless be taken in TBD to avoid derating faces
+    # with 'outer' edges shared with their kids.
+    # ceilings.values.each do |properties|
+    #   if properties.has_key?(:skylights)
+    #     properties[:face].outer.edges.each do |e|
+    #       puts e.id
+    #     end
+    #     properties[:face]
+    #     properties[:face].holes.each do |h|
+    #       h.edges.each do |e|
+    #         puts e.id
+    #       end
+    #     end
+    #   end
+    # end
 
-    # ----------------------
+    # Loop through Topolys edges and populate TBD edge hash. Initially, there
+    # should be a one-to-one correspondence between Topolys and TBD edge
+    # objects. TBD edges shared only by non-deratble surfaces (e.g. 2x interior
+    # walls, or outer edges of shadng surfaces) will either be removed from the
+    # hash, or ignored (on the fence right now). Use Topolys-generated
+    # identifiers as unique edge hash keys.
+    edges = {}
 
-    # The following is an attempt to fetch (split) shared edges between
-    # the 2x floor slabs and the (longer) North-facing wall. I have
-    # commented out all other tests for now.
-
-    # trying with 'holes'
-    #holes_N_wallX = []
-
-    # North-facing door as hole
-    #v_N_doorX_hole = t_modelX.get_vertices(sX["N_doorX"][:points].reverse)
-    #hole_N_doorX = t_modelX.get_wire(v_N_doorX_hole)
-    #holes_N_wallX << hole_N_doorX
-
-    # Floor1 vertices/wire/face
-    v_floorX1 = t_modelX.get_vertices(sX["floorX1"][:points])
-    wire_floorX1 = t_modelX.get_wire(v_floorX1)
-    face_floorX1 = t_modelX.get_face(wire_floorX1, [])
-
-    # Floor2 vertices/wire/face
-    v_floorX2 = t_modelX.get_vertices(sX["floorX2"][:points])
-    wire_floorX2 = t_modelX.get_wire(v_floorX2)
-    face_floorX2 = t_modelX.get_face(wire_floorX2, [])
-
-    # North facing (parent) wall vertices/wire/face
-    v_N_wallX = t_modelX.get_vertices(sX["N_wallX"][:points])
-    wire_N_wallX = t_modelX.get_wire(v_N_wallX)
-    face_N_wallX = t_modelX.get_face(wire_N_wallX, [])
-
-    # North-facing door as face
-    #v_N_doorX = t_modelX.get_vertices(sX["N_doorX"][:points])
-    #wire_N_doorX = t_modelX.get_wire(v_N_doorX)
-    #face_N_doorX = t_modelX.get_face(wire_N_doorX, [])
-
-    #face_N_wallX.outer.edges.each do |edge|
-    #  puts "#{edge.length}"
-    #  shared_edges = face_N_wallX.shared_outer_edges(face_N_doorX)
-    #  if shared_edges
-    #    if !shared_edges.empty?
-    #      puts shared_edges
-    #    else
-    #      puts "empty!"
-    #    end
-    #  else
-    #    puts "nilled!"
-    #  end
-    #end
-    #puts
-
-    #face_N_wallX.outer.edges.each do |e|
-    #  puts e.length
-    #end
-
-    shared_edges = face_N_wallX.shared_outer_edges(face_floorX1)
-    if shared_edges
-      if !shared_edges.empty?
-        shared_edges.each do |e|
-          puts "N_wallX shares with floorX1 an edge of length #{e.length}"
+    # start with hole edges
+    holes.each do |id, wire|
+      wire.edges.each do |e|
+        unless edges.has_key?(e.id)
+          edges[e.id] = {length: e.length, surfaces: {}}
         end
-      else
-        # I get this ... if the floor were as wide as the wall, no problem.
-        # How can I get Topolys to split the wall edge into 2?
-        puts "empty!"
+        unless edges[e.id][:surfaces].has_key?(wire.attributes[:id])
+          edges[e.id][:surfaces][wire.attributes[:id]] = wire.id
+        end
       end
-    else
-      puts "nilled!"
+    end
+    expect(edges.size).to eq(12)
+
+    # next, floors, ceilings & walls; then shades
+    tbdSurfaceEdges(floors, edges)
+    expect(edges.size).to eq(46)
+
+    tbdSurfaceEdges(ceilings, edges)
+    expect(edges.size).to eq(50)
+
+    tbdSurfaceEdges(walls, edges)
+    expect(edges.size).to eq(69)
+
+    tbdSurfaceEdges(shades, edges)
+    expect(edges.size).to eq(91)
+    expect(t_model.edges.size).to eq(91)
+
+    edges.each do |id, properties|
+      if properties[:surfaces].size > 1 && properties[:length] > 10.5 && properties[:length] < 10.7
+        puts "edge length :  #{properties[:length]} ... there shouldn't be a 10.6m edge"
+        puts "v0:(#{properties[:v0].point.x},#{properties[:v0].point.y},#{properties[:v0].point.z})"
+        puts "v1:(#{properties[:v1].point.x},#{properties[:v1].point.y},#{properties[:v1].point.z})"
+        properties[:surfaces].each do |i, s|
+          puts "... connected to #{i}:"
+        end
+        puts "... g_S_wall should have split the edge :"
+        walls["g_S_wall"][:face].outer.edges.each do |oe|
+          puts "... ... v0:(#{oe.v0.point.x},#{oe.v0.point.y},#{oe.v0.point.z}) v1:(#{oe.v1.point.x},#{oe.v1.point.y},#{oe.v1.point.z})"
+        end
+        puts "... e_W_wall should have split or inherited the edge :"
+        puts "(in this case, I understand we're asking Topolys to identify edge"
+        puts "intersections, regardless of the presence of edges)"
+        walls["e_W_wall"][:face].outer.edges.each do |oe|
+          puts "... ... v0:(#{oe.v0.point.x},#{oe.v0.point.y},#{oe.v0.point.z}) v1:(#{oe.v1.point.x},#{oe.v1.point.y},#{oe.v1.point.z})"
+        end
+      end
     end
     puts
 
-    #shared_edges = face_floorX1.shared_outer_edges(face_N_doorX)
-    #if shared_edges
-    #  if !shared_edges.empty?
-    #    shared_edges.each do |e|
-    #      puts "floorX1 shares with N_doorX an edge of length #{e.length}"
-    #    end
-    #  else
-    #    puts "empty!"
-    #  end
-    #else
-    #  puts "nilled!"
-    #end
-    #puts
+    edges.each do |id, properties|
+      if properties[:surfaces].size > 1 && properties[:length] > 1.5 && properties[:length] < 1.7
+        puts "edge length : #{properties[:length]}"
+        puts "v0:(#{properties[:v0].point.x},#{properties[:v0].point.y},#{properties[:v0].point.z})"
+        puts "v1:(#{properties[:v1].point.x},#{properties[:v1].point.y},#{properties[:v1].point.z})"
+        properties[:surfaces].each do |i, s|
+          puts "... connected to #{i}:"
+        end
+        puts "... e_E_wall should be connected :"
+        walls["e_E_wall"][:face].outer.edges.each do |oe|
+          puts "... ... v0:(#{oe.v0.point.x},#{oe.v0.point.y},#{oe.v0.point.z}) v1:(#{oe.v1.point.x},#{oe.v1.point.y},#{oe.v1.point.z})"
+        end
+      end
+    end
+    puts
 
-    #face_N_doorX.outer.edges.each do |edge|
-    #  puts "#{edge.length}"
-    #  shared_edges = face_N_doorX.shared_outer_edges(face_N_wallX)
-    #  if shared_edges
-    #    if !shared_edges.empty?
-    #      puts shared_edges
-    #    else
-    #      puts "empty!"
-    #    end
-    #  else
-    #    puts "nilled!"
-    #  end
-    #end
+    edges.each do |id, properties|
+      if properties[:surfaces].size > 1 &&
+         properties[:length] > 3.9 &&
+         properties[:length] < 4.1 &&
+         properties[:v0].point.z < 44.1 &&
+         properties[:v0].point.z > 43.9
+        puts "edge length : #{properties[:length]}"
+        puts "v0:(#{properties[:v0].point.x},#{properties[:v0].point.y},#{properties[:v0].point.z})"
+        puts "v1:(#{properties[:v1].point.x},#{properties[:v1].point.y},#{properties[:v1].point.z})"
+        properties[:surfaces].each do |i, s|
+          puts "... connected to #{i}:"
+        end
+        puts "... g_floor should be connected :"
+        floors["g_floor"][:face].outer.edges.each do |oe|
+          puts "... ... v0:(#{oe.v0.point.x},#{oe.v0.point.y},#{oe.v0.point.z}) v1:(#{oe.v1.point.x},#{oe.v1.point.y},#{oe.v1.point.z})"
+        end
+        puts "... and its mirror p_top should be connected :"
+        ceilings["p_top"][:face].outer.edges.each do |oe|
+          puts "... ... v0:(#{oe.v0.point.x},#{oe.v0.point.y},#{oe.v0.point.z}) v1:(#{oe.v1.point.x},#{oe.v1.point.y},#{oe.v1.point.z})"
+        end
+      end
+    end
 
-    #face_N_doorX.outer.edges.each do |edge|
-    #  puts "#{edge.length}"
-    #  shared_edges = face_N_doorX.shared_outer_edges(face_floorX)
-    #  if shared_edges
-    #    if !shared_edges.empty?
-    #      puts shared_edges
-    #    else
-    #      puts "empty!"
-    #    end
-    #  else
-    #    puts "nilled!"
-    #  end
-    #send
-
-    #identifierX = {}
-    #sX.each do |id, properties| identifierX[properties[:face].id] = id; end
-    #puts identifierX.keys
+    # 3. (TEST)
+    # 4. POPULATE EDGES WITH ASSOCIATED HOLES AND FACES (OBJECTS)
+    # 5. ASSIGN PSI KEYWORDS
+    # 6. DERATE
   end
 
 end
