@@ -144,10 +144,13 @@ RSpec.describe TBD do
           properties[:face].wires.each do |wire|
             wire.edges.each do |e|
               unless edges.has_key?(e.id)
-                edges[e.id] = {length: e.length, surfaces: {}, v0: e.v0, v1: e.v1}
+                edges[e.id] = {length: e.length,
+                               v0: e.v0,
+                               v1: e.v1,
+                               surfaces: {}}
               end
               unless edges[e.id][:surfaces].has_key?(id)
-                edges[e.id][:surfaces][id] = wire.id
+                edges[e.id][:surfaces][id] = {wire: wire.id}
               end
             end
           end
@@ -863,10 +866,13 @@ RSpec.describe TBD do
     holes.each do |id, wire|
       wire.edges.each do |e|
         unless edges.has_key?(e.id)
-          edges[e.id] = {length: e.length, surfaces: {}}
+          edges[e.id] = { length: e.length,
+                          v0: e.v0,
+                          v1: e.v1,
+                          surfaces: {} }
         end
         unless edges[e.id][:surfaces].has_key?(wire.attributes[:id])
-          edges[e.id][:surfaces][wire.attributes[:id]] = wire.id
+          edges[e.id][:surfaces][wire.attributes[:id]] = { wire: wire.id }
         end
       end
     end
@@ -932,10 +938,156 @@ RSpec.describe TBD do
       expect(p_top_edge).to be_truthy
     end
 
-    # 3. (TEST)
-    # 4. POPULATE EDGES WITH ASSOCIATED HOLES AND FACES (OBJECTS)
-    # 5. ASSIGN PSI KEYWORDS
-    # 6. DERATE
-  end
+    expect(floors.size).to eq(7)
+    expect(ceilings.size).to eq(3)
+    expect(walls.size).to eq(17)
+    expect(shades.size).to eq(6)
 
+    # Thermal bridging characteristics of edges are determined - in part - by
+    # relative polar position of linked surfaces (or wires) around each edge.
+    # This characterization is key in distinguishing concave from convex edges.
+
+    # For each linked surface (or rather surface wires), set polar position
+    # around edge with respect to a reference vector (perpendicular to the
+    # edge), clockwise as one is looking in the opposite position of the edge
+    # vector. For instance, a vertical edge has a reference vector pointing
+    # North - surfaces eastward of the edge are (0°,180°], while surfaces
+    # westward of the edge are (180°,360°].
+
+    # Much of the following code is of a topological nature, and should ideally
+    # (or eventually) become available functionality offered by Topolys.
+    edges.each do |e_id, edge|
+      zenith      = Topolys::Vector3D.new(0, 0, 1).freeze
+      north       = Topolys::Vector3D.new(0, 1, 0).freeze
+      east        = Topolys::Vector3D.new(1, 0, 0).freeze
+      origin      = edge[:v0].point
+      terminal    = edge[:v1].point
+
+      # inversion required to set edge plane reference
+      horizontal  = false
+      horizontal  = true if (origin.z - terminal.z).abs < 0.0001
+      vertical    = false
+      vertical    = true if (origin.x - terminal.x).abs < 0.0001 &&
+                            (origin.y - terminal.y).abs < 0.0001
+      invert      = false
+
+      if vertical
+        invert = true if origin.z > terminal.z
+      else
+        invert = true if origin.y > terminal.y
+      end
+
+      if invert
+        origin    = terminal
+        terminal  = edge[:v0].point
+      end
+
+      northerly   = false
+      easterly    = false
+      southerly   = false
+      westerly    = false
+      northerly   = true if origin.y < terminal.y
+      easterly    = true if origin.x < terminal.x
+      southerly   = true if origin.y > terminal.y
+      westerly    = true if origin.x > terminal.x
+
+      edge_V = terminal - origin
+      edge_plane = Topolys::Plane3D.new(origin, edge_V)
+
+      if vertical
+        reference_V = north.dup
+      elsif horizontal
+        reference_V = zenith.dup
+      else # project zenith vector unto edge plane
+        reference = edge_plane.project(origin + zenith)
+        reference_V = reference - origin
+      end
+
+      edge[:surfaces].each do |id, surface|
+        # loop through each linked wire and determine farthest point from
+        # edge while ensuring candidate point is not aligned with edge
+        t_model.wires.each do |wire|
+          if surface[:wire] == wire.id # there should be a unique match
+            farthest = Topolys::Point3D.new(origin.x,origin.y, origin.z)
+            farthest_V = farthest - origin # zero magnitude, initially
+
+            wire.points.each do |point|
+              point_on_plane = edge_plane.project(point)
+              origin_point_V = point_on_plane - origin
+              point_V_magnitude = origin_point_V.magnitude
+              next unless point_V_magnitude > 0.01
+
+              if point_V_magnitude > farthest_V.magnitude
+                farthest = point
+                farthest_V = origin_point_V
+              end
+            end
+
+            angle = edge_V.angle(farthest_V)
+            expect(angle).to be_within(0.01).of(Math::PI / 2) # testing
+
+            angle = reference_V.angle(farthest_V)
+
+            # adjust angle [180°, 360°] if necessary
+            adjust = false
+
+            if vertical
+              adjust = true if east.dot(farthest_V) < 0.01
+            else
+              if northerly
+                if easterly
+                  adjust = true if north.dot(farthest_V) < -0.01
+                elsif westerly
+                  adjust = true if north.dot(farthest_V) > 0.01
+                else # facing straight North
+                  if east.dot(farthest_V) > 0.01
+                    #puts "#{edge[:length]}:#{angle} - TRUE NORTH" if id == "p_W2_floor"
+                    adjust = true
+                  else
+                    # this is what happens with u-shaped surfaces ... farthest is meaningless
+                    # check if points are all on one side of the edge or not ... if not, fucked
+                    # puts "#{edge[:length]}:#{angle} - FALSE NORTH" if id == "p_W2_floor"
+                  end
+                end
+              elsif southerly
+                if easterly
+                  adjust = true if north.dot(farthest_V) < -0.01
+                elsif westerly
+                  adjust = true if north.dot(farthest_V) > 0.01
+                else # facing straight South
+                  if east.dot(farthest_V) < -0.01
+                    #puts "#{edge[:length]}:#{angle} - TRUE SOUTH" if id == "p_W2_floor"
+                    adjust = true
+                  else
+                    #puts "#{edge[:length]}:#{angle} - FALSE SOUTH" if id == "p_W2_floor"
+                  end
+                end
+              elsif easterly # facing straight East
+                adjust = true if north.dot(farthest_V) < -0.01
+              else # Westerly - should not occur if horizontal
+                adjust = true if north.dot(farthest_V) > 0.01
+              end
+            end
+
+            angle = 2 * Math::PI - angle if adjust
+
+            # store angle
+            surface[:angle] = angle
+          end # not sure if it's worth checking matching id's ...
+        end # end of edge-linked linked surface-to-wire loop
+      end # end of edge-linked surface loop
+    end # end of edge loop
+
+    # test edge surface polar angles
+    edges.values.each do |edge|
+      if edge[:surfaces].size > 1
+        #puts "edge of (#{edge[:length]}m) is linked to #{edge[:surfaces].size}:"
+        edge[:surfaces].each do |i, surface|
+          #puts "... #{i} : #{surface[:angle]}"
+        end
+      end
+      expect(edges.size).to eq(89)
+      expect(t_model.edges.size).to eq(89)
+    end
+  end
 end
