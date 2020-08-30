@@ -874,17 +874,17 @@ RSpec.describe TBD do
 
     # next, floors, ceilings & walls; then shades
     tbdSurfaceEdges(floors, edges)
-    expect(edges.size).to eq(46)
+    expect(edges.size).to eq(47)
 
     tbdSurfaceEdges(ceilings, edges)
-    expect(edges.size).to eq(50)
+    expect(edges.size).to eq(51)
 
     tbdSurfaceEdges(walls, edges)
-    expect(edges.size).to eq(69)
+    expect(edges.size).to eq(67)
 
     tbdSurfaceEdges(shades, edges)
-    expect(edges.size).to eq(91)
-    expect(t_model.edges.size).to eq(91)
+    expect(edges.size).to eq(89)
+    expect(t_model.edges.size).to eq(89)
 
     edges.each do |id, properties|
       if properties[:surfaces].size > 1 && properties[:length] > 10.5 && properties[:length] < 10.7
@@ -927,15 +927,15 @@ RSpec.describe TBD do
 
     shared_edges = p_S2_wall_face.shared_outer_edges(e_p_wall_face)
     expect(shared_edges.size).to eq 1
-    expect(shared_edges.first).to eq intersection.to_a.first
+    expect(shared_edges.first.id).to eq intersection.to_a.first
 
     shared_edges = p_S2_wall_face.shared_outer_edges(p_e_wall_face)
     expect(shared_edges.size).to eq 1
-    expect(shared_edges.first).to eq intersection.to_a.first
+    expect(shared_edges.first.id).to eq intersection.to_a.first
 
     shared_edges = p_S2_wall_face.shared_outer_edges(e_E_wall_face)
     expect(shared_edges.size).to eq 1
-    expect(shared_edges.first).to eq intersection.to_a.first
+    expect(shared_edges.first.id).to eq intersection.to_a.first
 
     edges.each do |id, properties|
       if properties[:surfaces].size > 1 && properties[:length] > 1.5 && properties[:length] < 1.7
