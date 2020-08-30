@@ -919,10 +919,10 @@ RSpec.describe TBD do
     p_e_wall_edges_ids = Set.new(p_e_wall_face.outer.edges.map{|oe| oe.id})
     e_E_wall_edges_ids = Set.new(e_E_wall_face.outer.edges.map{|oe| oe.id})
 
-    intersection = p_S2_wall_edge_ids & e_p_wall_edges_ids & p_e_wall_edges_ids & e_E_wall_edges_ids
+    intersection = p_S2_wall_edge_ids & e_p_wall_edges_ids & p_e_wall_edges_ids
     expect(intersection.size).to eq 1
 
-    intersection = p_S2_wall_edge_ids & e_p_wall_edges_ids & p_e_wall_edges_ids
+    intersection = p_S2_wall_edge_ids & e_p_wall_edges_ids & p_e_wall_edges_ids & e_E_wall_edges_ids
     expect(intersection.size).to eq 1
 
     shared_edges = p_S2_wall_face.shared_outer_edges(e_p_wall_face)
