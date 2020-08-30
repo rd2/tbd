@@ -644,7 +644,7 @@ RSpec.describe TBD do
     psi = PSI.new
     set = psi.set["poor (BC Hydro)"]
 
-    os_model.save("os_model_test.osm", true)
+    #os_model.save("os_model_test.osm", true)
 
     # create the Topolys Model
     t_model = Topolys::Model.new
