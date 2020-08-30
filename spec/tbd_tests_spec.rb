@@ -644,6 +644,8 @@ RSpec.describe TBD do
     psi = PSI.new
     set = psi.set["poor (BC Hydro)"]
 
+    #os_model.save("os_model_test.osm", true)
+
     # create the Topolys Model
     t_model = Topolys::Model.new
 
@@ -872,17 +874,17 @@ RSpec.describe TBD do
 
     # next, floors, ceilings & walls; then shades
     tbdSurfaceEdges(floors, edges)
-    expect(edges.size).to eq(46)
+    expect(edges.size).to eq(47)
 
     tbdSurfaceEdges(ceilings, edges)
-    expect(edges.size).to eq(50)
+    expect(edges.size).to eq(51)
 
     tbdSurfaceEdges(walls, edges)
-    expect(edges.size).to eq(69)
+    expect(edges.size).to eq(67)
 
     tbdSurfaceEdges(shades, edges)
-    expect(edges.size).to eq(91)
-    expect(t_model.edges.size).to eq(91)
+    expect(edges.size).to eq(89)
+    expect(t_model.edges.size).to eq(89)
 
     edges.each do |id, properties|
       if properties[:surfaces].size > 1 && properties[:length] > 10.5 && properties[:length] < 10.7
@@ -906,6 +908,35 @@ RSpec.describe TBD do
     end
     puts
 
+    # the following surfaces should all share an edge
+    p_S2_wall_face = walls["p_S2_wall"][:face]
+    e_p_wall_face = walls["e_p_wall"][:face]
+    p_e_wall_face = walls["p_e_wall"][:face]
+    e_E_wall_face = walls["e_E_wall"][:face]
+
+    p_S2_wall_edge_ids = Set.new(p_S2_wall_face.outer.edges.map{|oe| oe.id})
+    e_p_wall_edges_ids = Set.new(e_p_wall_face.outer.edges.map{|oe| oe.id})
+    p_e_wall_edges_ids = Set.new(p_e_wall_face.outer.edges.map{|oe| oe.id})
+    e_E_wall_edges_ids = Set.new(e_E_wall_face.outer.edges.map{|oe| oe.id})
+
+    intersection = p_S2_wall_edge_ids & e_p_wall_edges_ids & p_e_wall_edges_ids
+    expect(intersection.size).to eq 1
+
+    intersection = p_S2_wall_edge_ids & e_p_wall_edges_ids & p_e_wall_edges_ids & e_E_wall_edges_ids
+    expect(intersection.size).to eq 1
+
+    shared_edges = p_S2_wall_face.shared_outer_edges(e_p_wall_face)
+    expect(shared_edges.size).to eq 1
+    expect(shared_edges.first.id).to eq intersection.to_a.first
+
+    shared_edges = p_S2_wall_face.shared_outer_edges(p_e_wall_face)
+    expect(shared_edges.size).to eq 1
+    expect(shared_edges.first.id).to eq intersection.to_a.first
+
+    shared_edges = p_S2_wall_face.shared_outer_edges(e_E_wall_face)
+    expect(shared_edges.size).to eq 1
+    expect(shared_edges.first.id).to eq intersection.to_a.first
+
     edges.each do |id, properties|
       if properties[:surfaces].size > 1 && properties[:length] > 1.5 && properties[:length] < 1.7
         puts "edge length : #{properties[:length]}"
@@ -922,6 +953,23 @@ RSpec.describe TBD do
     end
     puts
 
+    # g_floor and p_top should be connected with all edges shared
+    g_floor_face = floors["g_floor"][:face]
+    g_floor_wire = g_floor_face.outer
+    g_floor_edges = g_floor_wire.edges
+    p_top_face = ceilings["p_top"][:face]
+    p_top_wire = p_top_face.outer
+    p_top_edges = p_top_wire.edges
+    shared_edges = p_top_face.shared_outer_edges(g_floor_face)
+
+    expect(g_floor_edges.size).to be > 4
+    expect(g_floor_edges.size).to eq(p_top_edges.size)
+    expect(shared_edges.size).to eq(p_top_edges.size)
+    g_floor_edges.each do |g_floor_edge|
+      p_top_edge = p_top_edges.find{|e| e.id == g_floor_edge.id}
+      expect(p_top_edge).to be_truthy
+    end
+
     edges.each do |id, properties|
       if properties[:surfaces].size > 1 &&
          properties[:length] > 3.9 &&
@@ -935,12 +983,14 @@ RSpec.describe TBD do
           puts "... connected to #{i}:"
         end
         puts "... g_floor should be connected :"
-        floors["g_floor"][:face].outer.edges.each do |oe|
-          puts "... ... v0:(#{oe.v0.point.x},#{oe.v0.point.y},#{oe.v0.point.z}) v1:(#{oe.v1.point.x},#{oe.v1.point.y},#{oe.v1.point.z})"
+        g_floor_edges = floors["g_floor"][:face].outer.edges.sort {|oe1,oe2| oe1.id <=> oe2.id}
+        g_floor_edges.each do |oe|
+          puts "... ... name: #{oe.short_name}, v0:(#{oe.v0.point.x},#{oe.v0.point.y},#{oe.v0.point.z}) v1:(#{oe.v1.point.x},#{oe.v1.point.y},#{oe.v1.point.z})"
         end
         puts "... and its mirror p_top should be connected :"
-        ceilings["p_top"][:face].outer.edges.each do |oe|
-          puts "... ... v0:(#{oe.v0.point.x},#{oe.v0.point.y},#{oe.v0.point.z}) v1:(#{oe.v1.point.x},#{oe.v1.point.y},#{oe.v1.point.z})"
+        p_top_edges = ceilings["p_top"][:face].outer.edges.sort {|oe1,oe2| oe1.id <=> oe2.id}
+        p_top_edges.each do |oe|
+          puts "... ... name: #{oe.short_name}, v0:(#{oe.v0.point.x},#{oe.v0.point.y},#{oe.v0.point.z}) v1:(#{oe.v1.point.x},#{oe.v1.point.y},#{oe.v1.point.z})"
         end
       end
     end
