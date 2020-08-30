@@ -226,7 +226,10 @@ module Topolys
       return nil unless other.is_a?(Topolys::Vector3D)
       prod = magnitude * other.magnitude
       return nil if prod.zero?
-      Math.acos(dot(other) / prod)
+      val = dot(other) / prod
+      val = [-1.0, val].max
+      val = [ val, 1.0].min
+      Math.acos(val)
     end
 
   end # Vector3D
@@ -317,7 +320,8 @@ module Topolys
 
     attr_reader :minx, :maxx, :miny, :maxy, :minz, :maxz
 
-    def initialize
+    def initialize(tol = 0.001)
+      @tol = tol
       @minx = Float::INFINITY
       @miny = Float::INFINITY
       @minz = Float::INFINITY
@@ -336,9 +340,9 @@ module Topolys
     end
 
     def include?(point)
-      result = ((point.x >= @minx) && (point.x <= @maxx)) &&
-               ((point.y >= @miny) && (point.y <= @maxy)) &&
-               ((point.z >= @minz) && (point.z <= @maxz))
+      result = ((point.x >= @minx - @tol) && (point.x <= @maxx + @tol)) &&
+               ((point.y >= @miny - @tol) && (point.y <= @maxy + @tol)) &&
+               ((point.z >= @minz - @tol) && (point.z <= @maxz + @tol))
       return result
     end
 

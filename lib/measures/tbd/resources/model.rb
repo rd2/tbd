@@ -237,6 +237,39 @@ module Topolys
     # @return [Vertex] Vertex
     def get_vertex(point)
       # search for point and return corresponding vertex if it exists
+      v = find_existing_vertex(point)
+      return v if v
+
+      # otherwise create new vertex
+      v = Vertex.new(point)
+      @vertices << v
+
+      # check if this vertex needs to be inserted on any edge
+      updated = false
+      @edges.each do |edge|
+        if new_point = vertex_intersect_edge(v, edge)
+
+          # point might need to be added to multiple edges
+          # point can be updated to project it onto edge, don't update multiple times
+          if !updated
+            # simulate friend access to set point on vertex
+            v.instance_variable_set(:@point, new_point)
+            v.recalculate
+            updated = true
+          end
+
+          # now split the edge with this vertex
+          split_edge(edge, v)
+        end
+      end
+
+      return v
+    end
+
+    # @param [Point3D] point
+    # @return [Vertex] Vertex or nil
+    def find_existing_vertex(point)
+      # search for point and return corresponding vertex if it exists
       # otherwise create new vertex
       @vertices.each do |v|
         p = v.point
@@ -254,24 +287,7 @@ module Topolys
         end
       end
 
-      v = Vertex.new(point)
-      @vertices << v
-
-      # check if this vertex needs to be inserted on any edge
-      @edges.each do |edge|
-        if new_point = vertex_intersect_edge(v, edge)
-
-          # simulate friend access to set point on vertex
-          v.instance_variable_set(:@point, new_point)
-          v.recalculate
-
-          # now split the edge with this vertex
-          split_edge(edge, v)
-          break
-        end
-      end
-
-      return v
+      return nil
     end
 
     # @param [Array] points Array of Point3D
@@ -285,16 +301,10 @@ module Topolys
     # @return [Edge] Edge
     def get_edge(v0, v1)
       # search for edge and return if it exists
+      e = find_existing_edge(v0, v1)
+      return e if e
+
       # otherwise create new edge
-
-      @edges.each do |e|
-        if (e.v0.id == v0.id) && (e.v1.id == v1.id)
-          return e
-        elsif (e.v0.id == v1.id) && (e.v1.id == v0.id)
-          return e
-        end
-      end
-
       @vertices << v0 if !@vertices.find {|v| v.id == v0.id}
       @vertices << v1 if !@vertices.find {|v| v.id == v1.id}
 
@@ -305,17 +315,27 @@ module Topolys
 
     # @param [Vertex] v0
     # @param [Vertex] v1
+    # @return [Edge] Edge or nil
+    def find_existing_edge(v0, v1)
+      @edges.each do |e|
+        if (e.v0.id == v0.id) && (e.v1.id == v1.id)
+          return e
+        elsif (e.v0.id == v1.id) && (e.v1.id == v0.id)
+          return e
+        end
+      end
+      return nil
+    end
+
+    # @param [Vertex] v0
+    # @param [Vertex] v1
     # @return [DirectedEdge] DirectedEdge
     def get_directed_edge(v0, v1)
       # search for directed edge and return if it exists
+      de = find_existing_directed_edge(v0, v1)
+      return de if de
+
       # otherwise create new directed edge
-
-      @directed_edges.each do |de|
-        if (de.v0.id == v0.id) && (de.v1.id == v1.id)
-          return de
-        end
-      end
-
       edge = get_edge(v0, v1)
 
       inverted = false
@@ -326,6 +346,19 @@ module Topolys
       directed_edge = DirectedEdge.new(edge, inverted)
       @directed_edges << directed_edge
       return directed_edge
+    end
+
+    # @param [Vertex] v0
+    # @param [Vertex] v1
+    # @return [DirectedEdge] DirectedEdge
+    def find_existing_directed_edge(v0, v1)
+      # search for directed edge and return if it exists
+      @directed_edges.each do |de|
+        if (de.v0.id == v0.id) && (de.v1.id == v1.id)
+          return de
+        end
+      end
+      return nil
     end
 
     # @param [Array] vertices Array of Vertex, assumes closed wire (e.g. first vertex is also last vertex)
@@ -693,6 +726,11 @@ module Topolys
     # @return [String] Short name used for Graphviz
     def short_name
       "#{self.class.to_s.gsub('Topolys::','').gsub('DirectedEdge', 'DEdge')}_#{short_id}"
+    end
+
+    # @return [String] To string
+    def to_s
+      short_name
     end
 
     def debug(str)
