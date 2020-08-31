@@ -79,6 +79,7 @@ RSpec.describe TBD do
         kids.each do |id, properties|
           vtx, hole = topolysObjects(model, properties[:points])
           hole.attributes[:id] = id
+          hole.attributes[:n] = properties[:n] if properties.has_key?(:n)
           properties[:hole] = hole
           holes << hole
         end
@@ -119,6 +120,7 @@ RSpec.describe TBD do
           raise "Cannot build face for #{id}" if face.nil?
 
           face.attributes[:id] = id
+          face.attributes[:n] = properties[:n] if properties.has_key?(:n)
           properties[:face] = face
 
           # populate hash of created holes (to return)
@@ -869,7 +871,7 @@ RSpec.describe TBD do
           edges[e.id] = { length: e.length,
                           v0: e.v0,
                           v1: e.v1,
-                          surfaces: {} }
+                          surfaces: {}}
         end
         unless edges[e.id][:surfaces].has_key?(wire.attributes[:id])
           edges[e.id][:surfaces][wire.attributes[:id]] = { wire: wire.id }
@@ -956,40 +958,19 @@ RSpec.describe TBD do
 
     # Much of the following code is of a topological nature, and should ideally
     # (or eventually) become available functionality offered by Topolys.
-    edges.each do |e_id, edge|
-      zenith      = Topolys::Vector3D.new(0, 0, 1).freeze
-      north       = Topolys::Vector3D.new(0, 1, 0).freeze
-      east        = Topolys::Vector3D.new(1, 0, 0).freeze
+    zenith      = Topolys::Vector3D.new(0, 0, 1).freeze
+    north       = Topolys::Vector3D.new(0, 1, 0).freeze
+    east        = Topolys::Vector3D.new(1, 0, 0).freeze
+
+    edges.values.each do |edge|
       origin      = edge[:v0].point
       terminal    = edge[:v1].point
 
-      # inversion required to set edge plane reference
       horizontal  = false
-      horizontal  = true if (origin.z - terminal.z).abs < 0.0001
+      horizontal  = true if (origin.z - terminal.z).abs < 0.01
       vertical    = false
-      vertical    = true if (origin.x - terminal.x).abs < 0.0001 &&
-                            (origin.y - terminal.y).abs < 0.0001
-      invert      = false
-
-      if vertical
-        invert = true if origin.z > terminal.z
-      else
-        invert = true if origin.y > terminal.y
-      end
-
-      if invert
-        origin    = terminal
-        terminal  = edge[:v0].point
-      end
-
-      northerly   = false
-      easterly    = false
-      southerly   = false
-      westerly    = false
-      northerly   = true if origin.y < terminal.y
-      easterly    = true if origin.x < terminal.x
-      southerly   = true if origin.y > terminal.y
-      westerly    = true if origin.x > terminal.x
+      vertical    = true if (origin.x - terminal.x).abs < 0.01 &&
+                            (origin.y - terminal.y).abs < 0.01
 
       edge_V = terminal - origin
       edge_plane = Topolys::Plane3D.new(origin, edge_V)
@@ -1008,34 +989,30 @@ RSpec.describe TBD do
         # edge while ensuring candidate point is not aligned with edge
         t_model.wires.each do |wire|
           if surface[:wire] == wire.id # there should be a unique match
-            farthest = Topolys::Point3D.new(origin.x,origin.y, origin.z)
+            normal = surfaces[id][:n]         if surfaces.has_key?(id)
+            normal = holes[id].attributes[:n] if holes.has_key?(id)
+            normal = shades[id][:n]           if shades.has_key?(id)
+
+            farthest = Topolys::Point3D.new(origin.x, origin.y, origin.z)
             farthest_V = farthest - origin # zero magnitude, initially
 
             inverted = false
-            wire.points.each do |point|
-              # check if origin is met before terminal
-              if point == origin
-                puts "origin !"   if (point.x - origin.x).abs > 0.01 ||
-                                     (point.y - origin.y).abs > 0.01 ||
-                                     (point.z - origin.z).abs > 0.01
-                break
-              end
-              if point == terminal
-                puts "terminal !" if (point.x - terminal.x).abs > 0.01 ||
-                                     (point.y - terminal.y).abs > 0.01 ||
-                                     (point.z - terminal.z).abs > 0.01
 
-                inverted = true
-                break
-              end
+            i_origin = wire.points.index(origin)
+            i_terminal = wire.points.index(terminal)
+            i_last = wire.points.size - 1
+
+            if i_terminal == 0
+              inverted = true unless i_origin == i_last
+            elsif i_origin == i_last
+              inverted = true unless i_terminal == 0
+            else
+              inverted = true unless i_terminal - i_origin == 1
             end
-            #if inverted
-              #puts "inverted"
-            #else
-              #puts "not inverted"
-            #end
 
             wire.points.each do |point|
+              next if point == origin
+              next if point == terminal
               point_on_plane = edge_plane.project(point)
               origin_point_V = point_on_plane - origin
               point_V_magnitude = origin_point_V.magnitude
@@ -1048,17 +1025,10 @@ RSpec.describe TBD do
               else
                 plane = Topolys::Plane3D.from_points(origin, terminal, point)
               end
-              next unless plane
-              #puts "wire normal : #{wire.normal}"
-              #puts "plane normal : #{plane.normal}"
-              if (wire.normal.x - plane.normal.x).abs < 0.01 &&
-                 (wire.normal.y - plane.normal.y).abs < 0.01 &&
-                 (wire.normal.z - plane.normal.z).abs < 0.01
-                 #puts "ok then !"
-              else
-                #puts "not same plane"
-                #next
-              end
+
+              next unless (normal.x - plane.normal.x).abs < 0.01 &&
+                          (normal.y - plane.normal.y).abs < 0.01 &&
+                          (normal.z - plane.normal.z).abs < 0.01
 
               if point_V_magnitude > farthest_V.magnitude
                 farthest = point
@@ -1066,10 +1036,8 @@ RSpec.describe TBD do
               end
             end
 
-            #puts "#{id}: origin  :(#{origin.x}, #{origin.y}, #{origin.z})"
-            #puts "#{id}: farthest:(#{farthest.x}, #{farthest.y}, #{farthest.z})"
             angle = edge_V.angle(farthest_V)
-            expect(angle).to be_within(0.01).of(Math::PI / 2) # testing
+            expect(angle).to be_within(0.01).of(Math::PI / 2) # for testing
 
             angle = reference_V.angle(farthest_V)
 
@@ -1077,47 +1045,18 @@ RSpec.describe TBD do
             adjust = false
 
             if vertical
-              adjust = true if east.dot(farthest_V) < 0.01
+              adjust = true if east.dot(farthest_V) < -0.01
             else
-              if northerly
-                if easterly
-                  adjust = true if north.dot(farthest_V) < -0.01
-                elsif westerly
-                  adjust = true if north.dot(farthest_V) > 0.01
-                else # facing straight North
-                  if east.dot(farthest_V) > 0.01
-                    adjust = true
-                  else
-                    # this is what can happen with concave surfaces (e.g.
-                    # U-shaped), when most of the surface vertices are leading
-                    # 'farthest' away from the true orientation of the surface:
-                    # farthest is meaningless given the concavity of the
-                    # surface. Need to revise algorithm, e.g. if surface
-                    # vertices on either side of edge:
-                    # only check for farthest if hypothetical plane shares the
-                    # same normal as the host surface
-                    if id == "p_W2_floor"
-                      #puts "#{edge[:length]}:#{angle} - FALSE ... now inverted if < 10m"
-                      adjust = true if edge[:length] < 10
-                    end
-                  end
-                end
-              elsif southerly
-                if easterly
-                  adjust = true if north.dot(farthest_V) < -0.01
-                elsif westerly
-                  adjust = true if north.dot(farthest_V) > 0.01
-                else # facing straight South
+              if north.dot(farthest_V).abs < 0.01 ||
+                (north.dot(farthest_V).abs - 1).abs < 0.01
                   adjust = true if east.dot(farthest_V) < -0.01
-                end
-              elsif easterly # facing straight East
+              else
                 adjust = true if north.dot(farthest_V) < -0.01
-              else # Westerly - should not occur if horizontal
-                adjust = true if north.dot(farthest_V) > 0.01
               end
             end
 
             angle = 2 * Math::PI - angle if adjust
+            angle -= 2 * Math::PI if (angle - 2 * Math::PI).abs < 0.01
 
             # store angle
             surface[:angle] = angle
@@ -1126,7 +1065,7 @@ RSpec.describe TBD do
       end # end of edge-linked surface loop
     end # end of edge loop
 
-    # test edge surface polar angles
+    # test edge surface polar angles ... needs adjustment for non-vertical
     edges.values.each do |edge|
       if edge[:surfaces].size > 1
         #puts "edge of (#{edge[:length]}m) is linked to #{edge[:surfaces].size}:"
@@ -1134,8 +1073,8 @@ RSpec.describe TBD do
           #puts "... #{i} : #{surface[:angle]}"
         end
       end
-      expect(edges.size).to eq(89)
-      expect(t_model.edges.size).to eq(89)
     end
+    expect(edges.size).to eq(89)
+    expect(t_model.edges.size).to eq(89)
   end
 end
