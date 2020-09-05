@@ -3,7 +3,7 @@ require "topolys"
 require "psi"
 
 RSpec.describe TBD do
-  it "can process thermal bridging and derating of complex architecture" do
+  it "can process thermal bridging and derating : LoScrigno" do
     # The following populates both OpenStudio and Topolys models of "Lo scrigno"
     # (or Jewel Box), by Renzo Piano (Lingotto Factory, Turin); a cantilevered,
     # single space art gallery (space #1), above a slanted plenum (space #2),
@@ -641,14 +641,6 @@ RSpec.describe TBD do
     os_s_floor.setSurfaceType("Floor")
     os_s_floor.setOutsideBoundaryCondition("Outdoors")
 
-    # Topolys edges may constitute thermal bridges (and therefore thermally
-    # derate linked OpenStudio surfaces), depending on a number of factors such
-    # as surface types and boundary conditions. Thermal bridging attributes
-    # (type & PSI-value pairs) are grouped into PSI sets, normally accessed
-    # through the 'set' user-argument (in the OpenStudio Measure interface).
-    psi = PSI.new
-    set = psi.set["poor (BC Hydro)"]
-
     #os_model.save("os_model_test.osm", true)
 
     # create the Topolys Model
@@ -896,9 +888,9 @@ RSpec.describe TBD do
 
     # the following surfaces should all share an edge
     p_S2_wall_face = walls["p_S2_wall"][:face]
-    e_p_wall_face = walls["e_p_wall"][:face]
-    p_e_wall_face = walls["p_e_wall"][:face]
-    e_E_wall_face = walls["e_E_wall"][:face]
+    e_p_wall_face  = walls["e_p_wall"][:face]
+    p_e_wall_face  = walls["p_e_wall"][:face]
+    e_E_wall_face  = walls["e_E_wall"][:face]
 
     p_S2_wall_edge_ids = Set.new(p_S2_wall_face.outer.edges.map{|oe| oe.id})
     e_p_wall_edges_ids = Set.new(e_p_wall_face.outer.edges.map{|oe| oe.id})
@@ -1066,15 +1058,169 @@ RSpec.describe TBD do
     end # end of edge loop
 
     # test edge surface polar angles ... needs adjustment for non-vertical
-    edges.values.each do |edge|
-      if edge[:surfaces].size > 1
+    #edges.values.each do |edge|
+    #  if edge[:surfaces].size > 1
         #puts "edge of (#{edge[:length]}m) is linked to #{edge[:surfaces].size}:"
-        edge[:surfaces].each do |i, surface|
+    #    edge[:surfaces].each do |i, surface|
           #puts "... #{i} : #{surface[:angle]}"
-        end
-      end
-    end
+    #    end
+    #  end
+    #end
     expect(edges.size).to eq(89)
     expect(t_model.edges.size).to eq(89)
-  end
+
+    # Topolys edges may constitute thermal bridges (and therefore thermally
+    # derate linked OpenStudio surfaces), depending on a number of factors such
+    # as surface types and boundary conditions. Thermal bridging attributes
+    # (type & PSI-value pairs) are grouped into PSI sets, normally accessed
+    # through the 'set' user-argument (in the OpenStudio Measure interface).
+    psi = PSI.new
+    set = psi.set["poor (BC Hydro)"]
+
+    edges.values.each do |edge|
+      next unless edge.has_key?(:surfaces)
+      next unless edge[:surfaces].size > 1
+      # puts edge.keys
+      # :length
+      # :vo
+      # :v1
+      # surfaces
+
+      # Skip unless one (at least) linked surface is deratable, i.e.
+      # outside-facing floor, ceiling or wall. Ground-facing surfaces
+      # are equally processed (up to a point), as the coupling of TBD
+      # edges and OpenStudio/EnergyPlus ground-facing surfaces
+      # isn't currently enabled, e.g. KIVA ... TO DO.
+      deratable = false
+      edge[:surfaces].each do |id, surface|
+        # puts surface.keys
+        # :wire (unique Topolys string identifier)
+        # :angle (0°,360°]
+
+        deratable = true if floors.has_key?(id)
+        deratable = true if ceilings.has_key?(id)
+        deratable = true if walls.has_key?(id)
+      end
+      next unless deratable
+
+      psi = {}
+      edge[:surfaces].keys.each do |id|
+        if surfaces.has_key?(id)
+
+          # Skipping the :party wall label for now. Criteria determining party
+          # wall edges from TBD edges is to be determined. Most likely scenario
+          # seems to be an edge linking only 1x outside-facing or ground-facing
+          # surface with only 1x adiabatic surface. Warrants separate tests.
+          # TO DO.
+
+          # Label edge as :grade if linked to:
+          #   1x ground-facing surface (e.g. slab or wall)
+          #   1x outside-facing surface (i.e. normally a wall)
+          unless psi.has_key?(:grade)
+            edge[:surfaces].keys.each do |i|
+              next unless surfaces.has_key?(i)
+              next unless surfaces[i][:boundary].downcase == "Outdoors"
+              next unless surfaces[id].has_key?(:ground)
+              next unless surfaces[id][:ground]
+
+              psi[:grade] = set[:grade]
+            end
+          end
+
+          # Label edge as :balcony if linked to:
+          #   1x floor
+          #   1x shade
+          unless psi.has_key?(:balcony)
+            edge[:surfaces].keys.each do |i|
+              next unless shades.has_key?(i)
+              next unless floors.has_key?(id)
+
+              psi[:balcony] = set[:balcony]
+            end
+          end
+
+          # Label edge as :parapet if linked to:
+          #   1x outside-facing wall &
+          #   1x outside-facing ceiling
+          unless psi.has_key?(:parapet)
+            edge[:surfaces].keys.each do |i|
+              next unless walls.has_key?(i)
+              next unless walls[i][:boundary].downcase == "outdoors"
+              next unless ceilings.has_key?(id)
+              next unless ceilings[id][:boundary].downcase == "outdoors"
+
+              psi[:parapet] = set[:parapet]
+            end
+          end
+
+          # Repeat for exposed floors vs walls, as :parapet is currently a
+          # proxy for intersections between exposed floors & walls
+          unless psi.has_key?(:parapet)
+            edge[:surfaces].keys.each do |i|
+              next unless walls.has_key?(i)
+              next unless walls[i][:boundary].downcase == "outdoors"
+              next unless floors.has_key?(id)
+              next unless floors[id][:boundary].downcase == "outdoors"
+
+              psi[:parapet] = set[:parapet]
+            end
+          end
+
+          # Repeat for exposed floors vs roofs, as :parapet is currently a
+          # proxy for intersections between exposed floors & roofs
+          unless psi.has_key?(:parapet)
+            edge[:surfaces].keys.each do |i|
+              next unless ceilings.has_key?(i)
+              next unless ceilings[i][:boundary].downcase == "outdoors"
+              next unless floors.has_key?(id)
+              next unless floors[id][:boundary].downcase == "outdoors"
+
+              psi[:parapet] = set[:parapet]
+            end
+          end
+
+          # Label edge as :rimjoist if linked to:
+          #   1x outside-facing wall &
+          #   1x floor
+          unless psi.has_key?(:rimjoist)
+            edge[:surfaces].keys.each do |i|
+              next unless floors.has_key?(i)
+              next unless walls.has_key?(id)
+              next unless walls[id][:boundary].downcase == "outdoors"
+
+              psi[:rimjoist] = set[:rimjoist]
+            end
+          end
+
+          # Label edge as :fenestration if linked to:
+          #   1x subsurface
+
+          # Label edge as :concave or :convex (corner) if linked to:
+          #   2x outside-facing walls (& relative polar positions of walls)
+
+        end # edge has surface id as key
+      end # edge's surfaces loop
+
+      edge[:psi] = psi unless psi.empty?
+
+      # :fenestration
+      # :concave
+      # :convex
+    end # edge loop
+
+    n_edges_as_balconies = 0
+    n_edges_as_parapets = 0
+    n_edges_as_rimjoists = 0
+    edges.values.each do |edge|
+      if edge.has_key?(:psi)
+        n_edges_as_balconies += 1 if edge[:psi].has_key?(:balcony)
+        n_edges_as_parapets += 1 if edge[:psi].has_key?(:parapet)
+        n_edges_as_rimjoists += 1 if edge[:psi].has_key?(:rimjoist)
+      end
+    end
+    expect(n_edges_as_balconies).to eq(4)
+    expect(n_edges_as_parapets).to eq(31)
+    expect(n_edges_as_rimjoists).to eq(32)
+
+  end # can process thermal bridging and derating : LoScrigno
 end
