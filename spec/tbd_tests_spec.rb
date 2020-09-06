@@ -27,18 +27,18 @@ RSpec.describe TBD do
       end
     end
 
-    # Returns site-specific (or absolute) surface normal
+    # Returns site-specific (or absolute) Topolys surface normal
     def trueNormal(s, r)
       if s && r
         c = OpenStudio::Model::PlanarSurface
         raise "Expected #{c} - got #{s.class}" unless s.is_a?(c)
         raise "Expected a numeric - got #{r.class}" unless r.is_a?(Numeric)
 
-        n = OpenStudio::Vector3d.new(s.outwardNormal.x * Math.cos(r) -
-                                     s.outwardNormal.y * Math.sin(r), # x
-                                     s.outwardNormal.x * Math.sin(r) +
-                                     s.outwardNormal.y * Math.cos(r), # y
-                                     s.outwardNormal.z)               # z
+        n = Topolys::Vector3D.new(s.outwardNormal.x * Math.cos(r) -
+                                  s.outwardNormal.y * Math.sin(r), # x
+                                  s.outwardNormal.x * Math.sin(r) +
+                                  s.outwardNormal.y * Math.cos(r), # y
+                                  s.outwardNormal.z)               # z
         return n
       end
     end
@@ -1052,12 +1052,18 @@ RSpec.describe TBD do
 
             # store angle
             surface[:angle] = angle
+            farthest_V.normalize!
+            surface[:polar] = farthest_V
+            surface[:normal] = normal
           end # not sure if it's worth checking matching id's ...
         end # end of edge-linked, surface-to-wire loop
       end # end of edge-linked surface loop
+
+      # sort angles
+      edge[:surfaces] = edge[:surfaces].sort_by{ |i, p| p[:angle] }.to_h
     end # end of edge loop
 
-    # test edge surface polar angles ... needs adjustment for non-vertical
+    # test edge surface polar angles ...
     #edges.values.each do |edge|
     #  if edge[:surfaces].size > 1
         #puts "edge of (#{edge[:length]}m) is linked to #{edge[:surfaces].size}:"
@@ -1080,11 +1086,6 @@ RSpec.describe TBD do
     edges.values.each do |edge|
       next unless edge.has_key?(:surfaces)
       next unless edge[:surfaces].size > 1
-      # puts edge.keys
-      # :length
-      # :vo
-      # :v1
-      # surfaces
 
       # Skip unless one (at least) linked surface is deratable, i.e.
       # outside-facing floor, ceiling or wall. Ground-facing surfaces
@@ -1122,7 +1123,6 @@ RSpec.describe TBD do
               next unless surfaces[i][:boundary].downcase == "Outdoors"
               next unless surfaces[id].has_key?(:ground)
               next unless surfaces[id][:ground]
-
               psi[:grade] = set[:grade]
             end
           end
@@ -1134,7 +1134,6 @@ RSpec.describe TBD do
             edge[:surfaces].keys.each do |i|
               next unless shades.has_key?(i)
               next unless floors.has_key?(id)
-
               psi[:balcony] = set[:balcony]
             end
           end
@@ -1148,7 +1147,6 @@ RSpec.describe TBD do
               next unless walls[i][:boundary].downcase == "outdoors"
               next unless ceilings.has_key?(id)
               next unless ceilings[id][:boundary].downcase == "outdoors"
-
               psi[:parapet] = set[:parapet]
             end
           end
@@ -1161,7 +1159,6 @@ RSpec.describe TBD do
               next unless walls[i][:boundary].downcase == "outdoors"
               next unless floors.has_key?(id)
               next unless floors[id][:boundary].downcase == "outdoors"
-
               psi[:parapet] = set[:parapet]
             end
           end
@@ -1174,7 +1171,6 @@ RSpec.describe TBD do
               next unless ceilings[i][:boundary].downcase == "outdoors"
               next unless floors.has_key?(id)
               next unless floors[id][:boundary].downcase == "outdoors"
-
               psi[:parapet] = set[:parapet]
             end
           end
@@ -1187,40 +1183,75 @@ RSpec.describe TBD do
               next unless floors.has_key?(i)
               next unless walls.has_key?(id)
               next unless walls[id][:boundary].downcase == "outdoors"
-
               psi[:rimjoist] = set[:rimjoist]
             end
           end
 
           # Label edge as :fenestration if linked to:
           #   1x subsurface
+          unless psi.has_key?(:fenestration)
+            edge[:surfaces].keys.each do |i|
+              next unless holes.has_key?(i)
+              psi[:fenestration] = set[:fenestration]
+            end
+          end
 
           # Label edge as :concave or :convex (corner) if linked to:
           #   2x outside-facing walls (& relative polar positions of walls)
+          unless psi.has_key?(:concave)
+            edge[:surfaces].keys.each do |i|
+              next if i == id
+              next unless walls.has_key?(i)
+              next unless walls[i][:boundary].downcase == "outdoors"
+              next unless walls.has_key?(id)
+              next unless walls[id][:boundary].downcase == "outdoors"
+
+              s1 = edge[:surfaces][id]
+              s2 = edge[:surfaces][i]
+
+              angle = s2[:angle] - s1[:angle]
+              next unless angle > 0
+              next unless (2 * Math::PI - angle).abs > 0
+              next if angle > 3 * Math::PI / 4 && angle < 5 * Math::PI / 4
+
+              n1_d_p2 = s1[:normal].dot(s2[:polar])
+              p1_d_n2 = s1[:polar].dot(s2[:normal])
+              psi[:concave] = set[:concave] if n1_d_p2 > 0 && p1_d_n2 > 0
+              psi[:convex]  = set[:convex]  if n1_d_p2 < 0 && p1_d_n2 < 0
+            end
+          end
 
         end # edge has surface id as key
       end # edge's surfaces loop
 
       edge[:psi] = psi unless psi.empty?
-
-      # :fenestration
-      # :concave
-      # :convex
     end # edge loop
 
+    n_edges_at_grade = 0
     n_edges_as_balconies = 0
     n_edges_as_parapets = 0
     n_edges_as_rimjoists = 0
+    n_edges_as_fenestrations = 0
+    n_edges_as_concave_corners = 0
+    n_edges_as_convex_corners = 0
     edges.values.each do |edge|
       if edge.has_key?(:psi)
-        n_edges_as_balconies += 1 if edge[:psi].has_key?(:balcony)
-        n_edges_as_parapets += 1 if edge[:psi].has_key?(:parapet)
-        n_edges_as_rimjoists += 1 if edge[:psi].has_key?(:rimjoist)
+        n_edges_at_grade            += 1 if edge[:psi].has_key?(:grade)
+        n_edges_as_balconies        += 1 if edge[:psi].has_key?(:balcony)
+        n_edges_as_parapets         += 1 if edge[:psi].has_key?(:parapet)
+        n_edges_as_rimjoists        += 1 if edge[:psi].has_key?(:rimjoist)
+        n_edges_as_fenestrations    += 1 if edge[:psi].has_key?(:fenestration)
+        n_edges_as_concave_corners  += 1 if edge[:psi].has_key?(:concave)
+        n_edges_as_convex_corners   += 1 if edge[:psi].has_key?(:convex)
       end
     end
+    expect(n_edges_at_grade).to eq(0)
     expect(n_edges_as_balconies).to eq(4)
     expect(n_edges_as_parapets).to eq(31)
     expect(n_edges_as_rimjoists).to eq(32)
+    expect(n_edges_as_fenestrations).to eq(12)
+    expect(n_edges_as_concave_corners).to eq(4)
+    expect(n_edges_as_convex_corners).to eq(12)
 
   end # can process thermal bridging and derating : LoScrigno
 end
