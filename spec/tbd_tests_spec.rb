@@ -1082,6 +1082,7 @@ RSpec.describe TBD do
     # through the 'set' user-argument (in the OpenStudio Measure interface).
     psi = PSI.new
     set = psi.set["poor (BC Hydro)"]
+    #set = psi.set["code (Quebec)"]
 
     edges.values.each do |edge|
       next unless edge.has_key?(:surfaces)
@@ -1227,6 +1228,7 @@ RSpec.describe TBD do
       edge[:psi] = psi unless psi.empty?
     end # edge loop
 
+    n_deratables = 0
     n_edges_at_grade = 0
     n_edges_as_balconies = 0
     n_edges_as_parapets = 0
@@ -1236,6 +1238,7 @@ RSpec.describe TBD do
     n_edges_as_convex_corners = 0
     edges.values.each do |edge|
       if edge.has_key?(:psi)
+        n_deratables += 1
         n_edges_at_grade            += 1 if edge[:psi].has_key?(:grade)
         n_edges_as_balconies        += 1 if edge[:psi].has_key?(:balcony)
         n_edges_as_parapets         += 1 if edge[:psi].has_key?(:parapet)
@@ -1245,6 +1248,7 @@ RSpec.describe TBD do
         n_edges_as_convex_corners   += 1 if edge[:psi].has_key?(:convex)
       end
     end
+    expect(n_deratables).to eq(62)
     expect(n_edges_at_grade).to eq(0)
     expect(n_edges_as_balconies).to eq(4)
     expect(n_edges_as_parapets).to eq(31)
@@ -1252,6 +1256,114 @@ RSpec.describe TBD do
     expect(n_edges_as_fenestrations).to eq(12)
     expect(n_edges_as_concave_corners).to eq(4)
     expect(n_edges_as_convex_corners).to eq(12)
+
+    # loop through each edge and assign heat loss to linked surfaces
+    edges.each do |identifier, edge|
+      next unless edge.has_key?(:psi)
+      next unless edge[:psi].values.max > 0.01
+      bridge = { psi: edge[:psi].values.max,
+                 type: edge[:psi].key(psi),
+                 length: edge[:length] }
+
+      # retrieve valid linked surfaces as deratables
+      deratables = {}
+      edge[:surfaces].each do |id, surface|
+        next unless surfaces.has_key?(id)
+        next unless surfaces[id][:boundary].downcase == "outdoors"
+        deratables[id] = surface
+      end
+
+      # retrieve linked openings
+      openings = {}
+      if edge[:psi].has_key?(:fenestration)
+        edge[:surfaces].each do |id, surface|
+          next unless holes.has_key?(id)
+          openings[id] = surface
+        end
+      end
+
+      next if openings.size > 1 # edge links 2x openings
+
+      # prune if edge links an opening and its parent, as well as 1x other
+      # opaque surface (i.e. corner window derates neighbour - not parent)
+      if deratables.size > 1 && openings.size > 0
+        deratables.each do |id, deratable|
+          if surfaces[id].has_key?(:windows)
+            surfaces[id][:windows].keys.each do |i|
+              deratables.delete(id) if openings.has_key?(i)
+            end
+          end
+          if surfaces[id].has_key?(:doors)
+            surfaces[id][:doors].keys.each do |i|
+              deratables.delete(id) if openings.has_key?(i)
+            end
+          end
+          if surfaces[id].has_key?(:skylights)
+            surfaces[id][:skylights].keys.each do |i|
+              deratables.delete(id) if openings.has_key?(i)
+            end
+          end
+        end
+      end
+
+      next unless deratables.size > 0
+
+      # split thermal bridge heat loss equally amongst deratable surfaces
+      bridge[:psi] /= deratables.size
+
+      # assign heat loss from thermal bridges to surfaces
+      deratables.each do |id, deratable|
+        surfaces[id][:edges] = {} unless surfaces[id].has_key?(:edges)
+        # puts surfaces[id].keys
+        # ground
+        # boundary
+        # space
+        # gross
+        # net
+        # points
+        # minz
+        # n
+        # doors
+        # face
+        # edges
+        surfaces[id][:edges][identifier] = bridge
+      end
+    end
+
+    # derate surfaces
+    n_surfaces_to_derate = 0
+    surfaces.values.each do |surface|
+      next unless surface.has_key?(:edges)
+      surface[:heatloss] = 0
+      surface[:edges].values.each do |bridge|
+        surface[:heatloss] += bridge[:psi] * bridge[:length]
+      end
+      n_surfaces_to_derate += 1
+    end
+    expect(n_surfaces_to_derate).to eq(22)
+
+    expect(surfaces["s_floor"][:heatloss]).to be_within(0.01).of(8.80)
+    expect(surfaces["s_E_wall"][:heatloss]).to be_within(0.01).of(5.041)
+    expect(surfaces["p_E_floor"][:heatloss]).to be_within(0.01).of(18.650)
+    expect(surfaces["s_S_wall"][:heatloss]).to be_within(0.01).of(6.583)
+    expect(surfaces["e_W_wall"][:heatloss]).to be_within(0.01).of(6.365)
+    expect(surfaces["p_N_wall"][:heatloss]).to be_within(0.01).of(37.250)
+    expect(surfaces["p_S2_wall"][:heatloss]).to be_within(0.01).of(27.268)
+    expect(surfaces["p_S1_wall"][:heatloss]).to be_within(0.01).of(7.063)
+    expect(surfaces["g_S_wall"][:heatloss]).to be_within(0.01).of(56.150)
+    expect(surfaces["p_floor"][:heatloss]).to be_within(0.01).of(10.000)
+    expect(surfaces["p_W1_floor"][:heatloss]).to be_within(0.01).of(13.775)
+    expect(surfaces["e_N_wall"][:heatloss]).to be_within(0.01).of(5.639)
+    expect(surfaces["s_N_wall"][:heatloss]).to be_within(0.01).of(6.583)
+    expect(surfaces["g_E_wall"][:heatloss]).to be_within(0.01).of(18.195)
+    expect(surfaces["e_S_wall"][:heatloss]).to be_within(0.01).of(8.615)
+    expect(surfaces["e_top"][:heatloss]).to be_within(0.01).of(4.400)
+    expect(surfaces["s_W_wall"][:heatloss]).to be_within(0.01).of(5.670)
+    expect(surfaces["e_E_wall"][:heatloss]).to be_within(0.01).of(6.365)
+    expect(surfaces["e_floor"][:heatloss]).to be_within(0.01).of(5.500)
+    expect(surfaces["g_W_wall"][:heatloss]).to be_within(0.01).of(18.195)
+    expect(surfaces["g_N_wall"][:heatloss]).to be_within(0.01).of(54.255)
+    expect(surfaces["p_W2_floor"][:heatloss]).to be_within(0.01).of(13.729)
 
   end # can process thermal bridging and derating : LoScrigno
 end
