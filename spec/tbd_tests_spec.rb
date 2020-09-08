@@ -263,6 +263,45 @@ RSpec.describe TBD do
     set = OpenStudio::Model::DefaultConstructionSet.new(os_model)
     expect(set.setDefaultExteriorSurfaceConstructions(defaults)).to be(true)
 
+    # 8" XPS massless variant, specific for elevator floor (not defaulted)
+    xps8x25mm = OpenStudio::Model::MasslessOpaqueMaterial.new(os_model)
+    expect(xps8x25mm.handle.to_s.empty?).to be(false)
+    expect(xps8x25mm.nameString.empty?).to be(false)
+    expect(xps8x25mm.nameString).to eq("Material No Mass 1")
+    xps8x25mm.setName("xps8x25mm")
+    expect(xps8x25mm.nameString).to eq("xps8x25mm")
+    xps8x25mm.setRoughness("Rough")
+    xps8x25mm.setThermalResistance(8 * 0.88)
+    xps8x25mm.setThermalAbsorptance(0.9)
+    xps8x25mm.setSolarAbsorptance(0.7)
+    xps8x25mm.setVisibleAbsorptance(0.7)
+    expect(xps8x25mm.roughness).to eq("Rough")
+    expect(xps8x25mm.thermalResistance).to be_within(0.0001).of(7.0400)
+    expect(xps8x25mm.thermalAbsorptance.empty?).to be(false)
+    expect(xps8x25mm.thermalAbsorptance.get).to be_within(0.0001).of(0.9)
+    expect(xps8x25mm.solarAbsorptance.empty?).to be(false)
+    expect(xps8x25mm.solarAbsorptance.get).to be_within(0.0001).of(0.7)
+    expect(xps8x25mm.visibleAbsorptance.empty?).to be(false)
+    expect(xps8x25mm.visibleAbsorptance.get).to be_within(0.0001).of(0.7)
+
+    elevator_floor_c = OpenStudio::Model::Construction.new(os_model)
+    expect(elevator_floor_c.handle.to_s.empty?).to be(false)
+    expect(elevator_floor_c.nameString.empty?).to be(false)
+    expect(elevator_floor_c.nameString).to eq("Construction 1")
+    elevator_floor_c.setName("elevator_floor_c")
+    expect(elevator_floor_c.nameString).to eq("elevator_floor_c")
+    expect(elevator_floor_c.layers.size).to eq(0)
+
+    mats = OpenStudio::Model::MaterialVector.new
+    mats << exterior
+    mats << xps8x25mm
+    mats << interior
+    expect(elevator_floor_c.setLayers(mats)).to be(true)
+    expect(elevator_floor_c.layers.size).to eq(3)
+    expect(elevator_floor_c.layers[0].handle.to_s).to eq(exterior.handle.to_s)
+    expect(elevator_floor_c.layers[1].handle.to_s).to eq(xps8x25mm.handle.to_s)
+    expect(elevator_floor_c.layers[2].handle.to_s).to eq(interior.handle.to_s)
+
     # Set building shading surfaces:
     # (4x above gallery roof + 2x North/South balconies)
     os_v = OpenStudio::Point3dVector.new
@@ -432,12 +471,21 @@ RSpec.describe TBD do
     os_e_floor.setSpace(os_g)                          #   6.0m2
     os_e_floor.setOutsideBoundaryCondition("Outdoors")
 
+    # initially, elevator floor is defaulted ...
     expect(os_e_floor.surfaceType.downcase).to eq("floor")
     expect(os_e_floor.isConstructionDefaulted).to be(true)
     c = set.getDefaultConstruction(os_e_floor).get.to_Construction.get
     expect(c.numLayers).to eq(3)
     expect(c.isOpaque).to be(true)
     expect(c.nameString).to eq("scrigno_construction")
+
+    # ... now overriding default construction
+    os_e_floor.setConstruction(elevator_floor_c)
+    expect(os_e_floor.isConstructionDefaulted).to be(false)
+    c = os_e_floor.construction.get.to_Construction.get
+    expect(c.numLayers).to eq(3)
+    expect(c.isOpaque).to be(true)
+    expect(c.nameString).to eq("elevator_floor_c")
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 24.0, 29.8, 46.7) #  5.9m
@@ -1081,8 +1129,8 @@ RSpec.describe TBD do
     # (type & PSI-value pairs) are grouped into PSI sets, normally accessed
     # through the 'set' user-argument (in the OpenStudio Measure interface).
     psi = PSI.new
-    set = psi.set["poor (BC Hydro)"]
-    #set = psi.set["code (Quebec)"]
+    psi_set = psi.set["poor (BC Hydro)"]
+    #psi_set = psi.set["code (Quebec)"]
 
     edges.values.each do |edge|
       next unless edge.has_key?(:surfaces)
@@ -1124,7 +1172,7 @@ RSpec.describe TBD do
               next unless surfaces[i][:boundary].downcase == "Outdoors"
               next unless surfaces[id].has_key?(:ground)
               next unless surfaces[id][:ground]
-              psi[:grade] = set[:grade]
+              psi[:grade] = psi_set[:grade]
             end
           end
 
@@ -1135,7 +1183,7 @@ RSpec.describe TBD do
             edge[:surfaces].keys.each do |i|
               next unless shades.has_key?(i)
               next unless floors.has_key?(id)
-              psi[:balcony] = set[:balcony]
+              psi[:balcony] = psi_set[:balcony]
             end
           end
 
@@ -1148,7 +1196,7 @@ RSpec.describe TBD do
               next unless walls[i][:boundary].downcase == "outdoors"
               next unless ceilings.has_key?(id)
               next unless ceilings[id][:boundary].downcase == "outdoors"
-              psi[:parapet] = set[:parapet]
+              psi[:parapet] = psi_set[:parapet]
             end
           end
 
@@ -1160,7 +1208,7 @@ RSpec.describe TBD do
               next unless walls[i][:boundary].downcase == "outdoors"
               next unless floors.has_key?(id)
               next unless floors[id][:boundary].downcase == "outdoors"
-              psi[:parapet] = set[:parapet]
+              psi[:parapet] = psi_set[:parapet]
             end
           end
 
@@ -1172,7 +1220,7 @@ RSpec.describe TBD do
               next unless ceilings[i][:boundary].downcase == "outdoors"
               next unless floors.has_key?(id)
               next unless floors[id][:boundary].downcase == "outdoors"
-              psi[:parapet] = set[:parapet]
+              psi[:parapet] = psi_set[:parapet]
             end
           end
 
@@ -1184,7 +1232,7 @@ RSpec.describe TBD do
               next unless floors.has_key?(i)
               next unless walls.has_key?(id)
               next unless walls[id][:boundary].downcase == "outdoors"
-              psi[:rimjoist] = set[:rimjoist]
+              psi[:rimjoist] = psi_set[:rimjoist]
             end
           end
 
@@ -1193,7 +1241,7 @@ RSpec.describe TBD do
           unless psi.has_key?(:fenestration)
             edge[:surfaces].keys.each do |i|
               next unless holes.has_key?(i)
-              psi[:fenestration] = set[:fenestration]
+              psi[:fenestration] = psi_set[:fenestration]
             end
           end
 
@@ -1217,8 +1265,8 @@ RSpec.describe TBD do
 
               n1_d_p2 = s1[:normal].dot(s2[:polar])
               p1_d_n2 = s1[:polar].dot(s2[:normal])
-              psi[:concave] = set[:concave] if n1_d_p2 > 0 && p1_d_n2 > 0
-              psi[:convex]  = set[:convex]  if n1_d_p2 < 0 && p1_d_n2 < 0
+              psi[:concave] = psi_set[:concave] if n1_d_p2 > 0 && p1_d_n2 > 0
+              psi[:convex]  = psi_set[:convex]  if n1_d_p2 < 0 && p1_d_n2 < 0
             end
           end
 
@@ -1314,56 +1362,160 @@ RSpec.describe TBD do
       # assign heat loss from thermal bridges to surfaces
       deratables.each do |id, deratable|
         surfaces[id][:edges] = {} unless surfaces[id].has_key?(:edges)
-        # puts surfaces[id].keys
-        # ground
-        # boundary
-        # space
-        # gross
-        # net
-        # points
-        # minz
-        # n
-        # doors
-        # face
-        # edges
         surfaces[id][:edges][identifier] = bridge
       end
     end
 
-    # derate surfaces
+    # assign thermal bridging heat loss [in W/K] to each deratable surface
     n_surfaces_to_derate = 0
     surfaces.values.each do |surface|
       next unless surface.has_key?(:edges)
       surface[:heatloss] = 0
-      surface[:edges].values.each do |bridge|
-        surface[:heatloss] += bridge[:psi] * bridge[:length]
+      surface[:edges].values.each do |edge|
+        surface[:heatloss] += edge[:psi] * edge[:length]
       end
       n_surfaces_to_derate += 1
     end
     expect(n_surfaces_to_derate).to eq(22)
 
-    expect(surfaces["s_floor"][:heatloss]).to be_within(0.01).of(8.80)
-    expect(surfaces["s_E_wall"][:heatloss]).to be_within(0.01).of(5.041)
-    expect(surfaces["p_E_floor"][:heatloss]).to be_within(0.01).of(18.650)
-    expect(surfaces["s_S_wall"][:heatloss]).to be_within(0.01).of(6.583)
-    expect(surfaces["e_W_wall"][:heatloss]).to be_within(0.01).of(6.365)
-    expect(surfaces["p_N_wall"][:heatloss]).to be_within(0.01).of(37.250)
-    expect(surfaces["p_S2_wall"][:heatloss]).to be_within(0.01).of(27.268)
-    expect(surfaces["p_S1_wall"][:heatloss]).to be_within(0.01).of(7.063)
-    expect(surfaces["g_S_wall"][:heatloss]).to be_within(0.01).of(56.150)
-    expect(surfaces["p_floor"][:heatloss]).to be_within(0.01).of(10.000)
+    expect(surfaces["s_floor"   ][:heatloss]).to be_within(0.01).of( 8.800)
+    expect(surfaces["s_E_wall"  ][:heatloss]).to be_within(0.01).of( 5.041)
+    expect(surfaces["p_E_floor" ][:heatloss]).to be_within(0.01).of(18.650)
+    expect(surfaces["s_S_wall"  ][:heatloss]).to be_within(0.01).of( 6.583)
+    expect(surfaces["e_W_wall"  ][:heatloss]).to be_within(0.01).of( 6.365)
+    expect(surfaces["p_N_wall"  ][:heatloss]).to be_within(0.01).of(37.250)
+    expect(surfaces["p_S2_wall" ][:heatloss]).to be_within(0.01).of(27.268)
+    expect(surfaces["p_S1_wall" ][:heatloss]).to be_within(0.01).of( 7.063)
+    expect(surfaces["g_S_wall"  ][:heatloss]).to be_within(0.01).of(56.150)
+    expect(surfaces["p_floor"   ][:heatloss]).to be_within(0.01).of(10.000)
     expect(surfaces["p_W1_floor"][:heatloss]).to be_within(0.01).of(13.775)
-    expect(surfaces["e_N_wall"][:heatloss]).to be_within(0.01).of(5.639)
-    expect(surfaces["s_N_wall"][:heatloss]).to be_within(0.01).of(6.583)
-    expect(surfaces["g_E_wall"][:heatloss]).to be_within(0.01).of(18.195)
-    expect(surfaces["e_S_wall"][:heatloss]).to be_within(0.01).of(8.615)
-    expect(surfaces["e_top"][:heatloss]).to be_within(0.01).of(4.400)
-    expect(surfaces["s_W_wall"][:heatloss]).to be_within(0.01).of(5.670)
-    expect(surfaces["e_E_wall"][:heatloss]).to be_within(0.01).of(6.365)
-    expect(surfaces["e_floor"][:heatloss]).to be_within(0.01).of(5.500)
-    expect(surfaces["g_W_wall"][:heatloss]).to be_within(0.01).of(18.195)
-    expect(surfaces["g_N_wall"][:heatloss]).to be_within(0.01).of(54.255)
+    expect(surfaces["e_N_wall"  ][:heatloss]).to be_within(0.01).of( 5.639)
+    expect(surfaces["s_N_wall"  ][:heatloss]).to be_within(0.01).of( 6.583)
+    expect(surfaces["g_E_wall"  ][:heatloss]).to be_within(0.01).of(18.195)
+    expect(surfaces["e_S_wall"  ][:heatloss]).to be_within(0.01).of( 8.615)
+    expect(surfaces["e_top"     ][:heatloss]).to be_within(0.01).of( 4.400)
+    expect(surfaces["s_W_wall"  ][:heatloss]).to be_within(0.01).of( 5.670)
+    expect(surfaces["e_E_wall"  ][:heatloss]).to be_within(0.01).of( 6.365)
+    expect(surfaces["e_floor"   ][:heatloss]).to be_within(0.01).of( 5.500)
+    expect(surfaces["g_W_wall"  ][:heatloss]).to be_within(0.01).of(18.195)
+    expect(surfaces["g_N_wall"  ][:heatloss]).to be_within(0.01).of(54.255)
     expect(surfaces["p_W2_floor"][:heatloss]).to be_within(0.01).of(13.729)
+
+    roof_c  = defaults.roofCeilingConstruction.get.to_Construction.get
+    wall_c  = defaults.wallConstruction.get.to_Construction.get
+    floor_c = defaults.floorConstruction.get.to_Construction.get
+
+    # derate matching OpenStudio floors
+    floors.each do |id, floor|
+      next unless floor.has_key?(:edges)
+      os_model.getSurfaces.each do |s|
+        name = s.nameString
+        next unless name == id
+        if s.isConstructionDefaulted
+          construction_name = floor_c.nameString
+          c = floor_c.clone(os_model).to_Construction.get
+        else
+          construction_name = s.construction.get.nameString
+          c = s.construction.get.clone(os_model).to_Construction.get
+        end
+
+        # Derated (cloned) constructions are unique to each deratable surface.
+        # Unique construction names are prefixed with the surface name,
+        # and suffixed with " tbd", indicating that the construction is
+        # henceforth thermally derated.
+        c.setName("#{id} #{construction_name} tbd")
+
+        # identify insulating material (and key attributes)
+        r                     = 0.0         # R-value of insulating material
+        index                 = nil         # index of insulating material
+        type                  = nil         # nil, :massless; or :standard
+        i                     = 0           # iterator
+        loss                  = 0.0         # holds unassigned heat loss
+
+        c.layers.each do |m|
+          unless m.to_MasslessOpaqueMaterial.empty?
+            m                 = m.to_MasslessOpaqueMaterial.get
+            next unless         m.thermalResistance > 0.001
+            next unless         m.thermalResistance > r
+            r                 = m.thermalResistance
+            index             = i
+            type              = :massless
+            i += 1
+          end
+
+          unless m.to_StandardOpaqueMaterial.empty?
+            m                 = m.to_StandardOpaqueMaterial.get
+            k                 = m.thermalConductivity
+            d                 = m.thickness
+            next unless         d > 0.003
+            next unless         k < 3.0
+            next unless         d / k > r
+            r                 = d / k
+            index             = i
+            type              = :standard
+            i += 1
+          end
+        end
+
+        unless index.nil?
+          next unless           floor.has_key?(:heatloss)
+          next unless           floor.has_key?(:net)
+          next unless           floor[:heatloss].is_a?(Numeric)
+          next unless           floor[:net].is_a?(Numeric)
+          u                   = floor[:heatloss] / floor[:net]
+          de_u                = 1.0 / r + u                       # derated U
+          de_r                = 1.0 / de_u                        # derated R
+          if type == :massless
+            m                 = c.getLayer(index).to_MasslessOpaqueMaterial.get
+            m                 = m.clone(os_model)
+            m                 = m.to_MasslessOpaqueMaterial.get
+                                m.setName("#{id} #{m.nameString} tbd")
+
+            unless de_r > 0.001
+              de_r            = 0.001
+              de_u            = 1.0 / de_r
+              loss            = (de_u - 1.0 / r) / floor[:net]
+            end
+
+            m.setThermalResistance(de_r)
+            c.setLayer(index, m)
+            floor[:r_heatloss] = loss if loss > 0
+
+          else # :standard
+            m                 = c.getLayer(index).to_StandardOpaqueMaterial.get
+            m                 = m.clone(os_model)
+            m                 = m.to_StandardOpaqueMaterial.get
+                                m.setName("#{id} #{m.nameString} tbd")
+            k                 = m.thermalConductivity
+
+            if de_r > 0.001
+              d               = de_r * k
+              unless d > 0.003
+                d             = 0.003
+                k             = d / de_r
+
+                unless k < 3.0
+                  k           = 3.0
+                  loss        = (k / d - 1.0 / r) / floor[:net]
+                end
+              end
+            else              # de_r < 0.001 m2.K/W
+              d               = 0.001 * k
+              unless d > 0.003
+                d             = 0.003
+                k             = d / 0.001
+              end
+              loss            = (k / d - 1.0 / r) / floor[:net]
+            end
+
+            m.setThickness(d)
+            m.setThermalConductivity(k)
+            c.setLayer(index, m)
+            floor[:r_heatloss] = loss if loss > 0
+          end
+        end
+      end
+    end
 
   end # can process thermal bridging and derating : LoScrigno
 end
