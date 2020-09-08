@@ -160,6 +160,118 @@ RSpec.describe TBD do
       end
     end
 
+    def deratableLayer(construction)
+      # identify insulating material (and key attributes) within a construction
+      r                     = 0.0         # R-value of insulating material
+      index                 = nil         # index of insulating material
+      type                  = nil         # nil, :massless; or :standard
+      i                     = 0           # iterator
+
+      construction.layers.each do |m|
+        unless m.to_MasslessOpaqueMaterial.empty?
+          m                 = m.to_MasslessOpaqueMaterial.get
+          next unless         m.thermalResistance > 0.001
+          next unless         m.thermalResistance > r
+          r                 = m.thermalResistance
+          index             = i
+          type              = :massless
+          i += 1
+        end
+
+        unless m.to_StandardOpaqueMaterial.empty?
+          m                 = m.to_StandardOpaqueMaterial.get
+          k                 = m.thermalConductivity
+          d                 = m.thickness
+          next unless         d > 0.003
+          next unless         k < 3.0
+          next unless         d / k > r
+          r                 = d / k
+          index             = i
+          type              = :standard
+          i += 1
+        end
+      end
+      return index, type, r
+    end
+
+    def derate(os_model, os_surface, id, surface, c, index, type, r)
+      m = nil
+      if surface.has_key?(:heatloss)                    &&
+         surface.has_key?(:net)                         &&
+         surface[:heatloss].is_a?(Numeric)              &&
+         surface[:net].is_a?(Numeric)                   &&
+         id == os_surface.nameString                    &&
+         index != nil                                   &&
+         index.is_a?(Integer)                           &&
+         index >= 0                                     &&
+         r.is_a?(Numeric)                               &&
+         r >= 0.001                                     &&
+         / tbd/i.match(c.nameString) == nil             &&
+         (type == :massless || type == :standard)
+
+         # puts c.nameString
+         # tbd/i.match(c.nameString) == nil
+
+         u            = surface[:heatloss] / surface[:net]
+         loss         = 0.0
+         de_u         = 1.0 / r + u                       # derated U
+         de_r         = 1.0 / de_u                        # derated R
+
+         if type == :massless
+           m          = c.getLayer(index).to_MasslessOpaqueMaterial.get
+           m          = m.clone(os_model)
+           m          = m.to_MasslessOpaqueMaterial.get
+                        m.setName("#{id} #{m.nameString} tbd")
+
+           unless de_r > 0.001
+             de_r     = 0.001
+             de_u     = 1.0 / de_r
+             loss     = (de_u - 1.0 / r) / surface[:net]
+           end
+           m.setThermalResistance(de_r)
+
+         else # type == :standard
+           m          = c.getLayer(index).to_StandardOpaqueMaterial.get
+           m          = m.clone(os_model)
+           m          = m.to_StandardOpaqueMaterial.get
+                        m.setName("#{id} #{m.nameString} tbd")
+           k          = m.thermalConductivity
+           if de_r > 0.001
+             d        = de_r * k
+             unless d > 0.003
+               d      = 0.003
+               k      = d / de_r
+               unless k < 3.0
+                 k    = 3.0
+                 loss = (k / d - 1.0 / r) / surface[:net]
+               end
+             end
+
+           else              # de_r < 0.001 m2.K/W
+             d        = 0.001 * k
+             unless d > 0.003
+               d      = 0.003
+               k      = d / 0.001
+             end
+             loss     = (k / d - 1.0 / r) / surface[:net]
+           end
+           m.setThickness(d)
+           m.setThermalConductivity(k)
+         end
+
+         if m.nil?
+           puts "nilled?"
+         else
+           #puts c.nameString
+           #c.setLayer(index, m)
+           surface[:r_heatloss] = loss if loss > 0
+           #os_surface.setConstruction(c)
+           #puts os_surface.construction.get.nameString
+         end
+       end
+       return m
+    end
+
     os_model = OpenStudio::Model::Model.new
     os_g = OpenStudio::Model::Space.new(os_model) # gallery "g" & elevator "e"
     os_g.setName("scrigno_gallery")
@@ -1401,16 +1513,18 @@ RSpec.describe TBD do
     expect(surfaces["g_N_wall"  ][:heatloss]).to be_within(0.01).of(54.255)
     expect(surfaces["p_W2_floor"][:heatloss]).to be_within(0.01).of(13.729)
 
-    roof_c  = defaults.roofCeilingConstruction.get.to_Construction.get
-    wall_c  = defaults.wallConstruction.get.to_Construction.get
-    floor_c = defaults.floorConstruction.get.to_Construction.get
+    ceiling_c   = defaults.roofCeilingConstruction.get.to_Construction.get
+    wall_c      = defaults.wallConstruction.get.to_Construction.get
+    floor_c     = defaults.floorConstruction.get.to_Construction.get
 
-    # derate matching OpenStudio floors
+    # Derated (cloned) constructions are unique to each deratable surface.
+    # Unique construction names are prefixed with the surface name,
+    # and suffixed with " tbd", indicating that the construction is
+    # henceforth thermally derated.
     floors.each do |id, floor|
       next unless floor.has_key?(:edges)
       os_model.getSurfaces.each do |s|
-        name = s.nameString
-        next unless name == id
+        next unless id == s.nameString
         if s.isConstructionDefaulted
           construction_name = floor_c.nameString
           c = floor_c.clone(os_model).to_Construction.get
@@ -1418,102 +1532,82 @@ RSpec.describe TBD do
           construction_name = s.construction.get.nameString
           c = s.construction.get.clone(os_model).to_Construction.get
         end
-
-        # Derated (cloned) constructions are unique to each deratable surface.
-        # Unique construction names are prefixed with the surface name,
-        # and suffixed with " tbd", indicating that the construction is
-        # henceforth thermally derated.
-        c.setName("#{id} #{construction_name} tbd")
-
-        # identify insulating material (and key attributes)
-        r                     = 0.0         # R-value of insulating material
-        index                 = nil         # index of insulating material
-        type                  = nil         # nil, :massless; or :standard
-        i                     = 0           # iterator
-        loss                  = 0.0         # holds unassigned heat loss
-
-        c.layers.each do |m|
-          unless m.to_MasslessOpaqueMaterial.empty?
-            m                 = m.to_MasslessOpaqueMaterial.get
-            next unless         m.thermalResistance > 0.001
-            next unless         m.thermalResistance > r
-            r                 = m.thermalResistance
-            index             = i
-            type              = :massless
-            i += 1
-          end
-
-          unless m.to_StandardOpaqueMaterial.empty?
-            m                 = m.to_StandardOpaqueMaterial.get
-            k                 = m.thermalConductivity
-            d                 = m.thickness
-            next unless         d > 0.003
-            next unless         k < 3.0
-            next unless         d / k > r
-            r                 = d / k
-            index             = i
-            type              = :standard
-            i += 1
-          end
+        index, type, r = deratableLayer(c)
+        m = derate(os_model, s, id, floor, c, index, type, r)
+        unless m.nil?
+          c.setLayer(index, m)
+          c.setName("#{id} #{construction_name} tbd")
+          s.setConstruction(c)
         end
+      end
+    end
 
-        unless index.nil?
-          next unless           floor.has_key?(:heatloss)
-          next unless           floor.has_key?(:net)
-          next unless           floor[:heatloss].is_a?(Numeric)
-          next unless           floor[:net].is_a?(Numeric)
-          u                   = floor[:heatloss] / floor[:net]
-          de_u                = 1.0 / r + u                       # derated U
-          de_r                = 1.0 / de_u                        # derated R
-          if type == :massless
-            m                 = c.getLayer(index).to_MasslessOpaqueMaterial.get
-            m                 = m.clone(os_model)
-            m                 = m.to_MasslessOpaqueMaterial.get
-                                m.setName("#{id} #{m.nameString} tbd")
+    floors.each do |id, floor|
+      next unless floor.has_key?(:edges)
+      os_model.getSurfaces.each do |s|
+        next unless id == s.nameString
+        expect(s.isConstructionDefaulted).to be(false)
+        expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
+      end
+    end
 
-            unless de_r > 0.001
-              de_r            = 0.001
-              de_u            = 1.0 / de_r
-              loss            = (de_u - 1.0 / r) / floor[:net]
-            end
-
-            m.setThermalResistance(de_r)
-            c.setLayer(index, m)
-            floor[:r_heatloss] = loss if loss > 0
-
-          else # :standard
-            m                 = c.getLayer(index).to_StandardOpaqueMaterial.get
-            m                 = m.clone(os_model)
-            m                 = m.to_StandardOpaqueMaterial.get
-                                m.setName("#{id} #{m.nameString} tbd")
-            k                 = m.thermalConductivity
-
-            if de_r > 0.001
-              d               = de_r * k
-              unless d > 0.003
-                d             = 0.003
-                k             = d / de_r
-
-                unless k < 3.0
-                  k           = 3.0
-                  loss        = (k / d - 1.0 / r) / floor[:net]
-                end
-              end
-            else              # de_r < 0.001 m2.K/W
-              d               = 0.001 * k
-              unless d > 0.003
-                d             = 0.003
-                k             = d / 0.001
-              end
-              loss            = (k / d - 1.0 / r) / floor[:net]
-            end
-
-            m.setThickness(d)
-            m.setThermalConductivity(k)
-            c.setLayer(index, m)
-            floor[:r_heatloss] = loss if loss > 0
-          end
+    ceilings.each do |id, ceiling|
+      next unless ceiling.has_key?(:edges)
+      os_model.getSurfaces.each do |s|
+        next unless id == s.nameString
+        if s.isConstructionDefaulted
+          construction_name = ceiling_c.nameString
+          c = ceiling_c.clone(os_model).to_Construction.get
+        else
+          construction_name = s.construction.get.nameString
+          c = s.construction.get.clone(os_model).to_Construction.get
         end
+        index, type, r = deratableLayer(c)
+        m = derate(os_model, s, id, ceiling, c, index, type, r)
+        unless m.nil?
+          c.setLayer(index, m)
+          c.setName("#{id} #{construction_name} tbd")
+          s.setConstruction(c)
+        end
+      end
+    end
+
+    ceilings.each do |id, ceiling|
+      next unless ceiling.has_key?(:edges)
+      os_model.getSurfaces.each do |s|
+        next unless id == s.nameString
+        expect(s.isConstructionDefaulted).to be(false)
+        expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
+      end
+    end
+
+    walls.each do |id, wall|
+      next unless wall.has_key?(:edges)
+      os_model.getSurfaces.each do |s|
+        next unless id == s.nameString
+        if s.isConstructionDefaulted
+          construction_name = wall_c.nameString
+          c = wall_c.clone(os_model).to_Construction.get
+        else
+          construction_name = s.construction.get.nameString
+          c = s.construction.get.clone(os_model).to_Construction.get
+        end
+        index, type, r = deratableLayer(c)
+        m = derate(os_model, s, id, wall, c, index, type, r)
+        unless m.nil?
+          c.setLayer(index, m)
+          c.setName("#{id} #{construction_name} tbd")
+          s.setConstruction(c)
+        end
+      end
+    end
+
+    walls.each do |id, wall|
+      next unless wall.has_key?(:edges)
+      os_model.getSurfaces.each do |s|
+        next unless id == s.nameString
+        expect(s.isConstructionDefaulted).to be(false)
+        expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
       end
     end
 
