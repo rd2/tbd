@@ -209,9 +209,6 @@ RSpec.describe TBD do
          / tbd/i.match(c.nameString) == nil             &&
          (type == :massless || type == :standard)
 
-         # puts c.nameString
-         # tbd/i.match(c.nameString) == nil
-
          u            = surface[:heatloss] / surface[:net]
          loss         = 0.0
          de_u         = 1.0 / r + u                       # derated U
@@ -247,7 +244,7 @@ RSpec.describe TBD do
                end
              end
 
-           else              # de_r < 0.001 m2.K/W
+           else       # de_r < 0.001 m2.K/W
              d        = 0.001 * k
              unless d > 0.003
                d      = 0.003
@@ -259,14 +256,8 @@ RSpec.describe TBD do
            m.setThermalConductivity(k)
          end
 
-         if m.nil?
-           puts "nilled?"
-         else
-           #puts c.nameString
-           #c.setLayer(index, m)
+         unless m.nil?
            surface[:r_heatloss] = loss if loss > 0
-           #os_surface.setConstruction(c)
-           #puts os_surface.construction.get.nameString
          end
        end
        return m
@@ -801,7 +792,7 @@ RSpec.describe TBD do
     os_s_floor.setSurfaceType("Floor")
     os_s_floor.setOutsideBoundaryCondition("Outdoors")
 
-    #os_model.save("os_model_test.osm", true)
+    # os_model.save("os_model_test.osm", true)
 
     # create the Topolys Model
     t_model = Topolys::Model.new
@@ -1224,14 +1215,14 @@ RSpec.describe TBD do
     end # end of edge loop
 
     # test edge surface polar angles ...
-    #edges.values.each do |edge|
-    #  if edge[:surfaces].size > 1
-        #puts "edge of (#{edge[:length]}m) is linked to #{edge[:surfaces].size}:"
-    #    edge[:surfaces].each do |i, surface|
-          #puts "... #{i} : #{surface[:angle]}"
-    #    end
-    #  end
-    #end
+    # edges.values.each do |edge|
+    #   if edge[:surfaces].size > 1
+    #     puts "edge of (#{edge[:length]}m) is linked to #{edge[:surfaces].size}:"
+    #     edge[:surfaces].each do |i, surface|
+    #       puts "... #{i} : #{surface[:angle]}"
+    #     end
+    #   end
+    # end
     expect(edges.size).to eq(89)
     expect(t_model.edges.size).to eq(89)
 
@@ -1242,7 +1233,7 @@ RSpec.describe TBD do
     # through the 'set' user-argument (in the OpenStudio Measure interface).
     psi = PSI.new
     psi_set = psi.set["poor (BC Hydro)"]
-    #psi_set = psi.set["code (Quebec)"]
+    # psi_set = psi.set["code (Quebec)"] # thermal bridging effect less critical
 
     edges.values.each do |edge|
       next unless edge.has_key?(:surfaces)
@@ -1255,10 +1246,6 @@ RSpec.describe TBD do
       # isn't currently enabled, e.g. KIVA ... TO DO.
       deratable = false
       edge[:surfaces].each do |id, surface|
-        # puts surface.keys
-        # :wire (unique Topolys string identifier)
-        # :angle (0°,360°]
-
         deratable = true if floors.has_key?(id)
         deratable = true if ceilings.has_key?(id)
         deratable = true if walls.has_key?(id)
@@ -1420,8 +1407,9 @@ RSpec.describe TBD do
     # loop through each edge and assign heat loss to linked surfaces
     edges.each do |identifier, edge|
       next unless edge.has_key?(:psi)
-      next unless edge[:psi].values.max > 0.01
-      bridge = { psi: edge[:psi].values.max,
+      psi = edge[:psi].values.max
+      next unless psi > 0.01
+      bridge = { psi: psi,
                  type: edge[:psi].key(psi),
                  length: edge[:length] }
 
@@ -1520,7 +1508,11 @@ RSpec.describe TBD do
     # Derated (cloned) constructions are unique to each deratable surface.
     # Unique construction names are prefixed with the surface name,
     # and suffixed with " tbd", indicating that the construction is
-    # henceforth thermally derated.
+    # henceforth thermally derated. The " tbd" expression is also key in
+    # avoiding inadvertent derating - TBD will not derate constructions
+    # (or rather materials) having " tbd" in its OpenStudio name.
+
+    # start with floors ...
     floors.each do |id, floor|
       next unless floor.has_key?(:edges)
       os_model.getSurfaces.each do |s|
@@ -1542,6 +1534,7 @@ RSpec.describe TBD do
       end
     end
 
+    # testing
     floors.each do |id, floor|
       next unless floor.has_key?(:edges)
       os_model.getSurfaces.each do |s|
@@ -1551,6 +1544,7 @@ RSpec.describe TBD do
       end
     end
 
+    # now ceilings ...
     ceilings.each do |id, ceiling|
       next unless ceiling.has_key?(:edges)
       os_model.getSurfaces.each do |s|
@@ -1572,6 +1566,7 @@ RSpec.describe TBD do
       end
     end
 
+    # testing
     ceilings.each do |id, ceiling|
       next unless ceiling.has_key?(:edges)
       os_model.getSurfaces.each do |s|
@@ -1581,6 +1576,7 @@ RSpec.describe TBD do
       end
     end
 
+    # and finally walls ...
     walls.each do |id, wall|
       next unless wall.has_key?(:edges)
       os_model.getSurfaces.each do |s|
@@ -1602,6 +1598,7 @@ RSpec.describe TBD do
       end
     end
 
+    # testing
     walls.each do |id, wall|
       next unless wall.has_key?(:edges)
       os_model.getSurfaces.each do |s|
@@ -1610,6 +1607,33 @@ RSpec.describe TBD do
         expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
       end
     end
+
+    # for validation ... substitute "ceiling(s)" for "wall(s)" or "floor(s)"
+    # output = File.open("output.txt", "w")
+    # ceilings.each do |id, ceiling|
+    #   next unless ceiling.has_key?(:edges)
+    #   os_model.getSurfaces.each do |s|
+    #     next unless id == s.nameString
+    #     next unless ceiling.has_key?(:heatloss)
+    #     u = s.thermalConductance
+    #     next if u.empty?
+    #     r = format "%.3f", 1.0 / u.to_f
+    #     loss = format "%.3f", ceiling[:heatloss]
+    #     area = format "%.3f", ceiling[:net]
+    #     output.write("#{id} : area (m2); R (m2.K/W); loss (W/K), \
+        #{area}, \
+        #{r}, \
+        #{loss}\n")
+    #     ceiling[:edges].values.each do |edge|
+    #       type = edge[:type].to_s.rjust(12)
+    #       psi = format "%6.3f", edge[:psi].to_s.rjust(17," ")
+    #       length = format "%5.2f", edge[:length].to_s.rjust(27," ")
+    #       output.write("#{type}, #{psi}, #{length}\n")
+    #     end
+    #     output.write("\n")
+    #   end
+    # end
+    # output.close
 
   end # can process thermal bridging and derating : LoScrigno
 end
