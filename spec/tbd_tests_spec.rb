@@ -1,5 +1,3 @@
-require "openstudio"
-require "topolys"
 require "psi"
 
 RSpec.describe TBD do
@@ -10,258 +8,6 @@ RSpec.describe TBD do
     # and resting on four main pillars. For the purposes of the spec, vertical
     # access (elevator and stairs, fully glazed) are modelled as extensions
     # of either space.
-
-    # Returns site/space transformation & rotation
-    def transforms(model, group)
-      if model && group
-        unless model.is_a?(OpenStudio::Model::Model)
-          raise "Expected OpenStudio model - got #{model.class}"
-        end
-        unless group.is_a?(OpenStudio::Model::Space)               ||
-               group.is_a?(OpenStudio::Model::ShadingSurfaceGroup)
-          raise "Expected OpenStudio group - got a #{group.class}"
-        end
-        t = group.siteTransformation
-        r = group.directionofRelativeNorth + model.getBuilding.northAxis
-        return t, r
-      end
-    end
-
-    # Returns site-specific (or absolute) Topolys surface normal
-    def trueNormal(s, r)
-      if s && r
-        c = OpenStudio::Model::PlanarSurface
-        raise "Expected #{c} - got #{s.class}" unless s.is_a?(c)
-        raise "Expected a numeric - got #{r.class}" unless r.is_a?(Numeric)
-
-        n = Topolys::Vector3D.new(s.outwardNormal.x * Math.cos(r) -
-                                  s.outwardNormal.y * Math.sin(r), # x
-                                  s.outwardNormal.x * Math.sin(r) +
-                                  s.outwardNormal.y * Math.cos(r), # y
-                                  s.outwardNormal.z)               # z
-        return n
-      end
-    end
-
-    # Returns Topolys vertices and a Topolys wire from Topolys points. As
-    # a side effect, it will - if successful - also populate the Topolys
-    # model with the vertices and wire.
-    def topolysObjects(model, points)
-      if model && points
-        unless model.is_a?(Topolys::Model)
-          raise "Expected Topolys model - got #{model.class}"
-        end
-        unless points.is_a?(Array)
-          raise "Expected array of Topolys points - got a #{points.class}"
-        end
-        unless points.size > 2
-          raise "Expected more than 2 points - got #{points.size}"
-        end
-
-        vertices = model.get_vertices(points)
-        wire = model.get_wire(vertices)
-        return vertices, wire
-      end
-    end
-
-    # Populates hash of TBD kids, relying on Topolys. As
-    # a side effect, it will - if successful - also populate the Topolys
-    # model with Topolys vertices, wires, holes.
-    def populateTBDkids(model, kids)
-      holes = []
-      if model && kids
-        unless model.is_a?(Topolys::Model)
-          raise "Expected Topolys model - got #{model.class}"
-        end
-        unless kids.is_a?(Hash)
-          raise "Expected hash of TBD surafces - got a #{kids.class}"
-        end
-        kids.each do |id, properties|
-          vtx, hole = topolysObjects(model, properties[:points])
-          hole.attributes[:id] = id
-          hole.attributes[:n] = properties[:n] if properties.has_key?(:n)
-          properties[:hole] = hole
-          holes << hole
-        end
-      end
-      return holes
-    end
-
-    # Populates hash of TBD surfaces, relying on Topolys. As
-    # a side effect, it will - if successful - also populate the Topolys
-    # model with Topolys vertices, wires, holes & faces.
-    def populateTBDdads(model, dads)
-      tbd_holes = {}
-
-      if model && dads
-        unless model.is_a?(Topolys::Model)
-          raise "Expected Topolys model - got #{model.class}"
-        end
-        unless dads.is_a?(Hash)
-          raise "Expected hash of TBD surfaces - got a #{dads.class}"
-        end
-
-        dads.each do |id, properties|
-          vertices, wire = topolysObjects(model, properties[:points])
-
-          # create surface holes for kids
-          holes = []
-          if properties.has_key?(:windows)
-            holes += populateTBDkids(model, properties[:windows])
-          end
-          if properties.has_key?(:doors)
-            holes += populateTBDkids(model, properties[:doors])
-          end
-          if properties.has_key?(:skylights)
-            holes += populateTBDkids(model, properties[:skylights])
-          end
-
-          face = model.get_face(wire, holes)
-          raise "Cannot build face for #{id}" if face.nil?
-
-          face.attributes[:id] = id
-          face.attributes[:n] = properties[:n] if properties.has_key?(:n)
-          properties[:face] = face
-
-          # populate hash of created holes (to return)
-          holes.each do |h| tbd_holes[h.attributes[:id]] = h; end
-        end
-      end
-      return tbd_holes
-    end
-
-    def tbdSurfaceEdges(surfaces, edges)
-      if surfaces
-        unless surfaces.is_a?(Hash)
-          raise "Expected hash of TBD surfaces - got a #{surfaces.class}"
-        end
-        unless edges.is_a?(Hash)
-          raise "Expected hash of TBD edges - got a #{edges.class}"
-        end
-
-        surfaces.each do |id, properties|
-          unless properties.has_key?(:face)
-            raise "Missing Topolys face for #{id}"
-          end
-          properties[:face].wires.each do |wire|
-            wire.edges.each do |e|
-              unless edges.has_key?(e.id)
-                edges[e.id] = {length: e.length,
-                               v0: e.v0,
-                               v1: e.v1,
-                               surfaces: {}}
-              end
-              unless edges[e.id][:surfaces].has_key?(id)
-                edges[e.id][:surfaces][id] = {wire: wire.id}
-              end
-            end
-          end
-        end
-      end
-    end
-
-    def deratableLayer(construction)
-      # identify insulating material (and key attributes) within a construction
-      r                     = 0.0         # R-value of insulating material
-      index                 = nil         # index of insulating material
-      type                  = nil         # nil, :massless; or :standard
-      i                     = 0           # iterator
-
-      construction.layers.each do |m|
-        unless m.to_MasslessOpaqueMaterial.empty?
-          m                 = m.to_MasslessOpaqueMaterial.get
-          next unless         m.thermalResistance > 0.001
-          next unless         m.thermalResistance > r
-          r                 = m.thermalResistance
-          index             = i
-          type              = :massless
-          i += 1
-        end
-
-        unless m.to_StandardOpaqueMaterial.empty?
-          m                 = m.to_StandardOpaqueMaterial.get
-          k                 = m.thermalConductivity
-          d                 = m.thickness
-          next unless         d > 0.003
-          next unless         k < 3.0
-          next unless         d / k > r
-          r                 = d / k
-          index             = i
-          type              = :standard
-          i += 1
-        end
-      end
-      return index, type, r
-    end
-
-    def derate(os_model, os_surface, id, surface, c, index, type, r)
-      m = nil
-      if surface.has_key?(:heatloss)                    &&
-         surface.has_key?(:net)                         &&
-         surface[:heatloss].is_a?(Numeric)              &&
-         surface[:net].is_a?(Numeric)                   &&
-         id == os_surface.nameString                    &&
-         index != nil                                   &&
-         index.is_a?(Integer)                           &&
-         index >= 0                                     &&
-         r.is_a?(Numeric)                               &&
-         r >= 0.001                                     &&
-         / tbd/i.match(c.nameString) == nil             &&
-         (type == :massless || type == :standard)
-
-         u            = surface[:heatloss] / surface[:net]
-         loss         = 0.0
-         de_u         = 1.0 / r + u                       # derated U
-         de_r         = 1.0 / de_u                        # derated R
-
-         if type == :massless
-           m          = c.getLayer(index).to_MasslessOpaqueMaterial.get
-           m          = m.clone(os_model)
-           m          = m.to_MasslessOpaqueMaterial.get
-                        m.setName("#{id} #{m.nameString} tbd")
-
-           unless de_r > 0.001
-             de_r     = 0.001
-             de_u     = 1.0 / de_r
-             loss     = (de_u - 1.0 / r) / surface[:net]
-           end
-           m.setThermalResistance(de_r)
-
-         else # type == :standard
-           m          = c.getLayer(index).to_StandardOpaqueMaterial.get
-           m          = m.clone(os_model)
-           m          = m.to_StandardOpaqueMaterial.get
-                        m.setName("#{id} #{m.nameString} tbd")
-           k          = m.thermalConductivity
-           if de_r > 0.001
-             d        = de_r * k
-             unless d > 0.003
-               d      = 0.003
-               k      = d / de_r
-               unless k < 3.0
-                 k    = 3.0
-                 loss = (k / d - 1.0 / r) / surface[:net]
-               end
-             end
-
-           else       # de_r < 0.001 m2.K/W
-             d        = 0.001 * k
-             unless d > 0.003
-               d      = 0.003
-               k      = d / 0.001
-             end
-             loss     = (k / d - 1.0 / r) / surface[:net]
-           end
-           m.setThickness(d)
-           m.setThermalConductivity(k)
-         end
-
-         unless m.nil?
-           surface[:r_heatloss] = loss if loss > 0
-         end
-       end
-       return m
-    end
 
     os_model = OpenStudio::Model::Model.new
     os_g = OpenStudio::Model::Space.new(os_model) # gallery "g" & elevator "e"
@@ -366,6 +112,11 @@ RSpec.describe TBD do
     set = OpenStudio::Model::DefaultConstructionSet.new(os_model)
     expect(set.setDefaultExteriorSurfaceConstructions(defaults)).to be(true)
 
+    # if one comments out the following, then one can no longer rely on a
+    # building-specific, default construction set. If missing, fall back to
+    # to model default construction set @index 0.
+    os_scrigno.setDefaultConstructionSet(set)
+
     # 8" XPS massless variant, specific for elevator floor (not defaulted)
     xps8x25mm = OpenStudio::Model::MasslessOpaqueMaterial.new(os_model)
     expect(xps8x25mm.handle.to_s.empty?).to be(false)
@@ -408,55 +159,55 @@ RSpec.describe TBD do
     # Set building shading surfaces:
     # (4x above gallery roof + 2x North/South balconies)
     os_v = OpenStudio::Point3dVector.new
-    os_v << OpenStudio::Point3d.new(12.4, 45.0, 50.0)
-    os_v << OpenStudio::Point3d.new(12.4, 25.0, 50.0)
-    os_v << OpenStudio::Point3d.new(22.7, 25.0, 50.0)
-    os_v << OpenStudio::Point3d.new(22.7, 45.0, 50.0)
+    os_v << OpenStudio::Point3d.new( 12.4, 45.0, 50.0)
+    os_v << OpenStudio::Point3d.new( 12.4, 25.0, 50.0)
+    os_v << OpenStudio::Point3d.new( 22.7, 25.0, 50.0)
+    os_v << OpenStudio::Point3d.new( 22.7, 45.0, 50.0)
     os_r1_shade = OpenStudio::Model::ShadingSurface.new(os_v, os_model)
     os_r1_shade.setName("r1_shade")
     os_r1_shade.setShadingSurfaceGroup(os_s)
 
     os_v = OpenStudio::Point3dVector.new
-    os_v << OpenStudio::Point3d.new(22.7, 45.0, 50.0)
-    os_v << OpenStudio::Point3d.new(22.7, 37.5, 50.0)
-    os_v << OpenStudio::Point3d.new(48.7, 37.5, 50.0)
-    os_v << OpenStudio::Point3d.new(48.7, 45.0, 50.0)
+    os_v << OpenStudio::Point3d.new( 22.7, 45.0, 50.0)
+    os_v << OpenStudio::Point3d.new( 22.7, 37.5, 50.0)
+    os_v << OpenStudio::Point3d.new( 48.7, 37.5, 50.0)
+    os_v << OpenStudio::Point3d.new( 48.7, 45.0, 50.0)
     os_r2_shade = OpenStudio::Model::ShadingSurface.new(os_v, os_model)
     os_r2_shade.setName("r2_shade")
     os_r2_shade.setShadingSurfaceGroup(os_s)
 
     os_v = OpenStudio::Point3dVector.new
-    os_v << OpenStudio::Point3d.new(22.7, 32.5, 50.0)
-    os_v << OpenStudio::Point3d.new(22.7, 25.0, 50.0)
-    os_v << OpenStudio::Point3d.new(48.7, 25.0, 50.0)
-    os_v << OpenStudio::Point3d.new(48.7, 32.5, 50.0)
+    os_v << OpenStudio::Point3d.new( 22.7, 32.5, 50.0)
+    os_v << OpenStudio::Point3d.new( 22.7, 25.0, 50.0)
+    os_v << OpenStudio::Point3d.new( 48.7, 25.0, 50.0)
+    os_v << OpenStudio::Point3d.new( 48.7, 32.5, 50.0)
     os_r3_shade = OpenStudio::Model::ShadingSurface.new(os_v, os_model)
     os_r3_shade.setName("r3_shade")
     os_r3_shade.setShadingSurfaceGroup(os_s)
 
     os_v = OpenStudio::Point3dVector.new
-    os_v << OpenStudio::Point3d.new(48.7, 45.0, 50.0)
-    os_v << OpenStudio::Point3d.new(48.7, 25.0, 50.0)
-    os_v << OpenStudio::Point3d.new(59.0, 25.0, 50.0)
-    os_v << OpenStudio::Point3d.new(59.0, 45.0, 50.0)
+    os_v << OpenStudio::Point3d.new( 48.7, 45.0, 50.0)
+    os_v << OpenStudio::Point3d.new( 48.7, 25.0, 50.0)
+    os_v << OpenStudio::Point3d.new( 59.0, 25.0, 50.0)
+    os_v << OpenStudio::Point3d.new( 59.0, 45.0, 50.0)
     os_r4_shade = OpenStudio::Model::ShadingSurface.new(os_v, os_model)
     os_r4_shade.setName("r4_shade")
     os_r4_shade.setShadingSurfaceGroup(os_s)
 
     os_v = OpenStudio::Point3dVector.new
-    os_v << OpenStudio::Point3d.new(47.4, 40.2, 44.0)
-    os_v << OpenStudio::Point3d.new(47.4, 41.7, 44.0)
-    os_v << OpenStudio::Point3d.new(45.7, 41.7, 44.0)
-    os_v << OpenStudio::Point3d.new(45.7, 40.2, 44.0)
+    os_v << OpenStudio::Point3d.new( 47.4, 40.2, 44.0)
+    os_v << OpenStudio::Point3d.new( 47.4, 41.7, 44.0)
+    os_v << OpenStudio::Point3d.new( 45.7, 41.7, 44.0)
+    os_v << OpenStudio::Point3d.new( 45.7, 40.2, 44.0)
     os_N_balcony = OpenStudio::Model::ShadingSurface.new(os_v, os_model)
     os_N_balcony.setName("N_balcony") # 1.70m as thermal bridge
     os_N_balcony.setShadingSurfaceGroup(os_s)
 
     os_v = OpenStudio::Point3dVector.new
-    os_v << OpenStudio::Point3d.new(28.1, 29.8, 44.0)
-    os_v << OpenStudio::Point3d.new(28.1, 28.3, 44.0)
-    os_v << OpenStudio::Point3d.new(47.4, 28.3, 44.0)
-    os_v << OpenStudio::Point3d.new(47.4, 29.8, 44.0)
+    os_v << OpenStudio::Point3d.new( 28.1, 29.8, 44.0)
+    os_v << OpenStudio::Point3d.new( 28.1, 28.3, 44.0)
+    os_v << OpenStudio::Point3d.new( 47.4, 28.3, 44.0)
+    os_v << OpenStudio::Point3d.new( 47.4, 29.8, 44.0)
     os_S_balcony = OpenStudio::Model::ShadingSurface.new(os_v, os_model)
     os_S_balcony.setName("S_balcony") # 19.3m as thermal bridge
     os_S_balcony.setShadingSurfaceGroup(os_s)
@@ -464,10 +215,10 @@ RSpec.describe TBD do
 
     # 1st space: gallery (g) with elevator (e) surfaces
     os_v = OpenStudio::Point3dVector.new
-    os_v << OpenStudio::Point3d.new(17.4, 40.2, 49.5) #  5.5m
-    os_v << OpenStudio::Point3d.new(17.4, 40.2, 44.0) # 10.4m
-    os_v << OpenStudio::Point3d.new(17.4, 29.8, 44.0) #  5.5m
-    os_v << OpenStudio::Point3d.new(17.4, 29.8, 49.5) # 10.4m
+    os_v << OpenStudio::Point3d.new( 17.4, 40.2, 49.5) #  5.5m
+    os_v << OpenStudio::Point3d.new( 17.4, 40.2, 44.0) # 10.4m
+    os_v << OpenStudio::Point3d.new( 17.4, 29.8, 44.0) #  5.5m
+    os_v << OpenStudio::Point3d.new( 17.4, 29.8, 49.5) # 10.4m
     os_g_W_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_g_W_wall.setName("g_W_wall")
     os_g_W_wall.setSpace(os_g)                        #  57.2m2
@@ -480,10 +231,10 @@ RSpec.describe TBD do
     expect(c.nameString).to eq("scrigno_construction")
 
     os_v = OpenStudio::Point3dVector.new
-    os_v << OpenStudio::Point3d.new(54.0, 40.2, 49.5) #  5.5m
-    os_v << OpenStudio::Point3d.new(54.0, 40.2, 44.0) # 36.6m
-    os_v << OpenStudio::Point3d.new(17.4, 40.2, 44.0) #  5.5m
-    os_v << OpenStudio::Point3d.new(17.4, 40.2, 49.5) # 36.6m
+    os_v << OpenStudio::Point3d.new( 54.0, 40.2, 49.5) #  5.5m
+    os_v << OpenStudio::Point3d.new( 54.0, 40.2, 44.0) # 36.6m
+    os_v << OpenStudio::Point3d.new( 17.4, 40.2, 44.0) #  5.5m
+    os_v << OpenStudio::Point3d.new( 17.4, 40.2, 49.5) # 36.6m
     os_g_N_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_g_N_wall.setName("g_N_wall")
     os_g_N_wall.setSpace(os_g)                        # 201.3m2
@@ -499,23 +250,23 @@ RSpec.describe TBD do
     os_g_N_door.setSurface(os_g_N_wall)                #   2.0m2
 
     os_v = OpenStudio::Point3dVector.new
-    os_v << OpenStudio::Point3d.new(54.0, 29.8, 49.5) #  5.5m
-    os_v << OpenStudio::Point3d.new(54.0, 29.8, 44.0) # 10.4m
-    os_v << OpenStudio::Point3d.new(54.0, 40.2, 44.0) #  5.5m
-    os_v << OpenStudio::Point3d.new(54.0, 40.2, 49.5) # 10.4m
+    os_v << OpenStudio::Point3d.new( 54.0, 29.8, 49.5) #  5.5m
+    os_v << OpenStudio::Point3d.new( 54.0, 29.8, 44.0) # 10.4m
+    os_v << OpenStudio::Point3d.new( 54.0, 40.2, 44.0) #  5.5m
+    os_v << OpenStudio::Point3d.new( 54.0, 40.2, 49.5) # 10.4m
     os_g_E_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_g_E_wall.setName("g_E_wall")
     os_g_E_wall.setSpace(os_g)                        # 57.2m2
 
     os_v = OpenStudio::Point3dVector.new
-    os_v << OpenStudio::Point3d.new(17.4, 29.8, 49.5) #  5.5m
-    os_v << OpenStudio::Point3d.new(17.4, 29.8, 44.0) #  6.6m
-    os_v << OpenStudio::Point3d.new(24.0, 29.8, 44.0) #  2.7m
-    os_v << OpenStudio::Point3d.new(24.0, 29.8, 46.7) #  4.0m
-    os_v << OpenStudio::Point3d.new(28.0, 29.8, 46.7) #  2.7m
-    os_v << OpenStudio::Point3d.new(28.0, 29.8, 44.0) # 26.0m
-    os_v << OpenStudio::Point3d.new(54.0, 29.8, 44.0) #  5.5m
-    os_v << OpenStudio::Point3d.new(54.0, 29.8, 49.5) # 36.6m
+    os_v << OpenStudio::Point3d.new( 17.4, 29.8, 49.5) #  5.5m
+    os_v << OpenStudio::Point3d.new( 17.4, 29.8, 44.0) #  6.6m
+    os_v << OpenStudio::Point3d.new( 24.0, 29.8, 44.0) #  2.7m
+    os_v << OpenStudio::Point3d.new( 24.0, 29.8, 46.7) #  4.0m
+    os_v << OpenStudio::Point3d.new( 28.0, 29.8, 46.7) #  2.7m
+    os_v << OpenStudio::Point3d.new( 28.0, 29.8, 44.0) # 26.0m
+    os_v << OpenStudio::Point3d.new( 54.0, 29.8, 44.0) #  5.5m
+    os_v << OpenStudio::Point3d.new( 54.0, 29.8, 49.5) # 36.6m
     os_g_S_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_g_S_wall.setName("g_S_wall")
     os_g_S_wall.setSpace(os_g)                        # 190.48m2
@@ -1501,9 +1252,9 @@ RSpec.describe TBD do
     expect(surfaces["g_N_wall"  ][:heatloss]).to be_within(0.01).of(54.255)
     expect(surfaces["p_W2_floor"][:heatloss]).to be_within(0.01).of(13.729)
 
-    ceiling_c   = defaults.roofCeilingConstruction.get.to_Construction.get
-    wall_c      = defaults.wallConstruction.get.to_Construction.get
-    floor_c     = defaults.floorConstruction.get.to_Construction.get
+    #ceiling_c   = defaults.roofCeilingConstruction.get.to_Construction.get
+    #wall_c      = defaults.wallConstruction.get.to_Construction.get
+    #floor_c     = defaults.floorConstruction.get.to_Construction.get
 
     # Derated (cloned) constructions are unique to each deratable surface.
     # Unique construction names are prefixed with the surface name,
@@ -1512,24 +1263,53 @@ RSpec.describe TBD do
     # avoiding inadvertent derating - TBD will not derate constructions
     # (or rather materials) having " tbd" in its OpenStudio name.
 
-    # start with floors ...
-    floors.each do |id, floor|
-      next unless floor.has_key?(:edges)
+    surfaces.each do |id, surface|
+      next unless surface.has_key?(:edges)
       os_model.getSurfaces.each do |s|
         next unless id == s.nameString
         if s.isConstructionDefaulted
-          construction_name = floor_c.nameString
-          c = floor_c.clone(os_model).to_Construction.get
+          # check for building default set
+          building_default_set = os_scrigno.defaultConstructionSet
+          unless building_default_set.empty?
+            building_default_set = building_default_set.get
+            current_c = building_default_set.getDefaultConstruction(s)
+            next if current_c.empty?
+            current_c = current_c.get
+          else
+            # no building-specific defaults - resort to first set @model level
+            model_default_sets = os_model.getDefaultConstructionSets
+            next if model_default_sets.empty?
+            model_default_set = model_default_sets.first
+            current_c = model_default_set.getDefaultConstruction(s)
+            next if current_c.empty?
+            current_c = current_c.get
+          end
+          construction_name = current_c.nameString
+          c = current_c.clone(os_model).to_Construction.get
         else
           construction_name = s.construction.get.nameString
           c = s.construction.get.clone(os_model).to_Construction.get
         end
         index, type, r = deratableLayer(c)
-        m = derate(os_model, s, id, floor, c, index, type, r)
+        m = derate(os_model, s, id, surface, c, index, type, r)
         unless m.nil?
           c.setLayer(index, m)
           c.setName("#{id} #{construction_name} tbd")
+
+          initial_U = s.thermalConductance
           s.setConstruction(c)
+
+          derated_U = s.thermalConductance
+          next if initial_U.empty?
+          next if derated_U.empty?
+          initial_R = 1.0 / initial_U.to_f
+          derated_R = 1.0 / derated_U.to_f
+          ratio = 100.0 - (initial_R - derated_R) * 100 / initial_R
+
+          name = s.nameString.rjust(15, " ")
+          ratio = format "%3.1f", ratio
+          #output = "#{name} derated RSI down to #{ratio}% of initial value"
+          #puts output
         end
       end
     end
@@ -1544,28 +1324,6 @@ RSpec.describe TBD do
       end
     end
 
-    # now ceilings ...
-    ceilings.each do |id, ceiling|
-      next unless ceiling.has_key?(:edges)
-      os_model.getSurfaces.each do |s|
-        next unless id == s.nameString
-        if s.isConstructionDefaulted
-          construction_name = ceiling_c.nameString
-          c = ceiling_c.clone(os_model).to_Construction.get
-        else
-          construction_name = s.construction.get.nameString
-          c = s.construction.get.clone(os_model).to_Construction.get
-        end
-        index, type, r = deratableLayer(c)
-        m = derate(os_model, s, id, ceiling, c, index, type, r)
-        unless m.nil?
-          c.setLayer(index, m)
-          c.setName("#{id} #{construction_name} tbd")
-          s.setConstruction(c)
-        end
-      end
-    end
-
     # testing
     ceilings.each do |id, ceiling|
       next unless ceiling.has_key?(:edges)
@@ -1573,28 +1331,6 @@ RSpec.describe TBD do
         next unless id == s.nameString
         expect(s.isConstructionDefaulted).to be(false)
         expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
-      end
-    end
-
-    # and finally walls ...
-    walls.each do |id, wall|
-      next unless wall.has_key?(:edges)
-      os_model.getSurfaces.each do |s|
-        next unless id == s.nameString
-        if s.isConstructionDefaulted
-          construction_name = wall_c.nameString
-          c = wall_c.clone(os_model).to_Construction.get
-        else
-          construction_name = s.construction.get.nameString
-          c = s.construction.get.clone(os_model).to_Construction.get
-        end
-        index, type, r = deratableLayer(c)
-        m = derate(os_model, s, id, wall, c, index, type, r)
-        unless m.nil?
-          c.setLayer(index, m)
-          c.setName("#{id} #{construction_name} tbd")
-          s.setConstruction(c)
-        end
       end
     end
 
@@ -1636,4 +1372,138 @@ RSpec.describe TBD do
     # output.close
 
   end # can process thermal bridging and derating : LoScrigno
+
+  it "can do basic default construction tests" do
+    os_model = OpenStudio::Model::Model.new
+    os_space = OpenStudio::Model::Space.new(os_model)
+    os_space.setName("os_space")
+    os_building = os_model.getBuilding
+
+    exterior = OpenStudio::Model::MasslessOpaqueMaterial.new(os_model)
+    exterior.setName("exterior")
+    exterior.setRoughness("Rough")
+    exterior.setThermalResistance(0.3626)
+    exterior.setThermalAbsorptance(0.9)
+    exterior.setSolarAbsorptance(0.7)
+    exterior.setVisibleAbsorptance(0.7)
+
+    insulation = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
+    insulation.setName("insulation")
+    insulation.setRoughness("MediumRough")
+    insulation.setThickness(0.1184)
+    insulation.setConductivity(0.045)
+    insulation.setDensity(265)
+    insulation.setSpecificHeat(836.8)
+    insulation.setThermalAbsorptance(0.9)
+    insulation.setSolarAbsorptance(0.7)
+    insulation.setVisibleAbsorptance(0.7)
+
+    # 8" XPS massless variant, specific for elevator floor (not defaulted)
+    xps8x25mm = OpenStudio::Model::MasslessOpaqueMaterial.new(os_model)
+    xps8x25mm.setName("xps8x25mm")
+    xps8x25mm.setRoughness("Rough")
+    xps8x25mm.setThermalResistance(8 * 0.88)
+    xps8x25mm.setThermalAbsorptance(0.9)
+    xps8x25mm.setSolarAbsorptance(0.7)
+    xps8x25mm.setVisibleAbsorptance(0.7)
+
+    interior = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
+    interior.setName("interior")
+    interior.setRoughness("MediumRough")
+    interior.setThickness(0.0126)
+    interior.setConductivity(0.16)
+    interior.setDensity(784.9)
+    interior.setSpecificHeat(830)
+    interior.setThermalAbsorptance(0.9)
+    interior.setSolarAbsorptance(0.9)
+    interior.setVisibleAbsorptance(0.9)
+
+    layers = OpenStudio::Model::MaterialVector.new
+    layers << exterior
+    layers << insulation
+    layers << interior
+
+    default_c = OpenStudio::Model::Construction.new(os_model)
+    default_c.setName("default_construction")
+    default_c.setLayers(layers)
+
+    defaults = OpenStudio::Model::DefaultSurfaceConstructions.new(os_model)
+    defaults.setWallConstruction(default_c)
+    defaults.setRoofCeilingConstruction(default_c)
+    defaults.setFloorConstruction(default_c)
+    set = OpenStudio::Model::DefaultConstructionSet.new(os_model)
+    set.setName("default_construction_set")
+    set.setDefaultExteriorSurfaceConstructions(defaults)
+
+    # if one comments out the following, then one can no longer rely on a
+    # building-specific, default construction set
+    os_building.setDefaultConstructionSet(set)
+
+    mats = OpenStudio::Model::MaterialVector.new
+    mats << exterior
+    mats << xps8x25mm
+    mats << interior
+
+    better_c = OpenStudio::Model::Construction.new(os_model)
+    better_c.setName("better_construction")
+    better_c.setLayers(mats)
+
+    os_v = OpenStudio::Point3dVector.new
+    os_v << OpenStudio::Point3d.new( 54.0, 40.2, 49.5) #  5.5m
+    os_v << OpenStudio::Point3d.new( 54.0, 40.2, 44.0) # 36.6m
+    os_v << OpenStudio::Point3d.new( 17.4, 40.2, 44.0) #  5.5m
+    os_v << OpenStudio::Point3d.new( 17.4, 40.2, 49.5) # 36.6m
+    os_wall = OpenStudio::Model::Surface.new(os_v, os_model)
+    os_wall.setName("os_wall")
+    os_wall.setSpace(os_space)                        # 201.3m2
+
+    default_sets = os_model.getDefaultConstructionSets
+    if default_sets.empty?
+      #puts "no model default construction sets"
+    else
+      #puts "defaulted @model"
+      model_default_set = default_sets.first
+      #puts model_default_set.nameString
+      #puts model_default_set.handle.to_s
+
+      model_defaulted_c = model_default_set.getDefaultConstruction(os_wall)
+      unless model_defaulted_c.empty?
+        model_defaulted_c = model_defaulted_c.get
+        #puts model_defaulted_c.nameString
+        #puts model_defaulted_c.handle.to_s
+      end
+    end
+    #puts
+
+    #puts os_model.public_methods.grep(/getDefault/)
+    building_default_set = os_building.defaultConstructionSet
+    if building_default_set.empty?
+      #puts "no building default construction sets"
+    else
+      #puts "defaulted @building"
+      building_default_set = building_default_set.get
+      #puts building_default_set.nameString
+      #puts building_default_set.handle.to_s
+
+      building_defaulted_c = building_default_set.getDefaultConstruction(os_wall)
+      unless building_defaulted_c.empty?
+        building_defaulted_c = building_defaulted_c.get
+        #puts building_defaulted_c.nameString
+        #puts building_defaulted_c.handle.to_s
+      end
+    end
+    #puts
+
+    os_wall.setConstruction(better_c)
+    unless os_wall.isConstructionDefaulted
+      #puts "no longer defaulted"
+      specific_construction = os_wall.construction
+      unless specific_construction.empty?
+        specific_construction = specific_construction.get
+        #puts specific_construction.nameString
+        #puts specific_construction.handle.to_s
+      end
+    end
+
+  end
 end
