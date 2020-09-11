@@ -2,8 +2,8 @@
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>f5536e1e-fe67-4eb7-909f-04aed62fe157</uid>
-  <version_id>67b8488e-daa7-4083-95de-0c99931dcbbf</version_id>
-  <version_modified>20200911T034657Z</version_modified>
+  <version_id>84742f4b-e3bb-4475-8a7d-aa71194463a2</version_id>
+  <version_modified>20200911T210841Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging &amp; Derating (TBD)</display_name>
@@ -135,13 +135,19 @@
       <filename>model.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>B64E67F5</checksum>
+      <checksum>EBB63718</checksum>
     </file>
     <file>
       <filename>version.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>6FAABE1A</checksum>
+      <checksum>61ADFE57</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>79CC53BB</checksum>
     </file>
     <file>
       <filename>psi.rb</filename>
@@ -158,13 +164,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>83E0C4F6</checksum>
-    </file>
-    <file>
-      <filename>README.md</filename>
-      <filetype>md</filetype>
-      <usage_type>readme</usage_type>
-      <checksum>79CC53BB</checksum>
+      <checksum>9BB1C46D</checksum>
     </file>
   </files>
 </measure>

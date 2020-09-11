@@ -1,0 +1,151 @@
+WEIRD BEHAVIOR WITH DOE PROTOTYPE OFFICE (SMALL OFFICE)
+
+
+This is (extra) output for debugging purposes ... when running the measure from within OS App
+
+ -- beginning of output (with a fair amount of edits to improve readability)
+ Info: Attic_soffit_west: index:0, R:1.572                                      ... i.e. index of insulation layer to derate & initial layer RSi
+ Info: ... initial RSi 1.572 ... now RSi 0.469                                  ... attributed to TBD-calculated thermal bridging
+
+ -- Looping over original layers of construction ...
+ Info: ORIGINAL: Typical Insulation R-8.93:                                     RSi: 1.572
+ Info: ORIGINAL: 4 in. Normalweight Concrete Floor: k:2.31 d:0.1016             Rsi: 0.044
+ Info: ORIGINAL: Typical Carpet Pad:                                            RSi: 0.2165 (TOTAL 1.8325, 1.9825 with air films)
+
+ -- ... good so far. However, if I report the inverse of uFactor or thermalConductance of the derated surface (s.uFactor.to_f):
+ Info: ... RSi (initial) : ... should be around 1.8 (or 1.9 with air films)     RSi: 0.3229 ... wait, what? **
+
+
+ Once derated, looping again over layers
+ Info: UPDATED: Attic_soffit_west Typical Insulation R-8.93 1 tbd:              RSi: 0.469 ... now derated, great
+ Info: UPDATED: 4 in. Normalweight Concrete Floor: k:2.31 d:0.1016              RSi: 0.044
+ Info: UPDATED: Typical Carpet Pad:                                             RSi: 0.2165
+
+ ... trying again with uFactor,
+ Info: ... RSi (derated) :                                                      RSi: 0.9201 ... the correct value this time !
+
+ Info: 44.4% (correct %) vs 285.0% (out of whack %, if relying on uFactor or thermalConductance)
+ Info: Attic_soffit_west: original RSi:1.982 >> updated RSi:0.8797              this is correct
+ Info: Attic_soffit_west: initial RSi:0.3229 >> derated RSi:0.9201              this is fundamentally wrong
+
+
+ ** playing around with the numbers to check for invalid conversion (?): 1.8325 divided by 5.678 (conversion between R & RSi) = 0.3227 !
+ It's as if OS assumes Si units and forces a conversion to US units (?), or ufactor reports R instead of U (?) ... confused.
+ ... a bug? I don't see this appearing in any systematic way, certainly not for other assemblies (see "Perimeter" just below)
+ But for this attic soffit composition, the problem is recurring.
+
+ The TBD solution in the short term (tomorrow) will to simply report the drop (%) in thermal resistance of the derated insulating material.
+... but it would be nice to figure out what's happening.
+
+BTW, the scrigno example does not generate any such inconsistencies. 
+
+
+ EXAMPLE OF VALID REPORTING, i.e. no funny values from uFactor or thermalConductance
+ Info: Perimeter_ZN_4_wall_west: index:2, R:1.59504467488221
+ Info: ... initial 1.59504467488221 ... now 0.627017921571203
+ Info: ORIGINAL: 25mm Stucco: k:0.719999999999999 d:0.0254
+ Info: ORIGINAL: 5/8 in. Gypsum Board: k:0.159999999999999 d:0.0159
+ Info: ORIGINAL: Typical Insulation R-9.06: RSi:1.59504467488221
+ Info: ORIGINAL: 5/8 in. Gypsum Board: k:0.159999999999999 d:0.0159
+ Info: ... RSi (initial) : 1.97865691530922
+ Info: UPDATED: 25mm Stucco: k:0.719999999999999 d:0.0254
+ Info: UPDATED: 5/8 in. Gypsum Board: k:0.159999999999999 d:0.0159
+ Info: UPDATED: Perimeter_ZN_4_wall_west Typical Insulation R-9.06 1 tbd: RSi:0.627017921571203
+ Info: UPDATED: 5/8 in. Gypsum Board: k:0.159999999999999 d:0.0159
+ Info: ... RSi (derated) : 1.01063006253513
+ Info: 51.1 vs 51.1
+ Info: Perimeter_ZN_4_wall_west: original RSi:1.9791 >> updated RSi:1.0110
+ Info: Perimeter_ZN_4_wall_west: initial RSi:1.9787 >> derated RSi:1.0106       ... all OK
+
+
+Below, all invalid reporting from uFactor
+
+ Info: Attic_soffit_east: index:0, R:1.57183221366242
+ Info: ... initial 1.57183221366242 ... now 0.469273467910883
+ Info: ORIGINAL: Typical Insulation R-8.93: RSi:1.57183221366242
+ Info: ORIGINAL: 4 in. Normalweight Concrete Floor: k:2.31 d:0.1016
+ Info: ORIGINAL: Typical Carpet Pad: RSi:0.216479986995276
+ Info: ... RSi (initial) : 0.3228933333672062
+ Info: UPDATED: Attic_soffit_east Typical Insulation R-8.93 1 tbd: RSi:0.469273467910883
+ Info: UPDATED: 4 in. Normalweight Concrete Floor: k:2.31 d:0.1016
+ Info: UPDATED: Typical Carpet Pad: RSi:0.216479986995276
+ Info: ... RSi (derated) : 0.9201294888572914
+ Info: 44.4 vs 285.0
+ Info: Attic_soffit_east: original RSi:1.98229488464038 >> updated RSi:0.8797361388888431
+ Info: Attic_soffit_east: initial RSi:0.3228933333672062 >> derated RSi:0.9201294888572914
+
+ Info: Attic_soffit_north: index:0, R:1.57183221366242
+ Info: ... initial 1.57183221366242 ... now 0.468896808229875
+ Info: ORIGINAL: Typical Insulation R-8.93: RSi:1.57183221366242
+ Info: ORIGINAL: 4 in. Normalweight Concrete Floor: k:2.31 d:0.1016
+ Info: ORIGINAL: Typical Carpet Pad: RSi:0.216479986995276
+ Info: ... RSi (initial) : 0.3228933333672062
+ Info: UPDATED: Attic_soffit_north Typical Insulation R-8.93 1 tbd: RSi:0.468896808229875
+ Info: UPDATED: 4 in. Normalweight Concrete Floor: k:2.31 d:0.1016
+ Info: UPDATED: Typical Carpet Pad: RSi:0.216479986995276
+ Info: ... RSi (derated) : 0.9197527811788451
+ Info: 44.4 vs 284.8
+ Info: Attic_soffit_north: original RSi:1.98229488464038 >> updated RSi:0.8793594792078351
+ Info: Attic_soffit_north: initial RSi:0.3228933333672062 >> derated RSi:0.9197527811788451
+
+ Info: Attic_roof_west: index:1, R:6.23478649910089
+ Info: ... initial 6.23478649910089 ... now 4.20893587096259
+ Info: ORIGINAL: 5/8 in. Gypsum Board: k:0.159999999999999 d:0.0159
+ Info: ORIGINAL: Typical Insulation R-35.4: RSi:6.23478649910089
+ Info: ... RSi (initial) : 0.3490531807308647
+ Info: UPDATED: 5/8 in. Gypsum Board: k:0.159999999999999 d:0.0159
+ Info: UPDATED: Attic_roof_west Typical Insulation R-35.4 2 tbd: RSi:4.20893587096259
+ Info: ... RSi (derated) : 4.444864041885092
+ Info: 68.8 vs 1273.4
+ Info: Attic_roof_west: original RSi:6.484161499100891 >> updated RSi:4.458310870962591
+ Info: Attic_roof_west: initial RSi:0.3490531807308647 >> derated RSi:4.444864041885092
+
+ Info: Attic_roof_south: index:1, R:6.23478649910089
+ Info: ... initial 6.23478649910089 ... now 4.56834898224902
+ Info: ORIGINAL: 5/8 in. Gypsum Board: k:0.159999999999999 d:0.0159
+ Info: ORIGINAL: Typical Insulation R-35.4: RSi:6.23478649910089
+ Info: ... RSi (initial) : 0.3490531807308647
+ Info: UPDATED: 5/8 in. Gypsum Board: k:0.159999999999999 d:0.0159
+ Info: UPDATED: Attic_roof_south Typical Insulation R-35.4 2 tbd: RSi:4.56834898224902
+ Info: ... RSi (derated) : 4.8042772608154625
+ Info: 74.3 vs 1376.4
+ Info: Attic_roof_south: original RSi:6.484161499100891 >> updated RSi:4.817723982249021
+ Info: Attic_roof_south: initial RSi:0.3490531807308647 >> derated RSi:4.8042772608154625
+
+ Info: Attic_soffit_south: index:0, R:1.57183221366242
+ Info: ... initial 1.57183221366242 ... now 0.468896808229876
+ Info: ORIGINAL: Typical Insulation R-8.93: RSi:1.57183221366242
+ Info: ORIGINAL: 4 in. Normalweight Concrete Floor: k:2.31 d:0.1016
+ Info: ORIGINAL: Typical Carpet Pad: RSi:0.216479986995276
+ Info: ... RSi (initial) : 0.3228933333672062
+ Info: UPDATED: Attic_soffit_south Typical Insulation R-8.93 1 tbd: RSi:0.468896808229876
+ Info: UPDATED: 4 in. Normalweight Concrete Floor: k:2.31 d:0.1016
+ Info: UPDATED: Typical Carpet Pad: RSi:0.216479986995276
+ Info: ... RSi (derated) : 0.9197527811788451
+ Info: 44.4 vs 284.8
+ Info: Attic_soffit_south: original RSi:1.98229488464038 >> updated RSi:0.8793594792078361
+ Info: Attic_soffit_south: initial RSi:0.3228933333672062 >> derated RSi:0.9197527811788451
+
+ Info: Attic_roof_east: index:1, R:6.23478649910089
+ Info: ... initial 6.23478649910089 ... now 4.20893587096259
+ Info: ORIGINAL: 5/8 in. Gypsum Board: k:0.159999999999999 d:0.0159
+ Info: ORIGINAL: Typical Insulation R-35.4: RSi:6.23478649910089
+ Info: ... RSi (initial) : 0.3490531807308647
+ Info: UPDATED: 5/8 in. Gypsum Board: k:0.159999999999999 d:0.0159
+ Info: UPDATED: Attic_roof_east Typical Insulation R-35.4 2 tbd: RSi:4.20893587096259
+ Info: ... RSi (derated) : 4.444864041885092
+ Info: 68.8 vs 1273.4
+ Info: Attic_roof_east: original RSi:6.484161499100891 >> updated RSi:4.458310870962591
+ Info: Attic_roof_east: initial RSi:0.3490531807308647 >> derated RSi:4.444864041885092
+
+ Info: Attic_roof_north: index:1, R:6.23478649910089
+ Info: ... initial 6.23478649910089 ... now 4.56834898224902
+ Info: ORIGINAL: 5/8 in. Gypsum Board: k:0.159999999999999 d:0.0159
+ Info: ORIGINAL: Typical Insulation R-35.4: RSi:6.23478649910089
+ Info: ... RSi (initial) : 0.3490531807308647
+ Info: UPDATED: 5/8 in. Gypsum Board: k:0.159999999999999 d:0.0159
+ Info: UPDATED: Attic_roof_north Typical Insulation R-35.4 2 tbd: RSi:4.56834898224902
+ Info: ... RSi (derated) : 4.8042772608154625
+ Info: 74.3 vs 1376.4
+ Info: Attic_roof_north: original RSi:6.484161499100891 >> updated RSi:4.817723982249021
+ Info: Attic_roof_north: initial RSi:0.3490531807308647 >> derated RSi:4.8042772608154625

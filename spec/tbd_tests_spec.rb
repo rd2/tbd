@@ -1267,6 +1267,7 @@ RSpec.describe TBD do
       next unless surface.has_key?(:edges)
       os_model.getSurfaces.each do |s|
         next unless id == s.nameString
+        current_c = nil
         if s.isConstructionDefaulted
           # check for building default set
           building_default_set = os_scrigno.defaultConstructionSet
@@ -1287,29 +1288,71 @@ RSpec.describe TBD do
           construction_name = current_c.nameString
           c = current_c.clone(os_model).to_Construction.get
         else
-          construction_name = s.construction.get.nameString
-          c = s.construction.get.clone(os_model).to_Construction.get
+          current_c = s.construction.get
+          construction_name = current_c.nameString
+          c = current_c.clone(os_model).to_Construction.get
         end
+
         index, type, r = deratableLayer(c)
         m = derate(os_model, s, id, surface, c, index, type, r)
         unless m.nil?
           c.setLayer(index, m)
           c.setName("#{id} #{construction_name} tbd")
 
-          initial_U = s.thermalConductance
+          # compute current RSi value from layers
+          current_R = 0.150 # air films ... although this varies if roof or floor
+          current_c.to_Construction.get.layers.each do |l|
+            r = 0
+            unless l.to_MasslessOpaqueMaterial.empty?
+              l = l.to_MasslessOpaqueMaterial.get
+              r = l.to_MasslessOpaqueMaterial.get.thermalResistance
+            end
+
+            unless l.to_StandardOpaqueMaterial.empty?
+              l = l.to_StandardOpaqueMaterial.get
+              k = l.thermalConductivity
+              d = l.thickness
+              r = d / k
+            end
+            current_R += r
+          end
+
+          initial_U = s.uFactor.to_f
+          initial_R = 1.0 / initial_U
+          puts "#{s.nameString}: current RSi: #{current_R} vs initial RSi: #{initial_R}"
           s.setConstruction(c)
 
-          derated_U = s.thermalConductance
-          next if initial_U.empty?
-          next if derated_U.empty?
-          initial_R = 1.0 / initial_U.to_f
-          derated_R = 1.0 / derated_U.to_f
-          ratio = 100.0 - (initial_R - derated_R) * 100 / initial_R
+          # compute updated RSi value from layers
+          updated_R = 0.150 # air films ... although this varies if roof or floor
+          updated_c = s.construction.get
+          updated_c.to_Construction.get.layers.each do |l|
+            r = 0
+            unless l.to_MasslessOpaqueMaterial.empty?
+              l                 = l.to_MasslessOpaqueMaterial.get
+              r                 = l.thermalResistance
+            end
+
+            unless l.to_StandardOpaqueMaterial.empty?
+              l                 = l.to_StandardOpaqueMaterial.get
+              k                 = l.thermalConductivity
+              d                 = l.thickness
+              r                 = d / k
+            end
+            updated_R += r
+          end
+
+          derated_U = s.uFactor.to_f
+          derated_R = 1.0 / derated_U
+          puts "#{s.nameString}: updated RSi: #{updated_R} vs derated RSi: #{derated_R}"
+
+          ratio_OK  = 100.0 - (current_R - updated_R) * 100 / current_R
+          ratio_BAD = 100.0 - (initial_R - derated_R) * 100 / initial_R
 
           name = s.nameString.rjust(15, " ")
-          ratio = format "%3.1f", ratio
-          #output = "#{name} derated RSI down to #{ratio}% of initial value"
-          #puts output
+          ratio_OK = format "%3.1f", ratio_OK
+          ratio_BAD = format "%3.1f", ratio_BAD
+          puts "#{name} derated RSI down to #{ratio_OK}% of initial value"
+          puts "... or derated RSI down to #{ratio_BAD}% of initial value"
         end
       end
     end
@@ -1345,6 +1388,31 @@ RSpec.describe TBD do
     end
 
     # for validation ... substitute "ceiling(s)" for "wall(s)" or "floor(s)"
+     ceilings.each do |id, ceiling|
+       next unless ceiling.has_key?(:edges)
+       os_model.getSurfaces.each do |s|
+         next unless id == s.nameString
+         next unless ceiling.has_key?(:heatloss)
+         u = s.thermalConductance
+         next if u.empty?
+         r = format "%.3f", 1.0 / u.to_f
+         loss = format "%.3f", ceiling[:heatloss]
+         area = format "%.3f", ceiling[:net]
+         puts "#{id} : area (m2); R (m2.K/W); loss (W/K), \
+                    #{area}, \
+                    #{r}, \
+                    #{loss}\n"
+         ceiling[:edges].values.each do |edge|
+           type = edge[:type].to_s.rjust(12)
+           psi = format "%6.3f", edge[:psi].to_s.rjust(17," ")
+           length = format "%5.2f", edge[:length].to_s.rjust(27," ")
+           output = ("#{type}, #{psi}, #{length}\n")
+           puts output
+         end
+       end
+     end
+
+    # for validation ... substitute "ceiling(s)" for "wall(s)" or "floor(s)"
     # output = File.open("output.txt", "w")
     # ceilings.each do |id, ceiling|
     #   next unless ceiling.has_key?(:edges)
@@ -1373,137 +1441,137 @@ RSpec.describe TBD do
 
   end # can process thermal bridging and derating : LoScrigno
 
-  it "can do basic default construction tests" do
-    os_model = OpenStudio::Model::Model.new
-    os_space = OpenStudio::Model::Space.new(os_model)
-    os_space.setName("os_space")
-    os_building = os_model.getBuilding
+#  it "can do basic default construction tests" do
+#    os_model = OpenStudio::Model::Model.new
+#    os_space = OpenStudio::Model::Space.new(os_model)
+#    os_space.setName("os_space")
+#    os_building = os_model.getBuilding
 
-    exterior = OpenStudio::Model::MasslessOpaqueMaterial.new(os_model)
-    exterior.setName("exterior")
-    exterior.setRoughness("Rough")
-    exterior.setThermalResistance(0.3626)
-    exterior.setThermalAbsorptance(0.9)
-    exterior.setSolarAbsorptance(0.7)
-    exterior.setVisibleAbsorptance(0.7)
+#    exterior = OpenStudio::Model::MasslessOpaqueMaterial.new(os_model)
+#    exterior.setName("exterior")
+#    exterior.setRoughness("Rough")
+#    exterior.setThermalResistance(0.3626)
+#    exterior.setThermalAbsorptance(0.9)
+#    exterior.setSolarAbsorptance(0.7)
+#    exterior.setVisibleAbsorptance(0.7)
 
-    insulation = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
-    insulation.setName("insulation")
-    insulation.setRoughness("MediumRough")
-    insulation.setThickness(0.1184)
-    insulation.setConductivity(0.045)
-    insulation.setDensity(265)
-    insulation.setSpecificHeat(836.8)
-    insulation.setThermalAbsorptance(0.9)
-    insulation.setSolarAbsorptance(0.7)
-    insulation.setVisibleAbsorptance(0.7)
+#    insulation = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
+#    insulation.setName("insulation")
+#    insulation.setRoughness("MediumRough")
+#    insulation.setThickness(0.1184)
+#    insulation.setConductivity(0.045)
+#    insulation.setDensity(265)
+#    insulation.setSpecificHeat(836.8)
+#    insulation.setThermalAbsorptance(0.9)
+#    insulation.setSolarAbsorptance(0.7)
+#    insulation.setVisibleAbsorptance(0.7)
 
     # 8" XPS massless variant, specific for elevator floor (not defaulted)
-    xps8x25mm = OpenStudio::Model::MasslessOpaqueMaterial.new(os_model)
-    xps8x25mm.setName("xps8x25mm")
-    xps8x25mm.setRoughness("Rough")
-    xps8x25mm.setThermalResistance(8 * 0.88)
-    xps8x25mm.setThermalAbsorptance(0.9)
-    xps8x25mm.setSolarAbsorptance(0.7)
-    xps8x25mm.setVisibleAbsorptance(0.7)
+#    xps8x25mm = OpenStudio::Model::MasslessOpaqueMaterial.new(os_model)
+#    xps8x25mm.setName("xps8x25mm")
+#    xps8x25mm.setRoughness("Rough")
+#    xps8x25mm.setThermalResistance(8 * 0.88)
+#    xps8x25mm.setThermalAbsorptance(0.9)
+#    xps8x25mm.setSolarAbsorptance(0.7)
+#    xps8x25mm.setVisibleAbsorptance(0.7)
 
-    interior = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
-    interior.setName("interior")
-    interior.setRoughness("MediumRough")
-    interior.setThickness(0.0126)
-    interior.setConductivity(0.16)
-    interior.setDensity(784.9)
-    interior.setSpecificHeat(830)
-    interior.setThermalAbsorptance(0.9)
-    interior.setSolarAbsorptance(0.9)
-    interior.setVisibleAbsorptance(0.9)
+#    interior = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
+#    interior.setName("interior")
+#    interior.setRoughness("MediumRough")
+#    interior.setThickness(0.0126)
+#    interior.setConductivity(0.16)
+#    interior.setDensity(784.9)
+#    interior.setSpecificHeat(830)
+#    interior.setThermalAbsorptance(0.9)
+#    interior.setSolarAbsorptance(0.9)
+#    interior.setVisibleAbsorptance(0.9)
 
-    layers = OpenStudio::Model::MaterialVector.new
-    layers << exterior
-    layers << insulation
-    layers << interior
+#    layers = OpenStudio::Model::MaterialVector.new
+#    layers << exterior
+#    layers << insulation
+#    layers << interior
 
-    default_c = OpenStudio::Model::Construction.new(os_model)
-    default_c.setName("default_construction")
-    default_c.setLayers(layers)
+#    default_c = OpenStudio::Model::Construction.new(os_model)
+#    default_c.setName("default_construction")
+#    default_c.setLayers(layers)
 
-    defaults = OpenStudio::Model::DefaultSurfaceConstructions.new(os_model)
-    defaults.setWallConstruction(default_c)
-    defaults.setRoofCeilingConstruction(default_c)
-    defaults.setFloorConstruction(default_c)
-    set = OpenStudio::Model::DefaultConstructionSet.new(os_model)
-    set.setName("default_construction_set")
-    set.setDefaultExteriorSurfaceConstructions(defaults)
+#    defaults = OpenStudio::Model::DefaultSurfaceConstructions.new(os_model)
+#    defaults.setWallConstruction(default_c)
+#    defaults.setRoofCeilingConstruction(default_c)
+#    defaults.setFloorConstruction(default_c)
+#    set = OpenStudio::Model::DefaultConstructionSet.new(os_model)
+#    set.setName("default_construction_set")
+#    set.setDefaultExteriorSurfaceConstructions(defaults)
 
     # if one comments out the following, then one can no longer rely on a
     # building-specific, default construction set
-    os_building.setDefaultConstructionSet(set)
+#    os_building.setDefaultConstructionSet(set)
 
-    mats = OpenStudio::Model::MaterialVector.new
-    mats << exterior
-    mats << xps8x25mm
-    mats << interior
+#    mats = OpenStudio::Model::MaterialVector.new
+#    mats << exterior
+#    mats << xps8x25mm
+#    mats << interior
 
-    better_c = OpenStudio::Model::Construction.new(os_model)
-    better_c.setName("better_construction")
-    better_c.setLayers(mats)
+#    better_c = OpenStudio::Model::Construction.new(os_model)
+#    better_c.setName("better_construction")
+#    better_c.setLayers(mats)
 
-    os_v = OpenStudio::Point3dVector.new
-    os_v << OpenStudio::Point3d.new( 54.0, 40.2, 49.5) #  5.5m
-    os_v << OpenStudio::Point3d.new( 54.0, 40.2, 44.0) # 36.6m
-    os_v << OpenStudio::Point3d.new( 17.4, 40.2, 44.0) #  5.5m
-    os_v << OpenStudio::Point3d.new( 17.4, 40.2, 49.5) # 36.6m
-    os_wall = OpenStudio::Model::Surface.new(os_v, os_model)
-    os_wall.setName("os_wall")
-    os_wall.setSpace(os_space)                        # 201.3m2
+#    os_v = OpenStudio::Point3dVector.new
+#    os_v << OpenStudio::Point3d.new( 54.0, 40.2, 49.5) #  5.5m
+#    os_v << OpenStudio::Point3d.new( 54.0, 40.2, 44.0) # 36.6m
+#    os_v << OpenStudio::Point3d.new( 17.4, 40.2, 44.0) #  5.5m
+#    os_v << OpenStudio::Point3d.new( 17.4, 40.2, 49.5) # 36.6m
+#    os_wall = OpenStudio::Model::Surface.new(os_v, os_model)
+#    os_wall.setName("os_wall")
+#    os_wall.setSpace(os_space)                        # 201.3m2
 
-    default_sets = os_model.getDefaultConstructionSets
-    if default_sets.empty?
+    #default_sets = os_model.getDefaultConstructionSets
+    #if default_sets.empty?
       #puts "no model default construction sets"
-    else
+    #else
       #puts "defaulted @model"
-      model_default_set = default_sets.first
+      #model_default_set = default_sets.first
       #puts model_default_set.nameString
       #puts model_default_set.handle.to_s
 
-      model_defaulted_c = model_default_set.getDefaultConstruction(os_wall)
-      unless model_defaulted_c.empty?
-        model_defaulted_c = model_defaulted_c.get
+      #model_defaulted_c = model_default_set.getDefaultConstruction(os_wall)
+      #unless model_defaulted_c.empty?
+        #model_defaulted_c = model_defaulted_c.get
         #puts model_defaulted_c.nameString
         #puts model_defaulted_c.handle.to_s
-      end
-    end
+      #end
+    #end
     #puts
 
     #puts os_model.public_methods.grep(/getDefault/)
-    building_default_set = os_building.defaultConstructionSet
-    if building_default_set.empty?
+    #building_default_set = os_building.defaultConstructionSet
+    #if building_default_set.empty?
       #puts "no building default construction sets"
-    else
+    #else
       #puts "defaulted @building"
-      building_default_set = building_default_set.get
+      #building_default_set = building_default_set.get
       #puts building_default_set.nameString
       #puts building_default_set.handle.to_s
 
-      building_defaulted_c = building_default_set.getDefaultConstruction(os_wall)
-      unless building_defaulted_c.empty?
-        building_defaulted_c = building_defaulted_c.get
+      #building_defaulted_c = building_default_set.getDefaultConstruction(os_wall)
+      #unless building_defaulted_c.empty?
+        #building_defaulted_c = building_defaulted_c.get
         #puts building_defaulted_c.nameString
         #puts building_defaulted_c.handle.to_s
-      end
-    end
+      #end
+    #end
     #puts
 
-    os_wall.setConstruction(better_c)
-    unless os_wall.isConstructionDefaulted
+    #os_wall.setConstruction(better_c)
+    #unless os_wall.isConstructionDefaulted
       #puts "no longer defaulted"
-      specific_construction = os_wall.construction
-      unless specific_construction.empty?
-        specific_construction = specific_construction.get
+      #specific_construction = os_wall.construction
+      #unless specific_construction.empty?
+        #specific_construction = specific_construction.get
         #puts specific_construction.nameString
         #puts specific_construction.handle.to_s
-      end
-    end
+      #end
+    #end
 
-  end
+  #end
 end

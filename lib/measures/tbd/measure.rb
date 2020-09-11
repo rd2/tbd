@@ -59,16 +59,18 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
       return false
     end
 
+    building = model.getBuilding
+
     t_model = Topolys::Model.new
 
     surfaces = {}
-    os_model.getSurfaces.each do |s|
+    model.getSurfaces.each do |s|
       next if s.space.empty?
       space = s.space.get
       id = s.nameString
 
       # site transformation & rotation
-      t, r = transforms(os_model, space)
+      t, r = transforms(model, space)
       n = trueNormal(s, r)
 
       type = :floor
@@ -94,7 +96,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
 
     # Fetch OpenStudio subsurfaces & key attributes
     # puts OpenStudio::Model::SubSurface::validSubSurfaceTypeValues
-    os_model.getSubSurfaces.each do |s|
+    model.getSubSurfaces.each do |s|
       next if s.space.empty?
       next if s.surface.empty?
       space = s.space.get
@@ -102,7 +104,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
       id = s.nameString
 
       # site transformation & rotation
-      t, r = transforms(os_model, space)
+      t, r = transforms(model, space)
       n = trueNormal(s, r)
 
       type = :skylight
@@ -133,28 +135,25 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     # Split "surfaces" hash into "floors", "ceilings" and "walls" hashes
     floors = surfaces.select{ |i, p| p[:type] == :floor }
     floors = floors.sort_by{ |i, p| [p[:minz], p[:space]] }.to_h
-    expect(floors.size).to eq(7)
 
     ceilings = surfaces.select{ |i, p| p[:type] == :ceiling }
     ceilings = ceilings.sort_by{ |i, p| [p[:minz], p[:space]] }.to_h
-    expect(ceilings.size).to eq(3)
 
     walls = surfaces.select{|i, p| p[:type] == :wall }
     walls = walls.sort_by{ |i, p| [p[:minz], p[:space]] }.to_h
-    expect(walls.size).to eq(17)
 
     # Remove ":type" (now redundant)
     surfaces.values.each do |p| p.delete_if { |ii, _| ii == :type }; end
 
     # Fetch OpenStudio shading surfaces & key attributes
     shades = {}
-    os_model.getShadingSurfaces.each do |s|
+    model.getShadingSurfaces.each do |s|
       next if s.shadingSurfaceGroup.empty?
        group = s.shadingSurfaceGroup.get
        id = s.nameString
 
        # site transformation & rotation
-       t, r = transforms(os_model, group)
+       t, r = transforms(model, group)
 
        # shading surface groups may also be linked to (rotated) spaces
        shading = group.to_ShadingSurfaceGroup
@@ -305,9 +304,6 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
                 farthest_V = origin_point_V
               end
             end
-
-            angle = edge_V.angle(farthest_V)
-            expect(angle).to be_within(0.01).of(Math::PI / 2) # for testing
 
             angle = reference_V.angle(farthest_V)
 
@@ -570,11 +566,12 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
 
     surfaces.each do |id, surface|
       next unless surface.has_key?(:edges)
-      os_model.getSurfaces.each do |s|
+      model.getSurfaces.each do |s|
         next unless id == s.nameString
+        current_c = nil
         if s.isConstructionDefaulted
           # check for building default set
-          building_default_set = os_scrigno.defaultConstructionSet
+          building_default_set = building.defaultConstructionSet
           unless building_default_set.empty?
             building_default_set = building_default_set.get
             current_c = building_default_set.getDefaultConstruction(s)
@@ -582,7 +579,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
             current_c = current_c.get
           else
             # no building-specific defaults - resort to first set @model level
-            model_default_sets = os_model.getDefaultConstructionSets
+            model_default_sets = model.getDefaultConstructionSets
             next if model_default_sets.empty?
             model_default_set = model_default_sets.first
             current_c = model_default_set.getDefaultConstruction(s)
@@ -590,31 +587,101 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
             current_c = current_c.get
           end
           construction_name = current_c.nameString
-          c = current_c.clone(os_model).to_Construction.get
+          c = current_c.clone(model).to_Construction.get
         else
-          construction_name = s.construction.get.nameString
-          c = s.construction.get.clone(os_model).to_Construction.get
+          current_c = s.construction.get
+          construction_name = current_c.nameString
+          c = current_c.clone(model).to_Construction.get
         end
         index, type, r = deratableLayer(c)
-        m = derate(os_model, s, id, surface, c, index, type, r)
-        unless m.nil?
+
+        output = "#{s.nameString}: index:#{index}, R:#{r}"
+        runner.registerInfo(output)
+
+        m = derate(model, s, id, surface, c, index, type, r)
+        if m.nil?
+          output = "#{s.nameString}: could not derate ..."
+          runner.registerInfo(output)
+        else
+          output = "... initial #{r} ... now #{m.thermalResistance}"
+          runner.registerInfo(output)
           c.setLayer(index, m)
           c.setName("#{id} #{construction_name} tbd")
 
-          initial_U = s.thermalConductance
+          # compute current RSi value from layers
+          current_R = 0.150 # air films ... although this varies if roof or floor
+          current_c.to_Construction.get.layers.each do |l|
+            r = 0
+            unless l.to_MasslessOpaqueMaterial.empty?
+              l                 = l.to_MasslessOpaqueMaterial.get
+              output = "ORIGINAL: #{l.nameString}: RSi:#{l.thermalResistance}"
+              runner.registerInfo(output)
+              r                 = l.thermalResistance
+            end
+
+            unless l.to_StandardOpaqueMaterial.empty?
+              l                 = l.to_StandardOpaqueMaterial.get
+              k                 = l.thermalConductivity
+              d                 = l.thickness
+              output = "ORIGINAL: #{l.nameString}: k:#{l.thermalConductivity} d:#{l.thickness}"
+              runner.registerInfo(output)
+
+              r                 = d / k
+            end
+            current_R += r
+          end
+
+          #initial_U = s.thermalConductance
+          initial_U = s.uFactor.to_f
+          initial_R = 1.0 / initial_U
+          output = "... RSi (initial) : #{initial_R}"
+          runner.registerInfo(output)
           s.setConstruction(c)
 
-          derated_U = s.thermalConductance
-          next if initial_U.empty?
-          next if derated_U.empty?
-          initial_R = 1.0 / initial_U.to_f
-          derated_R = 1.0 / derated_U.to_f
-          ratio = 100.0 - (initial_R - derated_R) * 100 / initial_R
+          # compute updated RSi value from layers
+          updated_R = 0.150 # air films ... although this varies if roof or floor
+          updated_c = s.construction.get
+          updated_c.to_Construction.get.layers.each do |l|
+            r = 0
+            unless l.to_MasslessOpaqueMaterial.empty?
+              l                 = l.to_MasslessOpaqueMaterial.get
+              output = "UPDATED: #{l.nameString}: RSi:#{l.thermalResistance}"
+              runner.registerInfo(output)
+
+              r                 = l.thermalResistance
+            end
+
+            unless l.to_StandardOpaqueMaterial.empty?
+              l                 = l.to_StandardOpaqueMaterial.get
+              k                 = l.thermalConductivity
+              d                 = l.thickness
+              output = "UPDATED: #{l.nameString}: k:#{l.thermalConductivity} d:#{l.thickness}"
+              runner.registerInfo(output)
+              r                 = d / k
+            end
+            updated_R += r
+          end
+
+          derated_U = s.uFactor.to_f
+          derated_R = 1.0 / derated_U
+          #derated_U = s.thermalConductance
+
+          output = "... RSi (derated) : #{derated_R}"
+          runner.registerInfo(output)
+
+          ratio_OK  = 100.0 - (current_R - updated_R) * 100 / current_R
+          ratio_BAD = 100.0 - (initial_R - derated_R) * 100 / initial_R
 
           name = s.nameString.rjust(15, " ")
-          ratio = format "%3.1f", ratio
+          ratio_OK  = format "%3.1f", ratio_OK
+          ratio_BAD = format "%3.1f", ratio_BAD
 
-          output = "#{name} derated RSI down to #{ratio}% of initial value"
+          output = "#{ratio_OK} vs #{ratio_BAD}"
+          runner.registerInfo(output)
+
+          output = "#{name}: original RSi:#{current_R} >> updated RSi:#{updated_R}"
+          runner.registerInfo(output)
+          output = "#{name}: initial RSi:#{initial_R} >> derated RSi:#{derated_R}"
           runner.registerInfo(output)
         end
       end
