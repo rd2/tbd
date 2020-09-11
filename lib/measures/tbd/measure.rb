@@ -1,17 +1,18 @@
-require "psi"
-
 begin
-  # try to load from the gem
+  # try to load from the gems
   require "topolys"
+  require "psi"
 rescue LoadError
-  require File.join(File.dirname(__FILE__), "resources/geometry.rb")
-  require File.join(File.dirname(__FILE__), "resources/model.rb")
-  require File.join(File.dirname(__FILE__), "resources/transformation.rb")
-  require File.join(File.dirname(__FILE__), "resources/version.rb")
+  # load from measure resource dir
+  require_relative "resources/psi.rb"
+  require_relative "resources/geometry.rb"
+  require_relative "resources/model.rb"
+  require_relative "resources/transformation.rb"
+  require_relative "resources/version.rb"
 end
 
 # start the measure
-class TBD < OpenStudio::Measure::ModelMeasure
+class TBDMeasure < OpenStudio::Measure::ModelMeasure
   # human readable name
   def name
     # Measure name should be the title case of the class name.
@@ -50,7 +51,7 @@ class TBD < OpenStudio::Measure::ModelMeasure
 
     # assign the user inputs to variables
     option = runner.getStringArgumentValue("option", user_arguments)
-    psi = TBD::PSI.new
+    psi = PSI.new
     set = psi.set[option]
 
     # use the built-in error checking
@@ -624,4 +625,4 @@ class TBD < OpenStudio::Measure::ModelMeasure
 end
 
 # register the measure to be used by the application
-TBD.new.registerWithApplication
+TBDMeasure.new.registerWithApplication

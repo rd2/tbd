@@ -15,7 +15,10 @@ task :update_library_files do
   lib_files = []
   $:.each do |load_path|
     if /topolys/.match(load_path)
-      lib_files = Dir.glob(File.join(load_path, "topolys/*.rb"))
+      lib_files.concat( Dir.glob(File.join(load_path, "topolys/*.rb")) )
+    elsif /tbd/.match(load_path)
+      lib_files.concat( Dir.glob(File.join(load_path, "*.rb")) )
+      lib_files.concat( Dir.glob(File.join(load_path, "tbd/*.rb")) )
     end
   end
   puts lib_files
@@ -29,4 +32,16 @@ task :update_library_files do
   end
 end
 
-task :spec => [:update_library_files]
+desc "Update Measure"
+task :update_measure do
+  puts "Updating Measure"
+
+  require 'openstudio'
+
+  cli = OpenStudio.getOpenStudioCLI
+  command = "#{cli} measure -t './measures'"
+  system({"BUNDLE_GEMFILE"=>nil}, command)
+end
+task :update_measure => [:update_library_files]
+
+task :spec => [:update_measure]
