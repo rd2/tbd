@@ -43,9 +43,9 @@ RSpec.describe TBD do
   FileUtils.mkdir_p(test_suite_runs_dir)
 
   building_types = []
-  building_types << 'SecondarySchool'
+  #building_types << 'SecondarySchool'
   #building_types << 'PrimarySchool'
-  building_types << 'SmallOffice'
+  #building_types << 'SmallOffice'
   #building_types << 'MediumOffice'
   #building_types << 'LargeOffice'
   #building_types << 'SmallHotel'
@@ -61,11 +61,11 @@ RSpec.describe TBD do
   #building_types << 'Outpatient'
 
   tbd_options = []
-  tbd_options << "poor (BC Hydro)"
-  tbd_options << "regular (BC Hydro)"
-  tbd_options << "efficient (BC Hydro)"
-  tbd_options << "code (Quebec)"
-  tbd_options << "(without thermal bridges)"
+  #tbd_options << "poor (BC Hydro)"
+  #tbd_options << "regular (BC Hydro)"
+  #tbd_options << "efficient (BC Hydro)"
+  #tbd_options << "code (Quebec)"
+  #tbd_options << "(without thermal bridges)"
 
   combos = []
   building_types.each do |building_type|

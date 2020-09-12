@@ -205,8 +205,8 @@ def derate(os_model, os_surface, id, surface, c, index, type, r)
      index >= 0                                     &&
      r.is_a?(Numeric)                               &&
      r >= 0.001                                     &&
-     / tbd/i.match(c.nameString) == nil             &&
-     (type == :massless || type == :standard)
+     (type == :massless || type == :standard)       &&
+     / tbd/i.match(c.nameString) == nil # skip if already derated
 
      u              = surface[:heatloss] / surface[:net]
      loss           = 0.0
