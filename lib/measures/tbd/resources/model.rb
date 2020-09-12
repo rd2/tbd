@@ -1028,7 +1028,7 @@ module Topolys
     attr_reader :plane
 
     # @return [Vector3D] outward normal of this wire's plane
-    attr_reader :normal
+    attr_reader :outward_normal
 
     ##
     # Initializes a Wire object
@@ -1182,6 +1182,14 @@ module Topolys
     # @return [Float] Returns perimeter of 3D wire
     def perimeter
       @directed_edges.inject(0){|sum, de| sum + de.length }
+    end
+
+    ##
+    # Gets 3D normal (unit) vector
+    #
+    # @return [V3D] Returns normal (unit) vector
+    def normal
+      @plane.normal
     end
 
     ##

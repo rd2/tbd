@@ -1,3 +1,3 @@
-module TBD
-  VERSION = "0.1.0".freeze
+module Topolys
+  VERSION = "0.1.0"
 end
