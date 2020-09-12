@@ -208,51 +208,56 @@ def derate(os_model, os_surface, id, surface, c, index, type, r)
      / tbd/i.match(c.nameString) == nil             &&
      (type == :massless || type == :standard)
 
-     u            = surface[:heatloss] / surface[:net]
-     loss         = 0.0
-     de_u         = 1.0 / r + u                       # derated U
-     de_r         = 1.0 / de_u                        # derated R
+     u              = surface[:heatloss] / surface[:net]
+     loss           = 0.0
+     de_u           = 1.0 / r + u                       # derated U
+     de_r           = 1.0 / de_u                        # derated R
 
      if type == :massless
-       m          = c.getLayer(index).to_MasslessOpaqueMaterial.get
-       m          = m.clone(os_model)
-       m          = m.to_MasslessOpaqueMaterial.get
-                    m.setName("#{id} #{m.nameString} tbd")
+       m            = c.getLayer(index).to_MasslessOpaqueMaterial
+       unless m.empty?
+         m          = m.get
+         m          = m.clone(os_model)
+         m          = m.to_MasslessOpaqueMaterial.get
+                      m.setName("#{id} #{m.nameString} tbd")
 
-       unless de_r > 0.001
-         de_r     = 0.001
-         de_u     = 1.0 / de_r
-         loss     = (de_u - 1.0 / r) / surface[:net]
+         unless de_r > 0.001
+           de_r     = 0.001
+           de_u     = 1.0 / de_r
+           loss     = (de_u - 1.0 / r) / surface[:net]
+         end
+         m.setThermalResistance(de_r)
        end
-       m.setThermalResistance(de_r)
-
      else # type == :standard
-       m          = c.getLayer(index).to_StandardOpaqueMaterial.get
-       m          = m.clone(os_model)
-       m          = m.to_StandardOpaqueMaterial.get
-                    m.setName("#{id} #{m.nameString} tbd")
-       k          = m.thermalConductivity
-       if de_r > 0.001
-         d        = de_r * k
-         unless d > 0.003
-           d      = 0.003
-           k      = d / de_r
-           unless k < 3.0
-             k    = 3.0
-             loss = (k / d - 1.0 / r) / surface[:net]
+       m            = c.getLayer(index).to_StandardOpaqueMaterial
+       unless m.empty?
+         m          = m.get
+         m          = m.clone(os_model)
+         m          = m.to_StandardOpaqueMaterial.get
+                      m.setName("#{id} #{m.nameString} tbd")
+         k          = m.thermalConductivity
+         if de_r > 0.001
+           d        = de_r * k
+           unless d > 0.003
+             d      = 0.003
+             k      = d / de_r
+             unless k < 3.0
+               k    = 3.0
+               loss = (k / d - 1.0 / r) / surface[:net]
+             end
            end
+         else       # de_r < 0.001 m2.K/W
+           d        = 0.001 * k
+           unless d > 0.003
+             d      = 0.003
+             k      = d / 0.001
+           end
+           loss     = (k / d - 1.0 / r) / surface[:net]
          end
 
-       else       # de_r < 0.001 m2.K/W
-         d        = 0.001 * k
-         unless d > 0.003
-           d      = 0.003
-           k      = d / 0.001
-         end
-         loss     = (k / d - 1.0 / r) / surface[:net]
+         m.setThickness(d)
+         m.setThermalConductivity(k)
        end
-       m.setThickness(d)
-       m.setThermalConductivity(k)
      end
 
      unless m.nil?

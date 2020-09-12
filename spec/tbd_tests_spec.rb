@@ -1299,11 +1299,19 @@ RSpec.describe TBD do
         # type  - either massless (RSi) or standard (k + d)
         # r     - initial RSi value of the targeted layer to derate
         index, type, r = deratableLayer(c)
+        unless index.is_a?(Numeric) && index >=0 && index < c.layers.size
+          raise "#{id} layer failure : index: #{index}"
+        end
 
         # m     - newly derated, cloned material
         m = derate(os_model, s, id, surface, c, index, type, r)
 
-        unless m.nil?
+        if m.nil?
+          raise "#{s.nameString} could not derate ... #{m.class}"
+        else
+          unless index.is_a?(Numeric) && index >=0 && index < c.layers.size && m.is_a?(OpenStudio::Model::Material)
+            raise "#{id} failure : index: #{index} & #{m.class}"
+          end
           c.setLayer(index, m)
           c.setName("#{id} #{construction_name} tbd")
 

@@ -600,13 +600,19 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
         # type  - either massless (RSi) or standard (k + d)
         # r     - initial RSi value of the targeted layer to derate
         index, type, r = deratableLayer(c)
+        unless index.is_a?(Numeric) && index >=0 && index < c.layers.size
+          raise "#{id} layer failure : index: #{index}"
+        end
 
         # m     - newly derated, cloned material
         m = derate(model, s, id, surface, c, index, type, r)
         if m.nil?
-          output = "#{s.nameString}: could not derate ..."
+          output = "#{s.nameString}: could not derate ... #{index}"
           runner.registerInfo(output)
         else
+          unless index.is_a?(Numeric) && index >=0 && index < c.layers.size
+            raise "#{id} failure : index: #{index} & #{m.class}"
+          end
           c.setLayer(index, m)
           c.setName("#{id} #{construction_name} tbd")
 
