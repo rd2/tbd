@@ -1306,6 +1306,8 @@ RSpec.describe TBD do
         # m     - newly derated, cloned material
         m = derate(os_model, s, id, surface, c, index, type, r)
 
+        # m may be nilled simply because the targeted construction has already
+        # been derated, i.e. holds " tbd" in its name
         unless m.nil?
           c.setLayer(index, m)
           c.setName("#{id} #{construction_name} tbd")
@@ -2137,7 +2139,6 @@ RSpec.describe TBD do
 
         # m     - newly derated, cloned material
         m = derate(os_model, s, id, surface, c, index, type, r)
-        #puts "#{c.nameString}" unless / tbd/i.match(c.nameString) == nil
 
         # m may be nilled simply because the targeted construction has already
         # been derated, i.e. holds " tbd" in its name
@@ -2786,7 +2787,6 @@ RSpec.describe TBD do
 
         # m     - newly derated, cloned material
         m = derate(os_model, s, id, surface, c, index, type, r)
-        #puts "#{c.nameString}" unless / tbd/i.match(c.nameString) == nil
 
         # m may be nilled simply because the targeted construction has already
         # been derated, i.e. holds " tbd" in its name
@@ -3435,7 +3435,6 @@ RSpec.describe TBD do
 
         # m     - newly derated, cloned material
         m = derate(os_model, s, id, surface, c, index, type, r)
-        #puts "#{c.nameString}" unless / tbd/i.match(c.nameString) == nil
 
         # m may be nilled simply because the targeted construction has already
         # been derated, i.e. holds " tbd" in its name

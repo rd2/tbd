@@ -606,8 +606,10 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
 
         # m     - newly derated, cloned material
         m = derate(model, s, id, surface, c, index, type, r)
-        unless m.nil?
 
+        # m may be nilled simply because the targeted construction has already
+        # been derated, i.e. holds " tbd" in its name
+        unless m.nil?
           c.setLayer(index, m)
           c.setName("#{id} #{construction_name} tbd")
 
