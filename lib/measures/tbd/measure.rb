@@ -606,13 +606,8 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
 
         # m     - newly derated, cloned material
         m = derate(model, s, id, surface, c, index, type, r)
-        if m.nil?
-          output = "#{s.nameString}: could not derate ... #{index}"
-          runner.registerInfo(output)
-        else
-          unless index.is_a?(Numeric) && index >=0 && index < c.layers.size
-            raise "#{id} failure : index: #{index} & #{m.class}"
-          end
+        unless m.nil?
+
           c.setLayer(index, m)
           c.setName("#{id} #{construction_name} tbd")
 

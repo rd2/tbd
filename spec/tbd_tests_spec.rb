@@ -1306,12 +1306,7 @@ RSpec.describe TBD do
         # m     - newly derated, cloned material
         m = derate(os_model, s, id, surface, c, index, type, r)
 
-        if m.nil?
-          raise "#{s.nameString} could not derate ... #{m.class}"
-        else
-          unless index.is_a?(Numeric) && index >=0 && index < c.layers.size && m.is_a?(OpenStudio::Model::Material)
-            raise "#{id} failure : index: #{index} & #{m.class}"
-          end
+        unless m.nil?
           c.setLayer(index, m)
           c.setName("#{id} #{construction_name} tbd")
 
@@ -2147,9 +2142,6 @@ RSpec.describe TBD do
         # m may be nilled simply because the targeted construction has already
         # been derated, i.e. holds " tbd" in its name
         unless m.nil?
-          unless index.is_a?(Numeric) && index >=0 && index < c.layers.size && m.is_a?(OpenStudio::Model::Material)
-            raise "#{id} failure : index: #{index} & #{m.class}"
-          end
           c.setLayer(index, m)
           c.setName("#{id} #{construction_name} tbd")
 
@@ -2799,9 +2791,6 @@ RSpec.describe TBD do
         # m may be nilled simply because the targeted construction has already
         # been derated, i.e. holds " tbd" in its name
         unless m.nil?
-          unless index.is_a?(Numeric) && index >=0 && index < c.layers.size && m.is_a?(OpenStudio::Model::Material)
-            raise "#{id} failure : index: #{index} & #{m.class}"
-          end
           c.setLayer(index, m)
           c.setName("#{id} #{construction_name} tbd")
 
@@ -3451,9 +3440,6 @@ RSpec.describe TBD do
         # m may be nilled simply because the targeted construction has already
         # been derated, i.e. holds " tbd" in its name
         unless m.nil?
-          unless index.is_a?(Numeric) && index >=0 && index < c.layers.size && m.is_a?(OpenStudio::Model::Material)
-            raise "#{id} failure : index: #{index} & #{m.class}"
-          end
           c.setLayer(index, m)
           c.setName("#{id} #{construction_name} tbd")
 
