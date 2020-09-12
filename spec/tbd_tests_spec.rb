@@ -1267,6 +1267,8 @@ RSpec.describe TBD do
       next unless surface.has_key?(:edges)
       os_model.getSurfaces.each do |s|
         next unless id == s.nameString
+
+        # Retrieve current surface construction
         current_c = nil
         if s.isConstructionDefaulted
           # check for building default set
@@ -1287,20 +1289,26 @@ RSpec.describe TBD do
           end
           construction_name = current_c.nameString
           c = current_c.clone(os_model).to_Construction.get
-        else
+        else # no defaults - surface-specific construction
           current_c = s.construction.get
           construction_name = current_c.nameString
           c = current_c.clone(os_model).to_Construction.get
         end
 
+        # index - of layer/material (to derate) in cloned construction
+        # type  - either massless (RSi) or standard (k + d)
+        # r     - initial RSi value of the targeted layer to derate
         index, type, r = deratableLayer(c)
+
+        # m     - newly derated, cloned material
         m = derate(os_model, s, id, surface, c, index, type, r)
+
         unless m.nil?
           c.setLayer(index, m)
           c.setName("#{id} #{construction_name} tbd")
 
           # compute current RSi value from layers
-          current_R = 0.150 # air films ... although this varies if roof or floor
+          current_R = s.filmResistance
           current_c.to_Construction.get.layers.each do |l|
             r = 0
             unless l.to_MasslessOpaqueMaterial.empty?
@@ -1317,42 +1325,31 @@ RSpec.describe TBD do
             current_R += r
           end
 
-          initial_U = s.uFactor.to_f
-          initial_R = 1.0 / initial_U
-          puts "#{s.nameString}: current RSi: #{current_R} vs initial RSi: #{initial_R}"
           s.setConstruction(c)
 
           # compute updated RSi value from layers
-          updated_R = 0.150 # air films ... although this varies if roof or floor
+          updated_R = s.filmResistance
           updated_c = s.construction.get
           updated_c.to_Construction.get.layers.each do |l|
             r = 0
             unless l.to_MasslessOpaqueMaterial.empty?
-              l                 = l.to_MasslessOpaqueMaterial.get
-              r                 = l.thermalResistance
+              l = l.to_MasslessOpaqueMaterial.get
+              r = l.thermalResistance
             end
 
             unless l.to_StandardOpaqueMaterial.empty?
-              l                 = l.to_StandardOpaqueMaterial.get
-              k                 = l.thermalConductivity
-              d                 = l.thickness
-              r                 = d / k
+              l = l.to_StandardOpaqueMaterial.get
+              k = l.thermalConductivity
+              d = l.thickness
+              r = d / k
             end
             updated_R += r
           end
 
-          derated_U = s.uFactor.to_f
-          derated_R = 1.0 / derated_U
-          puts "#{s.nameString}: updated RSi: #{updated_R} vs derated RSi: #{derated_R}"
-
-          ratio_OK  = 100.0 - (current_R - updated_R) * 100 / current_R
-          ratio_BAD = 100.0 - (initial_R - derated_R) * 100 / initial_R
-
-          name = s.nameString.rjust(15, " ")
-          ratio_OK = format "%3.1f", ratio_OK
-          ratio_BAD = format "%3.1f", ratio_BAD
-          puts "#{name} derated RSI down to #{ratio_OK}% of initial value"
-          puts "... or derated RSI down to #{ratio_BAD}% of initial value"
+          ratio  = -(current_R - updated_R) * 100 / current_R
+          ratio  = format "%3.1f", ratio
+          name   = s.nameString.rjust(15, " ")
+          #puts "#{name} RSi derated by #{ratio}%"
         end
       end
     end
@@ -1388,29 +1385,29 @@ RSpec.describe TBD do
     end
 
     # for validation ... substitute "ceiling(s)" for "wall(s)" or "floor(s)"
-     ceilings.each do |id, ceiling|
-       next unless ceiling.has_key?(:edges)
-       os_model.getSurfaces.each do |s|
-         next unless id == s.nameString
-         next unless ceiling.has_key?(:heatloss)
-         u = s.thermalConductance
-         next if u.empty?
-         r = format "%.3f", 1.0 / u.to_f
-         loss = format "%.3f", ceiling[:heatloss]
-         area = format "%.3f", ceiling[:net]
-         puts "#{id} : area (m2); R (m2.K/W); loss (W/K), \
+    # ceilings.each do |id, ceiling|
+    #   next unless ceiling.has_key?(:edges)
+    #   os_model.getSurfaces.each do |s|
+    #     next unless id == s.nameString
+    #     next unless ceiling.has_key?(:heatloss)
+    #     u = s.thermalConductance
+    #     next if u.empty?
+    #     r = format "%.3f", 1.0 / u.to_f
+    #     loss = format "%.3f", ceiling[:heatloss]
+    #     area = format "%.3f", ceiling[:net]
+    #     puts "#{id} : area (m2); R (m2.K/W); loss (W/K), \
                     #{area}, \
                     #{r}, \
                     #{loss}\n"
-         ceiling[:edges].values.each do |edge|
-           type = edge[:type].to_s.rjust(12)
-           psi = format "%6.3f", edge[:psi].to_s.rjust(17," ")
-           length = format "%5.2f", edge[:length].to_s.rjust(27," ")
-           output = ("#{type}, #{psi}, #{length}\n")
-           puts output
-         end
-       end
-     end
+    #     ceiling[:edges].values.each do |edge|
+    #       type = edge[:type].to_s.rjust(12)
+    #       psi = format "%6.3f", edge[:psi].to_s.rjust(17," ")
+    #       length = format "%5.2f", edge[:length].to_s.rjust(27," ")
+    #       output = ("#{type}, #{psi}, #{length}\n")
+    #       puts output
+    #     end
+    #   end
+    # end
 
     # for validation ... substitute "ceiling(s)" for "wall(s)" or "floor(s)"
     # output = File.open("output.txt", "w")

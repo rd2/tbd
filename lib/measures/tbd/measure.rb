@@ -568,6 +568,8 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
       next unless surface.has_key?(:edges)
       model.getSurfaces.each do |s|
         next unless id == s.nameString
+
+        # Retrieve current surface construction
         current_c = nil
         if s.isConstructionDefaulted
           # check for building default set
@@ -585,7 +587,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
             current_c = model_default_set.getDefaultConstruction(s)
             next if current_c.empty?
             current_c = current_c.get
-          end
+          end # no defaults - surface-specific construction
           construction_name = current_c.nameString
           c = current_c.clone(model).to_Construction.get
         else
@@ -593,29 +595,27 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
           construction_name = current_c.nameString
           c = current_c.clone(model).to_Construction.get
         end
+
+        # index - of layer/material (to derate) in cloned construction
+        # type  - either massless (RSi) or standard (k + d)
+        # r     - initial RSi value of the targeted layer to derate
         index, type, r = deratableLayer(c)
 
-        output = "#{s.nameString}: index:#{index}, R:#{r}"
-        runner.registerInfo(output)
-
+        # m     - newly derated, cloned material
         m = derate(model, s, id, surface, c, index, type, r)
         if m.nil?
           output = "#{s.nameString}: could not derate ..."
           runner.registerInfo(output)
         else
-          output = "... initial #{r} ... now #{m.thermalResistance}"
-          runner.registerInfo(output)
           c.setLayer(index, m)
           c.setName("#{id} #{construction_name} tbd")
 
           # compute current RSi value from layers
-          current_R = 0.150 # air films ... although this varies if roof or floor
+          current_R = s.filmResistance
           current_c.to_Construction.get.layers.each do |l|
             r = 0
             unless l.to_MasslessOpaqueMaterial.empty?
               l                 = l.to_MasslessOpaqueMaterial.get
-              output = "ORIGINAL: #{l.nameString}: RSi:#{l.thermalResistance}"
-              runner.registerInfo(output)
               r                 = l.thermalResistance
             end
 
@@ -623,65 +623,36 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
               l                 = l.to_StandardOpaqueMaterial.get
               k                 = l.thermalConductivity
               d                 = l.thickness
-              output = "ORIGINAL: #{l.nameString}: k:#{l.thermalConductivity} d:#{l.thickness}"
-              runner.registerInfo(output)
-
               r                 = d / k
             end
             current_R += r
           end
 
-          #initial_U = s.thermalConductance
-          initial_U = s.uFactor.to_f
-          initial_R = 1.0 / initial_U
-          output = "... RSi (initial) : #{initial_R}"
-          runner.registerInfo(output)
           s.setConstruction(c)
 
           # compute updated RSi value from layers
-          updated_R = 0.150 # air films ... although this varies if roof or floor
+          updated_R = s.filmResistance
           updated_c = s.construction.get
           updated_c.to_Construction.get.layers.each do |l|
             r = 0
             unless l.to_MasslessOpaqueMaterial.empty?
-              l                 = l.to_MasslessOpaqueMaterial.get
-              output = "UPDATED: #{l.nameString}: RSi:#{l.thermalResistance}"
-              runner.registerInfo(output)
-
-              r                 = l.thermalResistance
+              l = l.to_MasslessOpaqueMaterial.get
+              r = l.thermalResistance
             end
 
             unless l.to_StandardOpaqueMaterial.empty?
-              l                 = l.to_StandardOpaqueMaterial.get
-              k                 = l.thermalConductivity
-              d                 = l.thickness
-              output = "UPDATED: #{l.nameString}: k:#{l.thermalConductivity} d:#{l.thickness}"
-              runner.registerInfo(output)
-              r                 = d / k
+              l = l.to_StandardOpaqueMaterial.get
+              k = l.thermalConductivity
+              d = l.thickness
+              r = d / k
             end
             updated_R += r
           end
 
-          derated_U = s.uFactor.to_f
-          derated_R = 1.0 / derated_U
-          #derated_U = s.thermalConductance
-
-          output = "... RSi (derated) : #{derated_R}"
-          runner.registerInfo(output)
-
-          ratio_OK  = 100.0 - (current_R - updated_R) * 100 / current_R
-          ratio_BAD = 100.0 - (initial_R - derated_R) * 100 / initial_R
-
-          name = s.nameString.rjust(15, " ")
-          ratio_OK  = format "%3.1f", ratio_OK
-          ratio_BAD = format "%3.1f", ratio_BAD
-
-          output = "#{ratio_OK} vs #{ratio_BAD}"
-          runner.registerInfo(output)
-
-          output = "#{name}: original RSi:#{current_R} >> updated RSi:#{updated_R}"
-          runner.registerInfo(output)
-          output = "#{name}: initial RSi:#{initial_R} >> derated RSi:#{derated_R}"
+          ratio  = -(current_R - updated_R) * 100 / current_R
+          ratio  = format "%3.1f", ratio
+          name   = s.nameString.rjust(15, " ")
+          output = "#{name} RSi derated by #{ratio}%"
           runner.registerInfo(output)
         end
       end
