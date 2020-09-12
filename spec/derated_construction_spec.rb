@@ -67,7 +67,7 @@ RSpec.describe TBD do
     expect(floor.uFactor.empty?).to be(false)
     expect(floor.uFactor.get).to be_within(0.001).of(0.241)
 
-    # make ground
+    # make outdoors (like a soffit)
     expect(floor.setOutsideBoundaryCondition("Outdoors")).to be(true)
     expect(floor.filmResistance).to be_within(0.001).of(0.190)
     expect(floor.uFactor.empty?).to be(false)
