@@ -4,7 +4,8 @@
 /pkg/
 /spec/reports/
 /spec/test/
-/spec/files/*/
+/spec/test_suite_runs/
+#/spec/files/*/
 /test/
 /tmp/
 
