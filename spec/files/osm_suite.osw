@@ -1,0 +1,28 @@
+{
+	"seed_file": null,
+	"weather_file": null,
+	"measure_paths": [
+    "../../files/measures",
+    "../../../lib/measures"
+  ],
+	"file_paths": [
+    "../../files/osms"
+  ],
+	"run_directory": null,
+	"steps": [
+    {
+      "measure_dir_name": "tbd",
+      "arguments": {
+        "__SKIP__": false,
+        "option": "regular"
+      }
+		},
+    {
+      "measure_dir_name": "OpenStudio Results",
+      "arguments": {
+      }
+		}
+	],
+	"name": "Test File",
+	"description": "Test File"
+}
