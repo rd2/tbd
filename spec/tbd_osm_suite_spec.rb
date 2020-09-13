@@ -50,6 +50,7 @@ RSpec.describe TBD do
   weather_files['seb.osm'] = 'srrl_2013_amy.epw'
 
   tbd_options = []
+  tbd_options << "skip"
   tbd_options << "poor (BC Hydro)"
   tbd_options << "regular (BC Hydro)"
   tbd_options << "efficient (BC Hydro)"
@@ -81,7 +82,11 @@ RSpec.describe TBD do
     osw = template_osw.clone
     osw[:seed_file] = seed_osm
     osw[:weather_file] = weather_files[seed_osm]
-    osw[:steps][0][:arguments][:option] = tbd_option
+    if tbd_option == 'skip'
+      osw[:steps][0][:arguments][:__SKIP__] = true
+    else
+      osw[:steps][0][:arguments][:option] = tbd_option
+    end
 
     osw_file = File.join(test_dir, 'in.osw')
     File.open(osw_file, 'w') do |f|

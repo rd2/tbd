@@ -20,6 +20,7 @@
     {
       "measure_dir_name": "tbd",
       "arguments": {
+        "__SKIP__": false,
         "option": "regular"
       }
 		},

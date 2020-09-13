@@ -62,6 +62,7 @@ RSpec.describe TBD do
   #building_types << 'Outpatient'
 
   tbd_options = []
+  tbd_options << "skip"
   tbd_options << "poor (BC Hydro)"
   tbd_options << "regular (BC Hydro)"
   tbd_options << "efficient (BC Hydro)"
@@ -92,7 +93,11 @@ RSpec.describe TBD do
 
     osw = template_osw.clone
     osw[:steps][0][:arguments][:building_type] = building_type
-    osw[:steps][1][:arguments][:option] = tbd_option
+    if tbd_option == 'skip'
+      osw[:steps][1][:arguments][:__SKIP__] = true
+    else
+      osw[:steps][1][:arguments][:option] = tbd_option
+    end
 
     osw_file = File.join(test_dir, 'in.osw')
     File.open(osw_file, 'w') do |f|
