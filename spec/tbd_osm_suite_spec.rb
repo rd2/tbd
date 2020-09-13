@@ -30,36 +30,24 @@ RSpec.describe TBD do
   # number of processors to use
   nproc = [1, Parallel.processor_count - 1].max
 
-  test_suite_runs_dir = File.join(File.dirname(__FILE__), 'test_suite_runs')
+  osm_suite_runs_dir = File.join(File.dirname(__FILE__), 'osm_suite_runs')
 
   template_osw = nil
-  template_osw_file = File.join(File.dirname(__FILE__), 'files/test_suite.osw')
+  template_osw_file = File.join(File.dirname(__FILE__), 'files/osm_suite.osw')
   File.open(template_osw_file, 'r') do |f|
     template_osw = JSON.parse(f.read, {symbolize_names: true})
   end
 
   if force_clean
-    FileUtils.rm_rf(test_suite_runs_dir) if File.exists?(test_suite_runs_dir)
+    FileUtils.rm_rf(osm_suite_runs_dir) if File.exists?(osm_suite_runs_dir)
   end
-  FileUtils.mkdir_p(test_suite_runs_dir)
+  FileUtils.mkdir_p(osm_suite_runs_dir)
 
-  building_types = []
-  #building_types << 'SecondarySchool'
-  #building_types << 'PrimarySchool'
-  #building_types << 'SmallOffice'
-  #building_types << 'MediumOffice'
-  #building_types << 'LargeOffice'
-  #building_types << 'SmallHotel'
-  #building_types << 'LargeHotel'
-  #building_types << 'Warehouse'
-  #building_types << 'RetailStandalone'
-  #building_types << 'RetailStripmall'
-  #building_types << 'QuickServiceRestaurant'
-  #building_types << 'FullServiceRestaurant'
-  #building_types << 'MidriseApartment'
-  #building_types << 'HighriseApartment'
-  #building_types << 'Hospital'
-  #building_types << 'Outpatient'
+  seed_osms = []
+  seed_osms << 'seb.osm'
+
+  weather_files = {}
+  weather_files['seb.osm'] = 'srrl_2013_amy.epw'
 
   tbd_options = []
   tbd_options << "skip"
@@ -70,18 +58,18 @@ RSpec.describe TBD do
   tbd_options << "(without thermal bridges)"
 
   combos = []
-  building_types.each do |building_type|
+  seed_osms.each do |seed_osm|
     tbd_options.each do |tbd_option|
-      combos << [building_type, tbd_option]
+      combos << [seed_osm, tbd_option]
     end
   end
 
   Parallel.each(combos, in_threads: nproc) do |combo|
-    building_type = combo[0]
+    seed_osm = combo[0]
     tbd_option = combo[1]
-    test_case_name = "#{building_type}_#{tbd_option}"
+    test_case_name = "#{seed_osm}_#{tbd_option}".gsub('.', '_')
 
-    test_dir = File.join(test_suite_runs_dir, test_case_name)
+    test_dir = File.join(osm_suite_runs_dir, test_case_name)
     if File.exist?(test_dir) && File.exist?(File.join(test_dir, 'out.osw'))
       puts "use existing #{test_case_name}"
       next
@@ -92,11 +80,12 @@ RSpec.describe TBD do
     FileUtils.mkdir_p(test_dir)
 
     osw = template_osw.clone
-    osw[:steps][0][:arguments][:building_type] = building_type
+    osw[:seed_file] = seed_osm
+    osw[:weather_file] = weather_files[seed_osm]
     if tbd_option == 'skip'
-      osw[:steps][1][:arguments][:__SKIP__] = true
+      osw[:steps][0][:arguments][:__SKIP__] = true
     else
-      osw[:steps][1][:arguments][:option] = tbd_option
+      osw[:steps][0][:arguments][:option] = tbd_option
     end
 
     osw_file = File.join(test_dir, 'in.osw')
@@ -111,11 +100,11 @@ RSpec.describe TBD do
   end
 
   # compare results
-  building_types.each do |building_type|
+  seed_osms.each do |seed_osm|
     results = {}
     tbd_options.each do |tbd_option|
-      test_case_name = "#{building_type}_#{tbd_option}"
-      out_osw_file = File.join(test_suite_runs_dir, test_case_name, 'out.osw')
+      test_case_name = "#{seed_osm}_#{tbd_option}".gsub('.', '_')
+      out_osw_file = File.join(osm_suite_runs_dir, test_case_name, 'out.osw')
 
       results[tbd_option] = {}
       File.open(out_osw_file, 'r') do |f|
@@ -123,13 +112,13 @@ RSpec.describe TBD do
       end
     end
 
-    it "compares results for #{building_type}" do
-      puts "building_type = #{building_type}"
+    it "compares results for #{seed_osm}" do
+      puts "seed_osm = #{seed_osm}"
       tbd_options.each do |tbd_option|
         completed_status = results[tbd_option][:completed_status]
         expect(completed_status).to eq("Success")
-        tbd_result = results[tbd_option][:steps][1][:result]
-        os_result = results[tbd_option][:steps][2][:result]
+        tbd_result = results[tbd_option][:steps][0][:result]
+        os_result = results[tbd_option][:steps][1][:result]
         total_site_energy = os_result[:step_values].select{|v| v[:name] == 'total_site_energy'}
         puts "  tbd_option = #{tbd_option}"
         puts "    tbd_success = #{tbd_result[:step_result]}"
