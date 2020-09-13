@@ -5,18 +5,11 @@
     "../../files/measures",
     "../../../lib/measures"
   ],
-	"file_paths": ["../../files/"],
+	"file_paths": [
+    "../../files/osms"
+  ],
 	"run_directory": null,
 	"steps": [
-    {
-      "measure_dir_name": "Create DOE Prototype Building",
-      "arguments": {
-        "building_type": "SmallOffice",
-        "template": "90.1-2010",
-        "climate_zone": "ASHRAE 169-2013-3B",
-        "epw_file": "Not Applicable"
-      }
-		},
     {
       "measure_dir_name": "tbd",
       "arguments": {
