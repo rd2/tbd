@@ -557,7 +557,7 @@ RSpec.describe TBD do
     # puts OpenStudio::Model::Surface::validSurfaceTypeValues
     surfaces = {}
     os_model.getSurfaces.each do |s|
-      next if s.space.empty? # TBD ignores orphaned surfaces; log warning?
+      next if s.space.empty?
       space = s.space.get
       id = s.nameString
 
@@ -1304,15 +1304,19 @@ RSpec.describe TBD do
         # type  - either massless (RSi) or standard (k + d)
         # r     - initial RSi value of the targeted layer to derate
         index, type, r = deratableLayer(c)
-        unless index.is_a?(Numeric) && index >=0 && index < c.layers.size
-          raise "#{id} layer failure : index: #{index}"
-        end
+
+        index = nil unless index.is_a?(Numeric) &&
+                           index >=0            &&
+                           index < c.layers.size
 
         # m     - newly derated, cloned material
+        m = nil
         m = derate(os_model, s, id, surface, c, index, type, r)
 
-        # m may be nilled simply because the targeted construction has already
-        # been derated, i.e. holds " tbd" in its name
+        # "m" may be nilled simply because the targeted construction has already
+        # been derated, i.e. holds " tbd" in its name. Names of cloned/derated
+        # constructions (due to TBD) include the surface name (since derated
+        # constructions are unique to each surface) and the suffix " tbd".
         unless m.nil?
           c.setLayer(index, m)
           c.setName("#{id} #{construction_name} tbd")
@@ -1388,25 +1392,22 @@ RSpec.describe TBD do
   end
 end
 
-# I actually haven't ran the warehouse.osm from within RSpec.
-# If you want to take a crack at it ...
+RSpec.describe TBD do
+  it "can process TB & D : DOE Prototype test_warehouse.osm" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/test_warehouse.osm")
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
 
-# RSpec.describe TBD do
-#   it "can process TB & D : DOE Prototype test_warehouse.osm" do
-#     translator = OpenStudio::OSVersion::VersionTranslator.new
-#     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/test_warehouse.osm")
-#     os_model = translator.loadModel(path)
-#     expect(os_model.empty?).to be(false)
-#     os_model = os_model.get
-#
-#     psi = PSI.new
-#     psi_set = psi.set["poor (BC Hydro)"]
-#
-#     # TBD "surfaces" (Hash) holds opaque surfaces (as well as their child
-#     # subsurfaces) for post-processing, e.g. testing, output to JSON (soon).
-#     surfaces = processTBD(os_model, psi_set)
-#   end
-# end
+    psi = PSI.new
+    psi_set = psi.set["poor (BC Hydro)"]
+
+    # TBD "surfaces" (Hash) holds opaque surfaces (as well as their child
+    # subsurfaces) for post-processing, e.g. testing, output to JSON (soon).
+    surfaces = processTBD(os_model, psi_set)
+  end
+end
 
 RSpec.describe TBD do
   it "can process TB & D : test_seb.osm" do

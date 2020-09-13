@@ -243,26 +243,30 @@ def deratableLayer(construction)
   construction.layers.each do |m|
     unless m.to_MasslessOpaqueMaterial.empty?
       m                 = m.to_MasslessOpaqueMaterial.get
-      next unless         m.thermalResistance > 0.001
-      next unless         m.thermalResistance > r
-      r                 = m.thermalResistance
-      index             = i
-      type              = :massless
-      i += 1
+      if m.thermalResistance < 0.001 || m.thermalResistance < r
+        i += 1
+        next
+      else
+        r                 = m.thermalResistance
+        index             = i
+        type              = :massless
+      end
     end
 
     unless m.to_StandardOpaqueMaterial.empty?
       m                 = m.to_StandardOpaqueMaterial.get
       k                 = m.thermalConductivity
       d                 = m.thickness
-      next unless         d > 0.003
-      next unless         k < 3.0
-      next unless         d / k > r
-      r                 = d / k
-      index             = i
-      type              = :standard
-      i += 1
+      if d < 0.003 || k < 3.0 || d / k < r
+        i += 1
+        next
+      else
+        r                 = d / k
+        index             = i
+        type              = :standard
+      end
     end
+    i += 1
   end
   return index, type, r
 end
@@ -289,6 +293,7 @@ def derate(os_model, os_surface, id, surface, c, index, type, r)
 
      if type == :massless
        m            = c.getLayer(index).to_MasslessOpaqueMaterial
+
        unless m.empty?
          m          = m.get
          m          = m.clone(os_model)
@@ -302,6 +307,7 @@ def derate(os_model, os_surface, id, surface, c, index, type, r)
          end
          m.setThermalResistance(de_r)
        end
+
      else # type == :standard
        m            = c.getLayer(index).to_StandardOpaqueMaterial
        unless m.empty?
@@ -851,28 +857,48 @@ def processTBD(os_model, psi_set)
     next unless surface.has_key?(:edges)
     os_model.getSurfaces.each do |s|
       next unless id == s.nameString
+      next if s.space.empty?
+      space = s.space.get
 
       # Retrieve current surface construction.
       current_c = nil
+      defaulted = false
       if s.isConstructionDefaulted
+        # Check for space default set.
+        space_default_set = space.defaultConstructionSet
+        unless space_default_set.empty?
+          space_default_set = space_default_set.get
+          current_c = space_default_set.getDefaultConstruction(s)
+          next if current_c.empty?
+          current_c = current_c.get
+          defaulted = true
+        end
+
         # Check for building default set.
         building_default_set = os_building.defaultConstructionSet
-        unless building_default_set.empty?
+        unless building_default_set.empty? || defaulted
           building_default_set = building_default_set.get
           current_c = building_default_set.getDefaultConstruction(s)
           next if current_c.empty?
           current_c = current_c.get
-        else
-          # No building-specific defaults - resort to first set @model level.
-          model_default_sets = os_model.getDefaultConstructionSets
-          next if model_default_sets.empty?
+          defaulted = true
+        end
+
+        # No space or building defaults - resort to first set @model level.
+        model_default_sets = os_model.getDefaultConstructionSets
+        unless model_default_sets.empty? || defaulted
           model_default_set = model_default_sets.first
           current_c = model_default_set.getDefaultConstruction(s)
           next if current_c.empty?
           current_c = current_c.get
+          defaulted = true
         end
+
+        next unless defaulted
+
         construction_name = current_c.nameString
         c = current_c.clone(os_model).to_Construction.get
+
       else # ... no defaults - surface-specific construction
         current_c = s.construction.get
         construction_name = current_c.nameString

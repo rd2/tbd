@@ -62,12 +62,12 @@ RSpec.describe TBD do
   #building_types << 'Outpatient'
 
   tbd_options = []
-  tbd_options << "skip"
-  tbd_options << "poor (BC Hydro)"
-  tbd_options << "regular (BC Hydro)"
-  tbd_options << "efficient (BC Hydro)"
-  tbd_options << "code (Quebec)"
-  tbd_options << "(without thermal bridges)"
+  #tbd_options << "skip"
+  #tbd_options << "poor (BC Hydro)"
+  #tbd_options << "regular (BC Hydro)"
+  #tbd_options << "efficient (BC Hydro)"
+  #tbd_options << "code (Quebec)"
+  #tbd_options << "(without thermal bridges)"
 
   combos = []
   building_types.each do |building_type|
