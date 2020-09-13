@@ -44,9 +44,9 @@ RSpec.describe TBD do
   FileUtils.mkdir_p(test_suite_runs_dir)
 
   building_types = []
-  building_types << 'SecondarySchool'
+  #building_types << 'SecondarySchool'
   #building_types << 'PrimarySchool'
-  building_types << 'SmallOffice'
+  #building_types << 'SmallOffice'
   #building_types << 'MediumOffice'
   #building_types << 'LargeOffice'
   #building_types << 'SmallHotel'
