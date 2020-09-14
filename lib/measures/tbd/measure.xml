@@ -1,9 +1,10 @@
 <measure>
   <schema_version>3.0</schema_version>
+  <error>Unable to extract OpenStudio::Measure::OSMeasure object from /Users/denisbourgeois/Documents/projets/tbd/lib/measures/tbd/measure.rb. The script should contain a class that derives from OpenStudio::Measure::OSMeasure and should close with a line stating the class name followed by .new.registerWithApplication.</error>
   <name>tbd_measure</name>
   <uid>f5536e1e-fe67-4eb7-909f-04aed62fe157</uid>
-  <version_id>24ddefcd-8ad4-469e-90fa-76546e4bb531</version_id>
-  <version_modified>20200913T202208Z</version_modified>
+  <version_id>64c4bbac-a2de-44cb-bd52-3635f5448e71</version_id>
+  <version_modified>20200914T110950Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging &amp; Derating (TBD)</display_name>
@@ -144,12 +145,6 @@
       <checksum>61ADFE57</checksum>
     </file>
     <file>
-      <filename>README.md</filename>
-      <filetype>md</filetype>
-      <usage_type>readme</usage_type>
-      <checksum>79CC53BB</checksum>
-    </file>
-    <file>
       <version>
         <software_program>OpenStudio</software_program>
         <identifier>2.9.1</identifier>
@@ -164,7 +159,13 @@
       <filename>psi.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>652CE4A1</checksum>
+      <checksum>333A01FD</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>0B68E96D</checksum>
     </file>
   </files>
 </measure>

@@ -550,35 +550,29 @@ RSpec.describe TBD do
 
     # os_model.save("os_model_test.osm", true)
 
-    # create the Topolys Model
+    # Create the Topolys Model.
     t_model = Topolys::Model.new
 
-    # Fetch OpenStudio (opaque) surfaces & key attributes
-    # puts OpenStudio::Model::Surface::validSurfaceTypeValues
+    # Fetch OpenStudio (opaque) surfaces & key attributes.
     surfaces = {}
     os_model.getSurfaces.each do |s|
       next if s.space.empty?
       space = s.space.get
-      id = s.nameString
+      id    = s.nameString
 
-      # site transformation & rotation
       t, r = transforms(os_model, space)
-
-      # Site-specific (or absolute, or true) surface normal, here only for
-      # temporary testing of Topolys equivalence (in absolute coordinates).
       n = trueNormal(s, r)
 
       type = :floor
       type = :ceiling if /ceiling/i.match(s.surfaceType)
       type = :wall if /wall/i.match(s.surfaceType)
 
-      ground = s.isGroundSurface
+      ground   = s.isGroundSurface
       boundary = s.outsideBoundaryCondition
+      points   = (t * s.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
+      minz     = (points.map{ |p| p.z }).min
 
-      points = (t * s.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
-      minz = (points.map{ |p| p.z }).min
-
-      # content of the hash will evolve over the next few iterations
+      # Content of the hash will evolve over the next few hundred lines.
       surfaces[id] = {
         type:     type,
         ground:   ground,
@@ -592,16 +586,15 @@ RSpec.describe TBD do
       }
     end # (opaque) surfaces populated
 
-    # Fetch OpenStudio subsurfaces & key attributes
-    # puts OpenStudio::Model::SubSurface::validSubSurfaceTypeValues
+    # Fetch OpenStudio subsurfaces & key attributes.
     os_model.getSubSurfaces.each do |s|
-      next if s.space.empty?    # TBD ignores orphaned subs; log warning?
-      next if s.surface.empty?  # TBD ignores orphaned subs; log warning?
+      next if s.space.empty?
+      next if s.surface.empty?
       space = s.space.get
       dad = s.surface.get.nameString
       id = s.nameString
 
-      # site transformation & rotation
+      # Site-specific (or absolute, or true) surface normal.
       t, r = transforms(os_model, space)
       n = trueNormal(s, r)
 
@@ -630,7 +623,7 @@ RSpec.describe TBD do
       end
     end # (opaque) surface "dads" populated with subsurface "kids"
 
-    # Sort kids
+    # Sort kids.
     surfaces.values.each do |p|
       if p.has_key?(:windows)
         p[:windows] = p[:windows].sort_by{ |_, pp| pp[:minz] }.to_h
@@ -657,7 +650,7 @@ RSpec.describe TBD do
 
     expect(surfaces["g_top"   ].has_key?(:type)).to be(true)
 
-    # Split "surfaces" hash into "floors", "ceilings" and "walls" hashes
+    # Split "surfaces" hash into "floors", "ceilings" and "walls" hashes.
     floors = surfaces.select{ |i, p| p[:type] == :floor }
     floors = floors.sort_by{ |i, p| [p[:minz], p[:space]] }.to_h
     expect(floors.size).to eq(7)
@@ -670,37 +663,36 @@ RSpec.describe TBD do
     walls = walls.sort_by{ |i, p| [p[:minz], p[:space]] }.to_h
     expect(walls.size).to eq(17)
 
-    # Remove ":type" (now redundant)
+    # Remove ":type" (now redundant).
     surfaces.values.each do |p| p.delete_if { |ii, _| ii == :type }; end
 
-    # Fetch OpenStudio shading surfaces & key attributes
+    # Fetch OpenStudio shading surfaces & key attributes.
     shades = {}
     os_model.getShadingSurfaces.each do |s|
-      next if s.shadingSurfaceGroup.empty? # ignoring orphaned shades ... log?
-       group = s.shadingSurfaceGroup.get
-       id = s.nameString
+      next if s.shadingSurfaceGroup.empty?
+      group = s.shadingSurfaceGroup.get
+      id = s.nameString
 
-       # site transformation & rotation
-       t, r = transforms(os_model, group)
+      # Site-specific (or absolute, or true) surface normal. Shading surface
+      # groups may also be linked to (rotated) spaces.
+      t, r = transforms(os_model, group)
+      shading = group.to_ShadingSurfaceGroup
+      unless shading.empty?
+        unless shading.get.space.empty?
+          r += shading.get.space.get.directionofRelativeNorth
+        end
+      end
+      n = trueNormal(s, r)
 
-       # shading surface groups may also be linked to (rotated) spaces
-       shading = group.to_ShadingSurfaceGroup
-       unless shading.empty?
-         unless shading.get.space.empty?
-           r += shading.get.space.get.directionofRelativeNorth
-         end
-       end
-       n = trueNormal(s, r)
+      points = (t * s.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
+      minz = (points.map{ |p| p.z }).min
 
-       points = (t * s.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
-       minz = (points.map{ |p| p.z }).min
-
-       shades[id] = {
-         group:  group,
-         points: points,
-         minz:   minz,
-         n:      n
-       }
+      shades[id] = {
+        group:  group,
+        points: points,
+        minz:   minz,
+        n:      n
+      }
     end # shading surfaces populated
     expect(shades.size).to eq(6)
 
@@ -763,7 +755,7 @@ RSpec.describe TBD do
     # identifiers as unique edge hash keys.
     edges = {}
 
-    # start with hole edges
+    # Start with hole edges.
     holes.each do |id, wire|
       wire.edges.each do |e|
         unless edges.has_key?(e.id)
@@ -779,7 +771,7 @@ RSpec.describe TBD do
     end
     expect(edges.size).to eq(12)
 
-    # next, floors, ceilings & walls; then shades
+    # Next, floors, ceilings & walls; then shades.
     tbdSurfaceEdges(floors, edges)
     expect(edges.size).to eq(47)
 
@@ -850,13 +842,15 @@ RSpec.describe TBD do
 
     # For each linked surface (or rather surface wires), set polar position
     # around edge with respect to a reference vector (perpendicular to the
-    # edge), clockwise as one is looking in the opposite position of the edge
+    # edge), +clockwise as one is looking in the opposite position of the edge
     # vector. For instance, a vertical edge has a reference vector pointing
     # North - surfaces eastward of the edge are (0°,180°], while surfaces
     # westward of the edge are (180°,360°].
 
     # Much of the following code is of a topological nature, and should ideally
-    # (or eventually) become available functionality offered by Topolys.
+    # (or eventually) become available functionality offered by Topolys. Topolys
+    # "wrappers" like TBD are good test beds to identify desired functionality
+    # for future Topolys enhancements.
     zenith      = Topolys::Vector3D.new(0, 0, 1).freeze
     north       = Topolys::Vector3D.new(0, 1, 0).freeze
     east        = Topolys::Vector3D.new(1, 0, 0).freeze
@@ -917,8 +911,8 @@ RSpec.describe TBD do
               point_V_magnitude = origin_point_V.magnitude
               next unless point_V_magnitude > 0.01
 
-              # generate a plane between origin, terminal & point
-              # only consider planes that share the same normal as wire
+              # Generate a plane between origin, terminal & point. Only consider
+              # planes that share the same normal as wire.
               if inverted
                 plane = Topolys::Plane3D.from_points(terminal, origin, point)
               else
@@ -940,13 +934,13 @@ RSpec.describe TBD do
 
             angle = reference_V.angle(farthest_V)
 
-            # adjust angle [180°, 360°] if necessary
+            # Adjust angle [180°, 360°] if necessary.
             adjust = false
 
             if vertical
               adjust = true if east.dot(farthest_V) < -0.01
             else
-              if north.dot(farthest_V).abs < 0.01 ||
+              if north.dot(farthest_V).abs < 0.01            ||
                 (north.dot(farthest_V).abs - 1).abs < 0.01
                   adjust = true if east.dot(farthest_V) < -0.01
               else
@@ -1010,122 +1004,119 @@ RSpec.describe TBD do
 
       psi = {}
       edge[:surfaces].keys.each do |id|
-        if surfaces.has_key?(id)
+        next unless surfaces.has_key?(id)
+        # Skipping the :party wall label for now. Criteria determining party
+        # wall edges from TBD edges is to be determined. Most likely scenario
+        # seems to be an edge linking only 1x outside-facing or ground-facing
+        # surface with only 1x adiabatic surface. Warrants separate tests.
+        # TO DO.
 
-          # Skipping the :party wall label for now. Criteria determining party
-          # wall edges from TBD edges is to be determined. Most likely scenario
-          # seems to be an edge linking only 1x outside-facing or ground-facing
-          # surface with only 1x adiabatic surface. Warrants separate tests.
-          # TO DO.
-
-          # Label edge as :grade if linked to:
-          #   1x ground-facing surface (e.g. slab or wall)
-          #   1x outside-facing surface (i.e. normally a wall)
-          unless psi.has_key?(:grade)
-            edge[:surfaces].keys.each do |i|
-              next unless surfaces.has_key?(i)
-              next unless surfaces[i][:boundary].downcase == "Outdoors"
-              next unless surfaces[id].has_key?(:ground)
-              next unless surfaces[id][:ground]
-              psi[:grade] = psi_set[:grade]
-            end
+        # Label edge as :grade if linked to:
+        #   1x ground-facing surface (e.g. slab or wall)
+        #   1x outside-facing surface (i.e. normally a wall)
+        unless psi.has_key?(:grade)
+          edge[:surfaces].keys.each do |i|
+            next unless surfaces.has_key?(i)
+            next unless surfaces[i][:boundary].downcase == "Outdoors"
+            next unless surfaces[id].has_key?(:ground)
+            next unless surfaces[id][:ground]
+            psi[:grade] = psi_set[:grade]
           end
+        end
 
-          # Label edge as :balcony if linked to:
-          #   1x floor
-          #   1x shade
-          unless psi.has_key?(:balcony)
-            edge[:surfaces].keys.each do |i|
-              next unless shades.has_key?(i)
-              next unless floors.has_key?(id)
-              psi[:balcony] = psi_set[:balcony]
-            end
+        # Label edge as :balcony if linked to:
+        #   1x floor
+        #   1x shade
+        unless psi.has_key?(:balcony)
+          edge[:surfaces].keys.each do |i|
+            next unless shades.has_key?(i)
+            next unless floors.has_key?(id)
+            psi[:balcony] = psi_set[:balcony]
           end
+        end
 
-          # Label edge as :parapet if linked to:
-          #   1x outside-facing wall &
-          #   1x outside-facing ceiling
-          unless psi.has_key?(:parapet)
-            edge[:surfaces].keys.each do |i|
-              next unless walls.has_key?(i)
-              next unless walls[i][:boundary].downcase == "outdoors"
-              next unless ceilings.has_key?(id)
-              next unless ceilings[id][:boundary].downcase == "outdoors"
-              psi[:parapet] = psi_set[:parapet]
-            end
+        # Label edge as :parapet if linked to:
+        #   1x outside-facing wall &
+        #   1x outside-facing ceiling
+        unless psi.has_key?(:parapet)
+          edge[:surfaces].keys.each do |i|
+            next unless walls.has_key?(i)
+            next unless walls[i][:boundary].downcase == "outdoors"
+            next unless ceilings.has_key?(id)
+            next unless ceilings[id][:boundary].downcase == "outdoors"
+            psi[:parapet] = psi_set[:parapet]
           end
+        end
 
-          # Repeat for exposed floors vs walls, as :parapet is currently a
-          # proxy for intersections between exposed floors & walls
-          unless psi.has_key?(:parapet)
-            edge[:surfaces].keys.each do |i|
-              next unless walls.has_key?(i)
-              next unless walls[i][:boundary].downcase == "outdoors"
-              next unless floors.has_key?(id)
-              next unless floors[id][:boundary].downcase == "outdoors"
-              psi[:parapet] = psi_set[:parapet]
-            end
+        # Repeat for exposed floors vs walls, as :parapet is currently a
+        # proxy for intersections between exposed floors & walls
+        unless psi.has_key?(:parapet)
+          edge[:surfaces].keys.each do |i|
+            next unless walls.has_key?(i)
+            next unless walls[i][:boundary].downcase == "outdoors"
+            next unless floors.has_key?(id)
+            next unless floors[id][:boundary].downcase == "outdoors"
+            psi[:parapet] = psi_set[:parapet]
           end
+        end
 
-          # Repeat for exposed floors vs roofs, as :parapet is currently a
-          # proxy for intersections between exposed floors & roofs
-          unless psi.has_key?(:parapet)
-            edge[:surfaces].keys.each do |i|
-              next unless ceilings.has_key?(i)
-              next unless ceilings[i][:boundary].downcase == "outdoors"
-              next unless floors.has_key?(id)
-              next unless floors[id][:boundary].downcase == "outdoors"
-              psi[:parapet] = psi_set[:parapet]
-            end
+        # Repeat for exposed floors vs roofs, as :parapet is currently a
+        # proxy for intersections between exposed floors & roofs
+        unless psi.has_key?(:parapet)
+          edge[:surfaces].keys.each do |i|
+            next unless ceilings.has_key?(i)
+            next unless ceilings[i][:boundary].downcase == "outdoors"
+            next unless floors.has_key?(id)
+            next unless floors[id][:boundary].downcase == "outdoors"
+            psi[:parapet] = psi_set[:parapet]
           end
+        end
 
-          # Label edge as :rimjoist if linked to:
-          #   1x outside-facing wall &
-          #   1x floor
-          unless psi.has_key?(:rimjoist)
-            edge[:surfaces].keys.each do |i|
-              next unless floors.has_key?(i)
-              next unless walls.has_key?(id)
-              next unless walls[id][:boundary].downcase == "outdoors"
-              psi[:rimjoist] = psi_set[:rimjoist]
-            end
+        # Label edge as :rimjoist if linked to:
+        #   1x outside-facing wall &
+        #   1x floor
+        unless psi.has_key?(:rimjoist)
+          edge[:surfaces].keys.each do |i|
+            next unless floors.has_key?(i)
+            next unless walls.has_key?(id)
+            next unless walls[id][:boundary].downcase == "outdoors"
+            psi[:rimjoist] = psi_set[:rimjoist]
           end
+        end
 
-          # Label edge as :fenestration if linked to:
-          #   1x subsurface
-          unless psi.has_key?(:fenestration)
-            edge[:surfaces].keys.each do |i|
-              next unless holes.has_key?(i)
-              psi[:fenestration] = psi_set[:fenestration]
-            end
+        # Label edge as :fenestration if linked to:
+        #   1x subsurface
+        unless psi.has_key?(:fenestration)
+          edge[:surfaces].keys.each do |i|
+            next unless holes.has_key?(i)
+            psi[:fenestration] = psi_set[:fenestration]
           end
+        end
 
-          # Label edge as :concave or :convex (corner) if linked to:
-          #   2x outside-facing walls (& relative polar positions of walls)
-          unless psi.has_key?(:concave)
-            edge[:surfaces].keys.each do |i|
-              next if i == id
-              next unless walls.has_key?(i)
-              next unless walls[i][:boundary].downcase == "outdoors"
-              next unless walls.has_key?(id)
-              next unless walls[id][:boundary].downcase == "outdoors"
+        # Label edge as :concave or :convex (corner) if linked to:
+        #   2x outside-facing walls (& relative polar positions of walls)
+        unless psi.has_key?(:concave)
+          edge[:surfaces].keys.each do |i|
+            next if i == id
+            next unless walls.has_key?(i)
+            next unless walls[i][:boundary].downcase == "outdoors"
+            next unless walls.has_key?(id)
+            next unless walls[id][:boundary].downcase == "outdoors"
 
-              s1 = edge[:surfaces][id]
-              s2 = edge[:surfaces][i]
+            s1 = edge[:surfaces][id]
+            s2 = edge[:surfaces][i]
 
-              angle = s2[:angle] - s1[:angle]
-              next unless angle > 0
-              next unless (2 * Math::PI - angle).abs > 0
-              next if angle > 3 * Math::PI / 4 && angle < 5 * Math::PI / 4
+            angle = s2[:angle] - s1[:angle]
+            next unless angle > 0
+            next unless (2 * Math::PI - angle).abs > 0
+            next if angle > 3 * Math::PI / 4 && angle < 5 * Math::PI / 4
 
-              n1_d_p2 = s1[:normal].dot(s2[:polar])
-              p1_d_n2 = s1[:polar].dot(s2[:normal])
-              psi[:concave] = psi_set[:concave] if n1_d_p2 > 0 && p1_d_n2 > 0
-              psi[:convex]  = psi_set[:convex]  if n1_d_p2 < 0 && p1_d_n2 < 0
-            end
+            n1_d_p2 = s1[:normal].dot(s2[:polar])
+            p1_d_n2 = s1[:polar].dot(s2[:normal])
+            psi[:concave] = psi_set[:concave] if n1_d_p2 > 0 && p1_d_n2 > 0
+            psi[:convex]  = psi_set[:convex]  if n1_d_p2 < 0 && p1_d_n2 < 0
           end
-
-        end # edge has surface id as key
+        end
       end # edge's surfaces loop
 
       edge[:psi] = psi unless psi.empty?
@@ -1160,7 +1151,7 @@ RSpec.describe TBD do
     expect(n_edges_as_concave_corners).to eq(4)
     expect(n_edges_as_convex_corners).to eq(12)
 
-    # loop through each edge and assign heat loss to linked surfaces
+    # loop through each edge and assign heat loss to linked surfaces.
     edges.each do |identifier, edge|
       next unless edge.has_key?(:psi)
       psi = edge[:psi].values.max
@@ -1169,7 +1160,7 @@ RSpec.describe TBD do
                  type: edge[:psi].key(psi),
                  length: edge[:length] }
 
-      # retrieve valid linked surfaces as deratables
+      # Retrieve valid linked surfaces as deratables.
       deratables = {}
       edge[:surfaces].each do |id, surface|
         next unless surfaces.has_key?(id)
@@ -1177,7 +1168,7 @@ RSpec.describe TBD do
         deratables[id] = surface
       end
 
-      # retrieve linked openings
+      # Retrieve linked openings.
       openings = {}
       if edge[:psi].has_key?(:fenestration)
         edge[:surfaces].each do |id, surface|
@@ -1188,8 +1179,8 @@ RSpec.describe TBD do
 
       next if openings.size > 1 # edge links 2x openings
 
-      # prune if edge links an opening and its parent, as well as 1x other
-      # opaque surface (i.e. corner window derates neighbour - not parent)
+      # Prune if edge links an opening and its parent, as well as 1x other
+      # opaque surface (i.e. corner window derates neighbour - not parent).
       if deratables.size > 1 && openings.size > 0
         deratables.each do |id, deratable|
           if surfaces[id].has_key?(:windows)
@@ -1212,17 +1203,17 @@ RSpec.describe TBD do
 
       next unless deratables.size > 0
 
-      # split thermal bridge heat loss equally amongst deratable surfaces
+      # Split thermal bridge heat loss equally amongst deratable surfaces.
       bridge[:psi] /= deratables.size
 
-      # assign heat loss from thermal bridges to surfaces
+      # Assign heat loss from thermal bridges to surfaces.
       deratables.each do |id, deratable|
         surfaces[id][:edges] = {} unless surfaces[id].has_key?(:edges)
         surfaces[id][:edges][identifier] = bridge
       end
     end
 
-    # assign thermal bridging heat loss [in W/K] to each deratable surface
+    # Assign thermal bridging heat loss [in W/K] to each deratable surface.
     n_surfaces_to_derate = 0
     surfaces.values.each do |surface|
       next unless surface.has_key?(:edges)
@@ -1267,34 +1258,52 @@ RSpec.describe TBD do
     # henceforth thermally derated. The " tbd" expression is also key in
     # avoiding inadvertent derating - TBD will not derate constructions
     # (or rather materials) having " tbd" in its OpenStudio name.
-
     surfaces.each do |id, surface|
       next unless surface.has_key?(:edges)
       os_model.getSurfaces.each do |s|
         next unless id == s.nameString
+        next if s.space.empty?
+        space = s.space.get
 
-        # Retrieve current surface construction
+        # Retrieve current surface construction.
         current_c = nil
+        defaulted = false
         if s.isConstructionDefaulted
-          # check for building default set
+          # Check for space default set.
+          space_default_set = space.defaultConstructionSet
+          unless space_default_set.empty?
+            space_default_set = space_default_set.get
+            current_c = space_default_set.getDefaultConstruction(s)
+            next if current_c.empty?
+            current_c = current_c.get
+            defaulted = true
+          end
+
+          # Check for building default set.
           building_default_set = os_building.defaultConstructionSet
-          unless building_default_set.empty?
+          unless building_default_set.empty? || defaulted
             building_default_set = building_default_set.get
             current_c = building_default_set.getDefaultConstruction(s)
             next if current_c.empty?
             current_c = current_c.get
-          else
-            # no building-specific defaults - resort to first set @model level
-            model_default_sets = os_model.getDefaultConstructionSets
-            next if model_default_sets.empty?
+            defaulted = true
+          end
+
+          # No space or building defaults - resort to first set @model level.
+          model_default_sets = os_model.getDefaultConstructionSets
+          unless model_default_sets.empty? || defaulted
             model_default_set = model_default_sets.first
             current_c = model_default_set.getDefaultConstruction(s)
             next if current_c.empty?
             current_c = current_c.get
+            defaulted = true
           end
+
+          next unless defaulted
           construction_name = current_c.nameString
           c = current_c.clone(os_model).to_Construction.get
-        else # no defaults - surface-specific construction
+
+        else # ... no defaults - surface-specific construction
           current_c = s.construction.get
           construction_name = current_c.nameString
           c = current_c.clone(os_model).to_Construction.get
@@ -1311,15 +1320,15 @@ RSpec.describe TBD do
 
         # m     - newly derated, cloned material
         m = nil
-        m = derate(os_model, s, id, surface, c, index, type, r)
+        m = derate(os_model, s, id, surface, c, index, type, r) unless index.nil?
 
         # "m" may be nilled simply because the targeted construction has already
         # been derated, i.e. holds " tbd" in its name. Names of cloned/derated
         # constructions (due to TBD) include the surface name (since derated
-        # constructions are unique to each surface) and the suffix " tbd".
+        # constructions are unique to each surface) and the suffix " c tbd".
         unless m.nil?
           c.setLayer(index, m)
-          c.setName("#{id} #{construction_name} tbd")
+          c.setName("#{id} c tbd")
           s.setConstruction(c)
         end
       end
@@ -1372,6 +1381,17 @@ RSpec.describe TBD do
     # TBD "surfaces" (Hash) holds opaque surfaces (as well as their child
     # subsurfaces) for post-processing, e.g. testing, output to JSON (soon).
     surfaces = processTBD(os_model, psi_set)
+    expect(surfaces.size).to eq(43)
+
+    # testing
+    surfaces.each do |id, surface|
+      next unless surface.has_key?(:edges)
+      os_model.getSurfaces.each do |s|
+        next unless id == s.nameString
+        expect(s.isConstructionDefaulted).to be(false)
+        expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
+      end
+    end
   end
 end
 
@@ -1389,6 +1409,17 @@ RSpec.describe TBD do
     # TBD "surfaces" (Hash) holds opaque surfaces (as well as their child
     # subsurfaces) for post-processing, e.g. testing, output to JSON (soon).
     surfaces = processTBD(os_model, psi_set)
+    expect(surfaces.size).to eq(326)
+
+    # testing
+    surfaces.each do |id, surface|
+      next unless surface.has_key?(:edges)
+      os_model.getSurfaces.each do |s|
+        next unless id == s.nameString
+        expect(s.isConstructionDefaulted).to be(false)
+        expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
+      end
+    end
   end
 end
 
@@ -1406,6 +1437,17 @@ RSpec.describe TBD do
     # TBD "surfaces" (Hash) holds opaque surfaces (as well as their child
     # subsurfaces) for post-processing, e.g. testing, output to JSON (soon).
     surfaces = processTBD(os_model, psi_set)
+    expect(surfaces.size).to eq(23)
+
+    # testing
+    surfaces.each do |id, surface|
+      next unless surface.has_key?(:edges)
+      os_model.getSurfaces.each do |s|
+        next unless id == s.nameString
+        expect(s.isConstructionDefaulted).to be(false)
+        expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
+      end
+    end
   end
 end
 
@@ -1423,12 +1465,13 @@ RSpec.describe TBD do
     # TBD "surfaces" (Hash) holds opaque surfaces (as well as their child
     # subsurfaces) for post-processing, e.g. testing, output to JSON (soon).
     surfaces = processTBD(os_model, psi_set)
+    expect(surfaces.size).to eq(56)
 
     surfaces.each do |id, surface|
       if surface.has_key?(:ratio)
         ratio  = format "%3.1f", surface[:ratio]
         name   = id.rjust(15, " ")
-        #puts "#{name} RSi derated by #{ratio}%"
+        puts "#{name} RSi derated by #{ratio}%"
       end
     end
   end
