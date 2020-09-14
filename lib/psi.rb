@@ -298,7 +298,7 @@ def derate(os_model, os_surface, id, surface, c, index, type, r)
          m          = m.get
          m          = m.clone(os_model)
          m          = m.to_MasslessOpaqueMaterial.get
-                      m.setName("#{id} #{m.nameString} tbd")
+                      m.setName("#{id} m tbd")
 
          unless de_r > 0.001
            de_r     = 0.001
@@ -314,7 +314,7 @@ def derate(os_model, os_surface, id, surface, c, index, type, r)
          m          = m.get
          m          = m.clone(os_model)
          m          = m.to_StandardOpaqueMaterial.get
-                      m.setName("#{id} #{m.nameString} tbd")
+                      m.setName("#{id} m tbd")
          k          = m.thermalConductivity
          if de_r > 0.001
            d        = de_r * k
@@ -350,11 +350,11 @@ end
 def processTBD(os_model, psi_set)
   surfaces = {}
 
-  os_model_class  = OpenStudio::Model::Model
-  raise "Empty OpenStudio Model" unless os_model
-  raise "Empty PSI set" unless psi_set
-  raise "Invalid OpenStudio Model" unless os_model.is_a?(os_model_class)
-  raise "Invalid PSI set" unless psi_set.is_a?(Hash)
+  os_model_class = OpenStudio::Model::Model
+  raise "Empty OpenStudio Model"    unless os_model
+  raise "Empty PSI set"             unless psi_set
+  raise "Invalid OpenStudio Model"  unless os_model.is_a?(os_model_class)
+  raise "Invalid PSI set"           unless psi_set.is_a?(Hash)
 
   os_building = os_model.getBuilding
 
@@ -377,8 +377,8 @@ def processTBD(os_model, psi_set)
 
     ground   = s.isGroundSurface
     boundary = s.outsideBoundaryCondition
-    points  = (t * s.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
-    minz    = (points.map{ |p| p.z }).min
+    points   = (t * s.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
+    minz     = (points.map{ |p| p.z }).min
 
     # Content of the hash will evolve over the next few hundred lines.
     surfaces[id] = {
@@ -461,29 +461,29 @@ def processTBD(os_model, psi_set)
   shades = {}
   os_model.getShadingSurfaces.each do |s|
     next if s.shadingSurfaceGroup.empty?
-     group = s.shadingSurfaceGroup.get
-     id = s.nameString
+    group = s.shadingSurfaceGroup.get
+    id = s.nameString
 
-     # Site-specific (or absolute, or true) surface normal. Shading surface
-     # groups may also be linked to (rotated) spaces.
-     t, r = transforms(os_model, group)
-     shading = group.to_ShadingSurfaceGroup
-     unless shading.empty?
-       unless shading.get.space.empty?
-         r += shading.get.space.get.directionofRelativeNorth
-       end
-     end
-     n = trueNormal(s, r)
+    # Site-specific (or absolute, or true) surface normal. Shading surface
+    # groups may also be linked to (rotated) spaces.
+    t, r = transforms(os_model, group)
+    shading = group.to_ShadingSurfaceGroup
+    unless shading.empty?
+      unless shading.get.space.empty?
+        r += shading.get.space.get.directionofRelativeNorth
+      end
+    end
+    n = trueNormal(s, r)
 
-     points = (t * s.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
-     minz = (points.map{ |p| p.z }).min
+    points = (t * s.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
+    minz = (points.map{ |p| p.z }).min
 
-     shades[id] = {
-       group:  group,
-       points: points,
-       minz:   minz,
-       n:      n
-     }
+    shades[id] = {
+      group:  group,
+      points: points,
+      minz:   minz,
+      n:      n
+    }
   end # shading surfaces populated
 
   # Mutually populate TBD & Topolys surfaces. Keep track of created "holes".
@@ -498,6 +498,12 @@ def processTBD(os_model, psi_set)
 
   populateTBDdads(t_model, shades)
 
+  # Loop through Topolys edges and populate TBD edge hash. Initially, there
+  # should be a one-to-one correspondence between Topolys and TBD edge
+  # objects. TBD edges shared only by non-deratable surfaces (e.g. 2x interior
+  # walls, or outer edges of shadng surfaces) will either be removed from the
+  # hash, or ignored (on the fence right now). Use Topolys-generated
+  # identifiers as unique edge hash keys.
   edges = {}
 
   # Start with hole edges.
@@ -521,6 +527,21 @@ def processTBD(os_model, psi_set)
   tbdSurfaceEdges(walls, edges)
   tbdSurfaceEdges(shades, edges)
 
+  # Thermal bridging characteristics of edges are determined - in part - by
+  # relative polar position of linked surfaces (or wires) around each edge.
+  # This characterization is key in distinguishing concave from convex edges.
+
+  # For each linked surface (or rather surface wires), set polar position
+  # around edge with respect to a reference vector (perpendicular to the
+  # edge), +clockwise as one is looking in the opposite position of the edge
+  # vector. For instance, a vertical edge has a reference vector pointing
+  # North - surfaces eastward of the edge are (0°,180°], while surfaces
+  # westward of the edge are (180°,360°].
+
+  # Much of the following code is of a topological nature, and should ideally
+  # (or eventually) become available functionality offered by Topolys. Topolys
+  # "wrappers" like TBD are good test beds to identify desired functionality
+  # for future Topolys enhancements.
   zenith = Topolys::Vector3D.new(0, 0, 1).freeze
   north  = Topolys::Vector3D.new(0, 1, 0).freeze
   east   = Topolys::Vector3D.new(1, 0, 0).freeze
@@ -582,7 +603,7 @@ def processTBD(os_model, psi_set)
             next unless point_V_magnitude > 0.01
 
             # Generate a plane between origin, terminal & point. Only consider
-            # planes that share the same normal as wire
+            # planes that share the same normal as wire.
             if inverted
               plane = Topolys::Plane3D.from_points(terminal, origin, point)
             else
@@ -601,13 +622,13 @@ def processTBD(os_model, psi_set)
 
           angle = reference_V.angle(farthest_V)
 
-          # adjust angle [180°, 360°] if necessary
+          # Adjust angle [180°, 360°] if necessary.
           adjust = false
 
           if vertical
             adjust = true if east.dot(farthest_V) < -0.01
           else
-            if north.dot(farthest_V).abs < 0.01 ||
+            if north.dot(farthest_V).abs < 0.01            ||
               (north.dot(farthest_V).abs - 1).abs < 0.01
                 adjust = true if east.dot(farthest_V) < -0.01
             else
@@ -627,7 +648,7 @@ def processTBD(os_model, psi_set)
       end # end of edge-linked, surface-to-wire loop
     end # end of edge-linked surface loop
 
-    # Sort angles.
+    # sort angles
     edge[:surfaces] = edge[:surfaces].sort_by{ |i, p| p[:angle] }.to_h
   end # end of edge loop
 
@@ -654,122 +675,119 @@ def processTBD(os_model, psi_set)
 
     psi = {}
     edge[:surfaces].keys.each do |id|
-      if surfaces.has_key?(id)
+      next unless surfaces.has_key?(id)
+      # Skipping the :party wall label for now. Criteria determining party
+      # wall edges from TBD edges is to be determined. Most likely scenario
+      # seems to be an edge linking only 1x outside-facing or ground-facing
+      # surface with only 1x adiabatic surface. Warrants separate tests.
+      # TO DO.
 
-        # Skipping the :party wall label for now. Criteria determining party
-        # wall edges from TBD edges is to be determined. Most likely scenario
-        # seems to be an edge linking only 1x outside-facing or ground-facing
-        # surface with only 1x adiabatic surface. Warrants separate tests.
-        # TO DO.
-
-        # Label edge as :grade if linked to:
-        #   1x ground-facing surface (e.g. slab or wall)
-        #   1x outside-facing surface (i.e. normally a wall)
-        unless psi.has_key?(:grade)
-          edge[:surfaces].keys.each do |i|
-            next unless surfaces.has_key?(i)
-            next unless surfaces[i][:boundary].downcase == "Outdoors"
-            next unless surfaces[id].has_key?(:ground)
-            next unless surfaces[id][:ground]
-            psi[:grade] = psi_set[:grade]
-          end
+      # Label edge as :grade if linked to:
+      #   1x ground-facing surface (e.g. slab or wall)
+      #   1x outside-facing surface (i.e. normally a wall)
+      unless psi.has_key?(:grade)
+        edge[:surfaces].keys.each do |i|
+          next unless surfaces.has_key?(i)
+          next unless surfaces[i][:boundary].downcase == "Outdoors"
+          next unless surfaces[id].has_key?(:ground)
+          next unless surfaces[id][:ground]
+          psi[:grade] = psi_set[:grade]
         end
+      end
 
-        # Label edge as :balcony if linked to:
-        #   1x floor
-        #   1x shade
-        unless psi.has_key?(:balcony)
-          edge[:surfaces].keys.each do |i|
-            next unless shades.has_key?(i)
-            next unless floors.has_key?(id)
-            psi[:balcony] = psi_set[:balcony]
-          end
+      # Label edge as :balcony if linked to:
+      #   1x floor
+      #   1x shade
+      unless psi.has_key?(:balcony)
+        edge[:surfaces].keys.each do |i|
+          next unless shades.has_key?(i)
+          next unless floors.has_key?(id)
+          psi[:balcony] = psi_set[:balcony]
         end
+      end
 
-        # Label edge as :parapet if linked to:
-        #   1x outside-facing wall &
-        #   1x outside-facing ceiling
-        unless psi.has_key?(:parapet)
-          edge[:surfaces].keys.each do |i|
-            next unless walls.has_key?(i)
-            next unless walls[i][:boundary].downcase == "outdoors"
-            next unless ceilings.has_key?(id)
-            next unless ceilings[id][:boundary].downcase == "outdoors"
-            psi[:parapet] = psi_set[:parapet]
-          end
+      # Label edge as :parapet if linked to:
+      #   1x outside-facing wall &
+      #   1x outside-facing ceiling
+      unless psi.has_key?(:parapet)
+        edge[:surfaces].keys.each do |i|
+          next unless walls.has_key?(i)
+          next unless walls[i][:boundary].downcase == "outdoors"
+          next unless ceilings.has_key?(id)
+          next unless ceilings[id][:boundary].downcase == "outdoors"
+          psi[:parapet] = psi_set[:parapet]
         end
+      end
 
-        # Repeat for exposed floors vs walls, as :parapet is currently a
-        # proxy for intersections between exposed floors & walls
-        unless psi.has_key?(:parapet)
-          edge[:surfaces].keys.each do |i|
-            next unless walls.has_key?(i)
-            next unless walls[i][:boundary].downcase == "outdoors"
-            next unless floors.has_key?(id)
-            next unless floors[id][:boundary].downcase == "outdoors"
-            psi[:parapet] = psi_set[:parapet]
-          end
+      # Repeat for exposed floors vs walls, as :parapet is currently a
+      # proxy for intersections between exposed floors & walls
+      unless psi.has_key?(:parapet)
+        edge[:surfaces].keys.each do |i|
+          next unless walls.has_key?(i)
+          next unless walls[i][:boundary].downcase == "outdoors"
+          next unless floors.has_key?(id)
+          next unless floors[id][:boundary].downcase == "outdoors"
+          psi[:parapet] = psi_set[:parapet]
         end
+      end
 
-        # Repeat for exposed floors vs roofs, as :parapet is currently a
-        # proxy for intersections between exposed floors & roofs
-        unless psi.has_key?(:parapet)
-          edge[:surfaces].keys.each do |i|
-            next unless ceilings.has_key?(i)
-            next unless ceilings[i][:boundary].downcase == "outdoors"
-            next unless floors.has_key?(id)
-            next unless floors[id][:boundary].downcase == "outdoors"
-            psi[:parapet] = psi_set[:parapet]
-          end
+      # Repeat for exposed floors vs roofs, as :parapet is currently a
+      # proxy for intersections between exposed floors & roofs
+      unless psi.has_key?(:parapet)
+        edge[:surfaces].keys.each do |i|
+          next unless ceilings.has_key?(i)
+          next unless ceilings[i][:boundary].downcase == "outdoors"
+          next unless floors.has_key?(id)
+          next unless floors[id][:boundary].downcase == "outdoors"
+          psi[:parapet] = psi_set[:parapet]
         end
+      end
 
-        # Label edge as :rimjoist if linked to:
-        #   1x outside-facing wall &
-        #   1x floor
-        unless psi.has_key?(:rimjoist)
-          edge[:surfaces].keys.each do |i|
-            next unless floors.has_key?(i)
-            next unless walls.has_key?(id)
-            next unless walls[id][:boundary].downcase == "outdoors"
-            psi[:rimjoist] = psi_set[:rimjoist]
-          end
+      # Label edge as :rimjoist if linked to:
+      #   1x outside-facing wall &
+      #   1x floor
+      unless psi.has_key?(:rimjoist)
+        edge[:surfaces].keys.each do |i|
+          next unless floors.has_key?(i)
+          next unless walls.has_key?(id)
+          next unless walls[id][:boundary].downcase == "outdoors"
+          psi[:rimjoist] = psi_set[:rimjoist]
         end
+      end
 
-        # Label edge as :fenestration if linked to:
-        #   1x subsurface
-        unless psi.has_key?(:fenestration)
-          edge[:surfaces].keys.each do |i|
-            next unless holes.has_key?(i)
-            psi[:fenestration] = psi_set[:fenestration]
-          end
+      # Label edge as :fenestration if linked to:
+      #   1x subsurface
+      unless psi.has_key?(:fenestration)
+        edge[:surfaces].keys.each do |i|
+          next unless holes.has_key?(i)
+          psi[:fenestration] = psi_set[:fenestration]
         end
+      end
 
-        # Label edge as :concave or :convex (corner) if linked to:
-        #   2x outside-facing walls (& relative polar positions of walls)
-        unless psi.has_key?(:concave)
-          edge[:surfaces].keys.each do |i|
-            next if i == id
-            next unless walls.has_key?(i)
-            next unless walls[i][:boundary].downcase == "outdoors"
-            next unless walls.has_key?(id)
-            next unless walls[id][:boundary].downcase == "outdoors"
+      # Label edge as :concave or :convex (corner) if linked to:
+      #   2x outside-facing walls (& relative polar positions of walls)
+      unless psi.has_key?(:concave)
+        edge[:surfaces].keys.each do |i|
+          next if i == id
+          next unless walls.has_key?(i)
+          next unless walls[i][:boundary].downcase == "outdoors"
+          next unless walls.has_key?(id)
+          next unless walls[id][:boundary].downcase == "outdoors"
 
-            s1 = edge[:surfaces][id]
-            s2 = edge[:surfaces][i]
+          s1 = edge[:surfaces][id]
+          s2 = edge[:surfaces][i]
 
-            angle = s2[:angle] - s1[:angle]
-            next unless angle > 0
-            next unless (2 * Math::PI - angle).abs > 0
-            next if angle > 3 * Math::PI / 4 && angle < 5 * Math::PI / 4
+          angle = s2[:angle] - s1[:angle]
+          next unless angle > 0
+          next unless (2 * Math::PI - angle).abs > 0
+          next if angle > 3 * Math::PI / 4 && angle < 5 * Math::PI / 4
 
-            n1_d_p2 = s1[:normal].dot(s2[:polar])
-            p1_d_n2 = s1[:polar].dot(s2[:normal])
-            psi[:concave] = psi_set[:concave] if n1_d_p2 > 0 && p1_d_n2 > 0
-            psi[:convex]  = psi_set[:convex]  if n1_d_p2 < 0 && p1_d_n2 < 0
-          end
+          n1_d_p2 = s1[:normal].dot(s2[:polar])
+          p1_d_n2 = s1[:polar].dot(s2[:normal])
+          psi[:concave] = psi_set[:concave] if n1_d_p2 > 0 && p1_d_n2 > 0
+          psi[:convex]  = psi_set[:convex]  if n1_d_p2 < 0 && p1_d_n2 < 0
         end
-
-      end # edge has surface id as key
+      end
     end # edge's surfaces loop
 
     edge[:psi] = psi unless psi.empty?
@@ -851,8 +869,7 @@ def processTBD(os_model, psi_set)
   # and suffixed with " tbd", indicating that the construction is
   # henceforth thermally derated. The " tbd" expression is also key in
   # avoiding inadvertent derating - TBD will not derate constructions
-  # (or rather materials) having " tbd" in its OpenStudio name. This may be
-  # revised soonish, e.g. relying on OpenStudio AdditionalProperties.
+  # (or rather materials) having " tbd" in its OpenStudio name.
   surfaces.each do |id, surface|
     next unless surface.has_key?(:edges)
     os_model.getSurfaces.each do |s|
@@ -895,7 +912,6 @@ def processTBD(os_model, psi_set)
         end
 
         next unless defaulted
-
         construction_name = current_c.nameString
         c = current_c.clone(os_model).to_Construction.get
 
@@ -921,10 +937,10 @@ def processTBD(os_model, psi_set)
       # "m" may be nilled simply because the targeted construction has already
       # been derated, i.e. holds " tbd" in its name. Names of cloned/derated
       # constructions (due to TBD) include the surface name (since derated
-      # constructions are unique to each surface) and the suffix " tbd".
+      # constructions are unique to each surface) and the suffix " c tbd".
       unless m.nil?
         c.setLayer(index, m)
-        c.setName("#{id} tbd")
+        c.setName("#{id} c tbd")
 
         # Compute current RSi value from layers.
         current_R = s.filmResistance
