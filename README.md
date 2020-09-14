@@ -4,8 +4,12 @@ This is a repo for an OpenStudio Measure that thermally derates opaque construct
 
 (to complete)
 
-# Development
+## Run tests
 
-`bundle update`
-`bundle exec rake update_library_files`
-`bundle exec rake`
+Run the following tests in the root repository of the cloned measure:
+
+```
+bundle update
+bundle exec rake update_library_files
+bundle exec rake
+```
