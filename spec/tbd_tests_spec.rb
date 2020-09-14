@@ -1370,7 +1370,7 @@ end
 RSpec.describe TBD do
   it "can process TB & D : DOE Prototype test_smalloffice.osm" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/test_smalloffice.osm")
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_smalloffice.osm")
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -1398,7 +1398,7 @@ end
 RSpec.describe TBD do
   it "can process TB & D : DOE Prototype test_secondaryschool.osm" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/test_secondaryschool.osm")
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_secondaryschool.osm")
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -1426,7 +1426,7 @@ end
 RSpec.describe TBD do
   it "can process TB & D : DOE Prototype test_warehouse.osm" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/test_warehouse.osm")
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_warehouse.osm")
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -1454,7 +1454,7 @@ end
 RSpec.describe TBD do
   it "can process TB & D : test_seb.osm" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/test_seb.osm")
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
