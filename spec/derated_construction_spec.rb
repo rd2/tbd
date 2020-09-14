@@ -136,10 +136,8 @@ RSpec.describe TBD do
     #0.7;                                    !- Visible Absorptance
     gypsum = OpenStudio::Model::MasslessOpaqueMaterial.new(os_model)
     gypsum.setRoughness("MediumSmooth")
-    gypsum.setDensity(800.0)
     gypsum.setThermalConductivity(0.16)
     gypsum.setThickness(0.0159)
-    gypsum.setSpecificHeat(1090.0)
     gypsum.setThermalAbsorptance(0.9)
     gypsum.setSolarAbsorptance(0.7)
     gypsum.setVisibleAbsorptance(0.7)
