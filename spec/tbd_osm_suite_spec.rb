@@ -37,9 +37,11 @@ RSpec.describe TBD do
 
   seed_osms = []
   seed_osms << 'seb.osm'
+  seed_osms << 'test_seb.osm'
 
   weather_files = {}
   weather_files['seb.osm'] = 'srrl_2013_amy.epw'
+  weather_files['test_seb.osm'] = 'srrl_2013_amy.epw'
 
   tbd_options = []
   tbd_options << "skip"
