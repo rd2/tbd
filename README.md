@@ -13,3 +13,15 @@ bundle update
 bundle exec rake update_library_files
 bundle exec rake
 ```
+
+## Run test suites
+
+Run the following test suites in the root repository of the cloned measure:
+
+```
+bundle update
+bundle exec rake osm_suite:clean
+bundle exec rake osm_suite:run
+bundle exec rake prototype_suite:clean
+bundle exec rake prototype_suite:run
+```
