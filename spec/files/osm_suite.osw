@@ -6,7 +6,8 @@
     "../../../lib/measures"
   ],
 	"file_paths": [
-    "../../files/osms"
+    "../../files/osms",
+    "../../files"
   ],
 	"run_directory": null,
 	"steps": [
