@@ -22,11 +22,6 @@ end
 
 RSpec.describe TBD do
 
-  # set force_clean to true if you want to force simulations to re-run
-  # can also delete the test suite dir
-  #force_clean = true
-  force_clean = false
-
   # number of processors to use
   nproc = [1, Parallel.processor_count - 1].max
 
@@ -38,9 +33,6 @@ RSpec.describe TBD do
     template_osw = JSON.parse(f.read, {symbolize_names: true})
   end
 
-  if force_clean
-    FileUtils.rm_rf(osm_suite_runs_dir) if File.exists?(osm_suite_runs_dir)
-  end
   FileUtils.mkdir_p(osm_suite_runs_dir)
 
   seed_osms = []
@@ -71,15 +63,12 @@ RSpec.describe TBD do
 
     test_dir = File.join(osm_suite_runs_dir, test_case_name)
     if File.exist?(test_dir) && File.exist?(File.join(test_dir, 'out.osw'))
-      #puts "use existing #{test_case_name}"
       next
     end
 
-    #puts "run #{test_case_name}"
-
     FileUtils.mkdir_p(test_dir)
 
-    osw = template_osw.clone
+    osw = Marshal.load( Marshal.dump(template_osw) )
     osw[:seed_file] = seed_osm
     osw[:weather_file] = weather_files[seed_osm]
     if tbd_option == 'skip'
@@ -113,17 +102,17 @@ RSpec.describe TBD do
     end
 
     it "compares results for #{seed_osm}" do
-      #puts "seed_osm = #{seed_osm}"
+      puts "seed_osm = #{seed_osm}"
       tbd_options.each do |tbd_option|
         completed_status = results[tbd_option][:completed_status]
         expect(completed_status).to eq("Success")
         tbd_result = results[tbd_option][:steps][0][:result]
         os_result = results[tbd_option][:steps][1][:result]
         total_site_energy = os_result[:step_values].select{|v| v[:name] == 'total_site_energy'}
-        #puts "  tbd_option = #{tbd_option}"
-        #puts "    tbd_success = #{tbd_result[:step_result]}"
-        #puts "    os_success = #{os_result[:step_result]}"
-        #puts "    total_site_energy = #{total_site_energy[0][:value]}"
+        puts "  tbd_option = #{tbd_option}"
+        puts "    tbd_success = #{tbd_result[:step_result]}"
+        puts "    os_success = #{os_result[:step_result]}"
+        puts "    total_site_energy = #{total_site_energy[0][:value]}"
       end
     end
   end

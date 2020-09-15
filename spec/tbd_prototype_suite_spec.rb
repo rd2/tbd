@@ -30,10 +30,10 @@ RSpec.describe TBD do
   # number of processors to use
   nproc = [1, Parallel.processor_count - 1].max
 
-  test_suite_runs_dir = File.join(File.dirname(__FILE__), 'test_suite_runs')
+  test_suite_runs_dir = File.join(File.dirname(__FILE__), 'prototype_suite_runs')
 
   template_osw = nil
-  template_osw_file = File.join(File.dirname(__FILE__), 'files/test_suite.osw')
+  template_osw_file = File.join(File.dirname(__FILE__), 'files/prototype_suite.osw')
   File.open(template_osw_file, 'r') do |f|
     template_osw = JSON.parse(f.read, {symbolize_names: true})
   end
@@ -46,7 +46,7 @@ RSpec.describe TBD do
   building_types = []
   #building_types << 'SecondarySchool'
   #building_types << 'PrimarySchool'
-  #building_types << 'SmallOffice'
+  building_types << 'SmallOffice'
   #building_types << 'MediumOffice'
   #building_types << 'LargeOffice'
   #building_types << 'SmallHotel'
@@ -62,12 +62,12 @@ RSpec.describe TBD do
   #building_types << 'Outpatient'
 
   tbd_options = []
-  #tbd_options << "skip"
-  #tbd_options << "poor (BC Hydro)"
-  #tbd_options << "regular (BC Hydro)"
-  #tbd_options << "efficient (BC Hydro)"
-  #tbd_options << "code (Quebec)"
-  #tbd_options << "(without thermal bridges)"
+  tbd_options << "skip"
+  tbd_options << "poor (BC Hydro)"
+  tbd_options << "regular (BC Hydro)"
+  tbd_options << "efficient (BC Hydro)"
+  tbd_options << "code (Quebec)"
+  tbd_options << "(without thermal bridges)"
 
   combos = []
   building_types.each do |building_type|
@@ -83,15 +83,12 @@ RSpec.describe TBD do
 
     test_dir = File.join(test_suite_runs_dir, test_case_name)
     if File.exist?(test_dir) && File.exist?(File.join(test_dir, 'out.osw'))
-      #puts "use existing #{test_case_name}"
       next
     end
 
-    #puts "run #{test_case_name}"
-
     FileUtils.mkdir_p(test_dir)
 
-    osw = template_osw.clone
+    osw = Marshal.load( Marshal.dump(template_osw) )
     osw[:steps][0][:arguments][:building_type] = building_type
     if tbd_option == 'skip'
       osw[:steps][1][:arguments][:__SKIP__] = true
@@ -124,17 +121,17 @@ RSpec.describe TBD do
     end
 
     it "compares results for #{building_type}" do
-      #puts "building_type = #{building_type}"
+      puts "building_type = #{building_type}"
       tbd_options.each do |tbd_option|
         completed_status = results[tbd_option][:completed_status]
         expect(completed_status).to eq("Success")
         tbd_result = results[tbd_option][:steps][1][:result]
         os_result = results[tbd_option][:steps][2][:result]
         total_site_energy = os_result[:step_values].select{|v| v[:name] == 'total_site_energy'}
-        #puts "  tbd_option = #{tbd_option}"
-        #puts "    tbd_success = #{tbd_result[:step_result]}"
-        #puts "    os_success = #{os_result[:step_result]}"
-        #puts "    total_site_energy = #{total_site_energy[0][:value]}"
+        puts "  tbd_option = #{tbd_option}"
+        puts "    tbd_success = #{tbd_result[:step_result]}"
+        puts "    os_success = #{os_result[:step_result]}"
+        puts "    total_site_energy = #{total_site_energy[0][:value]}"
       end
     end
   end
