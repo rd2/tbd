@@ -76,8 +76,17 @@ namespace "prototype_suite" do
   task :run => [:update_measure]
 end
 
-task :clean_suites => ["osm_suite:clean", "prototype_suite:clean"]
-task :run_suites => ["osm_suite:run", "prototype_suite:run"]
+desc "Clean All Test Suites"
+task :suites_clean do
+  puts "Cleaning All Test Suites"
+end
+task :suites_clean => ["osm_suite:clean", "prototype_suite:clean"]
+
+desc "Run All Test Suites"
+task :suites_run do
+  puts "Running All Test Suites"
+end
+task :suites_run => ["osm_suite:run", "prototype_suite:run"]
 
 # default spec test depends on updating measure and library files
 task :spec => [:update_measure]
