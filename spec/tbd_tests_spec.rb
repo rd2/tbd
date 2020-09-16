@@ -1448,6 +1448,16 @@ RSpec.describe TBD do
         expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
       end
     end
+
+    surfaces.each do |id, surface|
+      if surface.has_key?(:ratio)
+        ratio  = format "%3.1f", surface[:ratio]
+        name   = id.rjust(15, " ")
+        # puts "#{name} RSi derated by #{ratio}%"
+      else
+        expect(surface[:boundary].downcase).to_not eq("outdoors")
+      end
+    end
   end
 end
 
@@ -1471,7 +1481,9 @@ RSpec.describe TBD do
       if surface.has_key?(:ratio)
         ratio  = format "%3.1f", surface[:ratio]
         name   = id.rjust(15, " ")
-        puts "#{name} RSi derated by #{ratio}%"
+        #puts "#{name} RSi derated by #{ratio}%"
+      else
+        expect(surface[:boundary].downcase).to_not eq("outdoors")
       end
     end
   end
