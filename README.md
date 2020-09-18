@@ -4,7 +4,7 @@ This is a repo for an OpenStudio Measure that _thermally derates_ outside-facing
 Within the context of building energy simulation (and as required by recent building energy codes and standards) a construction's nominal R-value (or inversely, its nominal U-value) should ideally be _derated_ to adequately factor-in _minor_ and _major_ thermal bridging. _Minor_ thermal bridging is attributable to regularly-spaced framing (such as studs, Z-bars, etc.): the resulting derated R-value from minor thermal bridging, generally known as a construction's _clear-field effective R-value_, is typically independent of a surface's actual geometry or adjacencies to other surfaces. _Major_ thermal bridging instead relates to a surface's geometry and its immediate adjacencies (e.g. parapet along a roof/wall intersection, rim joists, wall corners), protruding surfaces and penetrations (e.g. cantilevered balconies), etc. The measure loops through an OpenStudio model's outside-facing surfaces, identifies shared _edges_ with nearby envelope, floor slab and shading surfaces (a proxy for cantilevered balconies), applies (from a list of arguments - e.g. _poor_, _regular_, _efficient_) predefined linear conductance sets (PSI-values, in W/K per linear meter) to individual edge lengths (in m), and consequently derates a construction's clear-field effective R-value. Users of the measure should observe new, surface-specific constructions to their OSM model and/or file, as well as systematic increases in construction U-values (i.e. decreases in insulating material thickness). The method and predefined values are taken from published research and standards such as ASHRAE's RP-1365, follow-up work from BC Hydro/Morrison-Hershfield, as well as ISO 10211 and 14683.
 
 
-## TO DO 
+## TO DO
 [Enhancements](https://github.com/rd2/tbd/issues) and documentation are planned over the next few weeks and months, including:
 1. JSON I/O
 2. dealing with ground-facing surfaces (e.g. foundation walls, slabs on grade)
@@ -156,7 +156,7 @@ Install the latest version of _git_ (e.g. through Homebrew), and _git clone_ the
 Run the basic tests below to ensure the measure operates as expected.
 
 
-## Complete list of run tests
+## Complete list of test commands
 
 Run the following (basic) tests in the root repository of the cloned measure:
 ```
