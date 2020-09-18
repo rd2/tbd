@@ -10,8 +10,9 @@ Within the context of building energy simulation (and as required by recent buil
 2. dealing with ground-facing surfaces (e.g. foundation walls, slabs on grade)
 3. dealing with fully-glazed surfaces with thermal bridges
 4. adding point conductances
-5. logging warnings and errors
-6. guide material, case examples, how-to's
+5. generating building-level clear-field R-values
+6. logging warnings and errors
+7. guide material, case examples, how-to's
 
 Submit [here](https://github.com/automaticmagic/topolys/issues) issues or desired enhancements more closely linked to Topolys.
 
