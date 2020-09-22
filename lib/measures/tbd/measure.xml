@@ -1,6 +1,5 @@
 <measure>
   <schema_version>3.0</schema_version>
-  <error>Unable to extract OpenStudio::Measure::OSMeasure object from /Users/denisbourgeois/Documents/projets/tbd/lib/measures/tbd/measure.rb. The script should contain a class that derives from OpenStudio::Measure::OSMeasure and should close with a line stating the class name followed by .new.registerWithApplication.</error>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
   <version_id>d990ec9b-f4ac-4e9e-afb0-00df429cc1e2</version_id>
@@ -44,7 +43,13 @@
     </argument>
   </arguments>
   <outputs/>
-  <provenances/>
+  <provenances>
+    <provenance>
+      <author>rd2</author>
+      <datetime>2020-09-22T09:49:00Z</datetime>
+    </provenance>
+    <provenance_required>true</provenance_required>
+  </provenances>
   <tags>
     <tag>Envelope.Opaque</tag>
   </tags>
