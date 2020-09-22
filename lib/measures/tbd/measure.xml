@@ -1,9 +1,10 @@
 <measure>
   <schema_version>3.0</schema_version>
+  <error>Unable to extract OpenStudio::Measure::OSMeasure object from /Users/denisbourgeois/Documents/projets/tbd/lib/measures/tbd/measure.rb. The script should contain a class that derives from OpenStudio::Measure::OSMeasure and should close with a line stating the class name followed by .new.registerWithApplication.</error>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>91db2914-2595-4599-bf9c-a16a05faca7e</version_id>
-  <version_modified>20200914T120721Z</version_modified>
+  <version_id>d990ec9b-f4ac-4e9e-afb0-00df429cc1e2</version_id>
+  <version_modified>20200922T114657Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging &amp; Derating (TBD)</display_name>
@@ -126,12 +127,6 @@
       <checksum>8EC912F6</checksum>
     </file>
     <file>
-      <filename>model.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>EBB63718</checksum>
-    </file>
-    <file>
       <filename>version.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
@@ -149,22 +144,28 @@
       <checksum>15B12DDC</checksum>
     </file>
     <file>
-      <filename>psi.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>333A01FD</checksum>
-    </file>
-    <file>
       <filename>LICENSE.md</filename>
       <filetype>md</filetype>
       <usage_type>license</usage_type>
       <checksum>2897C7DA</checksum>
     </file>
     <file>
+      <filename>model.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>B64E67F5</checksum>
+    </file>
+    <file>
+      <filename>psi.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>FF6EEB49</checksum>
+    </file>
+    <file>
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>79CC53BB</checksum>
+      <checksum>0B68E96D</checksum>
     </file>
   </files>
 </measure>
