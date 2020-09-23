@@ -766,7 +766,7 @@ def processTBD(os_model, psi_set)
 
       # Label edge as :concave or :convex (corner) if linked to:
       #   2x outside-facing walls (& relative polar positions of walls)
-      unless psi.has_key?(:concave) # not right ... should split into 2x
+      unless psi.has_key?(:concave) || psi.has_key?(:convex)
         edge[:surfaces].keys.each do |i|
           next if i == id
           next unless walls.has_key?(i)
