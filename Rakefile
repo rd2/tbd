@@ -41,7 +41,7 @@ task :update_measure do
   require 'openstudio'
 
   cli = OpenStudio.getOpenStudioCLI
-  command = "#{cli} measure -t './measures'"
+  command = "#{cli} measure -t './lib/measures'"
   system({"BUNDLE_GEMFILE"=>nil}, command)
 end
 task :update_measure => [:update_library_files]
