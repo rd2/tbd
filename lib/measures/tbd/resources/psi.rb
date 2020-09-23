@@ -766,7 +766,7 @@ def processTBD(os_model, psi_set)
 
       # Label edge as :concave or :convex (corner) if linked to:
       #   2x outside-facing walls (& relative polar positions of walls)
-      unless psi.has_key?(:concave)
+      unless psi.has_key?(:concave) # not right ... should split into 2x
         edge[:surfaces].keys.each do |i|
           next if i == id
           next unless walls.has_key?(i)
@@ -797,7 +797,8 @@ def processTBD(os_model, psi_set)
   edges.each do |identifier, edge|
     next unless edge.has_key?(:psi)
     psi = edge[:psi].values.max
-    next unless psi > 0.01
+    next unless psi.is_a?(Numeric)  # temporary, for testing
+    psi = 0 if psi < 0              # temporary, for testing
     bridge = { psi: psi,
                type: edge[:psi].key(psi),
                length: edge[:length] }
@@ -872,6 +873,8 @@ def processTBD(os_model, psi_set)
   # (or rather materials) having " tbd" in its OpenStudio name.
   surfaces.each do |id, surface|
     next unless surface.has_key?(:edges)
+    next unless surface.has_key?(:heatloss)
+    next unless surface[:heatloss] > 0.01
     os_model.getSurfaces.each do |s|
       next unless id == s.nameString
       next if s.space.empty?

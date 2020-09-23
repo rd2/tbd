@@ -983,6 +983,7 @@ RSpec.describe TBD do
     # through the 'set' user-argument (in the OpenStudio Measure interface).
     psi = PSI.new
     psi_set = psi.set["poor (BC Hydro)"]
+    # psi_set = psi.set["(without thermal bridges)"]
     # psi_set = psi.set["code (Quebec)"] # thermal bridging effect less critical
 
     edges.values.each do |edge|
@@ -1223,8 +1224,10 @@ RSpec.describe TBD do
       end
       n_surfaces_to_derate += 1
     end
-    expect(n_surfaces_to_derate).to eq(22)
+    #expect(n_surfaces_to_derate).to eq(0) # if "(without thermal bridges)"
+    expect(n_surfaces_to_derate).to eq(22) # if "poor (BC Hydro)"
 
+    # if "poor (BC Hydro)"
     expect(surfaces["s_floor"   ][:heatloss]).to be_within(0.01).of( 8.800)
     expect(surfaces["s_E_wall"  ][:heatloss]).to be_within(0.01).of( 5.041)
     expect(surfaces["p_E_floor" ][:heatloss]).to be_within(0.01).of(18.650)
@@ -1247,6 +1250,30 @@ RSpec.describe TBD do
     expect(surfaces["g_W_wall"  ][:heatloss]).to be_within(0.01).of(18.195)
     expect(surfaces["g_N_wall"  ][:heatloss]).to be_within(0.01).of(54.255)
     expect(surfaces["p_W2_floor"][:heatloss]).to be_within(0.01).of(13.729)
+
+    # if "(without thermal bridges)""
+    # expect(surfaces["s_floor"   ].has_key?(:heatloss)).to be(false)
+    # expect(surfaces["s_E_wall"  ].has_key?(:heatloss)).to be(false)
+    # expect(surfaces["p_E_floor" ].has_key?(:heatloss)).to be(false)
+    # expect(surfaces["s_S_wall"  ].has_key?(:heatloss)).to be(false)
+    # expect(surfaces["e_W_wall"  ].has_key?(:heatloss)).to be(false)
+    # expect(surfaces["p_N_wall"  ].has_key?(:heatloss)).to be(false)
+    # expect(surfaces["p_S2_wall" ].has_key?(:heatloss)).to be(false)
+    # expect(surfaces["p_S1_wall" ].has_key?(:heatloss)).to be(false)
+    # expect(surfaces["g_S_wall"  ].has_key?(:heatloss)).to be(false)
+    # expect(surfaces["p_floor"   ].has_key?(:heatloss)).to be(false)
+    # expect(surfaces["p_W1_floor"].has_key?(:heatloss)).to be(false)
+    # expect(surfaces["e_N_wall"  ].has_key?(:heatloss)).to be(false)
+    # expect(surfaces["s_N_wall"  ].has_key?(:heatloss)).to be(false)
+    # expect(surfaces["g_E_wall"  ].has_key?(:heatloss)).to be(false)
+    # expect(surfaces["e_S_wall"  ].has_key?(:heatloss)).to be(false)
+    # expect(surfaces["e_top"     ].has_key?(:heatloss)).to be(false)
+    # expect(surfaces["s_W_wall"  ].has_key?(:heatloss)).to be(false)
+    # expect(surfaces["e_E_wall"  ].has_key?(:heatloss)).to be(false)
+    # expect(surfaces["e_floor"   ].has_key?(:heatloss)).to be(false)
+    # expect(surfaces["g_W_wall"  ].has_key?(:heatloss)).to be(false)
+    # expect(surfaces["g_N_wall"  ].has_key?(:heatloss)).to be(false)
+    # expect(surfaces["p_W2_floor"].has_key?(:heatloss)).to be(false)
 
     #ceiling_c   = defaults.roofCeilingConstruction.get.to_Construction.get
     #wall_c      = defaults.wallConstruction.get.to_Construction.get
@@ -1485,6 +1512,29 @@ RSpec.describe TBD do
       else
         expect(surface[:boundary].downcase).to_not eq("outdoors")
       end
+    end
+  end
+end
+
+RSpec.describe TBD do
+  it "can process TB & D : test_seb.osm (0 W/K per m)" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    psi = PSI.new
+    psi_set = psi.set["(without thermal bridges)"]
+
+    # TBD "surfaces" (Hash) holds opaque surfaces (as well as their child
+    # subsurfaces) for post-processing, e.g. testing, output to JSON (soon).
+    surfaces = processTBD(os_model, psi_set)
+    expect(surfaces.size).to eq(56)
+
+    # Since all PSI values = 0, we're not expecting any derated surfaces
+    surfaces.values.each do |surface|
+      expect(surface.has_key?(:ratio)).to be(false)
     end
   end
 end
