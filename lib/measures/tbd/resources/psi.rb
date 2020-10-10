@@ -66,7 +66,7 @@ class PSI
       convex:       0.450, # **
       balcony:      0.500, # *
       party:        0.500, # **
-      grade:        0.450  # *
+      grade:        0.450  # **
     }.freeze
     # www2.publicationsduquebec.gouv.qc.ca/dynamicSearch/telecharge.php?type=1&file=72541.pdf
 
