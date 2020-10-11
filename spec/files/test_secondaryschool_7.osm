@@ -40539,4 +40539,3 @@ OS:Daylighting:Control,
   1,                                      !- Probability Lighting will be Reset When Needed in Manual Stepped Control
   ,                                       !- Number of Daylighting Views
   22;                                     !- Maximum Allowable Discomfort Glare Index
-

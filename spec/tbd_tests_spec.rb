@@ -1404,8 +1404,8 @@ RSpec.describe TBD do
     os_model = os_model.get
 
     psi = PSI.new
-    #psi_set = psi.set["poor (BC Hydro)"]
-    psi_set = psi.set["(without thermal bridges)"]
+    psi_set = psi.set["efficient (BC Hydro)"]
+    #psi_set = psi.set["(without thermal bridges)"]
 
 
     # TBD "surfaces" (Hash) holds opaque surfaces (as well as their child
@@ -1421,8 +1421,13 @@ RSpec.describe TBD do
         expect(s.isConstructionDefaulted).to be(false)
         expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
 
-        puts "with, #{id}, #{s.netArea}, #{s.uFactor.to_f}"
-        s.uFactor.to_f
+        u = s.uFactor
+        c = s.thermalConductance
+        unless u.empty? || c.empty?
+          u = u.get
+          c = c.get
+          #puts "with, #{id}, #{s.netArea}, #{u}, #{c}"
+        end
       end
     end
 
@@ -1431,10 +1436,16 @@ RSpec.describe TBD do
       next if surface.has_key?(:edges)
       os_model.getSurfaces.each do |s|
         next unless id == s.nameString
+        next unless s.outsideBoundaryCondition.downcase == "outdoors"
         expect(/ tbd/i.match(s.construction.get.nameString)).to eq(nil)
 
-        puts "without, #{id}, #{s.netArea}, #{s.uFactor.to_f}"
-        s.uFactor.to_f
+        u = s.uFactor
+        c = s.thermalConductance
+        unless u.empty? || c.empty?
+          u = u.get
+          c = c.get
+          #puts "without, #{id}, #{s.netArea}, #{u}, #{c}"
+        end
       end
     end
   end
