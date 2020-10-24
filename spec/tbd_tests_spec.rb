@@ -1425,26 +1425,54 @@ end
 RSpec.describe TBD do
   it "can process TB & D : DOE Prototype test_secondaryschool.osm" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_secondaryschool.osm")
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_secondaryschool_7.osm")
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
     psi = PSI.new
-    psi_set = psi.set["poor (BC Hydro)"]
+    psi_set = psi.set["efficient (BC Hydro)"]
+    #psi_set = psi.set["(without thermal bridges)"]
+
 
     # TBD "surfaces" (Hash) holds opaque surfaces (as well as their child
     # subsurfaces) for post-processing, e.g. testing, output to JSON (soon).
     surfaces = processTBD(os_model, psi_set)
     expect(surfaces.size).to eq(326)
 
-    # testing
+    # testing (with)
     surfaces.each do |id, surface|
       next unless surface.has_key?(:edges)
       os_model.getSurfaces.each do |s|
         next unless id == s.nameString
         expect(s.isConstructionDefaulted).to be(false)
         expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
+
+        u = s.uFactor
+        c = s.thermalConductance
+        unless u.empty? || c.empty?
+          u = u.get
+          c = c.get
+          #puts "with, #{id}, #{s.netArea}, #{u}, #{c}"
+        end
+      end
+    end
+
+    # testing (without)
+    surfaces.each do |id, surface|
+      next if surface.has_key?(:edges)
+      os_model.getSurfaces.each do |s|
+        next unless id == s.nameString
+        next unless s.outsideBoundaryCondition.downcase == "outdoors"
+        expect(/ tbd/i.match(s.construction.get.nameString)).to eq(nil)
+
+        u = s.uFactor
+        c = s.thermalConductance
+        unless u.empty? || c.empty?
+          u = u.get
+          c = c.get
+          #puts "without, #{id}, #{s.netArea}, #{u}, #{c}"
+        end
       end
     end
   end
