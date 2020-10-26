@@ -1,19 +1,27 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "id": "http://json-schema.org/automaticmagic/topolys.json#",
-  "title": "TBD Schema (extension of Topolys)",
+  "id": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
+  "title": "TBD Schema",
   "description": "Schema for Thermal Bridging and Derating",
-
   "type": "object",
-  "required": [
-    "psis",
-    "edges"
-  ],
   "properties": {
+    "description": {
+      "type": "string"
+    },
+    "schema": {
+      "type": "string"
+    },
     "psis": {
       "type": "array",
       "items": {
         "$ref": "#/definitions/PSI"
+      },
+      "uniqueItems": true
+    },
+    "khis": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/KHI"
       },
       "uniqueItems": true
     },
@@ -51,6 +59,12 @@
         "$ref": "#/definitions/Unit"
       },
       "uniqueItems": true
+    },
+    "logs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Log"
+      }
     }
   },
   "additionalProperties": false,
@@ -63,6 +77,7 @@
       ],
       "properties": {
         "id": {
+          "title": "Unique PSI set identifier",
           "type": "string"
         },
         "rimjoist": {
@@ -109,21 +124,34 @@
       "minProperties": 2,
       "additionalProperties": false
     },
+    "KHI": {
+      "description": "KHI-value (in W/K) for a point thermal bridge",
+      "type": "object",
+      "required": [
+        "id",
+        "point"
+      ],
+      "properties": {
+        "id": {
+          "title": "Unique KHI identifier",
+          "type": "string"
+        },
+        "point": {
+          "title": "Point KHI",
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
     "Edge": {
       "description": "Surface edge as thermal bridge",
       "type": "object",
       "required": [
-        "id",
-        "psi",
-        "length",
-        "surfaces"
+        "psis"
       ],
       "properties": {
-        "id": {
-          "title": "unique edge ID (set automatically by e.g. Topolys)",
-          "type": "string"
-        },
-        "psi": {
+        "psis": {
           "title": "PSI-set ID",
           "type": "string"
         },
@@ -132,6 +160,38 @@
           "type": "number",
           "minimum": 0,
           "exclusiveMinimum": true
+        },
+        "rimjoist": {
+          "title": "edge as rimjoist?",
+          "type": "boolean"
+        },
+        "parapet": {
+          "title": "edge as parapet?",
+          "type": "boolean"
+        },
+        "fenestration": {
+          "title": "edge as fenestration?",
+          "type": "boolean"
+        },
+        "concave": {
+          "title": "edge as concave corner?",
+          "type": "boolean"
+        },
+        "convex": {
+          "title": "edge as convex corner?",
+          "type": "boolean"
+        },
+        "balcony": {
+          "title": "edge as balcony?",
+          "type": "boolean"
+        },
+        "party": {
+          "title": "edge as party wall edge?",
+          "type": "boolean"
+        },
+        "grade": {
+          "title": "edge as grade edge?",
+          "type": "boolean"
         },
         "surfaces": {
           "title": "surfaces connected to edge",
@@ -149,14 +209,14 @@
       "type": "object",
       "required": [
         "id",
-        "psi"
+        "psis"
       ],
       "properties": {
         "id": {
           "title": "e.g. OS or E+ surface ID",
           "type": "string"
         },
-        "psi": {
+        "psis": {
           "title": "PSI-set ID",
           "type": "string"
         }
@@ -168,14 +228,14 @@
       "type": "object",
       "required": [
         "id",
-        "psi"
+        "psis"
       ],
       "properties": {
         "id": {
           "title": "e.g. OS space or E+ zone ID",
           "type": "string"
         },
-        "psi": {
+        "psis": {
           "title": "PSI-set ID",
           "type": "string"
         }
@@ -187,14 +247,14 @@
       "type": "object",
       "required": [
         "id",
-        "psi"
+        "psis"
       ],
       "properties": {
         "id": {
           "title": "e.g. OS story ID",
           "type": "string"
         },
-        "psi": {
+        "psis": {
           "title": "PSI-set ID",
           "type": "string"
         }
@@ -206,19 +266,23 @@
       "type": "object",
       "required": [
         "id",
-        "psi"
+        "psis"
       ],
       "properties": {
         "id": {
           "title": "e.g. OS unit ID",
           "type": "string"
         },
-        "psi": {
+        "psis": {
           "title": "PSI-set ID",
           "type": "string"
         }
       },
       "additionalProperties": false
+    },
+    "Log": {
+      "title": "TBD log messages",
+      "type": "string"
     }
   }
 }
