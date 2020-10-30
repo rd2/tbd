@@ -1,4 +1,5 @@
 require "openstudio"
+require "json-schema"
 
 begin
   # try to load from the gem
@@ -10,6 +11,33 @@ rescue LoadError
   require_relative "version.rb"
 end
 
+# sources for the following defaults KHI & PSI values/sets:
+
+# BETB = BC Hydro's Building Envelope Thermal Bridging Guide v1.4
+# www.bchydro.com/content/dam/BCHydro/customer-portal/documents/power-smart/
+# business/programs/BETB-Building-Envelope-Thermal-Bridging-Guide-v1-4.pdf
+
+# NECB-QC : Québec's energy code for new comemrcial buildings
+# www2.publicationsduquebec.gouv.qc.ca/dynamicSearch/telecharge.php?type=1&file=72541.pdf
+
+class KHI
+  # @return [Hash] KHI
+  attr_reader :point
+
+  def initialize
+    @point = {}
+
+    # The following are defaults (* stated). Users may edit these defaults,
+    # add new KHI pairs, or even read-in other KHI pairs on file.
+    # Units are in W/K.
+    @point[ "poor (BC Hydro)" ]         = 0.900.freeze # detail 5.7.2 BETB
+    @point[ "regular (BC Hydro)" ]      = 0.500.freeze # detail 5.7.4 BETB
+    @point[ "efficient (BC Hydro)" ]    = 0.150.freeze # detail 5.7.3 BETB
+    @point[ "code (Quebec)" ]           = 0.500.freeze # art. 3.3.1.3. NECB-QC
+    @point[ "(non thermal bridging)" ]  = 0.000.freeze
+  end
+end
+
 class PSI
   # @return [Hash] PSI set
   attr_reader :set
@@ -17,8 +45,9 @@ class PSI
   def initialize
     @set = {}
 
-    # The following examples are defaults (* stated, ** presumed). Users may edit
+    # The following are defaults (* stated, ** presumed). Users may edit
     # these sets, add new sets, or even read-in other sets on file.
+    # Units are in W/K per linear meter.
     @set[ "poor (BC Hydro)" ] =
     {
       rimjoist:     1.000, # *
@@ -54,8 +83,6 @@ class PSI
       party:        0.200, # *
       grade:        0.200  # *
     }.freeze
-    # www.bchydro.com/content/dam/BCHydro/customer-portal/documents/power-smart/
-    # business/programs/BETB-Building-Envelope-Thermal-Bridging-Guide-v1-3.pdf
 
     @set[ "code (Quebec)" ] = # NECB-QC (code-compliant) defaults:
     {
@@ -68,7 +95,6 @@ class PSI
       party:        0.500, # **
       grade:        0.450  # **
     }.freeze
-    # www2.publicationsduquebec.gouv.qc.ca/dynamicSearch/telecharge.php?type=1&file=72541.pdf
 
     @set[ "(without thermal bridges)" ] = # ... would not derate surfaces:
     {
@@ -78,8 +104,8 @@ class PSI
       concave:      0.000, #
       convex:       0.000, #
       balcony:      0.000, #
-      party:        0.000, # **
-      grade:        0.000  # *
+      party:        0.000, #
+      grade:        0.000  #
     }.freeze
   end
 end

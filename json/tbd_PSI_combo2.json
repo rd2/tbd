@@ -29,23 +29,22 @@
       "party": 0.4
     }
   ],
-  "units": [
+  "unit": [
     {
-      "id": "building",
-      "psis": "Awesome"
+      "psi": "Awesome"
     }
   ],
   "surfaces": [
     {
       "id": "ground-floor restaurant South-wall",
-      "psis": "ok"
+      "psi": "ok"
     }
   ],
   "edges": [
     {
-      "psis": "Party wall edge",
+      "psi": "Party wall edge",
+      "type":"party",
       "length": 4.3,
-      "party": true,
       "surfaces": [
         "ground-floor restaurant West-wall",
         "ground-floor restaurant party wall"
