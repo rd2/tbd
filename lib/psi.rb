@@ -30,11 +30,12 @@ class KHI
     # The following are defaults (* stated). Users may edit these defaults,
     # add new KHI pairs, or even read-in other KHI pairs on file.
     # Units are in W/K.
-    @point[ "poor (BC Hydro)" ]         = 0.900.freeze # detail 5.7.2 BETB
-    @point[ "regular (BC Hydro)" ]      = 0.500.freeze # detail 5.7.4 BETB
-    @point[ "efficient (BC Hydro)" ]    = 0.150.freeze # detail 5.7.3 BETB
-    @point[ "code (Quebec)" ]           = 0.500.freeze # art. 3.3.1.3. NECB-QC
-    @point[ "(non thermal bridging)" ]  = 0.000.freeze
+    @point[ "poor (BC Hydro)" ]         = 0.900 # detail 5.7.2 BETB
+    @point[ "regular (BC Hydro)" ]      = 0.500 # detail 5.7.4 BETB
+    @point[ "efficient (BC Hydro)" ]    = 0.150 # detail 5.7.3 BETB
+    @point[ "code (Quebec)" ]           = 0.500 # art. 3.3.1.3. NECB-QC
+    @point[ "(non thermal bridging)" ]  = 0.000
+    @point.freeze
   end
 end
 

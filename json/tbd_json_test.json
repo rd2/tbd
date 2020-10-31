@@ -4,7 +4,8 @@
   "psis": [
     {
       "id": "good",
-      "parapet": 0.5
+      "parapet": 0.5,
+      "party": 0.9
     },
     {
       "id": "compliant",

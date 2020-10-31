@@ -1726,12 +1726,23 @@ RSpec.describe TBD do
             },
             "type": {
               "title": "PSI-set type, e.g. 'parapet'",
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "rimjoist",
+                "parapet",
+                "fenestration",
+                "concave",
+                "convex",
+                "balcony",
+                "party",
+                "grade"
+              ]
             },
             "length": {
               "title": "Edge length (m), 10cm min",
               "type": "number",
-              "minimum": 0.1
+              "minimum": 0,
+              "exclusiveMinimum": true
             },
             "surfaces": {
               "title": "Surface(s) connected to edge",
@@ -1860,7 +1871,8 @@ RSpec.describe TBD do
       "psis": [
         {
           "id": "good",
-          "parapet": 0.5
+          "parapet": 0.5,
+          "party": 0.9
         },
         {
           "id": "compliant",

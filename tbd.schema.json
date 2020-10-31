@@ -154,12 +154,23 @@
         },
         "type": {
           "title": "PSI-set type, e.g. 'parapet'",
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "rimjoist",
+            "parapet",
+            "fenestration",
+            "concave",
+            "convex",
+            "balcony",
+            "party",
+            "grade"
+          ]
         },
         "length": {
           "title": "Edge length (m), 10cm min",
           "type": "number",
-          "minimum": 0.1
+          "minimum": 0,
+          "exclusiveMinimum": true
         },
         "surfaces": {
           "title": "Surface(s) connected to edge",
