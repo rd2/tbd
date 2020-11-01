@@ -167,7 +167,7 @@
           ]
         },
         "length": {
-          "title": "Edge length (m), 10cm min",
+          "title": "Edge length (m), > 0 m",
           "type": "number",
           "minimum": 0,
           "exclusiveMinimum": true
@@ -184,9 +184,7 @@
       },
       "additionalProperties": false,
       "required": [
-        "psi",
         "type",
-        "length",
         "surfaces"
       ]
     },
