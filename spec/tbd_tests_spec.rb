@@ -1422,61 +1422,61 @@ RSpec.describe TBD do
   end
 end
 
-RSpec.describe TBD do
-  it "can process TB & D : DOE Prototype test_secondaryschool.osm" do
-    translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_secondaryschool_7.osm")
-    os_model = translator.loadModel(path)
-    expect(os_model.empty?).to be(false)
-    os_model = os_model.get
-
-    psi = PSI.new
-    psi_set = psi.set["efficient (BC Hydro)"]
-    #psi_set = psi.set["(without thermal bridges)"]
-
-
-    # TBD "surfaces" (Hash) holds opaque surfaces (as well as their child
-    # subsurfaces) for post-processing, e.g. testing, output to JSON (soon).
-    surfaces = processTBD(os_model, psi_set)
-    expect(surfaces.size).to eq(326)
-
-    # testing (with)
-    surfaces.each do |id, surface|
-      next unless surface.has_key?(:edges)
-      os_model.getSurfaces.each do |s|
-        next unless id == s.nameString
-        expect(s.isConstructionDefaulted).to be(false)
-        expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
-
-        u = s.uFactor
-        c = s.thermalConductance
-        unless u.empty? || c.empty?
-          u = u.get
-          c = c.get
-          #puts "with, #{id}, #{s.netArea}, #{u}, #{c}"
-        end
-      end
-    end
-
-    # testing (without)
-    surfaces.each do |id, surface|
-      next if surface.has_key?(:edges)
-      os_model.getSurfaces.each do |s|
-        next unless id == s.nameString
-        next unless s.outsideBoundaryCondition.downcase == "outdoors"
-        expect(/ tbd/i.match(s.construction.get.nameString)).to eq(nil)
-
-        u = s.uFactor
-        c = s.thermalConductance
-        unless u.empty? || c.empty?
-          u = u.get
-          c = c.get
-          #puts "without, #{id}, #{s.netArea}, #{u}, #{c}"
-        end
-      end
-    end
-  end
-end
+# RSpec.describe TBD do
+#   it "can process TB & D : DOE Prototype test_secondaryschool.osm" do
+#     translator = OpenStudio::OSVersion::VersionTranslator.new
+#     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_secondaryschool_7.osm")
+#     os_model = translator.loadModel(path)
+#     expect(os_model.empty?).to be(false)
+#     os_model = os_model.get
+#
+#     psi = PSI.new
+#     psi_set = psi.set["efficient (BC Hydro)"]
+#     #psi_set = psi.set["(without thermal bridges)"]
+#
+#
+#     # TBD "surfaces" (Hash) holds opaque surfaces (as well as their child
+#     # subsurfaces) for post-processing, e.g. testing, output to JSON (soon).
+#     surfaces = processTBD(os_model, psi_set)
+#     expect(surfaces.size).to eq(326)
+#
+#     # testing (with)
+#     surfaces.each do |id, surface|
+#       next unless surface.has_key?(:edges)
+#       os_model.getSurfaces.each do |s|
+#         next unless id == s.nameString
+#         expect(s.isConstructionDefaulted).to be(false)
+#         expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
+#
+#         u = s.uFactor
+#         c = s.thermalConductance
+#         unless u.empty? || c.empty?
+#           u = u.get
+#           c = c.get
+#           #puts "with, #{id}, #{s.netArea}, #{u}, #{c}"
+#         end
+#       end
+#     end
+#
+#     # testing (without)
+#     surfaces.each do |id, surface|
+#       next if surface.has_key?(:edges)
+#       os_model.getSurfaces.each do |s|
+#         next unless id == s.nameString
+#         next unless s.outsideBoundaryCondition.downcase == "outdoors"
+#         expect(/ tbd/i.match(s.construction.get.nameString)).to eq(nil)
+#
+#         u = s.uFactor
+#         c = s.thermalConductance
+#         unless u.empty? || c.empty?
+#           u = u.get
+#           c = c.get
+#           #puts "without, #{id}, #{s.netArea}, #{u}, #{c}"
+#         end
+#       end
+#     end
+#   end
+# end
 
 RSpec.describe TBD do
   it "can process TB & D : DOE Prototype test_warehouse.osm" do
@@ -1564,5 +1564,428 @@ RSpec.describe TBD do
     surfaces.values.each do |surface|
       expect(surface.has_key?(:ratio)).to be(false)
     end
+  end
+end
+
+RSpec.describe TBD do
+  it "can process TB & D : JSON file read/validate" do
+    tbd_schema =
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "id": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
+      "title": "TBD Schema",
+      "description": "Schema for Thermal Bridging and Derating",
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "schema": {
+          "type": "string"
+        },
+        "psis": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PSI"
+          },
+          "uniqueItems": true
+        },
+        "khis": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/KHI"
+          },
+          "uniqueItems": true
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Edge"
+          },
+          "uniqueItems": true
+        },
+        "surfaces": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Surface"
+          },
+          "uniqueItems": true
+        },
+        "spaces": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Space"
+          },
+          "uniqueItems": true
+        },
+        "stories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Story"
+          },
+          "uniqueItems": true
+        },
+        "unit": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Unit"
+          },
+          "uniqueItems": true
+        },
+        "logs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Log"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "definitions": {
+        "PSI": {
+          "description": "Set of PSI-values (in W/K per m) for thermal bridges",
+          "type": "object",
+          "properties": {
+            "id": {
+              "title": "Unique PSI set identifier",
+              "type": "string"
+            },
+            "rimjoist": {
+              "title": "Floor/wall edge PSI",
+              "type": "number",
+              "minimum": 0
+            },
+            "parapet": {
+              "title": "Roof/wall or exposed-floor/wall edge PSI",
+              "type": "number",
+              "minimum": 0
+            },
+            "fenestration": {
+              "title": "Window, door, skylight perimeter PSI",
+              "type": "number",
+              "minimum": 0
+            },
+            "concave": {
+              "title": "Wall corner [0°,135°) PSI",
+              "type": "number",
+              "minimum": 0
+            },
+            "convex": {
+              "title": "Wall corner (225°,360°] PSI",
+              "type": "number",
+              "minimum": 0
+            },
+            "balcony": {
+              "title": "Floor/balcony edge PSI ",
+              "type": "number",
+              "minimum": 0
+            },
+            "party": {
+              "title": "Party wall edge PSI",
+              "type": "number",
+              "minimum": 0
+            },
+            "grade": {
+              "title": "Floor/foundation edge PSI",
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ],
+          "minProperties": 2
+        },
+        "KHI": {
+          "description": "KHI-value (in W/K) for a point thermal bridge",
+          "type": "object",
+          "properties": {
+            "id": {
+              "title": "Unique KHI identifier",
+              "type": "string"
+            },
+            "point": {
+              "title": "Point KHI-value",
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "point"
+          ]
+        },
+        "Edge": {
+          "description": "Surface(s) edge as thermal bridge",
+          "type": "object",
+          "properties": {
+            "psi": {
+              "title": "PSI-set identifier",
+              "type": "string"
+            },
+            "type": {
+              "title": "PSI-set type, e.g. 'parapet'",
+              "type": "string",
+              "enum": [
+                "rimjoist",
+                "parapet",
+                "fenestration",
+                "concave",
+                "convex",
+                "balcony",
+                "party",
+                "grade"
+              ]
+            },
+            "length": {
+              "title": "Edge length (m), 10cm min",
+              "type": "number",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            },
+            "surfaces": {
+              "title": "Surface(s) connected to edge",
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "psi",
+            "type",
+            "length",
+            "surfaces"
+          ]
+        },
+        "Surface": {
+          "description": "Surface default PSI-set (optional)",
+          "type": "object",
+          "properties": {
+            "id": {
+              "title": "e.g. OS or E+ surface identifier",
+              "type": "string"
+            },
+            "psi": {
+              "title": "PSI-set identifier",
+              "type": "string"
+            },
+            "khis": {
+              "title": "Surface-hosted point thermal bridges",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "title": "Unique KHI-value identifier",
+                    "type": "string"
+                  },
+                  "count": {
+                    "title": "Number of KHI-matching point thermal bridges",
+                    "type": "number",
+                    "minimum": 1
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "count"
+                ]
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false,
+          "minProperties": 2,
+          "required": [
+            "id"
+          ]
+        },
+        "Space": {
+          "description": "Space default PSI-set (optional for OS)",
+          "type": "object",
+          "required": [
+            "id",
+            "psi"
+          ],
+          "properties": {
+            "id": {
+              "title": "e.g. OS space or E+ zone identifier",
+              "type": "string"
+            },
+            "psi": {
+              "title": "PSI-set identifier",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "Story": {
+          "title": "Story default PSI-set (optional for OS)",
+          "type": "object",
+          "properties": {
+            "id": {
+              "title": "e.g. OS story identifier",
+              "type": "string"
+            },
+            "psi": {
+              "title": "PSI-set identifier",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "psi"
+          ]
+        },
+        "Unit": {
+          "title": "Building unit default PSI-set (optional for OS)",
+          "type": "object",
+          "properties": {
+            "psi": {
+              "title": "PSI-set identifier",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "psi"
+          ]
+        },
+        "Log": {
+          "title": "TBD log messages",
+          "type": "string"
+        }
+      }
+    }
+
+    tbd_o =
+    {
+      "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
+      "description": "testing basic JSON validation",
+      "psis": [
+        {
+          "id": "good",
+          "parapet": 0.5,
+          "party": 0.9
+        },
+        {
+          "id": "compliant",
+          "rimjoist": 0.3,
+          "parapet": 0.325,
+          "fenestration": 0.35,
+          "concave": 0.45,
+          "convex": 0.45,
+          "balcony": 0.5,
+          "party": 0.5,
+          "grade": 0.45
+        }
+      ],
+      "khis": [
+        {
+          "id": "column",
+          "point": 0.5
+        },
+        {
+          "id": "support",
+          "point": 0.5
+        }
+      ],
+      "edges": [
+        {
+          "psi": "compliant",
+          "type": "party",
+          "length": 2.5,
+          "surfaces": [
+            "front wall"
+          ]
+        }
+      ],
+      "surfaces": [
+        {
+          "id": "front wall",
+          "khis": [
+            {
+              "id": "column",
+              "count": 3
+            },
+            {
+              "id": "support",
+              "count": 4
+            }
+          ],
+          "psi": "good"
+        }
+      ],
+      "unit": [
+        {
+          "psi": "compliant"
+        }
+      ]
+    }
+
+    # JSON::Validator.validate!(tbd_schema, tbd_o)
+    expect(JSON::Validator.validate(tbd_schema, tbd_o)).to be(true)
+
+    # Load TBD JSON schema (the same as above, yet on file)
+    tbd_schema_f = File.dirname(__FILE__) + "/../tbd.schema.json"
+    expect(File.exist?(tbd_schema_f)).to be(true)
+    tbd_schema_c = File.read(tbd_schema_f)
+    tbd_schema = JSON.parse(tbd_schema_c)
+
+    # Load minimal KHI JSON example
+    tbd_io_f = File.dirname(__FILE__) + "/../json/tbd_json_test.json"
+    expect(File.exist?(tbd_schema_f)).to be(true)
+    tbd_io_c = File.read(tbd_io_f)
+    tbd_io = JSON.parse(tbd_io_c)
+    expect(JSON::Validator.validate(tbd_schema, tbd_io)).to be(true)
+
+    # Load PSI combo JSON example - likely the most expected or common use
+    tbd_io_f = File.dirname(__FILE__) + "/../json/tbd_PSI_combo.json"
+    expect(File.exist?(tbd_schema_f)).to be(true)
+    tbd_io_c = File.read(tbd_io_f)
+    tbd_io = JSON.parse(tbd_io_c)
+    expect(JSON::Validator.validate(tbd_schema, tbd_io)).to be(true)
+
+    # Load PSI combo2 JSON example - a more elaborate example, yet common
+    # Post-JSON validation required to handle case sensitive keys & value
+    # strings (e.g. "ok" vs "OK" in the file)
+    tbd_io_f = File.dirname(__FILE__) + "/../json/tbd_PSI_combo2.json"
+    expect(File.exist?(tbd_schema_f)).to be(true)
+    tbd_io_c = File.read(tbd_io_f)
+    tbd_io = JSON.parse(tbd_io_c)
+    expect(JSON::Validator.validate(tbd_schema, tbd_io)).to be(true)
+
+    # Load full PSI JSON example - with duplicate keys for "party"
+    # "JSON Schema Lint" * will recognize the duplicate and - as with duplicate
+    # Ruby hash keys - will have the second entry ("party": 0.8) override the
+    # first ("party": 0.7). Another reminder that a fair amount of post-JSON
+    # validation remains necessary.
+    # * https://jsonschemalint.com/#!/version/draft-04/markup/json
+    tbd_io_f = File.dirname(__FILE__) + "/../json/tbd_full_PSI.json"
+    expect(File.exist?(tbd_schema_f)).to be(true)
+    tbd_io_c = File.read(tbd_io_f)
+    tbd_io = JSON.parse(tbd_io_c)
+    expect(JSON::Validator.validate(tbd_schema, tbd_io)).to be(true)
+
+    # Load minimal PSI JSON example
+    tbd_io_f = File.dirname(__FILE__) + "/../json/tbd_minimal_PSI.json"
+    expect(File.exist?(tbd_schema_f)).to be(true)
+    tbd_io_c = File.read(tbd_io_f)
+    tbd_io = JSON.parse(tbd_io_c)
+    expect(JSON::Validator.validate(tbd_schema, tbd_io)).to be(true)
+
+    # Load minimal KHI JSON example
+    tbd_io_f = File.dirname(__FILE__) + "/../json/tbd_minimal_KHI.json"
+    expect(File.exist?(tbd_schema_f)).to be(true)
+    tbd_io_c = File.read(tbd_io_f)
+    tbd_io = JSON.parse(tbd_io_c)
+    expect(JSON::Validator.validate(tbd_schema, tbd_io)).to be(true)
+    expect(JSON::Validator.validate(tbd_schema_f, tbd_io_f, :uri => true)).to be(true)
   end
 end

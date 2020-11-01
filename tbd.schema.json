@@ -53,7 +53,7 @@
       },
       "uniqueItems": true
     },
-    "units": {
+    "unit": {
       "type": "array",
       "items": {
         "$ref": "#/definitions/Unit"
@@ -72,9 +72,6 @@
     "PSI": {
       "description": "Set of PSI-values (in W/K per m) for thermal bridges",
       "type": "object",
-      "required": [
-        "id"
-      ],
       "properties": {
         "id": {
           "title": "Unique PSI set identifier",
@@ -121,122 +118,133 @@
           "minimum": 0
         }
       },
-      "minProperties": 2,
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "id"
+      ],
+      "minProperties": 2
     },
     "KHI": {
       "description": "KHI-value (in W/K) for a point thermal bridge",
       "type": "object",
-      "required": [
-        "id",
-        "point"
-      ],
       "properties": {
         "id": {
           "title": "Unique KHI identifier",
           "type": "string"
         },
         "point": {
-          "title": "Point KHI",
+          "title": "Point KHI-value",
           "type": "number",
           "minimum": 0
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "point"
+      ]
     },
     "Edge": {
-      "description": "Surface edge as thermal bridge",
+      "description": "Surface(s) edge as thermal bridge",
       "type": "object",
-      "required": [
-        "psis"
-      ],
       "properties": {
-        "psis": {
-          "title": "PSI-set ID",
+        "psi": {
+          "title": "PSI-set identifier",
           "type": "string"
         },
+        "type": {
+          "title": "PSI-set type, e.g. 'parapet'",
+          "type": "string",
+          "enum": [
+            "rimjoist",
+            "parapet",
+            "fenestration",
+            "concave",
+            "convex",
+            "balcony",
+            "party",
+            "grade"
+          ]
+        },
         "length": {
-          "title": "edge length (m)",
+          "title": "Edge length (m), > 0 m",
           "type": "number",
           "minimum": 0,
           "exclusiveMinimum": true
         },
-        "rimjoist": {
-          "title": "edge as rimjoist?",
-          "type": "boolean"
-        },
-        "parapet": {
-          "title": "edge as parapet?",
-          "type": "boolean"
-        },
-        "fenestration": {
-          "title": "edge as fenestration?",
-          "type": "boolean"
-        },
-        "concave": {
-          "title": "edge as concave corner?",
-          "type": "boolean"
-        },
-        "convex": {
-          "title": "edge as convex corner?",
-          "type": "boolean"
-        },
-        "balcony": {
-          "title": "edge as balcony?",
-          "type": "boolean"
-        },
-        "party": {
-          "title": "edge as party wall edge?",
-          "type": "boolean"
-        },
-        "grade": {
-          "title": "edge as grade edge?",
-          "type": "boolean"
-        },
         "surfaces": {
-          "title": "surfaces connected to edge",
+          "title": "Surface(s) connected to edge",
           "type": "array",
           "items": {
             "type": "string"
           },
-          "minItems": 1
+          "minItems": 1,
+          "uniqueItems": true
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "surfaces"
+      ]
     },
     "Surface": {
       "description": "Surface default PSI-set (optional)",
       "type": "object",
-      "required": [
-        "id",
-        "psis"
-      ],
       "properties": {
         "id": {
-          "title": "e.g. OS or E+ surface ID",
+          "title": "e.g. OS or E+ surface identifier",
           "type": "string"
         },
-        "psis": {
-          "title": "PSI-set ID",
+        "psi": {
+          "title": "PSI-set identifier",
           "type": "string"
+        },
+        "khis": {
+          "title": "Surface-hosted point thermal bridges",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "title": "Unique KHI-value identifier",
+                "type": "string"
+              },
+              "count": {
+                "title": "Number of KHI-matching point thermal bridges",
+                "type": "number",
+                "minimum": 1
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "count"
+            ]
+          },
+          "uniqueItems": true
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "minProperties": 2,
+      "required": [
+        "id"
+      ]
     },
     "Space": {
       "description": "Space default PSI-set (optional for OS)",
       "type": "object",
       "required": [
         "id",
-        "psis"
+        "psi"
       ],
       "properties": {
         "id": {
-          "title": "e.g. OS space or E+ zone ID",
+          "title": "e.g. OS space or E+ zone identifier",
           "type": "string"
         },
-        "psis": {
-          "title": "PSI-set ID",
+        "psi": {
+          "title": "PSI-set identifier",
           "type": "string"
         }
       },
@@ -245,40 +253,35 @@
     "Story": {
       "title": "Story default PSI-set (optional for OS)",
       "type": "object",
-      "required": [
-        "id",
-        "psis"
-      ],
       "properties": {
         "id": {
-          "title": "e.g. OS story ID",
+          "title": "e.g. OS story identifier",
           "type": "string"
         },
-        "psis": {
-          "title": "PSI-set ID",
+        "psi": {
+          "title": "PSI-set identifier",
           "type": "string"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "psi"
+      ]
     },
     "Unit": {
       "title": "Building unit default PSI-set (optional for OS)",
       "type": "object",
-      "required": [
-        "id",
-        "psis"
-      ],
       "properties": {
-        "id": {
-          "title": "e.g. OS unit ID",
-          "type": "string"
-        },
-        "psis": {
-          "title": "PSI-set ID",
+        "psi": {
+          "title": "PSI-set identifier",
           "type": "string"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "psi"
+      ]
     },
     "Log": {
       "title": "TBD log messages",

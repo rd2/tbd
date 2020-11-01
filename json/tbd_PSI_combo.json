@@ -25,16 +25,15 @@
       "grade": 0.2
     }
   ],
-  "units": [
+  "unit": [
     {
-      "id": "building",
-      "psis": "Awesome"
+      "psi": "Awesome"
     }
   ],
   "spaces": [
     {
       "id": "ground-floor restaurant",
-      "psis": "OK"
+      "psi": "OK"
     }
   ]
 }
