@@ -548,7 +548,7 @@ RSpec.describe TBD do
     os_s_floor.setSurfaceType("Floor")
     os_s_floor.setOutsideBoundaryCondition("Outdoors")
 
-    # os_model.save("os_model_test.osm", true)
+    #os_model.save("os_model_test.osm", true)
 
     # Create the Topolys Model.
     t_model = Topolys::Model.new
@@ -1864,7 +1864,7 @@ RSpec.describe TBD do
       }
     }
 
-    tbd_o =
+    tbd_io =
     {
       "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
       "description": "testing basic JSON validation",
@@ -1928,64 +1928,245 @@ RSpec.describe TBD do
         }
       ]
     }
-
     # JSON::Validator.validate!(tbd_schema, tbd_o)
-    expect(JSON::Validator.validate(tbd_schema, tbd_o)).to be(true)
+    expect(JSON::Validator.validate(tbd_schema, tbd_io)).to be(true)
 
-    # Load TBD JSON schema (the same as above, yet on file)
+    # Load TBD JSON schema (same as above, yet on file)
     tbd_schema_f = File.dirname(__FILE__) + "/../tbd.schema.json"
     expect(File.exist?(tbd_schema_f)).to be(true)
     tbd_schema_c = File.read(tbd_schema_f)
-    tbd_schema = JSON.parse(tbd_schema_c)
+    tbd_schema = JSON.parse(tbd_schema_c, symbolize_names: true)
+    expect(JSON::Validator.validate(tbd_schema, tbd_io)).to be(true)
+    expect(tbd_io.has_key?(:description)).to be(true)
+    expect(tbd_io.has_key?(:schema)).to be(true)
+    expect(tbd_io.has_key?(:psis)).to be(true)
+    expect(tbd_io.has_key?(:khis)).to be(true)
+    expect(tbd_io.has_key?(:edges)).to be(true)
+    expect(tbd_io.has_key?(:surfaces)).to be(true)
+    expect(tbd_io.has_key?(:spaces)).to be(false)
+    expect(tbd_io.has_key?(:stories)).to be(false)
+    expect(tbd_io.has_key?(:unit)).to be(true)
+    expect(tbd_io.has_key?(:logs)).to be(false)
+    expect(tbd_io[:psis].class).to be(Array)
+    expect(tbd_io[:psis].size).to eq(2)
+    expect(tbd_io[:khis].size).to eq(2)
+    expect(tbd_io[:edges].size).to eq(1)
+    expect(tbd_io[:surfaces].size).to eq(1)
 
-    # Load minimal KHI JSON example
+    # Loop through input psis to ensure uniqueness vs PSI defaults
+    psi = PSI.new
+    tbd_io[:psis].each do |p|
+      psi.append(p)
+    end
+    expect(psi.set.size).to eq(7)
+    expect(psi.set.has_key?("poor (BC Hydro)")).to be(true)
+    expect(psi.set.has_key?("regular (BC Hydro)")).to be(true)
+    expect(psi.set.has_key?("efficient (BC Hydro)")).to be(true)
+    expect(psi.set.has_key?("code (Quebec)")).to be(true)
+    expect(psi.set.has_key?("(without thermal bridges)")).to be(true)
+    expect(psi.set.has_key?("good")).to be(true)
+    expect(psi.set.has_key?("compliant")).to be(true)
+
+    # Similar treatment for khis
+    khi = KHI.new
+    tbd_io[:khis].each do |k|
+      id = k[:id]
+      next if khi.point.has_key?(id) # should be log message if duplicate
+      khi.point[id] = k[:point]
+    end
+    expect(khi.point.size).to eq(7)
+    expect(khi.point.has_key?("poor (BC Hydro)")).to be(true)
+    expect(khi.point.has_key?("regular (BC Hydro)")).to be(true)
+    expect(khi.point.has_key?("efficient (BC Hydro)")).to be(true)
+    expect(khi.point.has_key?("code (Quebec)")).to be(true)
+    expect(khi.point.has_key?("(non thermal bridging)")).to be(true)
+    expect(khi.point.has_key?("column")).to be(true)
+    expect(khi.point.has_key?("support")).to be(true)
+    expect(khi.point["column"]).to eq(0.5)
+    expect(khi.point["support"]).to eq(0.5)
+
+    # # Load TBD JSON test (same as above, yet on file)
     tbd_io_f = File.dirname(__FILE__) + "/../json/tbd_json_test.json"
     expect(File.exist?(tbd_schema_f)).to be(true)
     tbd_io_c = File.read(tbd_io_f)
-    tbd_io = JSON.parse(tbd_io_c)
+    tbd_io = JSON.parse(tbd_io_c, symbolize_names: true)
     expect(JSON::Validator.validate(tbd_schema, tbd_io)).to be(true)
+    expect(tbd_io.has_key?(:description)).to be(true)
+    expect(tbd_io.has_key?(:schema)).to be(true)
+    expect(tbd_io.has_key?(:psis)).to be(true)
+    expect(tbd_io.has_key?(:khis)).to be(true)
+    expect(tbd_io.has_key?(:edges)).to be(true)
+    expect(tbd_io.has_key?(:surfaces)).to be(true)
+    expect(tbd_io.has_key?(:spaces)).to be(false)
+    expect(tbd_io.has_key?(:stories)).to be(false)
+    expect(tbd_io.has_key?(:unit)).to be(true)
+    expect(tbd_io.has_key?(:logs)).to be(false)
+    expect(tbd_io[:psis].class).to be(Array)
+    expect(tbd_io[:psis].size).to eq(2)
+    expect(tbd_io[:khis].size).to eq(2)
+    expect(tbd_io[:edges].size).to eq(1)
+    expect(tbd_io[:surfaces].size).to eq(1)
+
+    # Loop through input psis to ensure uniqueness vs PSI defaults
+    psi = PSI.new
+    tbd_io[:psis].each do |p|
+      psi.append(p)
+    end
+    expect(psi.set.size).to eq(7)
+    expect(psi.set.has_key?("poor (BC Hydro)")).to be(true)
+    expect(psi.set.has_key?("regular (BC Hydro)")).to be(true)
+    expect(psi.set.has_key?("efficient (BC Hydro)")).to be(true)
+    expect(psi.set.has_key?("code (Quebec)")).to be(true)
+    expect(psi.set.has_key?("(without thermal bridges)")).to be(true)
+    expect(psi.set.has_key?("good")).to be(true)
+    expect(psi.set.has_key?("compliant")).to be(true)
+
+    # Similar treatment for khis
+    khi = KHI.new
+    tbd_io[:khis].each do |k|
+      id = k[:id]
+      next if khi.point.has_key?(id) # should be log message if duplicate
+      khi.point[id] = k[:point]
+    end
+    expect(khi.point.size).to eq(7)
+    expect(khi.point.has_key?("poor (BC Hydro)")).to be(true)
+    expect(khi.point.has_key?("regular (BC Hydro)")).to be(true)
+    expect(khi.point.has_key?("efficient (BC Hydro)")).to be(true)
+    expect(khi.point.has_key?("code (Quebec)")).to be(true)
+    expect(khi.point.has_key?("(non thermal bridging)")).to be(true)
+    expect(khi.point.has_key?("column")).to be(true)
+    expect(khi.point.has_key?("support")).to be(true)
+    expect(khi.point["column"]).to eq(0.5)
+    expect(khi.point["support"]).to eq(0.5)
+
+    # a reminder that built-in KHIs are not frozen ...
+    khi.point["code (Quebec)"] = 2.0
+    expect(khi.point["code (Quebec)"]).to eq(2.0)
 
     # Load PSI combo JSON example - likely the most expected or common use
     tbd_io_f = File.dirname(__FILE__) + "/../json/tbd_PSI_combo.json"
     expect(File.exist?(tbd_schema_f)).to be(true)
     tbd_io_c = File.read(tbd_io_f)
-    tbd_io = JSON.parse(tbd_io_c)
+    tbd_io = JSON.parse(tbd_io_c, symbolize_names: true)
     expect(JSON::Validator.validate(tbd_schema, tbd_io)).to be(true)
+    expect(tbd_io.has_key?(:description)).to be(true)
+    expect(tbd_io.has_key?(:schema)).to be(true)
+    expect(tbd_io.has_key?(:psis)).to be(true)
+    expect(tbd_io.has_key?(:khis)).to be(false)
+    expect(tbd_io.has_key?(:edges)).to be(false)
+    expect(tbd_io.has_key?(:surfaces)).to be(false)
+    expect(tbd_io.has_key?(:spaces)).to be(true)
+    expect(tbd_io.has_key?(:stories)).to be(false)
+    expect(tbd_io.has_key?(:unit)).to be(true)
+    expect(tbd_io.has_key?(:logs)).to be(false)
+    expect(tbd_io[:psis].class).to be(Array)
+    expect(tbd_io[:psis].size).to eq(2)
+    expect(tbd_io[:spaces].size).to eq(1)
+    expect(tbd_io[:unit].size).to eq(1)
 
-    # Load PSI combo2 JSON example - a more elaborate example, yet common
+    # Loop through input psis to ensure uniqueness vs PSI defaults
+    psi = PSI.new
+    tbd_io[:psis].each do |p|
+      psi.append(p)
+    end
+    expect(psi.set.size).to eq(7)
+    expect(psi.set.has_key?("poor (BC Hydro)")).to be(true)
+    expect(psi.set.has_key?("regular (BC Hydro)")).to be(true)
+    expect(psi.set.has_key?("efficient (BC Hydro)")).to be(true)
+    expect(psi.set.has_key?("code (Quebec)")).to be(true)
+    expect(psi.set.has_key?("(without thermal bridges)")).to be(true)
+    expect(psi.set.has_key?("OK")).to be(true)
+    expect(psi.set.has_key?("Awesome")).to be(true)
+    expect(psi.set["Awesome"][:rimjoist]).to eq(0.2)
+
+    # Load PSI combo2 JSON example - a more elaborate example, yet common.
     # Post-JSON validation required to handle case sensitive keys & value
     # strings (e.g. "ok" vs "OK" in the file)
     tbd_io_f = File.dirname(__FILE__) + "/../json/tbd_PSI_combo2.json"
     expect(File.exist?(tbd_schema_f)).to be(true)
     tbd_io_c = File.read(tbd_io_f)
-    tbd_io = JSON.parse(tbd_io_c)
+    tbd_io = JSON.parse(tbd_io_c, symbolize_names: true)
     expect(JSON::Validator.validate(tbd_schema, tbd_io)).to be(true)
+    expect(tbd_io.has_key?(:description)).to be(true)
+    expect(tbd_io.has_key?(:schema)).to be(true)
+    expect(tbd_io.has_key?(:psis)).to be(true)
+    expect(tbd_io.has_key?(:khis)).to be(false)
+    expect(tbd_io.has_key?(:edges)).to be(true)
+    expect(tbd_io.has_key?(:surfaces)).to be(true)
+    expect(tbd_io.has_key?(:spaces)).to be(false)
+    expect(tbd_io.has_key?(:stories)).to be(false)
+    expect(tbd_io.has_key?(:unit)).to be(true)
+    expect(tbd_io.has_key?(:logs)).to be(false)
+    expect(tbd_io[:psis].size).to eq(3)
+    expect(tbd_io[:edges].size).to eq(1)
+    expect(tbd_io[:surfaces].size).to eq(1)
+    expect(tbd_io[:unit].size).to eq(1)
+
+    # Loop through input psis to ensure uniqueness vs PSI defaults
+    psi = PSI.new
+    tbd_io[:psis].each do |p|
+      psi.append(p)
+    end
+    expect(psi.set.size).to eq(8)
+    expect(psi.set.has_key?("poor (BC Hydro)")).to be(true)
+    expect(psi.set.has_key?("regular (BC Hydro)")).to be(true)
+    expect(psi.set.has_key?("efficient (BC Hydro)")).to be(true)
+    expect(psi.set.has_key?("code (Quebec)")).to be(true)
+    expect(psi.set.has_key?("(without thermal bridges)")).to be(true)
+    expect(psi.set.has_key?("OK")).to be(true)
+    expect(psi.set.has_key?("Awesome")).to be(true)
+    expect(psi.set.has_key?("Party wall edge")).to be(true)
+    expect(psi.set["Party wall edge"][:party]).to eq(0.4)
 
     # Load full PSI JSON example - with duplicate keys for "party"
     # "JSON Schema Lint" * will recognize the duplicate and - as with duplicate
     # Ruby hash keys - will have the second entry ("party": 0.8) override the
-    # first ("party": 0.7). Another reminder that a fair amount of post-JSON
-    # validation remains necessary.
+    # first ("party": 0.7). Another reminder of post-JSON validation.
     # * https://jsonschemalint.com/#!/version/draft-04/markup/json
     tbd_io_f = File.dirname(__FILE__) + "/../json/tbd_full_PSI.json"
     expect(File.exist?(tbd_schema_f)).to be(true)
     tbd_io_c = File.read(tbd_io_f)
-    tbd_io = JSON.parse(tbd_io_c)
+    tbd_io = JSON.parse(tbd_io_c, symbolize_names: true)
     expect(JSON::Validator.validate(tbd_schema, tbd_io)).to be(true)
+    expect(tbd_io.has_key?(:description)).to be(true)
+    expect(tbd_io.has_key?(:schema)).to be(true)
+    expect(tbd_io.has_key?(:psis)).to be(true)
+    expect(tbd_io.has_key?(:khis)).to be(false)
+    expect(tbd_io.has_key?(:edges)).to be(false)
+    expect(tbd_io.has_key?(:surfaces)).to be(false)
+    expect(tbd_io.has_key?(:spaces)).to be(false)
+    expect(tbd_io.has_key?(:stories)).to be(false)
+    expect(tbd_io.has_key?(:unit)).to be(false)
+    expect(tbd_io.has_key?(:logs)).to be(false)
+    expect(tbd_io[:psis].size).to eq(1)
+
+    # Loop through input psis to ensure uniqueness vs PSI defaults
+    psi = PSI.new
+    tbd_io[:psis].each do |p|
+      psi.append(p)
+    end
+    expect(psi.set.size).to eq(6)
+    expect(psi.set.has_key?("poor (BC Hydro)")).to be(true)
+    expect(psi.set.has_key?("regular (BC Hydro)")).to be(true)
+    expect(psi.set.has_key?("efficient (BC Hydro)")).to be(true)
+    expect(psi.set.has_key?("code (Quebec)")).to be(true)
+    expect(psi.set.has_key?("(without thermal bridges)")).to be(true)
+    expect(psi.set.has_key?("OK")).to be(true)
+    expect(psi.set["OK"][:party]).to eq(0.8)
 
     # Load minimal PSI JSON example
     tbd_io_f = File.dirname(__FILE__) + "/../json/tbd_minimal_PSI.json"
     expect(File.exist?(tbd_schema_f)).to be(true)
     tbd_io_c = File.read(tbd_io_f)
-    tbd_io = JSON.parse(tbd_io_c)
+    tbd_io = JSON.parse(tbd_io_c, symbolize_names: true)
     expect(JSON::Validator.validate(tbd_schema, tbd_io)).to be(true)
 
     # Load minimal KHI JSON example
     tbd_io_f = File.dirname(__FILE__) + "/../json/tbd_minimal_KHI.json"
     expect(File.exist?(tbd_schema_f)).to be(true)
     tbd_io_c = File.read(tbd_io_f)
-    tbd_io = JSON.parse(tbd_io_c)
+    tbd_io = JSON.parse(tbd_io_c, symbolize_names: true)
     expect(JSON::Validator.validate(tbd_schema, tbd_io)).to be(true)
-    expect(JSON::Validator.validate(tbd_schema_f, tbd_io_f, :uri => true)).to be(true)
+    expect(JSON::Validator.validate(tbd_schema_f, tbd_io_f, uri: true)).to be(true)
   end
 end
