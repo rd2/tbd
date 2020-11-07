@@ -35,7 +35,6 @@ class KHI
     @point[ "efficient (BC Hydro)" ]    = 0.150 # detail 5.7.3 BETB
     @point[ "code (Quebec)" ]           = 0.500 # art. 3.3.1.3. NECB-QC
     @point[ "(non thermal bridging)" ]  = 0.000
-    @point.freeze
   end
 end
 
@@ -108,6 +107,35 @@ class PSI
       party:        0.000, #
       grade:        0.000  #
     }.freeze
+  end
+
+  # Append a new PSI set, based on a JSON formatted PSI set object
+  # Requires a valid, unique :id
+  def append(p)
+    if(p.is_a?(Hash) && p.has_key?(:id))
+      id = p[:id]
+      unless @set.has_key?(id) # should log message if duplicate attempt
+        @set[id] =
+        {
+          rimjoist:     0.000,
+          parapet:      0.000,
+          fenestration: 0.000,
+          concave:      0.000,
+          convex:       0.000,
+          balcony:      0.000,
+          party:        0.000,
+          grade:        0.000
+        }
+        @set[id][:rimjoist]     = p[:rimjoist]     if p.has_key?(:rimjoist)
+        @set[id][:parapet]      = p[:parapet]      if p.has_key?(:parapet)
+        @set[id][:fenestration] = p[:fenestration] if p.has_key?(:fenestration)
+        @set[id][:concave]      = p[:concave]      if p.has_key?(:concave)
+        @set[id][:convex]       = p[:convex]       if p.has_key?(:convex)
+        @set[id][:balcony]      = p[:balcony]      if p.has_key?(:balcony)
+        @set[id][:party]        = p[:party]        if p.has_key?(:party)
+        @set[id][:grade]        = p[:grade]        if p.has_key?(:grade)
+      end
+    end
   end
 end
 
