@@ -36,6 +36,16 @@ class KHI
     @point[ "code (Quebec)" ]           = 0.500 # art. 3.3.1.3. NECB-QC
     @point[ "(non thermal bridging)" ]  = 0.000
   end
+
+  # Append a new KHI set, based on a JSON formatted KHI set object
+  # Requires a valid, unique :id
+  def append(k)
+    if k.is_a?(Hash) && k.has_key?(:id)
+      id = k[:id]
+      @point[id] = k[:point] unless @point.has_key?(id)
+      # should log message if duplicate attempt
+    end
+  end
 end
 
 class PSI
@@ -112,7 +122,7 @@ class PSI
   # Append a new PSI set, based on a JSON formatted PSI set object
   # Requires a valid, unique :id
   def append(p)
-    if(p.is_a?(Hash) && p.has_key?(:id))
+    if p.is_a?(Hash) && p.has_key?(:id)
       id = p[:id]
       unless @set.has_key?(id) # should log message if duplicate attempt
         @set[id] =
