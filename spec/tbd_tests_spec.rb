@@ -1939,24 +1939,19 @@ RSpec.describe TBD do
     expect(JSON::Validator.validate(tbd_schema, tbd_io)).to be(true)
     expect(tbd_io.has_key?(:description)).to be(true)
     expect(tbd_io.has_key?(:schema)).to be(true)
-    expect(tbd_io.has_key?(:psis)).to be(true)
-    expect(tbd_io.has_key?(:khis)).to be(true)
     expect(tbd_io.has_key?(:edges)).to be(true)
     expect(tbd_io.has_key?(:surfaces)).to be(true)
     expect(tbd_io.has_key?(:spaces)).to be(false)
     expect(tbd_io.has_key?(:stories)).to be(false)
     expect(tbd_io.has_key?(:unit)).to be(true)
     expect(tbd_io.has_key?(:logs)).to be(false)
-    expect(tbd_io[:psis].class).to be(Array)
-    expect(tbd_io[:psis].size).to eq(2)
-    expect(tbd_io[:khis].size).to eq(2)
     expect(tbd_io[:edges].size).to eq(1)
     expect(tbd_io[:surfaces].size).to eq(1)
 
     # Loop through input psis to ensure uniqueness vs PSI defaults
     psi = PSI.new
-    tbd_io[:psis].each do |p|
-      psi.append(p)
+    if tbd_io.has_key?(:psis)
+      tbd_io[:psis].each do |p| psi.append(p); end
     end
     expect(psi.set.size).to eq(7)
     expect(psi.set.has_key?("poor (BC Hydro)")).to be(true)
@@ -1969,10 +1964,8 @@ RSpec.describe TBD do
 
     # Similar treatment for khis
     khi = KHI.new
-    tbd_io[:khis].each do |k|
-      id = k[:id]
-      next if khi.point.has_key?(id) # should be log message if duplicate
-      khi.point[id] = k[:point]
+    if tbd_io.has_key?(:khis)
+      tbd_io[:khis].each do |k| khi.append(k); end
     end
     expect(khi.point.size).to eq(7)
     expect(khi.point.has_key?("poor (BC Hydro)")).to be(true)
@@ -1984,6 +1977,50 @@ RSpec.describe TBD do
     expect(khi.point.has_key?("support")).to be(true)
     expect(khi.point["column"]).to eq(0.5)
     expect(khi.point["support"]).to eq(0.5)
+
+    # Internal logic of TBD JSON file content, e.g.
+    # referenced psis & khis need to be loaded in memory
+    # either built-in TBD defaults or on file.
+    if tbd_io.has_key?(:unit)
+      # although structured as an array, there can only be one unit per file
+      tbd_io[:unit].each do |unit|
+        if unit.has_key?(:psi)
+          expect(unit[:psi]).to eq("compliant")
+          expect(psi.set.has_key?(unit[:psi])).to be(true)
+        end
+      end
+    end
+    if tbd_io.has_key?(:surfaces)
+      tbd_io[:surfaces].each do |surface|
+        expect(surface.has_key?(:id)).to be(true)
+        expect(surface[:id]).to eq("front wall") # valid vs OSM ?
+        if surface.has_key?(:psi)
+          expect(surface[:psi]).to eq("good")
+          expect(psi.set.has_key?(surface[:psi])).to be(true)
+        end
+        if surface.has_key?(:khis)
+          expect(surface[:khis].size).to eq(2)
+          surface[:khis].each do |k|
+            expect(k.has_key?(:id)).to be(true)
+            expect(khi.point.has_key?(k[:id])).to be(true)
+            expect(k[:count]).to eq(3) if k[:id] == "column"
+            expect(k[:count]).to eq(4) if k[:id] == "support"
+          end
+        end
+      end
+    end
+    if tbd_io.has_key?(:edges)
+      tbd_io[:edges].each do |edge|
+        if edge.has_key?(:psi)
+          expect(edge[:psi]).to eq("compliant")
+          expect(psi.set.has_key?(edge[:psi])).to be(true)
+          expect(edge.has_key?(:surfaces)).to be(true)
+          edge[:surfaces].each do |surface|
+            expect(surface).to eq("front wall") # valid vs OSM ?
+          end
+        end
+      end
+    end
 
     # # Load TBD JSON test (same as above, yet on file)
     tbd_io_f = File.dirname(__FILE__) + "/../json/tbd_json_test.json"
@@ -1993,24 +2030,19 @@ RSpec.describe TBD do
     expect(JSON::Validator.validate(tbd_schema, tbd_io)).to be(true)
     expect(tbd_io.has_key?(:description)).to be(true)
     expect(tbd_io.has_key?(:schema)).to be(true)
-    expect(tbd_io.has_key?(:psis)).to be(true)
-    expect(tbd_io.has_key?(:khis)).to be(true)
     expect(tbd_io.has_key?(:edges)).to be(true)
     expect(tbd_io.has_key?(:surfaces)).to be(true)
     expect(tbd_io.has_key?(:spaces)).to be(false)
     expect(tbd_io.has_key?(:stories)).to be(false)
     expect(tbd_io.has_key?(:unit)).to be(true)
     expect(tbd_io.has_key?(:logs)).to be(false)
-    expect(tbd_io[:psis].class).to be(Array)
-    expect(tbd_io[:psis].size).to eq(2)
-    expect(tbd_io[:khis].size).to eq(2)
     expect(tbd_io[:edges].size).to eq(1)
     expect(tbd_io[:surfaces].size).to eq(1)
 
     # Loop through input psis to ensure uniqueness vs PSI defaults
     psi = PSI.new
-    tbd_io[:psis].each do |p|
-      psi.append(p)
+    if tbd_io.has_key?(:psis)
+      tbd_io[:psis].each do |p| psi.append(p); end
     end
     expect(psi.set.size).to eq(7)
     expect(psi.set.has_key?("poor (BC Hydro)")).to be(true)
@@ -2023,10 +2055,8 @@ RSpec.describe TBD do
 
     # Similar treatment for khis
     khi = KHI.new
-    tbd_io[:khis].each do |k|
-      id = k[:id]
-      next if khi.point.has_key?(id) # should be log message if duplicate
-      khi.point[id] = k[:point]
+    if tbd_io.has_key?(:khis)
+      tbd_io[:khis].each do |k| khi.append(k); end
     end
     expect(khi.point.size).to eq(7)
     expect(khi.point.has_key?("poor (BC Hydro)")).to be(true)
@@ -2038,6 +2068,50 @@ RSpec.describe TBD do
     expect(khi.point.has_key?("support")).to be(true)
     expect(khi.point["column"]).to eq(0.5)
     expect(khi.point["support"]).to eq(0.5)
+
+    # Internal logic of TBD JSON file content, e.g.
+    # referenced psis & khis need to be loaded in memory
+    # either built-in TBD defaults or on file.
+    if tbd_io.has_key?(:unit)
+      # although structured as an array, there can only be one unit per file
+      tbd_io[:unit].each do |unit|
+        if unit.has_key?(:psi)
+          expect(unit[:psi]).to eq("compliant")
+          expect(psi.set.has_key?(unit[:psi])).to be(true)
+        end
+      end
+    end
+    if tbd_io.has_key?(:surfaces)
+      tbd_io[:surfaces].each do |surface|
+        expect(surface.has_key?(:id)).to be(true)
+        expect(surface[:id]).to eq("front wall") # valid vs OSM ?
+        if surface.has_key?(:psi)
+          expect(surface[:psi]).to eq("good")
+          expect(psi.set.has_key?(surface[:psi])).to be(true)
+        end
+        if surface.has_key?(:khis)
+          expect(surface[:khis].size).to eq(2)
+          surface[:khis].each do |k|
+            expect(k.has_key?(:id)).to be(true)
+            expect(khi.point.has_key?(k[:id])).to be(true)
+            expect(k[:count]).to eq(3) if k[:id] == "column"
+            expect(k[:count]).to eq(4) if k[:id] == "support"
+          end
+        end
+      end
+    end
+    if tbd_io.has_key?(:edges)
+      tbd_io[:edges].each do |edge|
+        if edge.has_key?(:psi)
+          expect(edge[:psi]).to eq("compliant")
+          expect(psi.set.has_key?(edge[:psi])).to be(true)
+          expect(edge.has_key?(:surfaces)).to be(true)
+          edge[:surfaces].each do |surface|
+            expect(surface).to eq("front wall") # valid vs OSM ?
+          end
+        end
+      end
+    end
 
     # a reminder that built-in KHIs are not frozen ...
     khi.point["code (Quebec)"] = 2.0
@@ -2051,23 +2125,19 @@ RSpec.describe TBD do
     expect(JSON::Validator.validate(tbd_schema, tbd_io)).to be(true)
     expect(tbd_io.has_key?(:description)).to be(true)
     expect(tbd_io.has_key?(:schema)).to be(true)
-    expect(tbd_io.has_key?(:psis)).to be(true)
-    expect(tbd_io.has_key?(:khis)).to be(false)
     expect(tbd_io.has_key?(:edges)).to be(false)
     expect(tbd_io.has_key?(:surfaces)).to be(false)
     expect(tbd_io.has_key?(:spaces)).to be(true)
     expect(tbd_io.has_key?(:stories)).to be(false)
     expect(tbd_io.has_key?(:unit)).to be(true)
     expect(tbd_io.has_key?(:logs)).to be(false)
-    expect(tbd_io[:psis].class).to be(Array)
-    expect(tbd_io[:psis].size).to eq(2)
     expect(tbd_io[:spaces].size).to eq(1)
     expect(tbd_io[:unit].size).to eq(1)
 
     # Loop through input psis to ensure uniqueness vs PSI defaults
     psi = PSI.new
-    tbd_io[:psis].each do |p|
-      psi.append(p)
+    if tbd_io.has_key?(:psis)
+      tbd_io[:psis].each do |p| psi.append(p); end
     end
     expect(psi.set.size).to eq(7)
     expect(psi.set.has_key?("poor (BC Hydro)")).to be(true)
@@ -2079,6 +2149,35 @@ RSpec.describe TBD do
     expect(psi.set.has_key?("Awesome")).to be(true)
     expect(psi.set["Awesome"][:rimjoist]).to eq(0.2)
 
+    # Similar treatment for khis
+    khi = KHI.new
+    if tbd_io.has_key?(:khis)
+      tbd_io[:khis].each do |k| khi.append(k); end
+    end
+    expect(khi.point.size).to eq(5)
+
+    # Internal logic of TBD JSON file content, e.g.
+    # referenced psis & khis need to be loaded in memory
+    # either built-in TBD defaults or on file.
+    if tbd_io.has_key?(:unit)
+      # although structured as an array, there can only be one unit per file
+      tbd_io[:unit].each do |unit|
+        if unit.has_key?(:psi)
+          expect(unit[:psi]).to eq("Awesome")
+          expect(psi.set.has_key?(unit[:psi])).to be(true)
+        end
+      end
+    end
+    if tbd_io.has_key?(:spaces)
+      tbd_io[:spaces].each do |space|
+        if space.has_key?(:psi)
+          expect(space[:id]).to eq("ground-floor restaurant") # valid vs OSM?
+          expect(space[:psi]).to eq("OK")
+          expect(psi.set.has_key?(space[:psi])).to be(true)
+        end
+      end
+    end
+
     # Load PSI combo2 JSON example - a more elaborate example, yet common.
     # Post-JSON validation required to handle case sensitive keys & value
     # strings (e.g. "ok" vs "OK" in the file)
@@ -2089,23 +2188,20 @@ RSpec.describe TBD do
     expect(JSON::Validator.validate(tbd_schema, tbd_io)).to be(true)
     expect(tbd_io.has_key?(:description)).to be(true)
     expect(tbd_io.has_key?(:schema)).to be(true)
-    expect(tbd_io.has_key?(:psis)).to be(true)
-    expect(tbd_io.has_key?(:khis)).to be(false)
     expect(tbd_io.has_key?(:edges)).to be(true)
     expect(tbd_io.has_key?(:surfaces)).to be(true)
     expect(tbd_io.has_key?(:spaces)).to be(false)
     expect(tbd_io.has_key?(:stories)).to be(false)
     expect(tbd_io.has_key?(:unit)).to be(true)
     expect(tbd_io.has_key?(:logs)).to be(false)
-    expect(tbd_io[:psis].size).to eq(3)
     expect(tbd_io[:edges].size).to eq(1)
     expect(tbd_io[:surfaces].size).to eq(1)
     expect(tbd_io[:unit].size).to eq(1)
 
     # Loop through input psis to ensure uniqueness vs PSI defaults
     psi = PSI.new
-    tbd_io[:psis].each do |p|
-      psi.append(p)
+    if tbd_io.has_key?(:psis)
+      tbd_io[:psis].each do |p| psi.append(p); end
     end
     expect(psi.set.size).to eq(8)
     expect(psi.set.has_key?("poor (BC Hydro)")).to be(true)
@@ -2117,6 +2213,54 @@ RSpec.describe TBD do
     expect(psi.set.has_key?("Awesome")).to be(true)
     expect(psi.set.has_key?("Party wall edge")).to be(true)
     expect(psi.set["Party wall edge"][:party]).to eq(0.4)
+
+    # Similar treatment for khis
+    khi = KHI.new
+    if tbd_io.has_key?(:khis)
+      tbd_io[:khis].each do |k| khi.append(k); end
+    end
+    expect(khi.point.size).to eq(5)
+
+    # Internal logic of TBD JSON file content, e.g.
+    # referenced psis & khis need to be loaded in memory
+    # either built-in TBD defaults or on file.
+    if tbd_io.has_key?(:unit)
+      # although structured as an array, there can only be one unit per file
+      tbd_io[:unit].each do |unit|
+        if unit.has_key?(:psi)
+          expect(unit[:psi]).to eq("Awesome")
+          expect(psi.set.has_key?(unit[:psi])).to be(true)
+        end
+      end
+    end
+    if tbd_io.has_key?(:surfaces)
+      tbd_io[:surfaces].each do |surface|
+        expect(surface.has_key?(:id)).to be(true) # valid vs OSM ?
+        expect(surface[:id]).to eq("ground-floor restaurant South-wall")
+        if surface.has_key?(:psi)
+          expect(surface[:psi]).to eq("ok")
+          expect(psi.set.has_key?(surface[:psi])).to be(false) # log mismatch
+        end
+      end
+    end
+    if tbd_io.has_key?(:edges)
+      tbd_io[:edges].each do |edge|
+        if edge.has_key?(:psi)
+          expect(edge[:psi]).to eq("Party wall edge")
+          expect(edge[:type]).to eq("party")
+          expect(psi.set.has_key?(edge[:psi])).to be(true)
+          expect(psi.set[edge[:psi]].has_key?(:party)).to be(true)
+          expect(edge.has_key?(:surfaces)).to be(true)
+          edge[:surfaces].each do |surface|
+            # valid vs OSM ?
+            answer = false
+            answer = true if surface == "ground-floor restaurant West-wall" ||
+                                        "ground-floor restaurant party wall"
+            expect(answer).to be(true)
+          end
+        end
+      end
+    end
 
     # Load full PSI JSON example - with duplicate keys for "party"
     # "JSON Schema Lint" * will recognize the duplicate and - as with duplicate
@@ -2130,20 +2274,17 @@ RSpec.describe TBD do
     expect(JSON::Validator.validate(tbd_schema, tbd_io)).to be(true)
     expect(tbd_io.has_key?(:description)).to be(true)
     expect(tbd_io.has_key?(:schema)).to be(true)
-    expect(tbd_io.has_key?(:psis)).to be(true)
-    expect(tbd_io.has_key?(:khis)).to be(false)
     expect(tbd_io.has_key?(:edges)).to be(false)
     expect(tbd_io.has_key?(:surfaces)).to be(false)
     expect(tbd_io.has_key?(:spaces)).to be(false)
     expect(tbd_io.has_key?(:stories)).to be(false)
     expect(tbd_io.has_key?(:unit)).to be(false)
     expect(tbd_io.has_key?(:logs)).to be(false)
-    expect(tbd_io[:psis].size).to eq(1)
 
     # Loop through input psis to ensure uniqueness vs PSI defaults
     psi = PSI.new
-    tbd_io[:psis].each do |p|
-      psi.append(p)
+    if tbd_io.has_key?(:psis)
+      tbd_io[:psis].each do |p| psi.append(p); end
     end
     expect(psi.set.size).to eq(6)
     expect(psi.set.has_key?("poor (BC Hydro)")).to be(true)
@@ -2153,6 +2294,13 @@ RSpec.describe TBD do
     expect(psi.set.has_key?("(without thermal bridges)")).to be(true)
     expect(psi.set.has_key?("OK")).to be(true)
     expect(psi.set["OK"][:party]).to eq(0.8)
+
+    # Similar treatment for khis
+    khi = KHI.new
+    if tbd_io.has_key?(:khis)
+      tbd_io[:khis].each do |k| khi.append(k); end
+    end
+    expect(khi.point.size).to eq(5)
 
     # Load minimal PSI JSON example
     tbd_io_f = File.dirname(__FILE__) + "/../json/tbd_minimal_PSI.json"
