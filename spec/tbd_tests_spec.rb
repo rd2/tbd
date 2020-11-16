@@ -981,10 +981,20 @@ RSpec.describe TBD do
     # as surface types and boundary conditions. Thermal bridging attributes
     # (type & PSI-value pairs) are grouped into PSI sets, normally accessed
     # through the 'set' user-argument (in the OpenStudio Measure interface).
-    psi = PSI.new
-    psi_set = psi.set["poor (BC Hydro)"]
-    # psi_set = psi.set["(without thermal bridges)"]
-    # psi_set = psi.set["code (Quebec)"] # thermal bridging effect less critical
+
+    psi_set = "poor (BC Hydro)"
+    # psi_set = "(non thermal bridging)"
+    # psi_set = "code (Quebec)" # thermal bridging effect less critical
+
+    # Process user-defined TBD JSON file inputs if file exists & valid:
+    #   "io" holds valid TBD JSON hash from file
+    #   "io_p" holds TBD PSI sets (built-in defaults & those on file)
+    #   "io_k" holds TBD KHI points (built-in defaults & those on file)
+    io_f = ""
+    schema_f = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, io_p, io_k = processTBDinputs(surfaces, edges, psi_set, io_f, schema_f)
+
+    # psi = PSI.new
 
     edges.values.each do |edge|
       next unless edge.has_key?(:surfaces)
@@ -1003,9 +1013,47 @@ RSpec.describe TBD do
       end
       next unless deratable
 
-      psi = {}
+      psi = {} # edge-specific PSI types
+
+      # Check if customized edge in TBD JSON file
+      match = false
+      if io && io.has_key?(:edges)
+        io[:edges].each do |e|
+          next if match
+          next unless e.has_key?(:type) # a precaution, it should ...
+          t = e[:type]
+          next unless e.has_key?(:surfaces) # a precaution, it should ...
+          e[:surfaces].each do |s|
+            next if match
+            next unless edge[:surfaces].has_key?(s)
+            match = true # ... well, at least one ... so loop again
+            e[:surfaces].each do |ss|
+              next unless match
+              match = false unless edges[:surfaces].has_key?(ss)
+            end
+          end
+          next unless match
+          if e.has_key?(:length) # optional edge length finetuning (up to 1 inch)
+            match = false unless (e[:length] - edge[:length]).abs < 0.025
+          end
+          next unless match # valid user entry - overriding TBD ruleset
+          if e.has_key?(:psi)
+            p = e[:psi]
+          else
+            p = io[:unit].first[:psi]
+          end
+          next unless io_p.set.has_key?(p)
+          next unless io_p.set[p].has_key?(t)
+          psi[t] = io_p.set[p][t]
+          edge[:psi] = psi
+        end
+      end
+
+      p = io[:unit].first[:psi]
       edge[:surfaces].keys.each do |id|
+        next if match # customized edge from TBD JSON file
         next unless surfaces.has_key?(id)
+
         # Skipping the :party wall label for now. Criteria determining party
         # wall edges from TBD edges is to be determined. Most likely scenario
         # seems to be an edge linking only 1x outside-facing or ground-facing
@@ -1018,10 +1066,10 @@ RSpec.describe TBD do
         unless psi.has_key?(:grade)
           edge[:surfaces].keys.each do |i|
             next unless surfaces.has_key?(i)
-            next unless surfaces[i][:boundary].downcase == "Outdoors"
+            next unless surfaces[i][:boundary].downcase == "outdoors"
             next unless surfaces[id].has_key?(:ground)
             next unless surfaces[id][:ground]
-            psi[:grade] = psi_set[:grade]
+            psi[:grade] = io_p.set[p][:grade]
           end
         end
 
@@ -1032,7 +1080,7 @@ RSpec.describe TBD do
           edge[:surfaces].keys.each do |i|
             next unless shades.has_key?(i)
             next unless floors.has_key?(id)
-            psi[:balcony] = psi_set[:balcony]
+            psi[:balcony] = io_p.set[p][:balcony]
           end
         end
 
@@ -1045,7 +1093,7 @@ RSpec.describe TBD do
             next unless walls[i][:boundary].downcase == "outdoors"
             next unless ceilings.has_key?(id)
             next unless ceilings[id][:boundary].downcase == "outdoors"
-            psi[:parapet] = psi_set[:parapet]
+            psi[:parapet] = io_p.set[p][:parapet]
           end
         end
 
@@ -1057,7 +1105,7 @@ RSpec.describe TBD do
             next unless walls[i][:boundary].downcase == "outdoors"
             next unless floors.has_key?(id)
             next unless floors[id][:boundary].downcase == "outdoors"
-            psi[:parapet] = psi_set[:parapet]
+            psi[:parapet] = io_p.set[p][:parapet]
           end
         end
 
@@ -1069,7 +1117,7 @@ RSpec.describe TBD do
             next unless ceilings[i][:boundary].downcase == "outdoors"
             next unless floors.has_key?(id)
             next unless floors[id][:boundary].downcase == "outdoors"
-            psi[:parapet] = psi_set[:parapet]
+            psi[:parapet] = io_p.set[p][:parapet]
           end
         end
 
@@ -1081,7 +1129,7 @@ RSpec.describe TBD do
             next unless floors.has_key?(i)
             next unless walls.has_key?(id)
             next unless walls[id][:boundary].downcase == "outdoors"
-            psi[:rimjoist] = psi_set[:rimjoist]
+            psi[:rimjoist] = io_p.set[p][:rimjoist]
           end
         end
 
@@ -1090,7 +1138,7 @@ RSpec.describe TBD do
         unless psi.has_key?(:fenestration)
           edge[:surfaces].keys.each do |i|
             next unless holes.has_key?(i)
-            psi[:fenestration] = psi_set[:fenestration]
+            psi[:fenestration] = io_p.set[p][:fenestration]
           end
         end
 
@@ -1114,14 +1162,92 @@ RSpec.describe TBD do
 
             n1_d_p2 = s1[:normal].dot(s2[:polar])
             p1_d_n2 = s1[:polar].dot(s2[:normal])
-            psi[:concave] = psi_set[:concave] if n1_d_p2 > 0 && p1_d_n2 > 0
-            psi[:convex]  = psi_set[:convex]  if n1_d_p2 < 0 && p1_d_n2 < 0
+            psi[:concave] = io_p.set[p][:concave] if n1_d_p2 > 0 && p1_d_n2 > 0
+            psi[:convex]  = io_p.set[p][:convex]  if n1_d_p2 < 0 && p1_d_n2 < 0
           end
         end
       end # edge's surfaces loop
 
       edge[:psi] = psi unless psi.empty?
     end # edge loop
+
+    # In the preceding loop, TBD initially sets individual edge PSI types/values
+    # to those of the project-wide :unit set. If the TBD JSON file holds custom
+    # :story, :space or :surface PSI sets that are applicable to individual edges,
+    # then those override the default :unit ones.
+
+    # For now, the link between TBD :stories and OSM BuildingStories isn't yet
+    # completed/tested, so ignored for now ...
+    # openstudio-sdk-documentation.s3.amazonaws.com/cpp/OpenStudio-2.9.0-doc/model/html/classopenstudio_1_1model_1_1_building_story.html
+    if io
+      # if io.has_key?(:stories)    # ... will override :unit sets
+      # end
+
+      if io.has_key?(:spaces)     # ... will override :stories sets
+        io[:spaces].each do |space|
+          next unless space.has_key?(:id)
+          next unless space.has_key?(:psi)
+          i = space[:id]
+          p = space[:psi]
+          next unless io_p.set.has_key?(p)
+
+          edges.values.each do |edge|
+            next unless edge.has_key?(:psi)
+            next unless edge.has_key?(:surfaces)
+
+            # TBD/Topolys edges will generally be linked to more than one surface
+            # and hence to more than one space. It is possible for a TBD JSON file
+            # to hold 2x space PSI sets that affect one or more edges common to
+            # both spaces. As with Ruby and JSON hashes, the last processed TBD
+            # JSON space PSI set will supersede preceding ones. Caution ...
+            # Maybe future revisons to TBD JSON I/O validation ...
+            edge[:surfaces].each do |s|
+              next unless surfaces.has_key?(s)
+              next unless surfaces[s].has_key?(:space)
+              sp = surfaces[s][:space]
+              next if sp.empty?
+              sp = sp.get
+              next unless i == sp.nameString
+              edge[:psi].keys.each do |t|
+                edge[:psi][t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+              end
+            end
+          end
+        end
+      end
+
+      if io.has_key?(:surfaces)   # ... will override :spaces sets
+        io[:surfaces].each do |surface|
+          next unless surface.has_key?(:id)
+          i = surface[:id]
+          if surface.has_key?(:psi)
+            p = surface[:psi]
+            next unless io_p.set.has_key?(p)
+
+            edges.values.each do |edge|
+              next unless edge.has_key?(:psi)
+              next unless edge.has_key?(:surfaces)
+
+              # TBD/Topolys edges will generally be linked to more than one
+              # surface. It is possible for a TBD JSON file to hold 2x surface PSI
+              # sets that affect one or more edges common to both surfaces. As
+              # with Ruby and JSON hashes, the last processed TBD JSON surface PSI
+              # set will supersede preceding ones. Caution ...
+              # Maybe future revisons to TBD JSON I/O validation ...
+              edge[:surfaces].each do |s|
+                next unless surfaces.has_key?(s)
+                next unless i == s
+                edge[:psi].keys.each do |t|
+                  edge[:psi][t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+
+    # PROCESS KHI ... TO DO
 
     n_deratables = 0
     n_edges_at_grade = 0
@@ -1131,17 +1257,17 @@ RSpec.describe TBD do
     n_edges_as_fenestrations = 0
     n_edges_as_concave_corners = 0
     n_edges_as_convex_corners = 0
+
     edges.values.each do |edge|
-      if edge.has_key?(:psi)
-        n_deratables += 1
-        n_edges_at_grade            += 1 if edge[:psi].has_key?(:grade)
-        n_edges_as_balconies        += 1 if edge[:psi].has_key?(:balcony)
-        n_edges_as_parapets         += 1 if edge[:psi].has_key?(:parapet)
-        n_edges_as_rimjoists        += 1 if edge[:psi].has_key?(:rimjoist)
-        n_edges_as_fenestrations    += 1 if edge[:psi].has_key?(:fenestration)
-        n_edges_as_concave_corners  += 1 if edge[:psi].has_key?(:concave)
-        n_edges_as_convex_corners   += 1 if edge[:psi].has_key?(:convex)
-      end
+      next unless edge.has_key?(:psi)
+      n_deratables += 1
+      n_edges_at_grade            += 1 if edge[:psi].has_key?(:grade)
+      n_edges_as_balconies        += 1 if edge[:psi].has_key?(:balcony)
+      n_edges_as_parapets         += 1 if edge[:psi].has_key?(:parapet)
+      n_edges_as_rimjoists        += 1 if edge[:psi].has_key?(:rimjoist)
+      n_edges_as_fenestrations    += 1 if edge[:psi].has_key?(:fenestration)
+      n_edges_as_concave_corners  += 1 if edge[:psi].has_key?(:concave)
+      n_edges_as_convex_corners   += 1 if edge[:psi].has_key?(:convex)
     end
     expect(n_deratables).to eq(62)
     expect(n_edges_at_grade).to eq(0)
@@ -1224,7 +1350,7 @@ RSpec.describe TBD do
       end
       n_surfaces_to_derate += 1
     end
-    #expect(n_surfaces_to_derate).to eq(0) # if "(without thermal bridges)"
+    #expect(n_surfaces_to_derate).to eq(0) # if "(non thermal bridging)"
     expect(n_surfaces_to_derate).to eq(22) # if "poor (BC Hydro)"
 
     # if "poor (BC Hydro)"
@@ -1251,7 +1377,7 @@ RSpec.describe TBD do
     expect(surfaces["g_N_wall"  ][:heatloss]).to be_within(0.01).of(54.255)
     expect(surfaces["p_W2_floor"][:heatloss]).to be_within(0.01).of(13.729)
 
-    # if "(without thermal bridges)""
+    # if "(non thermal bridging)""
     # expect(surfaces["s_floor"   ].has_key?(:heatloss)).to be(false)
     # expect(surfaces["s_E_wall"  ].has_key?(:heatloss)).to be(false)
     # expect(surfaces["p_E_floor" ].has_key?(:heatloss)).to be(false)
@@ -1402,12 +1528,10 @@ RSpec.describe TBD do
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
-    psi = PSI.new
-    psi_set = psi.set["poor (BC Hydro)"]
-
-    # TBD "surfaces" (Hash) holds opaque surfaces (as well as their child
-    # subsurfaces) for post-processing, e.g. testing, output to JSON (soon).
-    surfaces = processTBD(os_model, psi_set)
+    psi_set = "poor (BC Hydro)"
+    io_f = ""
+    schema_f = File.dirname(__FILE__) + "/../tbd.schema.json"
+    surfaces = processTBD(os_model, io_f, schema_f, psi_set)
     expect(surfaces.size).to eq(43)
 
     # testing
@@ -1422,62 +1546,6 @@ RSpec.describe TBD do
   end
 end
 
-# RSpec.describe TBD do
-#   it "can process TB & D : DOE Prototype test_secondaryschool.osm" do
-#     translator = OpenStudio::OSVersion::VersionTranslator.new
-#     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_secondaryschool_7.osm")
-#     os_model = translator.loadModel(path)
-#     expect(os_model.empty?).to be(false)
-#     os_model = os_model.get
-#
-#     psi = PSI.new
-#     psi_set = psi.set["efficient (BC Hydro)"]
-#     #psi_set = psi.set["(without thermal bridges)"]
-#
-#
-#     # TBD "surfaces" (Hash) holds opaque surfaces (as well as their child
-#     # subsurfaces) for post-processing, e.g. testing, output to JSON (soon).
-#     surfaces = processTBD(os_model, psi_set)
-#     expect(surfaces.size).to eq(326)
-#
-#     # testing (with)
-#     surfaces.each do |id, surface|
-#       next unless surface.has_key?(:edges)
-#       os_model.getSurfaces.each do |s|
-#         next unless id == s.nameString
-#         expect(s.isConstructionDefaulted).to be(false)
-#         expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
-#
-#         u = s.uFactor
-#         c = s.thermalConductance
-#         unless u.empty? || c.empty?
-#           u = u.get
-#           c = c.get
-#           #puts "with, #{id}, #{s.netArea}, #{u}, #{c}"
-#         end
-#       end
-#     end
-#
-#     # testing (without)
-#     surfaces.each do |id, surface|
-#       next if surface.has_key?(:edges)
-#       os_model.getSurfaces.each do |s|
-#         next unless id == s.nameString
-#         next unless s.outsideBoundaryCondition.downcase == "outdoors"
-#         expect(/ tbd/i.match(s.construction.get.nameString)).to eq(nil)
-#
-#         u = s.uFactor
-#         c = s.thermalConductance
-#         unless u.empty? || c.empty?
-#           u = u.get
-#           c = c.get
-#           #puts "without, #{id}, #{s.netArea}, #{u}, #{c}"
-#         end
-#       end
-#     end
-#   end
-# end
-
 RSpec.describe TBD do
   it "can process TB & D : DOE Prototype test_warehouse.osm" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
@@ -1486,12 +1554,10 @@ RSpec.describe TBD do
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
-    psi = PSI.new
-    psi_set = psi.set["poor (BC Hydro)"]
-
-    # TBD "surfaces" (Hash) holds opaque surfaces (as well as their child
-    # subsurfaces) for post-processing, e.g. testing, output to JSON (soon).
-    surfaces = processTBD(os_model, psi_set)
+    psi_set = "poor (BC Hydro)"
+    io_f = ""
+    schema_f = File.dirname(__FILE__) + "/../tbd.schema.json"
+    surfaces = processTBD(os_model, io_f, schema_f, psi_set)
     expect(surfaces.size).to eq(23)
 
     # testing
@@ -1524,12 +1590,10 @@ RSpec.describe TBD do
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
-    psi = PSI.new
-    psi_set = psi.set["poor (BC Hydro)"]
-
-    # TBD "surfaces" (Hash) holds opaque surfaces (as well as their child
-    # subsurfaces) for post-processing, e.g. testing, output to JSON (soon).
-    surfaces = processTBD(os_model, psi_set)
+    psi_set = "poor (BC Hydro)"
+    io_f = ""
+    schema_f = File.dirname(__FILE__) + "/../tbd.schema.json"
+    surfaces = processTBD(os_model, io_f, schema_f, psi_set)
     expect(surfaces.size).to eq(56)
 
     surfaces.each do |id, surface|
@@ -1552,12 +1616,10 @@ RSpec.describe TBD do
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
-    psi = PSI.new
-    psi_set = psi.set["(without thermal bridges)"]
-
-    # TBD "surfaces" (Hash) holds opaque surfaces (as well as their child
-    # subsurfaces) for post-processing, e.g. testing, output to JSON (soon).
-    surfaces = processTBD(os_model, psi_set)
+    psi_set = "(non thermal bridging)"
+    io_f = ""
+    schema_f = File.dirname(__FILE__) + "/../tbd.schema.json"
+    surfaces = processTBD(os_model, io_f, schema_f, psi_set)
     expect(surfaces.size).to eq(56)
 
     # Since all PSI values = 0, we're not expecting any derated surfaces
@@ -1568,405 +1630,231 @@ RSpec.describe TBD do
 end
 
 RSpec.describe TBD do
+  it "can process TB & D : test_seb.osm (0 W/K per m) with JSON" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    psi_set = "(non thermal bridging)"
+    io_f = File.dirname(__FILE__) + "/../json/tbd_seb.json"
+    schema_f = File.dirname(__FILE__) + "/../tbd.schema.json"
+    surfaces = processTBD(os_model, io_f, schema_f, psi_set)
+    expect(surfaces.size).to eq(56)
+
+    # As the :unit PSI set on file remains "(non thermal bridging)", one should
+    # not expect differences in results, i.e. derating shouldn't occur.
+    surfaces.values.each do |surface|
+      expect(surface.has_key?(:ratio)).to be(false)
+    end
+  end
+end
+
+RSpec.describe TBD do
+  it "can process TB & D : test_seb.osm (0 W/K per m) with JSON (non-0)" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    psi_set = "(non thermal bridging)"
+    io_f = File.dirname(__FILE__) + "/../json/tbd_seb_n0.json"
+    schema_f = File.dirname(__FILE__) + "/../tbd.schema.json"
+    surfaces = processTBD(os_model, io_f, schema_f, psi_set)
+    expect(surfaces.size).to eq(56)
+
+    # The :unit PSI set on file "compliant" supersedes the psi_set
+    #{ }"(non thermal bridging)", so one should expect differences in results,
+    # i.e. derating should occur. The next 2 tests:
+    #   1. setting both psi_set & file :unit to "compliant"
+    #   2. setting psi_set to "compliant" while removing the :unit from file
+    # ... all 3x cases should yield the same results.
+    surfaces.each do |id, surface|
+      if surface.has_key?(:ratio)
+        #ratio  = format "%3.1f", surface[:ratio]
+        #name   = id.rjust(15, " ")
+        #puts "#{name} RSi derated by #{ratio}%"
+        if id == "Level0 Utility 1 Ceiling Plenum AbvClgPlnmWall 5"
+          expect(surface[:ratio]).to be_within(0.1).of(-18.1)
+        end
+        if id == "Utility1 Wall 5"
+          expect(surface[:ratio]).to be_within(0.1).of(-24.5)
+        end
+        if id == "Openarea 1 Wall 7"
+          expect(surface[:ratio]).to be_within(0.1).of(-15.5)
+        end
+        # Level0 Small office 1 Ceiling Plenum AbvClgPlnmWall 6 RSi derated by -19.5%
+        # Level 0 Small office 1 Ceiling Plenum RoofCeiling RSi derated by -26.3%
+        # Level0 Small office 1 Ceiling Plenum AbvClgPlnmWall 2 RSi derated by -19.4%
+        # Level0 Small office 1 Ceiling Plenum AbvClgPlnmWall 1 RSi derated by -20.3%
+        # Smalloffice 1 Wall 1 RSi derated by -30.2%
+        # Smalloffice 1 Wall 2 RSi derated by -30.4%
+        # Level0 Open area 1 Ceiling Plenum AbvClgPlnmWall 6 RSi derated by -22.5%
+        # Level0 Open area 1 Ceiling Plenum AbvClgPlnmWall 7 RSi derated by -20.6%
+        # Level0 Entry way  Ceiling Plenum AbvClgPlnmWall 6 RSi derated by -15.9%
+        # Level0 Open area 1 Ceiling Plenum AbvClgPlnmWall 5 RSi derated by -20.3%
+        # Openarea 1 Wall 5 RSi derated by -15.2%
+        # Level0 Open area 1 Ceiling Plenum AbvClgPlnmWall 4 RSi derated by -23.2%
+        # Openarea 1 Wall 4 RSi derated by -19.0%
+        # Level0 Utility 1 Ceiling Plenum AbvClgPlnmWall 1 RSi derated by -18.1%
+        # Level0 Open area 1 Ceiling Plenum AbvClgPlnmWall 3 RSi derated by -19.7%
+        # Openarea 1 Wall 3 RSi derated by -14.4%
+        # Smalloffice 1 Wall 6 RSi derated by -30.6%
+        # Entryway  Wall 6 RSi derated by -23.0%
+        # Openarea 1 Wall 6 RSi derated by -18.0%
+        # Utility1 Wall 1 RSi derated by -24.5%
+        # Entryway  Wall 4 RSi derated by -26.7%
+        # Entryway  Wall 5 RSi derated by -24.0%
+        # Level 0 Utility 1 Ceiling Plenum RoofCeiling RSi derated by -26.3%
+        # Level0 Entry way  Ceiling Plenum AbvClgPlnmWall 5 RSi derated by -18.4%
+        if id == "Level 0 Entry way  Ceiling Plenum RoofCeiling"
+          expect(surface[:ratio]).to be_within(0.1).of(-28.5)
+        end
+        if id == "Level0 Entry way  Ceiling Plenum AbvClgPlnmWall 4"
+          expect(surface[:ratio]).to be_within(0.1).of(-20.7)
+        end
+        if id == "Level 0 Open area 1 Ceiling Plenum RoofCeiling"
+          expect(surface[:ratio]).to be_within(0.1).of(-20.4)
+        end
+      else
+        expect(surface[:boundary].downcase).to_not eq("outdoors")
+      end
+    end
+  end
+end
+
+RSpec.describe TBD do
+  it "can process TB & D : test_seb.osm (0 W/K per m) with JSON (non-0) 2" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    #   1. setting both psi_set & file :unit to "compliant"
+    psi_set = "compliant" # instead of "(non thermal bridging)"
+    io_f = File.dirname(__FILE__) + "/../json/tbd_seb_n0.json"
+    schema_f = File.dirname(__FILE__) + "/../tbd.schema.json"
+    surfaces = processTBD(os_model, io_f, schema_f, psi_set)
+    expect(surfaces.size).to eq(56)
+
+    surfaces.each do |id, surface|
+      if surface.has_key?(:ratio)
+        #ratio  = format "%3.1f", surface[:ratio]
+        #name   = id.rjust(15, " ")
+        #puts "#{name} RSi derated by #{ratio}%"
+        if id == "Level0 Utility 1 Ceiling Plenum AbvClgPlnmWall 5"
+          expect(surface[:ratio]).to be_within(0.1).of(-18.1)
+        end
+        if id == "Utility1 Wall 5"
+          expect(surface[:ratio]).to be_within(0.1).of(-24.5)
+        end
+        if id == "Openarea 1 Wall 7"
+          expect(surface[:ratio]).to be_within(0.1).of(-15.5)
+        end
+        if id == "Level 0 Entry way  Ceiling Plenum RoofCeiling"
+          expect(surface[:ratio]).to be_within(0.1).of(-28.5)
+        end
+        if id == "Level0 Entry way  Ceiling Plenum AbvClgPlnmWall 4"
+          expect(surface[:ratio]).to be_within(0.1).of(-20.7)
+        end
+        if id == "Level 0 Open area 1 Ceiling Plenum RoofCeiling"
+          expect(surface[:ratio]).to be_within(0.1).of(-20.4)
+        end
+      else
+        expect(surface[:boundary].downcase).to_not eq("outdoors")
+      end
+    end
+  end
+end
+
+RSpec.describe TBD do
+  it "can process TB & D : test_seb.osm (0 W/K per m) with JSON (non-0) 3" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    #   2. setting psi_set to "compliant" while removing the :unit from file
+    psi_set = "compliant" # instead of "(non thermal bridging)"
+    io_f = File.dirname(__FILE__) + "/../json/tbd_seb_n1.json" # no :unit
+    schema_f = File.dirname(__FILE__) + "/../tbd.schema.json"
+    surfaces = processTBD(os_model, io_f, schema_f, psi_set)
+    expect(surfaces.size).to eq(56)
+
+    surfaces.each do |id, surface|
+      if surface.has_key?(:ratio)
+        #ratio  = format "%3.1f", surface[:ratio]
+        #name   = id.rjust(15, " ")
+        #puts "#{name} RSi derated by #{ratio}%"
+        if id == "Level0 Utility 1 Ceiling Plenum AbvClgPlnmWall 5"
+          expect(surface[:ratio]).to be_within(0.1).of(-18.1)
+        end
+        if id == "Utility1 Wall 5"
+          expect(surface[:ratio]).to be_within(0.1).of(-24.5)
+        end
+        if id == "Openarea 1 Wall 7"
+          expect(surface[:ratio]).to be_within(0.1).of(-15.5)
+        end
+        if id == "Level 0 Entry way  Ceiling Plenum RoofCeiling"
+          expect(surface[:ratio]).to be_within(0.1).of(-28.5)
+        end
+        if id == "Level0 Entry way  Ceiling Plenum AbvClgPlnmWall 4"
+          expect(surface[:ratio]).to be_within(0.1).of(-20.7)
+        end
+        if id == "Level 0 Open area 1 Ceiling Plenum RoofCeiling"
+          expect(surface[:ratio]).to be_within(0.1).of(-20.4)
+        end
+      else
+        expect(surface[:boundary].downcase).to_not eq("outdoors")
+      end
+    end
+  end
+end
+
+RSpec.describe TBD do
   it "can process TB & D : JSON file read/validate" do
-    tbd_schema =
-    {
-      "$schema": "http://json-schema.org/draft-04/schema#",
-      "id": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
-      "title": "TBD Schema",
-      "description": "Schema for Thermal Bridging and Derating",
-      "type": "object",
-      "properties": {
-        "description": {
-          "type": "string"
-        },
-        "schema": {
-          "type": "string"
-        },
-        "psis": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/PSI"
-          },
-          "uniqueItems": true
-        },
-        "khis": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/KHI"
-          },
-          "uniqueItems": true
-        },
-        "edges": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Edge"
-          },
-          "uniqueItems": true
-        },
-        "surfaces": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Surface"
-          },
-          "uniqueItems": true
-        },
-        "spaces": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Space"
-          },
-          "uniqueItems": true
-        },
-        "stories": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Story"
-          },
-          "uniqueItems": true
-        },
-        "unit": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Unit"
-          },
-          "uniqueItems": true
-        },
-        "logs": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Log"
-          }
-        }
-      },
-      "additionalProperties": false,
-      "definitions": {
-        "PSI": {
-          "description": "Set of PSI-values (in W/K per m) for thermal bridges",
-          "type": "object",
-          "properties": {
-            "id": {
-              "title": "Unique PSI set identifier",
-              "type": "string"
-            },
-            "rimjoist": {
-              "title": "Floor/wall edge PSI",
-              "type": "number",
-              "minimum": 0
-            },
-            "parapet": {
-              "title": "Roof/wall or exposed-floor/wall edge PSI",
-              "type": "number",
-              "minimum": 0
-            },
-            "fenestration": {
-              "title": "Window, door, skylight perimeter PSI",
-              "type": "number",
-              "minimum": 0
-            },
-            "concave": {
-              "title": "Wall corner [0°,135°) PSI",
-              "type": "number",
-              "minimum": 0
-            },
-            "convex": {
-              "title": "Wall corner (225°,360°] PSI",
-              "type": "number",
-              "minimum": 0
-            },
-            "balcony": {
-              "title": "Floor/balcony edge PSI ",
-              "type": "number",
-              "minimum": 0
-            },
-            "party": {
-              "title": "Party wall edge PSI",
-              "type": "number",
-              "minimum": 0
-            },
-            "grade": {
-              "title": "Floor/foundation edge PSI",
-              "type": "number",
-              "minimum": 0
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "id"
-          ],
-          "minProperties": 2
-        },
-        "KHI": {
-          "description": "KHI-value (in W/K) for a point thermal bridge",
-          "type": "object",
-          "properties": {
-            "id": {
-              "title": "Unique KHI identifier",
-              "type": "string"
-            },
-            "point": {
-              "title": "Point KHI-value",
-              "type": "number",
-              "minimum": 0
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "id",
-            "point"
-          ]
-        },
-        "Edge": {
-          "description": "Surface(s) edge as thermal bridge",
-          "type": "object",
-          "properties": {
-            "psi": {
-              "title": "PSI-set identifier",
-              "type": "string"
-            },
-            "type": {
-              "title": "PSI-set type, e.g. 'parapet'",
-              "type": "string",
-              "enum": [
-                "rimjoist",
-                "parapet",
-                "fenestration",
-                "concave",
-                "convex",
-                "balcony",
-                "party",
-                "grade"
-              ]
-            },
-            "length": {
-              "title": "Edge length (m), 10cm min",
-              "type": "number",
-              "minimum": 0,
-              "exclusiveMinimum": true
-            },
-            "surfaces": {
-              "title": "Surface(s) connected to edge",
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "minItems": 1,
-              "uniqueItems": true
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "psi",
-            "type",
-            "length",
-            "surfaces"
-          ]
-        },
-        "Surface": {
-          "description": "Surface default PSI-set (optional)",
-          "type": "object",
-          "properties": {
-            "id": {
-              "title": "e.g. OS or E+ surface identifier",
-              "type": "string"
-            },
-            "psi": {
-              "title": "PSI-set identifier",
-              "type": "string"
-            },
-            "khis": {
-              "title": "Surface-hosted point thermal bridges",
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "title": "Unique KHI-value identifier",
-                    "type": "string"
-                  },
-                  "count": {
-                    "title": "Number of KHI-matching point thermal bridges",
-                    "type": "number",
-                    "minimum": 1
-                  }
-                },
-                "additionalProperties": false,
-                "required": [
-                  "id",
-                  "count"
-                ]
-              },
-              "uniqueItems": true
-            }
-          },
-          "additionalProperties": false,
-          "minProperties": 2,
-          "required": [
-            "id"
-          ]
-        },
-        "Space": {
-          "description": "Space default PSI-set (optional for OS)",
-          "type": "object",
-          "required": [
-            "id",
-            "psi"
-          ],
-          "properties": {
-            "id": {
-              "title": "e.g. OS space or E+ zone identifier",
-              "type": "string"
-            },
-            "psi": {
-              "title": "PSI-set identifier",
-              "type": "string"
-            }
-          },
-          "additionalProperties": false
-        },
-        "Story": {
-          "title": "Story default PSI-set (optional for OS)",
-          "type": "object",
-          "properties": {
-            "id": {
-              "title": "e.g. OS story identifier",
-              "type": "string"
-            },
-            "psi": {
-              "title": "PSI-set identifier",
-              "type": "string"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "id",
-            "psi"
-          ]
-        },
-        "Unit": {
-          "title": "Building unit default PSI-set (optional for OS)",
-          "type": "object",
-          "properties": {
-            "psi": {
-              "title": "PSI-set identifier",
-              "type": "string"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "psi"
-          ]
-        },
-        "Log": {
-          "title": "TBD log messages",
-          "type": "string"
-        }
-      }
-    }
+    schema_f = File.dirname(__FILE__) + "/../tbd.schema.json"
+    expect(File.exist?(schema_f)).to be(true)
+    schema_c = File.read(schema_f)
+    schema = JSON.parse(schema_c, symbolize_names: true)
 
-    tbd_io =
-    {
-      "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
-      "description": "testing basic JSON validation",
-      "psis": [
-        {
-          "id": "good",
-          "parapet": 0.5,
-          "party": 0.9
-        },
-        {
-          "id": "compliant",
-          "rimjoist": 0.3,
-          "parapet": 0.325,
-          "fenestration": 0.35,
-          "concave": 0.45,
-          "convex": 0.45,
-          "balcony": 0.5,
-          "party": 0.5,
-          "grade": 0.45
-        }
-      ],
-      "khis": [
-        {
-          "id": "column",
-          "point": 0.5
-        },
-        {
-          "id": "support",
-          "point": 0.5
-        }
-      ],
-      "edges": [
-        {
-          "psi": "compliant",
-          "type": "party",
-          "length": 2.5,
-          "surfaces": [
-            "front wall"
-          ]
-        }
-      ],
-      "surfaces": [
-        {
-          "id": "front wall",
-          "khis": [
-            {
-              "id": "column",
-              "count": 3
-            },
-            {
-              "id": "support",
-              "count": 4
-            }
-          ],
-          "psi": "good"
-        }
-      ],
-      "unit": [
-        {
-          "psi": "compliant"
-        }
-      ]
-    }
-    # JSON::Validator.validate!(tbd_schema, tbd_o)
-    expect(JSON::Validator.validate(tbd_schema, tbd_io)).to be(true)
+    io_f = File.dirname(__FILE__) + "/../json/tbd_json_test.json"
+    io_c = File.read(io_f)
+    io = JSON.parse(io_c, symbolize_names: true)
 
-    # Load TBD JSON schema (same as above, yet on file)
-    tbd_schema_f = File.dirname(__FILE__) + "/../tbd.schema.json"
-    expect(File.exist?(tbd_schema_f)).to be(true)
-    tbd_schema_c = File.read(tbd_schema_f)
-    tbd_schema = JSON.parse(tbd_schema_c, symbolize_names: true)
-    expect(JSON::Validator.validate(tbd_schema, tbd_io)).to be(true)
-    expect(tbd_io.has_key?(:description)).to be(true)
-    expect(tbd_io.has_key?(:schema)).to be(true)
-    expect(tbd_io.has_key?(:edges)).to be(true)
-    expect(tbd_io.has_key?(:surfaces)).to be(true)
-    expect(tbd_io.has_key?(:spaces)).to be(false)
-    expect(tbd_io.has_key?(:stories)).to be(false)
-    expect(tbd_io.has_key?(:unit)).to be(true)
-    expect(tbd_io.has_key?(:logs)).to be(false)
-    expect(tbd_io[:edges].size).to eq(1)
-    expect(tbd_io[:surfaces].size).to eq(1)
+    expect(JSON::Validator.validate(schema, io)).to be(true)
+    expect(io.has_key?(:description)).to be(true)
+    expect(io.has_key?(:schema)).to be(true)
+    expect(io.has_key?(:edges)).to be(true)
+    expect(io.has_key?(:surfaces)).to be(true)
+    expect(io.has_key?(:spaces)).to be(false)
+    expect(io.has_key?(:stories)).to be(false)
+    expect(io.has_key?(:unit)).to be(true)
+    expect(io.has_key?(:logs)).to be(false)
+    expect(io[:edges].size).to eq(1)
+    expect(io[:surfaces].size).to eq(1)
 
     # Loop through input psis to ensure uniqueness vs PSI defaults
     psi = PSI.new
-    if tbd_io.has_key?(:psis)
-      tbd_io[:psis].each do |p| psi.append(p); end
-    end
+    expect(io.has_key?(:psis)).to be(true)
+    io[:psis].each do |p| psi.append(p); end
     expect(psi.set.size).to eq(7)
     expect(psi.set.has_key?("poor (BC Hydro)")).to be(true)
     expect(psi.set.has_key?("regular (BC Hydro)")).to be(true)
     expect(psi.set.has_key?("efficient (BC Hydro)")).to be(true)
     expect(psi.set.has_key?("code (Quebec)")).to be(true)
-    expect(psi.set.has_key?("(without thermal bridges)")).to be(true)
+    expect(psi.set.has_key?("(non thermal bridging)")).to be(true)
     expect(psi.set.has_key?("good")).to be(true)
     expect(psi.set.has_key?("compliant")).to be(true)
 
     # Similar treatment for khis
     khi = KHI.new
-    if tbd_io.has_key?(:khis)
-      tbd_io[:khis].each do |k| khi.append(k); end
-    end
+    expect(io.has_key?(:khis)).to be(true)
+    io[:khis].each do |k| khi.append(k); end
     expect(khi.point.size).to eq(7)
     expect(khi.point.has_key?("poor (BC Hydro)")).to be(true)
     expect(khi.point.has_key?("regular (BC Hydro)")).to be(true)
@@ -1978,138 +1866,37 @@ RSpec.describe TBD do
     expect(khi.point["column"]).to eq(0.5)
     expect(khi.point["support"]).to eq(0.5)
 
-    # Internal logic of TBD JSON file content, e.g.
-    # referenced psis & khis need to be loaded in memory
-    # either built-in TBD defaults or on file.
-    if tbd_io.has_key?(:unit)
-      # although structured as an array, there can only be one unit per file
-      tbd_io[:unit].each do |unit|
-        if unit.has_key?(:psi)
-          expect(unit[:psi]).to eq("compliant")
-          expect(psi.set.has_key?(unit[:psi])).to be(true)
-        end
-      end
-    end
-    if tbd_io.has_key?(:surfaces)
-      tbd_io[:surfaces].each do |surface|
-        expect(surface.has_key?(:id)).to be(true)
-        expect(surface[:id]).to eq("front wall") # valid vs OSM ?
-        if surface.has_key?(:psi)
-          expect(surface[:psi]).to eq("good")
-          expect(psi.set.has_key?(surface[:psi])).to be(true)
-        end
-        if surface.has_key?(:khis)
-          expect(surface[:khis].size).to eq(2)
-          surface[:khis].each do |k|
-            expect(k.has_key?(:id)).to be(true)
-            expect(khi.point.has_key?(k[:id])).to be(true)
-            expect(k[:count]).to eq(3) if k[:id] == "column"
-            expect(k[:count]).to eq(4) if k[:id] == "support"
-          end
-        end
-      end
-    end
-    if tbd_io.has_key?(:edges)
-      tbd_io[:edges].each do |edge|
-        if edge.has_key?(:psi)
-          expect(edge[:psi]).to eq("compliant")
-          expect(psi.set.has_key?(edge[:psi])).to be(true)
-          expect(edge.has_key?(:surfaces)).to be(true)
-          edge[:surfaces].each do |surface|
-            expect(surface).to eq("front wall") # valid vs OSM ?
-          end
-        end
+    expect(io.has_key?(:unit)).to be(true)
+    expect(io[:unit].first.has_key?(:psi)).to be(true)
+    expect(io[:unit].first[:psi]).to eq("compliant")
+    expect(psi.set.has_key?(io[:unit].first[:psi])).to be(true)
+
+    expect(io.has_key?(:surfaces)).to be(true)
+    io[:surfaces].each do |surface|
+      expect(surface.has_key?(:id)).to be(true)
+      expect(surface[:id]).to eq("front wall")
+      expect(surface.has_key?(:psi)).to be(true)
+      expect(surface[:psi]).to eq("good")
+      expect(psi.set.has_key?(surface[:psi])).to be(true)
+
+      expect(surface.has_key?(:khis)).to be(true)
+      expect(surface[:khis].size).to eq(2)
+      surface[:khis].each do |k|
+        expect(k.has_key?(:id)).to be(true)
+        expect(khi.point.has_key?(k[:id])).to be(true)
+        expect(k[:count]).to eq(3) if k[:id] == "column"
+        expect(k[:count]).to eq(4) if k[:id] == "support"
       end
     end
 
-    # # Load TBD JSON test (same as above, yet on file)
-    tbd_io_f = File.dirname(__FILE__) + "/../json/tbd_json_test.json"
-    expect(File.exist?(tbd_schema_f)).to be(true)
-    tbd_io_c = File.read(tbd_io_f)
-    tbd_io = JSON.parse(tbd_io_c, symbolize_names: true)
-    expect(JSON::Validator.validate(tbd_schema, tbd_io)).to be(true)
-    expect(tbd_io.has_key?(:description)).to be(true)
-    expect(tbd_io.has_key?(:schema)).to be(true)
-    expect(tbd_io.has_key?(:edges)).to be(true)
-    expect(tbd_io.has_key?(:surfaces)).to be(true)
-    expect(tbd_io.has_key?(:spaces)).to be(false)
-    expect(tbd_io.has_key?(:stories)).to be(false)
-    expect(tbd_io.has_key?(:unit)).to be(true)
-    expect(tbd_io.has_key?(:logs)).to be(false)
-    expect(tbd_io[:edges].size).to eq(1)
-    expect(tbd_io[:surfaces].size).to eq(1)
-
-    # Loop through input psis to ensure uniqueness vs PSI defaults
-    psi = PSI.new
-    if tbd_io.has_key?(:psis)
-      tbd_io[:psis].each do |p| psi.append(p); end
-    end
-    expect(psi.set.size).to eq(7)
-    expect(psi.set.has_key?("poor (BC Hydro)")).to be(true)
-    expect(psi.set.has_key?("regular (BC Hydro)")).to be(true)
-    expect(psi.set.has_key?("efficient (BC Hydro)")).to be(true)
-    expect(psi.set.has_key?("code (Quebec)")).to be(true)
-    expect(psi.set.has_key?("(without thermal bridges)")).to be(true)
-    expect(psi.set.has_key?("good")).to be(true)
-    expect(psi.set.has_key?("compliant")).to be(true)
-
-    # Similar treatment for khis
-    khi = KHI.new
-    if tbd_io.has_key?(:khis)
-      tbd_io[:khis].each do |k| khi.append(k); end
-    end
-    expect(khi.point.size).to eq(7)
-    expect(khi.point.has_key?("poor (BC Hydro)")).to be(true)
-    expect(khi.point.has_key?("regular (BC Hydro)")).to be(true)
-    expect(khi.point.has_key?("efficient (BC Hydro)")).to be(true)
-    expect(khi.point.has_key?("code (Quebec)")).to be(true)
-    expect(khi.point.has_key?("(non thermal bridging)")).to be(true)
-    expect(khi.point.has_key?("column")).to be(true)
-    expect(khi.point.has_key?("support")).to be(true)
-    expect(khi.point["column"]).to eq(0.5)
-    expect(khi.point["support"]).to eq(0.5)
-
-    # Internal logic of TBD JSON file content, e.g.
-    # referenced psis & khis need to be loaded in memory
-    # either built-in TBD defaults or on file.
-    if tbd_io.has_key?(:unit)
-      # although structured as an array, there can only be one unit per file
-      tbd_io[:unit].each do |unit|
-        if unit.has_key?(:psi)
-          expect(unit[:psi]).to eq("compliant")
-          expect(psi.set.has_key?(unit[:psi])).to be(true)
-        end
-      end
-    end
-    if tbd_io.has_key?(:surfaces)
-      tbd_io[:surfaces].each do |surface|
-        expect(surface.has_key?(:id)).to be(true)
-        expect(surface[:id]).to eq("front wall") # valid vs OSM ?
-        if surface.has_key?(:psi)
-          expect(surface[:psi]).to eq("good")
-          expect(psi.set.has_key?(surface[:psi])).to be(true)
-        end
-        if surface.has_key?(:khis)
-          expect(surface[:khis].size).to eq(2)
-          surface[:khis].each do |k|
-            expect(k.has_key?(:id)).to be(true)
-            expect(khi.point.has_key?(k[:id])).to be(true)
-            expect(k[:count]).to eq(3) if k[:id] == "column"
-            expect(k[:count]).to eq(4) if k[:id] == "support"
-          end
-        end
-      end
-    end
-    if tbd_io.has_key?(:edges)
-      tbd_io[:edges].each do |edge|
-        if edge.has_key?(:psi)
-          expect(edge[:psi]).to eq("compliant")
-          expect(psi.set.has_key?(edge[:psi])).to be(true)
-          expect(edge.has_key?(:surfaces)).to be(true)
-          edge[:surfaces].each do |surface|
-            expect(surface).to eq("front wall") # valid vs OSM ?
-          end
-        end
+    expect(io.has_key?(:edges)).to be(true)
+    io[:edges].each do |edge|
+      expect(edge.has_key?(:psi)).to be(true)
+      expect(edge[:psi]).to eq("compliant")
+      expect(psi.set.has_key?(edge[:psi])).to be(true)
+      expect(edge.has_key?(:surfaces)).to be(true)
+      edge[:surfaces].each do |surface|
+        expect(surface).to eq("front wall")
       end
     end
 
@@ -2118,147 +1905,110 @@ RSpec.describe TBD do
     expect(khi.point["code (Quebec)"]).to eq(2.0)
 
     # Load PSI combo JSON example - likely the most expected or common use
-    tbd_io_f = File.dirname(__FILE__) + "/../json/tbd_PSI_combo.json"
-    expect(File.exist?(tbd_schema_f)).to be(true)
-    tbd_io_c = File.read(tbd_io_f)
-    tbd_io = JSON.parse(tbd_io_c, symbolize_names: true)
-    expect(JSON::Validator.validate(tbd_schema, tbd_io)).to be(true)
-    expect(tbd_io.has_key?(:description)).to be(true)
-    expect(tbd_io.has_key?(:schema)).to be(true)
-    expect(tbd_io.has_key?(:edges)).to be(false)
-    expect(tbd_io.has_key?(:surfaces)).to be(false)
-    expect(tbd_io.has_key?(:spaces)).to be(true)
-    expect(tbd_io.has_key?(:stories)).to be(false)
-    expect(tbd_io.has_key?(:unit)).to be(true)
-    expect(tbd_io.has_key?(:logs)).to be(false)
-    expect(tbd_io[:spaces].size).to eq(1)
-    expect(tbd_io[:unit].size).to eq(1)
+    io_f = File.dirname(__FILE__) + "/../json/tbd_PSI_combo.json"
+    io_c = File.read(io_f)
+    io = JSON.parse(io_c, symbolize_names: true)
+    expect(JSON::Validator.validate(schema, io)).to be(true)
+    expect(io.has_key?(:description)).to be(true)
+    expect(io.has_key?(:schema)).to be(true)
+    expect(io.has_key?(:edges)).to be(false)
+    expect(io.has_key?(:surfaces)).to be(false)
+    expect(io.has_key?(:spaces)).to be(true)
+    expect(io.has_key?(:stories)).to be(false)
+    expect(io.has_key?(:unit)).to be(true)
+    expect(io.has_key?(:logs)).to be(false)
+    expect(io[:spaces].size).to eq(1)
+    expect(io[:unit].size).to eq(1)
 
     # Loop through input psis to ensure uniqueness vs PSI defaults
     psi = PSI.new
-    if tbd_io.has_key?(:psis)
-      tbd_io[:psis].each do |p| psi.append(p); end
-    end
+    expect(io.has_key?(:psis)).to be(true)
+    io[:psis].each do |p| psi.append(p); end
     expect(psi.set.size).to eq(7)
     expect(psi.set.has_key?("poor (BC Hydro)")).to be(true)
     expect(psi.set.has_key?("regular (BC Hydro)")).to be(true)
     expect(psi.set.has_key?("efficient (BC Hydro)")).to be(true)
     expect(psi.set.has_key?("code (Quebec)")).to be(true)
-    expect(psi.set.has_key?("(without thermal bridges)")).to be(true)
+    expect(psi.set.has_key?("(non thermal bridging)")).to be(true)
     expect(psi.set.has_key?("OK")).to be(true)
     expect(psi.set.has_key?("Awesome")).to be(true)
     expect(psi.set["Awesome"][:rimjoist]).to eq(0.2)
 
-    # Similar treatment for khis
-    khi = KHI.new
-    if tbd_io.has_key?(:khis)
-      tbd_io[:khis].each do |k| khi.append(k); end
-    end
-    expect(khi.point.size).to eq(5)
+    expect(io.has_key?(:unit)).to be (true)
+    expect(io[:unit].first.has_key?(:psi)).to be(true)
+    expect(io[:unit].first[:psi]).to eq("Awesome")
+    expect(psi.set.has_key?(io[:unit].first[:psi])).to be(true)
 
-    # Internal logic of TBD JSON file content, e.g.
-    # referenced psis & khis need to be loaded in memory
-    # either built-in TBD defaults or on file.
-    if tbd_io.has_key?(:unit)
-      # although structured as an array, there can only be one unit per file
-      tbd_io[:unit].each do |unit|
-        if unit.has_key?(:psi)
-          expect(unit[:psi]).to eq("Awesome")
-          expect(psi.set.has_key?(unit[:psi])).to be(true)
-        end
-      end
-    end
-    if tbd_io.has_key?(:spaces)
-      tbd_io[:spaces].each do |space|
-        if space.has_key?(:psi)
-          expect(space[:id]).to eq("ground-floor restaurant") # valid vs OSM?
-          expect(space[:psi]).to eq("OK")
-          expect(psi.set.has_key?(space[:psi])).to be(true)
-        end
-      end
+    expect(io.has_key?(:spaces)).to be(true)
+    io[:spaces].each do |space|
+      expect(space.has_key?(:psi)).to be(true)
+      expect(space[:id]).to eq("ground-floor restaurant")
+      expect(space[:psi]).to eq("OK")
+      expect(psi.set.has_key?(space[:psi])).to be(true)
     end
 
     # Load PSI combo2 JSON example - a more elaborate example, yet common.
     # Post-JSON validation required to handle case sensitive keys & value
     # strings (e.g. "ok" vs "OK" in the file)
-    tbd_io_f = File.dirname(__FILE__) + "/../json/tbd_PSI_combo2.json"
-    expect(File.exist?(tbd_schema_f)).to be(true)
-    tbd_io_c = File.read(tbd_io_f)
-    tbd_io = JSON.parse(tbd_io_c, symbolize_names: true)
-    expect(JSON::Validator.validate(tbd_schema, tbd_io)).to be(true)
-    expect(tbd_io.has_key?(:description)).to be(true)
-    expect(tbd_io.has_key?(:schema)).to be(true)
-    expect(tbd_io.has_key?(:edges)).to be(true)
-    expect(tbd_io.has_key?(:surfaces)).to be(true)
-    expect(tbd_io.has_key?(:spaces)).to be(false)
-    expect(tbd_io.has_key?(:stories)).to be(false)
-    expect(tbd_io.has_key?(:unit)).to be(true)
-    expect(tbd_io.has_key?(:logs)).to be(false)
-    expect(tbd_io[:edges].size).to eq(1)
-    expect(tbd_io[:surfaces].size).to eq(1)
-    expect(tbd_io[:unit].size).to eq(1)
+    io_f = File.dirname(__FILE__) + "/../json/tbd_PSI_combo2.json"
+    io_c = File.read(io_f)
+    io = JSON.parse(io_c, symbolize_names: true)
+    expect(JSON::Validator.validate(schema, io)).to be(true)
+    expect(io.has_key?(:description)).to be(true)
+    expect(io.has_key?(:schema)).to be(true)
+    expect(io.has_key?(:edges)).to be(true)
+    expect(io.has_key?(:surfaces)).to be(true)
+    expect(io.has_key?(:spaces)).to be(false)
+    expect(io.has_key?(:stories)).to be(false)
+    expect(io.has_key?(:unit)).to be(true)
+    expect(io.has_key?(:logs)).to be(false)
+    expect(io[:edges].size).to eq(1)
+    expect(io[:surfaces].size).to eq(1)
+    expect(io[:unit].size).to eq(1)
 
     # Loop through input psis to ensure uniqueness vs PSI defaults
     psi = PSI.new
-    if tbd_io.has_key?(:psis)
-      tbd_io[:psis].each do |p| psi.append(p); end
-    end
+    expect(io.has_key?(:psis)).to be(true)
+    io[:psis].each do |p| psi.append(p); end
     expect(psi.set.size).to eq(8)
     expect(psi.set.has_key?("poor (BC Hydro)")).to be(true)
     expect(psi.set.has_key?("regular (BC Hydro)")).to be(true)
     expect(psi.set.has_key?("efficient (BC Hydro)")).to be(true)
     expect(psi.set.has_key?("code (Quebec)")).to be(true)
-    expect(psi.set.has_key?("(without thermal bridges)")).to be(true)
+    expect(psi.set.has_key?("(non thermal bridging)")).to be(true)
     expect(psi.set.has_key?("OK")).to be(true)
     expect(psi.set.has_key?("Awesome")).to be(true)
     expect(psi.set.has_key?("Party wall edge")).to be(true)
     expect(psi.set["Party wall edge"][:party]).to eq(0.4)
 
-    # Similar treatment for khis
-    khi = KHI.new
-    if tbd_io.has_key?(:khis)
-      tbd_io[:khis].each do |k| khi.append(k); end
-    end
-    expect(khi.point.size).to eq(5)
+    expect(io.has_key?(:unit)).to be(true)
+    expect(io[:unit].first.has_key?(:psi)).to be(true)
+    expect(io[:unit].first[:psi]).to eq("Awesome")
+    expect(psi.set.has_key?(io[:unit].first[:psi])).to be(true)
 
-    # Internal logic of TBD JSON file content, e.g.
-    # referenced psis & khis need to be loaded in memory
-    # either built-in TBD defaults or on file.
-    if tbd_io.has_key?(:unit)
-      # although structured as an array, there can only be one unit per file
-      tbd_io[:unit].each do |unit|
-        if unit.has_key?(:psi)
-          expect(unit[:psi]).to eq("Awesome")
-          expect(psi.set.has_key?(unit[:psi])).to be(true)
-        end
-      end
+    expect(io.has_key?(:surfaces)).to be(true)
+    io[:surfaces].each do |surface|
+      expect(surface.has_key?(:id)).to be(true)
+      expect(surface[:id]).to eq("ground-floor restaurant South-wall")
+      expect(surface.has_key?(:psi)).to be(true)
+      expect(surface[:psi]).to eq("ok")
+      expect(psi.set.has_key?(surface[:psi])).to be(false)
     end
-    if tbd_io.has_key?(:surfaces)
-      tbd_io[:surfaces].each do |surface|
-        expect(surface.has_key?(:id)).to be(true) # valid vs OSM ?
-        expect(surface[:id]).to eq("ground-floor restaurant South-wall")
-        if surface.has_key?(:psi)
-          expect(surface[:psi]).to eq("ok")
-          expect(psi.set.has_key?(surface[:psi])).to be(false) # log mismatch
-        end
-      end
-    end
-    if tbd_io.has_key?(:edges)
-      tbd_io[:edges].each do |edge|
-        if edge.has_key?(:psi)
-          expect(edge[:psi]).to eq("Party wall edge")
-          expect(edge[:type]).to eq("party")
-          expect(psi.set.has_key?(edge[:psi])).to be(true)
-          expect(psi.set[edge[:psi]].has_key?(:party)).to be(true)
-          expect(edge.has_key?(:surfaces)).to be(true)
-          edge[:surfaces].each do |surface|
-            # valid vs OSM ?
-            answer = false
-            answer = true if surface == "ground-floor restaurant West-wall" ||
-                                        "ground-floor restaurant party wall"
-            expect(answer).to be(true)
-          end
-        end
+
+    expect(io.has_key?(:edges)).to be(true)
+    io[:edges].each do |edge|
+      expect(edge.has_key?(:psi)).to be(true)
+      expect(edge[:psi]).to eq("Party wall edge")
+      expect(edge.has_key?(:type)).to be(true)
+      expect(edge[:type]).to eq("party")
+      expect(psi.set.has_key?(edge[:psi])).to be(true)
+      expect(psi.set[edge[:psi]].has_key?(:party)).to be(true)
+      expect(edge.has_key?(:surfaces)).to be(true)
+      edge[:surfaces].each do |surface|
+        answer = false
+        answer = true if surface == "ground-floor restaurant West-wall" ||
+                                    "ground-floor restaurant party wall"
+        expect(answer).to be(true)
       end
     end
 
@@ -2267,54 +2017,43 @@ RSpec.describe TBD do
     # Ruby hash keys - will have the second entry ("party": 0.8) override the
     # first ("party": 0.7). Another reminder of post-JSON validation.
     # * https://jsonschemalint.com/#!/version/draft-04/markup/json
-    tbd_io_f = File.dirname(__FILE__) + "/../json/tbd_full_PSI.json"
-    expect(File.exist?(tbd_schema_f)).to be(true)
-    tbd_io_c = File.read(tbd_io_f)
-    tbd_io = JSON.parse(tbd_io_c, symbolize_names: true)
-    expect(JSON::Validator.validate(tbd_schema, tbd_io)).to be(true)
-    expect(tbd_io.has_key?(:description)).to be(true)
-    expect(tbd_io.has_key?(:schema)).to be(true)
-    expect(tbd_io.has_key?(:edges)).to be(false)
-    expect(tbd_io.has_key?(:surfaces)).to be(false)
-    expect(tbd_io.has_key?(:spaces)).to be(false)
-    expect(tbd_io.has_key?(:stories)).to be(false)
-    expect(tbd_io.has_key?(:unit)).to be(false)
-    expect(tbd_io.has_key?(:logs)).to be(false)
+    io_f = File.dirname(__FILE__) + "/../json/tbd_full_PSI.json"
+    io_c = File.read(io_f)
+    io = JSON.parse(io_c, symbolize_names: true)
+    expect(JSON::Validator.validate(schema, io)).to be(true)
+    expect(io.has_key?(:description)).to be(true)
+    expect(io.has_key?(:schema)).to be(true)
+    expect(io.has_key?(:edges)).to be(false)
+    expect(io.has_key?(:surfaces)).to be(false)
+    expect(io.has_key?(:spaces)).to be(false)
+    expect(io.has_key?(:stories)).to be(false)
+    expect(io.has_key?(:unit)).to be(false)
+    expect(io.has_key?(:logs)).to be(false)
 
     # Loop through input psis to ensure uniqueness vs PSI defaults
     psi = PSI.new
-    if tbd_io.has_key?(:psis)
-      tbd_io[:psis].each do |p| psi.append(p); end
-    end
+    expect(io.has_key?(:psis)).to be(true)
+    io[:psis].each do |p| psi.append(p); end
     expect(psi.set.size).to eq(6)
     expect(psi.set.has_key?("poor (BC Hydro)")).to be(true)
     expect(psi.set.has_key?("regular (BC Hydro)")).to be(true)
     expect(psi.set.has_key?("efficient (BC Hydro)")).to be(true)
     expect(psi.set.has_key?("code (Quebec)")).to be(true)
-    expect(psi.set.has_key?("(without thermal bridges)")).to be(true)
+    expect(psi.set.has_key?("(non thermal bridging)")).to be(true)
     expect(psi.set.has_key?("OK")).to be(true)
     expect(psi.set["OK"][:party]).to eq(0.8)
 
-    # Similar treatment for khis
-    khi = KHI.new
-    if tbd_io.has_key?(:khis)
-      tbd_io[:khis].each do |k| khi.append(k); end
-    end
-    expect(khi.point.size).to eq(5)
-
     # Load minimal PSI JSON example
-    tbd_io_f = File.dirname(__FILE__) + "/../json/tbd_minimal_PSI.json"
-    expect(File.exist?(tbd_schema_f)).to be(true)
-    tbd_io_c = File.read(tbd_io_f)
-    tbd_io = JSON.parse(tbd_io_c, symbolize_names: true)
-    expect(JSON::Validator.validate(tbd_schema, tbd_io)).to be(true)
+    io_f = File.dirname(__FILE__) + "/../json/tbd_minimal_PSI.json"
+    io_c = File.read(io_f)
+    io = JSON.parse(io_c, symbolize_names: true)
+    expect(JSON::Validator.validate(schema, io)).to be(true)
 
     # Load minimal KHI JSON example
-    tbd_io_f = File.dirname(__FILE__) + "/../json/tbd_minimal_KHI.json"
-    expect(File.exist?(tbd_schema_f)).to be(true)
-    tbd_io_c = File.read(tbd_io_f)
-    tbd_io = JSON.parse(tbd_io_c, symbolize_names: true)
-    expect(JSON::Validator.validate(tbd_schema, tbd_io)).to be(true)
-    expect(JSON::Validator.validate(tbd_schema_f, tbd_io_f, uri: true)).to be(true)
+    io_f = File.dirname(__FILE__) + "/../json/tbd_minimal_KHI.json"
+    io_c = File.read(io_f)
+    io = JSON.parse(io_c, symbolize_names: true)
+    expect(JSON::Validator.validate(schema, io)).to be(true)
+    expect(JSON::Validator.validate(schema_f, io_f, uri: true)).to be(true)
   end
 end
