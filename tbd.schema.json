@@ -234,10 +234,6 @@
     "Space": {
       "description": "Space default PSI-set (optional for OS)",
       "type": "object",
-      "required": [
-        "id",
-        "psi"
-      ],
       "properties": {
         "id": {
           "title": "e.g. OS space or E+ zone identifier",
@@ -248,10 +244,14 @@
           "type": "string"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "psi"
+      ]
     },
     "Story": {
-      "title": "Story default PSI-set (optional for OS)",
+      "description": "Story default PSI-set (optional for OS)",
       "type": "object",
       "properties": {
         "id": {
@@ -270,7 +270,7 @@
       ]
     },
     "Unit": {
-      "title": "Building unit default PSI-set (optional for OS)",
+      "description": "Building unit default PSI-set (optional for OS)",
       "type": "object",
       "properties": {
         "psi": {
@@ -284,7 +284,7 @@
       ]
     },
     "Log": {
-      "title": "TBD log messages",
+      "description": "TBD log messages",
       "type": "string"
     }
   }
