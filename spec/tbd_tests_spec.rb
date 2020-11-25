@@ -990,9 +990,9 @@ RSpec.describe TBD do
     #   "io" holds valid TBD JSON hash from file
     #   "io_p" holds TBD PSI sets (built-in defaults & those on file)
     #   "io_k" holds TBD KHI points (built-in defaults & those on file)
-    io_f = ""
-    schema_f = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, io_p, io_k = processTBDinputs(surfaces, edges, psi_set, io_f, schema_f)
+    io_path = ""
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, io_p, io_k = processTBDinputs(surfaces, edges, psi_set, io_path, schema_path)
 
     # psi = PSI.new
 
@@ -1529,9 +1529,9 @@ RSpec.describe TBD do
     os_model = os_model.get
 
     psi_set = "poor (BC Hydro)"
-    io_f = ""
-    schema_f = File.dirname(__FILE__) + "/../tbd.schema.json"
-    surfaces = processTBD(os_model, io_f, schema_f, psi_set)
+    io_path = ""
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
     expect(surfaces.size).to eq(43)
 
     # testing
@@ -1555,9 +1555,9 @@ RSpec.describe TBD do
     os_model = os_model.get
 
     psi_set = "poor (BC Hydro)"
-    io_f = ""
-    schema_f = File.dirname(__FILE__) + "/../tbd.schema.json"
-    surfaces = processTBD(os_model, io_f, schema_f, psi_set)
+    io_path = ""
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
     expect(surfaces.size).to eq(23)
 
     # testing
@@ -1591,9 +1591,9 @@ RSpec.describe TBD do
     os_model = os_model.get
 
     psi_set = "poor (BC Hydro)"
-    io_f = ""
-    schema_f = File.dirname(__FILE__) + "/../tbd.schema.json"
-    surfaces = processTBD(os_model, io_f, schema_f, psi_set)
+    io_path = ""
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
     expect(surfaces.size).to eq(56)
 
     surfaces.each do |id, surface|
@@ -1617,9 +1617,9 @@ RSpec.describe TBD do
     os_model = os_model.get
 
     psi_set = "(non thermal bridging)"
-    io_f = ""
-    schema_f = File.dirname(__FILE__) + "/../tbd.schema.json"
-    surfaces = processTBD(os_model, io_f, schema_f, psi_set)
+    io_path = ""
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
     expect(surfaces.size).to eq(56)
 
     # Since all PSI values = 0, we're not expecting any derated surfaces
@@ -1638,9 +1638,9 @@ RSpec.describe TBD do
     os_model = os_model.get
 
     psi_set = "(non thermal bridging)"
-    io_f = File.dirname(__FILE__) + "/../json/tbd_seb.json"
-    schema_f = File.dirname(__FILE__) + "/../tbd.schema.json"
-    surfaces = processTBD(os_model, io_f, schema_f, psi_set)
+    io_path = File.dirname(__FILE__) + "/../json/tbd_seb.json"
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
     expect(surfaces.size).to eq(56)
 
     # As the :unit PSI set on file remains "(non thermal bridging)", one should
@@ -1660,9 +1660,9 @@ RSpec.describe TBD do
     os_model = os_model.get
 
     psi_set = "(non thermal bridging)"
-    io_f = File.dirname(__FILE__) + "/../json/tbd_seb_n0.json"
-    schema_f = File.dirname(__FILE__) + "/../tbd.schema.json"
-    surfaces = processTBD(os_model, io_f, schema_f, psi_set)
+    io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n0.json"
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
     expect(surfaces.size).to eq(56)
 
     # The :unit PSI set on file "compliant" supersedes the psi_set
@@ -1735,9 +1735,9 @@ RSpec.describe TBD do
 
     #   1. setting both psi_set & file :unit to "compliant"
     psi_set = "compliant" # instead of "(non thermal bridging)"
-    io_f = File.dirname(__FILE__) + "/../json/tbd_seb_n0.json"
-    schema_f = File.dirname(__FILE__) + "/../tbd.schema.json"
-    surfaces = processTBD(os_model, io_f, schema_f, psi_set)
+    io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n0.json"
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
     expect(surfaces.size).to eq(56)
 
     surfaces.each do |id, surface|
@@ -1780,9 +1780,9 @@ RSpec.describe TBD do
 
     #   2. setting psi_set to "compliant" while removing the :unit from file
     psi_set = "compliant" # instead of "(non thermal bridging)"
-    io_f = File.dirname(__FILE__) + "/../json/tbd_seb_n1.json" # no :unit
-    schema_f = File.dirname(__FILE__) + "/../tbd.schema.json"
-    surfaces = processTBD(os_model, io_f, schema_f, psi_set)
+    io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n1.json" # no :unit
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
     expect(surfaces.size).to eq(56)
 
     surfaces.each do |id, surface|
@@ -1816,14 +1816,181 @@ RSpec.describe TBD do
 end
 
 RSpec.describe TBD do
+  it "can process TB & D : testing JSON surface KHI entries" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    psi_set = "(non thermal bridging)"
+    io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n2.json"
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
+    expect(surfaces.size).to eq(56)
+
+    # As the :unit PSI set on file remains "(non thermal bridging)", one should
+    # not expect differences in results, i.e. derating shouldn't occur. However,
+    # the JSON file holds KHI entries for "Entryway  Wall 2" :
+    # 3x "columns" @0.5 W/K + 4x supports @0.5W/K = 3.5 W/K
+    surfaces.values.each do |surface|
+      next unless surface.has_key?(:ratio)
+      expect(surface[:heatloss]).to be_within(0.01).of(3.5)
+    end
+  end
+end
+
+RSpec.describe TBD do
+  it "can process TB & D : testing JSON surface KHI & PSI entries" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    psi_set = "(non thermal bridging)"
+    io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n3.json"
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
+    expect(surfaces.size).to eq(56)
+
+    # As the :unit PSI set on file remains "(non thermal bridging)", one should
+    # not expect differences in results, i.e. derating shouldn't occur. However,
+    # the JSON file holds KHI entries for "Entryway  Wall 2" :
+    # 3x "columns" @0.5 W/K + 4x supports @0.5W/K = 3.5 W/K (as in case above),
+    # and a "good" psi set (:rimjoist), which should override the default set
+    surfaces.each do |id, surface|
+      next unless surface.has_key?(:ratio)
+      expect(id).to eq("Entryway  Wall 5")
+      expect(surface[:heatloss]).to be_within(0.01).of(6.74)
+    end
+  end
+end
+
+RSpec.describe TBD do
+  it "can process TB & D : JSON surface KHI & PSI entries + unit & edge" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    psi_set = "(non thermal bridging)"
+    io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n4.json"
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
+    expect(surfaces.size).to eq(56)
+
+    # As the :unit PSI set on file == "(non thermal bridgin)", derating
+    # shouldn't occur at large. However, the JSON file holds a custom edge
+    # entry for "Entryway  Wall 5" : "bad" fenestration permieters, which
+    # only derates the host wall itself
+    surfaces.each do |id, surface|
+      next unless surface[:boundary].downcase == "outdoors"
+      expect(surface.has_key?(:ratio)).to be(false) unless id == "Entryway  Wall 5"
+      next unless id == "Entryway  Wall 5"
+      expect(surface[:heatloss]).to be_within(0.01).of(8.89)
+    end
+  end
+end
+
+RSpec.describe TBD do
+  it "can process TB & D : JSON surface KHI & PSI entries + unit & edge (2)" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    psi_set = "(non thermal bridging)"
+    io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n5.json"
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
+    expect(surfaces.size).to eq(56)
+
+    # As above, yet the KHI points are now set @0.5 W/K per m (instead of 0)
+    surfaces.each do |id, surface|
+      next unless surface[:boundary].downcase == "outdoors"
+      expect(surface.has_key?(:ratio)).to be(false) unless id == "Entryway  Wall 5"
+      next unless id == "Entryway  Wall 5"
+      expect(surface[:heatloss]).to be_within(0.01).of(12.39)
+    end
+  end
+end
+
+RSpec.describe TBD do
+  it "can process TB & D : JSON surface KHI & PSI entries + unit & edge (3)" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    psi_set = "(non thermal bridging)"
+    io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n6.json"
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
+    expect(surfaces.size).to eq(56)
+
+    # As above, with a "good" surface PSI set
+    surfaces.each do |id, surface|
+      next unless surface[:boundary].downcase == "outdoors"
+      expect(surface.has_key?(:ratio)).to be(false) unless id == "Entryway  Wall 5"
+      next unless id == "Entryway  Wall 5"
+      expect(surface[:heatloss]).to be_within(0.01).of(15.62)  # 12.39 + 3.24
+    end
+  end
+end
+
+RSpec.describe TBD do
+  it "can process TB & D : JSON surface KHI & PSI entries + unit & edge (4)" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    psi_set = "compliant" # ignored - superseded by :unit PSI set on file
+    io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n7.json"
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
+    expect(surfaces.size).to eq(56)
+
+    # In the JSON file, the "Entry way 1" space "compliant" PSI set supersedes
+    # the default :unit PSI set "(non thermal bridging)". And hence the 3x walls
+    # below (4, 5 & 6) - opaque envelope surfaces part of "Entry way 1" - will
+    # be derated. Exceptionally, Wall 5 has (in addition to a handful of point
+    # conductances) derating edges based on the "good" PSI set; in this case,
+    # only the :grade type (0.9 W/k per m instead of 0.6) applies (not so "good"
+    # in hindsight). Finally, any edges between Wall 5 and its "Sub Surface 8"
+    # have their types overwritten (from :fenestration to :balcony), i.e.
+    # 0.8 W/K per m instead of 0.35. The latter is a weird one, but illustrates
+    # the basic functionality. A more realistic override: a switch between
+    # :corner to :fenestration (or vice versa) for corner windows, for instance.
+    surfaces.each do |id, surface|
+      next unless surface[:boundary].downcase == "outdoors"
+      if id == "Entryway  Wall 5" ||
+         id == "Entryway  Wall 6" ||
+         id == "Entryway  Wall 4"
+        expect(surface.has_key?(:ratio)).to be(true)
+      else
+        expect(surface.has_key?(:ratio)).to be(false)
+      end
+      next unless id == "Entryway  Wall 5"
+      expect(surface[:heatloss]).to be_within(0.01).of(13.96)
+    end
+  end
+end
+
+RSpec.describe TBD do
   it "can process TB & D : JSON file read/validate" do
-    schema_f = File.dirname(__FILE__) + "/../tbd.schema.json"
-    expect(File.exist?(schema_f)).to be(true)
-    schema_c = File.read(schema_f)
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    expect(File.exist?(schema_path)).to be(true)
+    schema_c = File.read(schema_path)
     schema = JSON.parse(schema_c, symbolize_names: true)
 
-    io_f = File.dirname(__FILE__) + "/../json/tbd_json_test.json"
-    io_c = File.read(io_f)
+    io_path = File.dirname(__FILE__) + "/../json/tbd_json_test.json"
+    io_c = File.read(io_path)
     io = JSON.parse(io_c, symbolize_names: true)
 
     expect(JSON::Validator.validate(schema, io)).to be(true)
@@ -1905,8 +2072,8 @@ RSpec.describe TBD do
     expect(khi.point["code (Quebec)"]).to eq(2.0)
 
     # Load PSI combo JSON example - likely the most expected or common use
-    io_f = File.dirname(__FILE__) + "/../json/tbd_PSI_combo.json"
-    io_c = File.read(io_f)
+    io_path = File.dirname(__FILE__) + "/../json/tbd_PSI_combo.json"
+    io_c = File.read(io_path)
     io = JSON.parse(io_c, symbolize_names: true)
     expect(JSON::Validator.validate(schema, io)).to be(true)
     expect(io.has_key?(:description)).to be(true)
@@ -1950,8 +2117,8 @@ RSpec.describe TBD do
     # Load PSI combo2 JSON example - a more elaborate example, yet common.
     # Post-JSON validation required to handle case sensitive keys & value
     # strings (e.g. "ok" vs "OK" in the file)
-    io_f = File.dirname(__FILE__) + "/../json/tbd_PSI_combo2.json"
-    io_c = File.read(io_f)
+    io_path = File.dirname(__FILE__) + "/../json/tbd_PSI_combo2.json"
+    io_c = File.read(io_path)
     io = JSON.parse(io_c, symbolize_names: true)
     expect(JSON::Validator.validate(schema, io)).to be(true)
     expect(io.has_key?(:description)).to be(true)
@@ -2017,8 +2184,8 @@ RSpec.describe TBD do
     # Ruby hash keys - will have the second entry ("party": 0.8) override the
     # first ("party": 0.7). Another reminder of post-JSON validation.
     # * https://jsonschemalint.com/#!/version/draft-04/markup/json
-    io_f = File.dirname(__FILE__) + "/../json/tbd_full_PSI.json"
-    io_c = File.read(io_f)
+    io_path = File.dirname(__FILE__) + "/../json/tbd_full_PSI.json"
+    io_c = File.read(io_path)
     io = JSON.parse(io_c, symbolize_names: true)
     expect(JSON::Validator.validate(schema, io)).to be(true)
     expect(io.has_key?(:description)).to be(true)
@@ -2044,16 +2211,16 @@ RSpec.describe TBD do
     expect(psi.set["OK"][:party]).to eq(0.8)
 
     # Load minimal PSI JSON example
-    io_f = File.dirname(__FILE__) + "/../json/tbd_minimal_PSI.json"
-    io_c = File.read(io_f)
+    io_path = File.dirname(__FILE__) + "/../json/tbd_minimal_PSI.json"
+    io_c = File.read(io_path)
     io = JSON.parse(io_c, symbolize_names: true)
     expect(JSON::Validator.validate(schema, io)).to be(true)
 
     # Load minimal KHI JSON example
-    io_f = File.dirname(__FILE__) + "/../json/tbd_minimal_KHI.json"
-    io_c = File.read(io_f)
+    io_path = File.dirname(__FILE__) + "/../json/tbd_minimal_KHI.json"
+    io_c = File.read(io_path)
     io = JSON.parse(io_c, symbolize_names: true)
     expect(JSON::Validator.validate(schema, io)).to be(true)
-    expect(JSON::Validator.validate(schema_f, io_f, uri: true)).to be(true)
+    expect(JSON::Validator.validate(schema_path, io_path, uri: true)).to be(true)
   end
 end
