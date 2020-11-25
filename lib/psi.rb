@@ -125,17 +125,17 @@ class PSI
     if p.is_a?(Hash) && p.has_key?(:id)
       id = p[:id]
       unless @set.has_key?(id) # should log message if duplication attempt
-        @set[id] =
-        {
-          rimjoist:     0.000,
-          parapet:      0.000,
-          fenestration: 0.000,
-          concave:      0.000,
-          convex:       0.000,
-          balcony:      0.000,
-          party:        0.000,
-          grade:        0.000
-        }
+        @set[id] = {}
+        # {
+        #   rimjoist:     0.000,
+        #   parapet:      0.000,
+        #   fenestration: 0.000,
+        #   concave:      0.000,
+        #   convex:       0.000,
+        #   balcony:      0.000,
+        #   party:        0.000,
+        #   grade:        0.000
+        # }
         @set[id][:rimjoist]     = p[:rimjoist]     if p.has_key?(:rimjoist)
         @set[id][:parapet]      = p[:parapet]      if p.has_key?(:parapet)
         @set[id][:fenestration] = p[:fenestration] if p.has_key?(:fenestration)
@@ -147,9 +147,21 @@ class PSI
       end
     end
   end
+
+  def complete?(s)
+    raise "Unknown '#{s}' PSI set"  unless @set.has_key?(s)
+    raise "'#{s}' rimjoist?"        unless @set[s].has_key?(:rimjoist)
+    raise "'#{s}' parapet?"         unless @set[s].has_key?(:parapet)
+    raise "'#{s}' fenestration?"    unless @set[s].has_key?(:fenestration)
+    raise "'#{s}' concave?"         unless @set[s].has_key?(:concave)
+    raise "'#{s}' convex?"          unless @set[s].has_key?(:convex)
+    raise "'#{s}' balcony?"         unless @set[s].has_key?(:balcony)
+    raise "'#{s}' party?"           unless @set[s].has_key?(:party)
+    raise "'#{s}' grade?"           unless @set[s].has_key?(:grade)
+  end
 end
 
-def processTBDinputs(surfaces, edges, set, io_f, schema_f)
+def processTBDinputs(surfaces, edges, set, io_path, schema_path)
   # In the near future, the bulk of the "raises" in processTBDinputs will
   # be logged as mild or severe warnings, possibly halting all TBD processes
   # The OpenStudio/EnergyPlus model would remain unaltered (or underated).
@@ -157,6 +169,11 @@ def processTBDinputs(surfaces, edges, set, io_f, schema_f)
   # JSON validation relies on case-senitive string comparisons (e.g. OpenStudio
   # space or surface names, vs corresponding TBD JSON identifiers). So "Space-1"
   # would not match "SPACE-1". A head's up ...
+
+  # The following will also add ":io_type" & ":io_set" keys (true/false) to any
+  # TBD/Topolys edge (re: "edges" argument) with a match on file: if true
+  # (i.e. a match), the edge PSI set and/or PSI type on file take precedence
+  # over TBD/Topolys logical assignments.
   io = {}
   psi = PSI.new # PSI hash, initially holding built-in defaults
   khi = KHI.new # KHI hash, initially holding built-in defaults
@@ -172,15 +189,15 @@ def processTBDinputs(surfaces, edges, set, io_f, schema_f)
   end
 
   # Validate TBD JSON schema.
-  raise "processTBDinputs: TBD JSON schema file?" unless File.exist?(schema_f)
-  raise "processTBDinputs: Empty TBD JSON schema file?" if File.zero?(schema_f)
-  schema_c = File.read(schema_f)
+  raise "processTBDinputs: TBD schema file?" unless File.exist?(schema_path)
+  raise "processTBDinputs: Empty TBD schema file?" if File.zero?(schema_path)
+  schema_c = File.read(schema_path)
   schema = JSON.parse(schema_c, symbolize_names: true)
 
-  if File.size?(io_f) # optional input file exists and is non-zero
-    io_c = File.read(io_f)
+  if File.size?(io_path) # optional input file exists and is non-zero
+    io_c = File.read(io_path)
     io = JSON.parse(io_c, symbolize_names: true)
-    if JSON::Validator.validate(schema, io) # process JSON entries
+    if JSON::Validator.validate!(schema, io) # process JSON entries
       # Clear any stored log messages ... TO DO
 
       if io.has_key?(:psis) # library of linear thermal bridges
@@ -199,15 +216,7 @@ def processTBDinputs(surfaces, edges, set, io_f, schema_f)
       end
 
       p = io[:unit].first[:psi]
-      raise "Unit #{p} mismatch?"     unless psi.set.has_key?(p)
-      raise "Unit #{p} rimjoist?"     unless psi.set[p].has_key?(:rimjoist)
-      raise "Unit #{p} parapet?"      unless psi.set[p].has_key?(:parapet)
-      raise "Unit #{p} fenestration?" unless psi.set[p].has_key?(:fenestration)
-      raise "Unit #{p} concave?"      unless psi.set[p].has_key?(:concave)
-      raise "Unit #{p} convex?"       unless psi.set[p].has_key?(:convex)
-      raise "Unit #{p} balcony?"      unless psi.set[p].has_key?(:balcony)
-      raise "Unit #{p} party?"        unless psi.set[p].has_key?(:party)
-      raise "Unit #{p} grade?"        unless psi.set[p].has_key?(:grade)
+      psi.complete?(p)
 
       if io.has_key?(:stories)
         io[:stories].each do |story|
@@ -230,10 +239,9 @@ def processTBDinputs(surfaces, edges, set, io_f, schema_f)
           # Validate if space "id" is found in surfaces hash
           match = false
           surfaces.values.each do |properties|
-            next unless properties.has.key?(:space)
+            next if match
+            next unless properties.has_key?(:space)
             sp = properties[:space]
-            next if sp.empty?
-            sp = sp.get
             match = true if i == sp.nameString
           end
           raise "Mismatch OpenStudio #{i}" unless match
@@ -244,19 +252,17 @@ def processTBDinputs(surfaces, edges, set, io_f, schema_f)
       if io.has_key?(:surfaces)
         io[:surfaces].each do |surface|
           next unless surface.has_key?(:id)
-          next unless surface.has_key?(:psi)
           i = surface[:id]
-          p = surface[:psi]
-
           raise "Mismatch OpenStudio #{i}" unless surfaces.has_key?(i)
 
           # surfaces can optionally hold custom PSI sets and/or KHI data
           if surface.has_key?(:psi)
+            p = surface[:psi]
             raise "#{i} PSI mismatch" unless psi.set.has_key?(p)
           end
 
-          if surface.has_key?(:khi)
-            surface[:khi].each do |k|
+          if surface.has_key?(:khis)
+            surface[:khis].each do |k|
               next unless k.has_key?(:id)
               ii = k[:id]
               raise "#{i} KHI #{ii} mismatch" unless khi.point.has_key?(ii)
@@ -268,30 +274,41 @@ def processTBDinputs(surfaces, edges, set, io_f, schema_f)
       if io.has_key?(:edges)
         io[:edges].each do |edge|
           next unless edge.has_key?(:type)
-          t = edge[:type]
           next unless edge.has_key?(:surfaces)
+          t = edge[:type].to_sym
 
-          # An edge on file is valid if all listed surfaces together connect
-          # at least one edge in TBD/Topolys.
-          match = false
-          edges.values.each do |properties|
-            next if match
+          # One or more edges on file are valid if all listed surfaces (on file)
+          # together connect at least one or more edges in TBD/Topolys (in
+          # memory). The latter may connect e.g. 3x TBD/Topolys surfaces, but
+          # the list of surfaces on file may be shorter, e.g. only 2x surfaces
+          # on file.
+          n = 0
+          edges.values.each do |properties|      # TBD/Topolys objects in memory
             next unless properties.has_key?(:surfaces)
-            edge[:surfaces].each do |s|
+            match = false
+            edge[:surfaces].each do |s|                   # JSON objects on file
               next if match
               next unless properties[:surfaces].has_key?(s)
-              match = true # ... well, at least one ... so loop again
+              match = true              # ... well, at least one - so loop again
               edge[:surfaces].each do |ss|
-                match = false unless properties.has_key?(ss)
+                match = false unless properties[:surfaces].has_key?(ss)
               end
+              next unless match
+              if edge.has_key?(:length)    # optional, narrows down search (~1")
+                match = false unless (e[:length] - edge[:length]).abs < 0.025
+              end
+              next unless match
+              n += 1
+              if edge.has_key?(:psi)                                  # optional
+                p = edge[:psi]
+                raise "PSI mismatch" unless psi.set.has_key?(p)
+                raise "#{p} missing PSI #{t}" unless psi.set[p].has_key?(t)
+                properties[:io_set] = p
+              end
+              properties[:io_type] = t
             end
           end
-          raise "Edge: missing OpenStudio #{i}" unless match
-          if edge.has_key?(:psi)
-            p = edge[:psi]
-            raise "#{p} PSI mismatch" unless psi.set.has_key?(p)
-            raise "Edge: missing #{t} from #{p}" unless psi.set[p].has_key?(t)
-          end
+          raise "Edge: missing OpenStudio match" if n == 0
         end
       end
 
@@ -301,15 +318,7 @@ def processTBDinputs(surfaces, edges, set, io_f, schema_f)
   else
     # No (optional) user-defined TBD JSON input file.
     # In such cases, "set" must refer to a valid PSI set
-    raise "processTBDinputs: PSI set #{set}?" unless psi.set.has_key?(set)
-    raise "Set #{set} rimjoist?"     unless psi.set[set].has_key?(:rimjoist)
-    raise "Set #{set} parapet?"      unless psi.set[set].has_key?(:parapet)
-    raise "Set #{set} fenestration?" unless psi.set[set].has_key?(:fenestration)
-    raise "Set #{set} concave?"      unless psi.set[set].has_key?(:concave)
-    raise "Set #{set} convex?"       unless psi.set[set].has_key?(:convex)
-    raise "Set #{set} balcony?"      unless psi.set[set].has_key?(:balcony)
-    raise "Set #{set} party?"        unless psi.set[set].has_key?(:party)
-    raise "Set #{set} grade?"        unless psi.set[set].has_key?(:grade)
+    psi.complete?(set)
     io[:unit] = [{ psi: set }]       # i.e. default PSI set & no KHI's
   end
 
@@ -579,7 +588,7 @@ def derate(os_model, os_surface, id, surface, c, index, type, r)
   return m
 end
 
-def processTBD(os_model, io_f, schema_f, psi_set)
+def processTBD(os_model, io_path, schema_path, psi_set)
   surfaces = {}
 
   os_model_class = OpenStudio::Model::Model
@@ -891,7 +900,7 @@ def processTBD(os_model, io_f, schema_f, psi_set)
   #   "io" holds valid TBD JSON hash from file
   #   "io_p" holds TBD PSI sets (built-in defaults & those on file)
   #   "io_k" holds TBD KHI points (built-in defaults & those on file)
-  io, io_p, io_k = processTBDinputs(surfaces, edges, psi_set, io_f, schema_f)
+  io, io_p, io_k = processTBDinputs(surfaces, edges, psi_set, io_path, schema_path)
 
   edges.values.each do |edge|
     next unless edge.has_key?(:surfaces)
@@ -912,44 +921,16 @@ def processTBD(os_model, io_f, schema_f, psi_set)
 
     psi = {} # edge-specific PSI types
 
-    # Check if customized edge in TBD JSON file
     match = false
-    if io && io.has_key?(:edges)
-      io[:edges].each do |e|
-        next if match
-        next unless e.has_key?(:type) # a precaution, it should ...
-        t = e[:type]
-        next unless e.has_key?(:surfaces) # a precaution, it should ...
-        e[:surfaces].each do |s|
-          next if match
-          next unless edge[:surfaces].has_key?(s)
-          match = true # ... well, at least one ... so loop again
-          e[:surfaces].each do |ss|
-            next unless match
-            match = false unless edges[:surfaces].has_key?(ss)
-          end
-        end
-        next unless match
-        if e.has_key?(:length) # optional edge length finetuning (up to 1 inch)
-          match = false unless (e[:length] - edge[:length]).abs < 0.025
-        end
-        next unless match # valid user entry - overriding TBD ruleset
-        if e.has_key?(:psi)
-          p = e[:psi]
-        else
-          p = io[:unit].first[:psi]
-        end
-        next unless io_p.set.has_key?(p)
-        next unless io_p.set[p].has_key?(t)
-        psi[t] = io_p.set[p][t]
-        edge[:psi] = psi
-      end
-    end
+    match = true if edge.has_key?(:io_type) # customized edge in TBD JSON file
 
-    p = io[:unit].first[:psi]
+    t = edge[:io_type]        if match
+    p = io[:unit].first[:psi]                                     # default PSI
+    p = edge[:io_set]         if match && edge.has_key?(:io_set)  # custom PSI
+    psi[t] = io_p.set[p][t]   if match && io_p.set[p][t]
 
     edge[:surfaces].keys.each do |id|
-      next if match # customized edge from TBD JSON file
+      next if match                                        # skip if customized
       next unless surfaces.has_key?(id)
 
       # Skipping the :party wall label for now. Criteria determining party
@@ -968,8 +949,6 @@ def processTBD(os_model, io_f, schema_f, psi_set)
           next unless surfaces[id].has_key?(:ground)
           next unless surfaces[id][:ground]
           psi[:grade] = io_p.set[p][:grade]
-
-          # override if story-, space- or surface-specific PSI set has :grade
         end
       end
 
@@ -1080,10 +1059,10 @@ def processTBD(os_model, io_f, schema_f, psi_set)
   # completed/tested, so ignored for now ...
   # openstudio-sdk-documentation.s3.amazonaws.com/cpp/OpenStudio-2.9.0-doc/model/html/classopenstudio_1_1model_1_1_building_story.html
   if io
-    # if io.has_key?(:stories)    # ... will override :unit sets
+    # if io.has_key?(:stories)               # ... will override :unit sets
     # end
 
-    if io.has_key?(:spaces)     # ... will override :stories sets
+    if io.has_key?(:spaces)                  # ... will override :stories sets
       io[:spaces].each do |space|
         next unless space.has_key?(:id)
         next unless space.has_key?(:psi)
@@ -1092,7 +1071,8 @@ def processTBD(os_model, io_f, schema_f, psi_set)
         next unless io_p.set.has_key?(p)
 
         edges.values.each do |edge|
-          next unless edge.has_key?(:psi)
+          next unless edge.has_key?(:psi)   # open to transition edges TO DO ...
+          next if edge.has_key?(:io_set)    # customized edge WITH custom PSI
           next unless edge.has_key?(:surfaces)
 
           # TBD/Topolys edges will generally be linked to more than one surface
@@ -1100,16 +1080,23 @@ def processTBD(os_model, io_f, schema_f, psi_set)
           # to hold 2x space PSI sets that affect one or more edges common to
           # both spaces. As with Ruby and JSON hashes, the last processed TBD
           # JSON space PSI set will supersede preceding ones. Caution ...
-          # Maybe future revisons to TBD JSON I/O validation ...
-          edge[:surfaces].each do |s|
-            next unless surfaces.has_key?(s)
-            next unless surfaces[s].has_key?(:space)
-            sp = surfaces[s][:space]
-            next if sp.empty?
-            sp = sp.get
+          # Future revisons to TBD JSON I/O validation, e.g. log warning?
+          edge[:surfaces].keys.each do |id|
+            next unless surfaces.has_key?(id)
+            next unless surfaces[id].has_key?(:space)
+            sp = surfaces[id][:space]
             next unless i == sp.nameString
-            edge[:psi].keys.each do |t|
-              edge[:psi][t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+
+            if edge.has_key?(:io_type)        # custom edge w/o custom PSI set
+              t = edge[:io_type]
+              next unless io_p.set[p].has_key?(t)
+              psi = {}
+              psi[t] = io_p.set[p][t]
+              edge[:psi] = psi
+            else
+              edge[:psi].keys.each do |t|
+                edge[:psi][t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+              end
             end
           end
         end
@@ -1119,24 +1106,33 @@ def processTBD(os_model, io_f, schema_f, psi_set)
     if io.has_key?(:surfaces)   # ... will override :spaces sets
       io[:surfaces].each do |surface|
         next unless surface.has_key?(:id)
+        next unless surface.has_key?(:psi)
         i = surface[:id]
-        if surface.has_key?(:psi)
-          p = surface[:psi]
-          next unless io_p.set.has_key?(p)
+        p = surface[:psi]
+        next unless io_p.set.has_key?(p)
 
-          edges.values.each do |edge|
-            next unless edge.has_key?(:psi)
-            next unless edge.has_key?(:surfaces)
+        edges.values.each do |edge|
+          next unless edge.has_key?(:psi)   # open to transition edges TO DO ...
+          next if edge.has_key?(:io_set)    # customized edge WITH custom PSI
+          next unless edge.has_key?(:surfaces)
 
-            # TBD/Topolys edges will generally be linked to more than one
-            # surface. It is possible for a TBD JSON file to hold 2x surface PSI
-            # sets that affect one or more edges common to both surfaces. As
-            # with Ruby and JSON hashes, the last processed TBD JSON surface PSI
-            # set will supersede preceding ones. Caution ...
-            # Maybe future revisons to TBD JSON I/O validation ...
-            edge[:surfaces].each do |s|
-              next unless surfaces.has_key?(s)
-              next unless i == s
+          # TBD/Topolys edges will generally be linked to more than one
+          # surface. It is possible for a TBD JSON file to hold 2x surface PSI
+          # sets that affect one or more edges common to both surfaces. As
+          # with Ruby and JSON hashes, the last processed TBD JSON surface PSI
+          # set will supersede preceding ones. Caution ...
+          # Future revisons to TBD JSON I/O validation, e.g. log warning?
+          edge[:surfaces].keys.each do |s|
+            next unless surfaces.has_key?(s)
+            next unless i == s
+            if edge.has_key?(:io_type)        # custom edge w/o custom PSI set
+              t = edge[:io_type]
+              next unless io_p.set[p].has_key?(t)
+              psi = {}
+              psi[t] = io_p.set[p][t]
+              edge[:psi] = psi
+            else
+              edge[:psi] = {} unless edge.has_key?(:psi)
               edge[:psi].keys.each do |t|
                 edge[:psi][t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
               end
@@ -1145,9 +1141,22 @@ def processTBD(os_model, io_f, schema_f, psi_set)
         end
       end
     end
-  end
 
-  # PROCESS KHI ... TO DO
+    # Loop through all customized edges on file WITH a custom PSI set
+    edges.values.each do |edge|
+      next unless edge.has_key?(:psi)      # open to transition edges TO DO ...
+      next unless edge.has_key?(:io_set)
+      next unless edge.has_key?(:io_type)
+      next unless edge.has_key?(:surfaces)
+      t = edge[:io_type]
+      p = edge[:io_set]
+      next unless io_p.set.has_key?(p)
+      next unless io_p.set[p].has_key?(t)
+      psi = {}
+      psi[t] = io_p.set[p][t]
+      edge[:psi] = psi
+    end
+  end
 
   # Loop through each edge and assign heat loss to linked surfaces.
   edges.each do |identifier, edge|
@@ -1213,11 +1222,31 @@ def processTBD(os_model, io_f, schema_f, psi_set)
   end
 
   # Assign thermal bridging heat loss [in W/K] to each deratable surface.
-  surfaces.values.each do |surface|
+  surfaces.each do |id, surface|
     next unless surface.has_key?(:edges)
     surface[:heatloss] = 0
     surface[:edges].values.each do |edge|
       surface[:heatloss] += edge[:psi] * edge[:length]
+    end
+  end
+
+  # Add point conductances (W/K x count), held in TBD JSON file (under surfaces)
+  surfaces.each do |id, surface|
+    next unless surface[:boundary].downcase == "outdoors"
+    next unless io
+    next unless io.has_key?(:surfaces)
+    io[:surfaces].each do |s|
+      next unless s.has_key?(:id)
+      next unless s.has_key?(:khis)
+      next unless id == s[:id]
+      s[:khis].each do |k|
+        next unless k.has_key?(:id)
+        next unless k.has_key?(:count)
+        next unless io_k.point.has_key?(k[:id])
+        next unless io_k.point[k[:id]] > 0.000
+        surface[:heatloss] = 0 unless surface.has_key?(:heatloss)
+        surface[:heatloss] += io_k.point[k[:id]] * k[:count]
+      end
     end
   end
 
