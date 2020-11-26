@@ -2,8 +2,8 @@
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>a47c3447-2115-4442-843e-bae0e7d75b92</version_id>
-  <version_modified>20201126T003757Z</version_modified>
+  <version_id>52d372e5-c603-4569-a2be-34970f6ac8c0</version_id>
+  <version_modified>20201126T015303Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging &amp; Derating (TBD)</display_name>
@@ -146,12 +146,6 @@
       <checksum>00000000</checksum>
     </file>
     <file>
-      <filename>tbd_tests.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>test</usage_type>
-      <checksum>FB175D50</checksum>
-    </file>
-    <file>
       <filename>geometry.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
@@ -188,16 +182,22 @@
       <checksum>B64E67F5</checksum>
     </file>
     <file>
-      <filename>psi.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>0069BB5A</checksum>
-    </file>
-    <file>
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
       <checksum>89F0B0F6</checksum>
+    </file>
+    <file>
+      <filename>tbd_tests.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>226354A3</checksum>
+    </file>
+    <file>
+      <filename>psi.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>21A5B6AF</checksum>
     </file>
     <file>
       <version>
@@ -208,7 +208,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>1A536963</checksum>
+      <checksum>44AFDAC4</checksum>
+    </file>
+    <file>
+      <filename>tbd.json</filename>
+      <filetype>json</filetype>
+      <usage_type>test</usage_type>
+      <checksum>504EADD4</checksum>
     </file>
   </files>
 </measure>

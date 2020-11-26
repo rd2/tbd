@@ -148,7 +148,7 @@ class PSI
   end
 
   def complete?(s)
-    raise "Unknown '#{s}' PSI set"  unless @set.has_key?(s)
+    raise "Unknown '#{s}' PSI set in #{@set}"  unless @set.has_key?(s)
     raise "'#{s}' rimjoist?"        unless @set[s].has_key?(:rimjoist)
     raise "'#{s}' parapet?"         unless @set[s].has_key?(:parapet)
     raise "'#{s}' fenestration?"    unless @set[s].has_key?(:fenestration)

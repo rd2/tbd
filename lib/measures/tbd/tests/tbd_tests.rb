@@ -13,18 +13,18 @@ class TBDTest < Minitest::Test
 
   def test_number_of_arguments_and_argument_names
     # create an instance of the measure
-    measure = TBDTest.new
+    measure = TBDMeasure.new
     # make an empty model
     model = OpenStudio::Model::Model.new
 
     # get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-    assert_equal(0, arguments.size)
+    assert_equal(3, arguments.size)
   end
 
   def test_good_argument_values
     # create an instance of the measure
-    measure = TBDTest.new
+    measure = TBDMeasure.new
 
     # create runner with empty OSW
     osw = OpenStudio::WorkflowJSON.new

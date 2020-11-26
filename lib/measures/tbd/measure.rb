@@ -65,8 +65,6 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     load_tbd_json = runner.getBoolArgumentValue("load_tbd_json", user_arguments)
 
     option = runner.getStringArgumentValue("option", user_arguments)
-    psi = PSI.new
-    set = psi.set[option]
 
     write_tbd_json = runner.getBoolArgumentValue("write_tbd_json", user_arguments)
 
@@ -75,7 +73,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
       return false
     end
 
-    surfaces = processTBD(model, set)
+    surfaces = processTBD(model, option)
     surfaces.each do |id, surface|
       if surface.has_key?(:ratio)
         ratio  = format "%3.1f", surface[:ratio]
