@@ -1381,4 +1381,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil)
 
     surfaces
   end
+
+  # Adapt io before returning - TO DO
+  return io, surfaces
 end

@@ -38,8 +38,8 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args = OpenStudio::Measure::OSArgumentVector.new
 
     load_tbd_json = OpenStudio::Measure::OSArgument.makeBoolArgument("load_tbd_json", true, false)
-    load_tbd_json.setDisplayName("Load TBD.json")
-    load_tbd_json.setDescription("Loads existing TDB.json from model directory, overrides other arguments if true.")
+    load_tbd_json.setDisplayName("Load tbd.json")
+    load_tbd_json.setDescription("Loads existing TDB.json from model files directory, overrides other arguments if true.")
     load_tbd_json.setDefaultValue(false)
     args << load_tbd_json
 
@@ -53,8 +53,8 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args << option
 
     write_tbd_json = OpenStudio::Measure::OSArgument.makeBoolArgument("write_tbd_json", true, false)
-    write_tbd_json.setDisplayName("Write TBD.json")
-    write_tbd_json.setDescription("Write TBD.json to customize for subsequent runs, edit and place in model directory")
+    write_tbd_json.setDisplayName("Write tbd.out.json")
+    write_tbd_json.setDescription("Write tbd.out.json to customize for subsequent runs. Edit and place in model files directory as tbd.json")
     write_tbd_json.setDefaultValue(true)
     args << write_tbd_json
 
@@ -81,6 +81,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     schema_path = nil
 
     if load_tbd_json
+      runner.workflow.absoluteFilePaths.each {|p| runner.registerInfo("Searching for tbd.json in #{p}")}
       io_path = runner.workflow.findFile('tbd.json')
       if io_path.empty?
         runner.registerError("Cannot find tbd.json")
@@ -91,8 +92,8 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
       end
     end
 
-    # DLM: can processTBD also return the content of the TBD JSON to write?
-    surfaces = processTBD(model, option, io_path, schema_path)
+    io, surfaces = processTBD(model, option, io_path, schema_path)
+
     surfaces.each do |id, surface|
       if surface.has_key?(:ratio)
         ratio  = format "%3.1f", surface[:ratio]
@@ -103,14 +104,22 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     end
 
     if write_tbd_json
-      out_path = './tbd.out.json'
+      out_dir = '.'
+      file_paths = runner.workflow.absoluteFilePaths
+      file_paths.each {|p| runner.registerInfo("Searching for out_dir in #{p}")}
+
+      # Apply Measure Now does not copy files from first path back to generated_files
+      if file_paths.size >=2 && (/WorkingFiles/.match(file_paths[1].to_s) || /files/.match(file_paths[1].to_s)) && File.exists?(file_paths[1].to_s)
+        out_dir = file_paths[1].to_s
+      elsif !file_paths.empty? && File.exists?(file_paths.first.to_s)
+        out_dir = file_paths.first.to_s
+      end
+
+      out_path = File.join(out_dir, 'tbd.out.json')
       runner.registerInfo("Writing #{out_path} in #{Dir.pwd}")
+
       File.open(out_path, 'w') do |file|
-        # DLM: this is where it would be convienent to write out the TDB JSON file
-        # I don't think surfaces is what we want to write? how do we get the content
-        # for the TBD JSON?
-        file.puts '{}'
-        #file.puts JSON::pretty_generate(surfaces)
+        file.puts JSON::pretty_generate(io)
 
         # make sure data is written to the disk one way or the other
         begin

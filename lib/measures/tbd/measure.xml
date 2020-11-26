@@ -1,10 +1,9 @@
-<?xml version="1.0"?>
 <measure>
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>58702034-8db0-4a7f-b39c-6cde5ebe9ace</version_id>
-  <version_modified>20201126T040452Z</version_modified>
+  <version_id>683f3e52-a2e0-4b3b-94e5-fc7d22b71eff</version_id>
+  <version_modified>20201126T195523Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging &amp; Derating (TBD)</display_name>
@@ -13,8 +12,8 @@
   <arguments>
     <argument>
       <name>load_tbd_json</name>
-      <display_name>Load TBD.json</display_name>
-      <description>Loads existing TDB.json from model directory, overrides other arguments if true.</description>
+      <display_name>Load tbd.json</display_name>
+      <description>Loads existing TDB.json from model files directory, overrides other arguments if true.</description>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -63,8 +62,8 @@
     </argument>
     <argument>
       <name>write_tbd_json</name>
-      <display_name>Write TBD.json</display_name>
-      <description>Write TBD.json to customize for subsequent runs, edit and place in model directory</description>
+      <display_name>Write tbd.out.json</display_name>
+      <description>Write tbd.out.json to customize for subsequent runs. Edit and place in model files directory as tbd.json</description>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -81,8 +80,8 @@
       </choices>
     </argument>
   </arguments>
-  <outputs />
-  <provenances />
+  <outputs/>
+  <provenances/>
   <tags>
     <tag>Envelope.Opaque</tag>
   </tags>
@@ -183,12 +182,6 @@
       <checksum>B64E67F5</checksum>
     </file>
     <file>
-      <filename>psi.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>FA8D7AF2</checksum>
-    </file>
-    <file>
       <filename>tbd_full_PSI.json</filename>
       <filetype>json</filetype>
       <usage_type>test</usage_type>
@@ -198,13 +191,19 @@
       <filename>tbd_tests.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>E0C9C50E</checksum>
+      <checksum>9DEC541E</checksum>
     </file>
     <file>
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>89F0B0F6</checksum>
+      <checksum>6C1BA4C7</checksum>
+    </file>
+    <file>
+      <filename>psi.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>9985AC15</checksum>
     </file>
     <file>
       <version>
@@ -215,7 +214,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>E760B80F</checksum>
+      <checksum>270AA169</checksum>
     </file>
   </files>
 </measure>

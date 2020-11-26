@@ -19,8 +19,8 @@ ModelMeasure
 ## Arguments
 
 
-### Load TBD.json
-Loads existing TDB.json from model directory, overrides other arguments if true.
+### Load tbd.json
+Loads existing TDB.json from model files directory, overrides other arguments if true.
 **Name:** load_tbd_json,
 **Type:** Boolean,
 **Units:** ,
@@ -35,8 +35,8 @@ e.g. poor, regular, efficient, code
 **Required:** true,
 **Model Dependent:** false
 
-### Write TBD.json
-Write TBD.json to customize for subsequent runs, edit and place in model directory
+### Write tbd.out.json
+Write tbd.out.json to customize for subsequent runs. Edit and place in model files directory as tbd.json
 **Name:** write_tbd_json,
 **Type:** Boolean,
 **Units:** ,
