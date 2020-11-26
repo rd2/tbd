@@ -161,7 +161,7 @@ class PSI
   end
 end
 
-def processTBDinputs(surfaces, edges, set, io_path, schema_path)
+def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
   # In the near future, the bulk of the "raises" in processTBDinputs will
   # be logged as mild or severe warnings, possibly halting all TBD processes
   # The OpenStudio/EnergyPlus model would remain unaltered (or underated).
@@ -588,7 +588,7 @@ def derate(os_model, os_surface, id, surface, c, index, type, r)
   return m
 end
 
-def processTBD(os_model, io_path, schema_path, psi_set)
+def processTBD(os_model, psi_set, io_path, schema_path)
   surfaces = {}
 
   os_model_class = OpenStudio::Model::Model
@@ -1375,4 +1375,7 @@ def processTBD(os_model, io_path, schema_path, psi_set)
       end
     end
   end
+
+  # Adapt io before returning - TO DO
+  return io, surfaces
 end
