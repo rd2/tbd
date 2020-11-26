@@ -1,8 +1,12 @@
 begin
   # try to load from the gems
+  $STARTING_DIR = Dir.pwd
   require "topolys"
   require "psi"
 rescue LoadError
+  if $STARTING_DIR != Dir.pwd
+    Dir.chdir($STARTING_DIR)
+  end
   # load from measure resource dir
   require_relative "resources/psi.rb"
   require_relative "resources/geometry.rb"
@@ -32,15 +36,27 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
   # define the arguments that the user will input
   def arguments(model)
     args = OpenStudio::Measure::OSArgumentVector.new
-    psi = PSI.new
+
+    load_tbd_json = OpenStudio::Measure::OSArgument.makeBoolArgument("load_tbd_json", true, false)
+    load_tbd_json.setDisplayName("Load tbd.json")
+    load_tbd_json.setDescription("Loads existing TDB.json from model files directory, overrides other arguments if true.")
+    load_tbd_json.setDefaultValue(false)
+    args << load_tbd_json
 
     choices = OpenStudio::StringVector.new
+    psi = PSI.new
     psi.set.keys.each do |k| choices << k.to_s; end
     option = OpenStudio::Measure::OSArgument.makeChoiceArgument("option", choices, true)
-    option.setDisplayName("Thermal bridge option")
+    option.setDisplayName("Default thermal bridge option to use if not reading TDB.json")
     option.setDescription("e.g. poor, regular, efficient, code")
     option.setDefaultValue("poor (BC Hydro)")
     args << option
+
+    write_tbd_json = OpenStudio::Measure::OSArgument.makeBoolArgument("write_tbd_json", true, false)
+    write_tbd_json.setDisplayName("Write tbd.out.json")
+    write_tbd_json.setDescription("Write tbd.out.json to customize for subsequent runs. Edit and place in model files directory as tbd.json")
+    write_tbd_json.setDefaultValue(true)
+    args << write_tbd_json
 
     return args
   end
@@ -50,22 +66,67 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     super(model, runner, user_arguments)
 
     # assign the user inputs to variables
+    load_tbd_json = runner.getBoolArgumentValue("load_tbd_json", user_arguments)
+
     option = runner.getStringArgumentValue("option", user_arguments)
-    psi = PSI.new
-    set = psi.set[option]
+
+    write_tbd_json = runner.getBoolArgumentValue("write_tbd_json", user_arguments)
 
     # use the built-in error checking
     if !runner.validateUserArguments(arguments(model), user_arguments)
       return false
     end
 
-    io, surfaces = processTBD(model, set)
+    io_path = nil
+    schema_path = nil
+
+    if load_tbd_json
+      runner.workflow.absoluteFilePaths.each {|p| runner.registerInfo("Searching for tbd.json in #{p}")}
+      io_path = runner.workflow.findFile('tbd.json')
+      if io_path.empty?
+        runner.registerError("Cannot find tbd.json")
+        return false
+      else
+        io_path = io_path.get.to_s
+        runner.registerInfo("Using inputs from #{io_path}")
+      end
+    end
+
+    io, surfaces = processTBD(model, option, io_path, schema_path)
+
     surfaces.each do |id, surface|
       if surface.has_key?(:ratio)
         ratio  = format "%3.1f", surface[:ratio]
         name   = id.rjust(15, " ")
         output = "#{name} RSi derated by #{ratio}%"
         runner.registerInfo(output)
+      end
+    end
+
+    if write_tbd_json
+      out_dir = '.'
+      file_paths = runner.workflow.absoluteFilePaths
+      file_paths.each {|p| runner.registerInfo("Searching for out_dir in #{p}")}
+
+      # Apply Measure Now does not copy files from first path back to generated_files
+      if file_paths.size >=2 && (/WorkingFiles/.match(file_paths[1].to_s) || /files/.match(file_paths[1].to_s)) && File.exists?(file_paths[1].to_s)
+        out_dir = file_paths[1].to_s
+      elsif !file_paths.empty? && File.exists?(file_paths.first.to_s)
+        out_dir = file_paths.first.to_s
+      end
+
+      out_path = File.join(out_dir, 'tbd.out.json')
+      runner.registerInfo("Writing #{out_path} in #{Dir.pwd}")
+
+      File.open(out_path, 'w') do |file|
+        file.puts JSON::pretty_generate(io)
+
+        # make sure data is written to the disk one way or the other
+        begin
+          file.fsync
+        rescue StandardError
+          file.flush
+        end
       end
     end
 
