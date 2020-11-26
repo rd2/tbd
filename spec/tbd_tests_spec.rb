@@ -1531,7 +1531,7 @@ RSpec.describe TBD do
     psi_set = "poor (BC Hydro)"
     io_path = ""
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
     expect(surfaces.size).to eq(43)
 
     # testing
@@ -1557,7 +1557,7 @@ RSpec.describe TBD do
     psi_set = "poor (BC Hydro)"
     io_path = ""
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
     expect(surfaces.size).to eq(23)
 
     # testing
@@ -1593,7 +1593,7 @@ RSpec.describe TBD do
     psi_set = "poor (BC Hydro)"
     io_path = ""
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
     expect(surfaces.size).to eq(56)
 
     surfaces.each do |id, surface|
@@ -1619,7 +1619,7 @@ RSpec.describe TBD do
     psi_set = "(non thermal bridging)"
     io_path = ""
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
     expect(surfaces.size).to eq(56)
 
     # Since all PSI values = 0, we're not expecting any derated surfaces
@@ -1640,7 +1640,7 @@ RSpec.describe TBD do
     psi_set = "(non thermal bridging)"
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
     expect(surfaces.size).to eq(56)
 
     # As the :unit PSI set on file remains "(non thermal bridging)", one should
@@ -1662,7 +1662,7 @@ RSpec.describe TBD do
     psi_set = "(non thermal bridging)"
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n0.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
     expect(surfaces.size).to eq(56)
 
     # The :unit PSI set on file "compliant" supersedes the psi_set
@@ -1737,7 +1737,7 @@ RSpec.describe TBD do
     psi_set = "compliant" # instead of "(non thermal bridging)"
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n0.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
     expect(surfaces.size).to eq(56)
 
     surfaces.each do |id, surface|
@@ -1782,7 +1782,7 @@ RSpec.describe TBD do
     psi_set = "compliant" # instead of "(non thermal bridging)"
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n1.json" # no :unit
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
     expect(surfaces.size).to eq(56)
 
     surfaces.each do |id, surface|
@@ -1826,7 +1826,7 @@ RSpec.describe TBD do
     psi_set = "(non thermal bridging)"
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n2.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
     expect(surfaces.size).to eq(56)
 
     # As the :unit PSI set on file remains "(non thermal bridging)", one should
@@ -1848,11 +1848,14 @@ RSpec.describe TBD do
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
-    psi_set = "(non thermal bridging)"
+    psi_set = "(non thermal bridging)" # no :unit PSI set on file
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n3.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
     expect(surfaces.size).to eq(56)
+    expect(io.has_key?(:unit)).to be(true) # despite no being on file - good
+    expect(io[:unit].first.has_key?(:psi)).to be(true)
+    expect(io[:unit].first[:psi]).to eq("(non thermal bridging)")
 
     # As the :unit PSI set on file remains "(non thermal bridging)", one should
     # not expect differences in results, i.e. derating shouldn't occur. However,
@@ -1863,6 +1866,26 @@ RSpec.describe TBD do
       next unless surface.has_key?(:ratio)
       expect(id).to eq("Entryway  Wall 5")
       expect(surface[:heatloss]).to be_within(0.01).of(6.74)
+    end
+
+    expect(io.has_key?(:edges)).to be(true)
+    expect(io[:edges].size).to eq(1)
+    expect(io[:edges].first.has_key?(:psi)).to be(true)
+    expect(io[:edges].first.has_key?(:type)).to be(true)
+    expect(io[:edges].first.has_key?(:length)).to be(true)
+    expect(io[:edges].first.has_key?(:surfaces)).to be(true)
+
+    expect(io[:edges].first[:psi]).to be_within(0.01).of(0.9)
+    expect(io[:edges].first[:type]).to eq(:rimjoist)
+    expect(io[:edges].first[:length]).to be_within(0.01).of(3.6)
+    expect(io[:edges].first[:surfaces].class).to eq(Array)
+    expect(io[:edges].first[:surfaces][0]).to eq("Entryway  Wall 5")
+    expect(io[:edges].first[:surfaces][1]).to eq("Entry way  Floor")
+
+    out = JSON.pretty_generate(io)
+    out_path = File.dirname(__FILE__) + "/../json/tbd_seb_n3.out.json"
+    File.open(out_path, "w") do |out_path|
+      out_path.puts out
     end
   end
 end
@@ -1878,7 +1901,7 @@ RSpec.describe TBD do
     psi_set = "(non thermal bridging)"
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n4.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
     expect(surfaces.size).to eq(56)
 
     # As the :unit PSI set on file == "(non thermal bridgin)", derating
@@ -1905,7 +1928,7 @@ RSpec.describe TBD do
     psi_set = "(non thermal bridging)"
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n5.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
     expect(surfaces.size).to eq(56)
 
     # As above, yet the KHI points are now set @0.5 W/K per m (instead of 0)
@@ -1929,7 +1952,7 @@ RSpec.describe TBD do
     psi_set = "(non thermal bridging)"
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n6.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
     expect(surfaces.size).to eq(56)
 
     # As above, with a "good" surface PSI set
@@ -1953,7 +1976,7 @@ RSpec.describe TBD do
     psi_set = "compliant" # ignored - superseded by :unit PSI set on file
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n7.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    surfaces = processTBD(os_model, io_path, schema_path, psi_set)
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
     expect(surfaces.size).to eq(56)
 
     # In the JSON file, the "Entry way 1" space "compliant" PSI set supersedes
@@ -1978,6 +2001,12 @@ RSpec.describe TBD do
       end
       next unless id == "Entryway  Wall 5"
       expect(surface[:heatloss]).to be_within(0.01).of(13.96)
+    end
+
+    out = JSON.pretty_generate(io)
+    out_path = File.dirname(__FILE__) + "/../json/tbd_seb_n7.out.json"
+    File.open(out_path, "w") do |out_path|
+      out_path.puts out
     end
   end
 end

@@ -161,7 +161,7 @@ class PSI
   end
 end
 
-def processTBDinputs(surfaces, edges, set, io_path, schema_path)
+def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
   # In the near future, the bulk of the "raises" in processTBDinputs will
   # be logged as mild or severe warnings, possibly halting all TBD processes
   # The OpenStudio/EnergyPlus model would remain unaltered (or underated).
@@ -588,7 +588,7 @@ def derate(os_model, os_surface, id, surface, c, index, type, r)
   return m
 end
 
-def processTBD(os_model, io_path, schema_path, psi_set)
+def processTBD(os_model, psi_set, io_path, schema_path)
   surfaces = {}
 
   os_model_class = OpenStudio::Model::Model
@@ -1375,4 +1375,23 @@ def processTBD(os_model, io_path, schema_path, psi_set)
       end
     end
   end
+
+  io[:edges] = []
+
+  # Enrich io with TBD/Topolys edge info before returning :
+  # 1. edge custom PSI set, if on file
+  # 2. edge PSI type
+  # 3. edge length (m)
+  # 4. array of linked outside- or ground-facing surfaces
+  edges.values.each do |e|
+    next unless e.has_key?(:psi)
+    p = e[:psi].values.max
+    next unless p > 0.000
+    t = e[:psi].key(p)
+    l = e[:length]
+    edge = { psi: p, type: t, length: l, surfaces: e[:surfaces].keys }
+    io[:edges] << edge
+  end
+
+  return io, surfaces
 end

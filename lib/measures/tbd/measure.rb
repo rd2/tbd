@@ -59,7 +59,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
       return false
     end
 
-    surfaces = processTBD(model, set)
+    io, surfaces = processTBD(model, set)
     surfaces.each do |id, surface|
       if surface.has_key?(:ratio)
         ratio  = format "%3.1f", surface[:ratio]
