@@ -1376,6 +1376,22 @@ def processTBD(os_model, psi_set, io_path, schema_path)
     end
   end
 
-  # Adapt io before returning - TO DO
+  io[:edges] = []
+
+  # Enrich io with TBD/Topolys edge info before returning :
+  # 1. edge custom PSI set, if on file
+  # 2. edge PSI type
+  # 3. edge length (m)
+  # 4. array of linked outside- or ground-facing surfaces
+  edges.values.each do |e|
+    next unless e.has_key?(:psi)
+    p = e[:psi].values.max
+    next unless p > 0.000
+    t = e[:psi].key(p)
+    l = e[:length]
+    edge = { psi: p, type: t, length: l, surfaces: e[:surfaces].keys }
+    io[:edges] << edge
+  end
+
   return io, surfaces
 end
