@@ -1378,5 +1378,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil)
         surface[:ratio] = ratio
       end
     end
+
+    surfaces
   end
 end

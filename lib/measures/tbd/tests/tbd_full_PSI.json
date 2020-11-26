@@ -1,0 +1,18 @@
+{
+  "description": "TBD JSON example - full PSI-only",
+  "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
+  "psis": [
+    {
+      "id": "OK",
+      "rimjoist": 0.700,
+      "parapet": 0.700,
+      "fenestration": 0.700,
+      "concave": 0.700,
+      "convex": 0.700,
+      "balcony": 1.000,
+      "party": 0.700,
+      "party": 0.800,
+      "grade": 0.700
+    }
+  ]
+}

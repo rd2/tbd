@@ -1,8 +1,12 @@
 begin
   # try to load from the gems
+  $STARTING_DIR = Dir.pwd
   require "topolys"
   require "psi"
 rescue LoadError
+  if $STARTING_DIR != Dir.pwd
+    Dir.chdir($STARTING_DIR)
+  end
   # load from measure resource dir
   require_relative "resources/psi.rb"
   require_relative "resources/geometry.rb"
@@ -73,7 +77,22 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
       return false
     end
 
-    surfaces = processTBD(model, option)
+    io_path = nil
+    schema_path = nil
+
+    if load_tbd_json
+      io_path = runner.workflow.findFile('tbd.json')
+      if io_path.empty?
+        runner.registerError("Cannot find tbd.json")
+        return false
+      else
+        io_path = io_path.get.to_s
+        runner.registerInfo("Using inputs from #{io_path}")
+      end
+    end
+
+    # DLM: can processTBD also return the content of the TBD JSON to write?
+    surfaces = processTBD(model, option, io_path, schema_path)
     surfaces.each do |id, surface|
       if surface.has_key?(:ratio)
         ratio  = format "%3.1f", surface[:ratio]
@@ -84,8 +103,21 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     end
 
     if write_tbd_json
-      File.open('tbd.json', 'w') do |f|
-        f.puts JSON::pretty_generate(surfaces)
+      out_path = './tbd.out.json'
+      runner.registerInfo("Writing #{out_path} in #{Dir.pwd}")
+      File.open(out_path, 'w') do |file|
+        # DLM: this is where it would be convienent to write out the TDB JSON file
+        # I don't think surfaces is what we want to write? how do we get the content
+        # for the TBD JSON?
+        file.puts '{}'
+        #file.puts JSON::pretty_generate(surfaces)
+
+        # make sure data is written to the disk one way or the other
+        begin
+          file.fsync
+        rescue StandardError
+          file.flush
+        end
       end
     end
 
