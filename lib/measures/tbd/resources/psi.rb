@@ -1,5 +1,4 @@
 require "openstudio"
-require "json-schema"
 
 begin
   # try to load from the gem
@@ -149,7 +148,7 @@ class PSI
   end
 
   def complete?(s)
-    raise "Unknown '#{s}' PSI set"  unless @set.has_key?(s)
+    raise "Unknown '#{s}' PSI set in #{@set}"  unless @set.has_key?(s)
     raise "'#{s}' rimjoist?"        unless @set[s].has_key?(:rimjoist)
     raise "'#{s}' parapet?"         unless @set[s].has_key?(:parapet)
     raise "'#{s}' fenestration?"    unless @set[s].has_key?(:fenestration)
@@ -188,133 +187,138 @@ def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
     raise "processTBDinputs: TBD edges class #{edges.class}?"
   end
 
-  # Validate TBD JSON schema.
-  raise "processTBDinputs: TBD schema file?" unless File.exist?(schema_path)
-  raise "processTBDinputs: Empty TBD schema file?" if File.zero?(schema_path)
-  schema_c = File.read(schema_path)
-  schema = JSON.parse(schema_c, symbolize_names: true)
-
-  if File.size?(io_path) # optional input file exists and is non-zero
+  if io_path && File.size?(io_path) # optional input file exists and is non-zero
     io_c = File.read(io_path)
     io = JSON.parse(io_c, symbolize_names: true)
-    if JSON::Validator.validate!(schema, io) # process JSON entries
-      # Clear any stored log messages ... TO DO
 
-      if io.has_key?(:psis) # library of linear thermal bridges
-        io[:psis].each do |p| psi.append(p); end
+    # schema validation is not yet supported in the OpenStudio Application
+    if schema_path
+      require "json-schema"
+
+      raise "processTBDinputs: TBD schema file?" unless File.exist?(schema_path)
+      raise "processTBDinputs: Empty TBD schema file?" if File.zero?(schema_path)
+      schema_c = File.read(schema_path)
+      schema = JSON.parse(schema_c, symbolize_names: true)
+
+      if !JSON::Validator.validate!(schema, io)
+        # Log severe warning: enable to parse (invalid) user TBD JSON file
       end
-
-      if io.has_key?(:khis) # library of point thermal bridges
-        io[:khis].each do |k| khi.append(k); end
-      end
-
-      if io.has_key?(:unit)
-        raise "Unit PSI?" unless io[:unit].first.has_key?(:psi)
-      else
-        # No unit PSI - "set" must default to a built-in PSI set.
-        io[:unit] = [{ psi: set }] # i.e. default PSI set & no KHI's
-      end
-
-      p = io[:unit].first[:psi]
-      psi.complete?(p)
-
-      if io.has_key?(:stories)
-        io[:stories].each do |story|
-          next unless story.has_key?(:id)
-          next unless story.has_key?(:psi)
-          i = story[:id]
-          p = story[:psi]
-          raise "#{i} PSI mismatch" unless psi.set.has_key?(p)
-          # ... later, validate "id" vs OSM/IDF group names (ZoneLists?)
-        end
-      end
-
-      if io.has_key?(:spaces)
-        io[:spaces].each do |space|
-          next unless space.has_key?(:id)
-          next unless space.has_key?(:psi)
-          i = space[:id]
-          p = space[:psi]
-
-          # Validate if space "id" is found in surfaces hash
-          match = false
-          surfaces.values.each do |properties|
-            next if match
-            next unless properties.has_key?(:space)
-            sp = properties[:space]
-            match = true if i == sp.nameString
-          end
-          raise "Mismatch OpenStudio #{i}" unless match
-          raise "#{i} PSI mismatch" unless psi.set.has_key?(p)
-        end
-      end
-
-      if io.has_key?(:surfaces)
-        io[:surfaces].each do |surface|
-          next unless surface.has_key?(:id)
-          i = surface[:id]
-          raise "Mismatch OpenStudio #{i}" unless surfaces.has_key?(i)
-
-          # surfaces can optionally hold custom PSI sets and/or KHI data
-          if surface.has_key?(:psi)
-            p = surface[:psi]
-            raise "#{i} PSI mismatch" unless psi.set.has_key?(p)
-          end
-
-          if surface.has_key?(:khis)
-            surface[:khis].each do |k|
-              next unless k.has_key?(:id)
-              ii = k[:id]
-              raise "#{i} KHI #{ii} mismatch" unless khi.point.has_key?(ii)
-            end
-          end
-        end
-      end
-
-      if io.has_key?(:edges)
-        io[:edges].each do |edge|
-          next unless edge.has_key?(:type)
-          next unless edge.has_key?(:surfaces)
-          t = edge[:type].to_sym
-
-          # One or more edges on file are valid if all listed surfaces (on file)
-          # together connect at least one or more edges in TBD/Topolys (in
-          # memory). The latter may connect e.g. 3x TBD/Topolys surfaces, but
-          # the list of surfaces on file may be shorter, e.g. only 2x surfaces
-          # on file.
-          n = 0
-          edges.values.each do |properties|      # TBD/Topolys objects in memory
-            next unless properties.has_key?(:surfaces)
-            match = false
-            edge[:surfaces].each do |s|                   # JSON objects on file
-              next if match
-              next unless properties[:surfaces].has_key?(s)
-              match = true              # ... well, at least one - so loop again
-              edge[:surfaces].each do |ss|
-                match = false unless properties[:surfaces].has_key?(ss)
-              end
-              next unless match
-              if edge.has_key?(:length)    # optional, narrows down search (~1")
-                match = false unless (e[:length] - edge[:length]).abs < 0.025
-              end
-              next unless match
-              n += 1
-              if edge.has_key?(:psi)                                  # optional
-                p = edge[:psi]
-                raise "PSI mismatch" unless psi.set.has_key?(p)
-                raise "#{p} missing PSI #{t}" unless psi.set[p].has_key?(t)
-                properties[:io_set] = p
-              end
-              properties[:io_type] = t
-            end
-          end
-          raise "Edge: missing OpenStudio match" if n == 0
-        end
-      end
-
-    else
-      # Log severe warning: enable to parse (invalid) user TBD JSON file
     end
+
+    # Clear any stored log messages ... TO DO
+
+    if io.has_key?(:psis) # library of linear thermal bridges
+      io[:psis].each do |p| psi.append(p); end
+    end
+
+    if io.has_key?(:khis) # library of point thermal bridges
+      io[:khis].each do |k| khi.append(k); end
+    end
+
+    if io.has_key?(:unit)
+      raise "Unit PSI?" unless io[:unit].first.has_key?(:psi)
+    else
+      # No unit PSI - "set" must default to a built-in PSI set.
+      io[:unit] = [{ psi: set }] # i.e. default PSI set & no KHI's
+    end
+
+    p = io[:unit].first[:psi]
+    psi.complete?(p)
+
+    if io.has_key?(:stories)
+      io[:stories].each do |story|
+        next unless story.has_key?(:id)
+        next unless story.has_key?(:psi)
+        i = story[:id]
+        p = story[:psi]
+        raise "#{i} PSI mismatch" unless psi.set.has_key?(p)
+        # ... later, validate "id" vs OSM/IDF group names (ZoneLists?)
+      end
+    end
+
+    if io.has_key?(:spaces)
+      io[:spaces].each do |space|
+        next unless space.has_key?(:id)
+        next unless space.has_key?(:psi)
+        i = space[:id]
+        p = space[:psi]
+
+        # Validate if space "id" is found in surfaces hash
+        match = false
+        surfaces.values.each do |properties|
+          next if match
+          next unless properties.has_key?(:space)
+          sp = properties[:space]
+          match = true if i == sp.nameString
+        end
+        raise "Mismatch OpenStudio #{i}" unless match
+        raise "#{i} PSI mismatch" unless psi.set.has_key?(p)
+      end
+    end
+
+    if io.has_key?(:surfaces)
+      io[:surfaces].each do |surface|
+        next unless surface.has_key?(:id)
+        i = surface[:id]
+        raise "Mismatch OpenStudio #{i}" unless surfaces.has_key?(i)
+
+        # surfaces can optionally hold custom PSI sets and/or KHI data
+        if surface.has_key?(:psi)
+          p = surface[:psi]
+          raise "#{i} PSI mismatch" unless psi.set.has_key?(p)
+        end
+
+        if surface.has_key?(:khis)
+          surface[:khis].each do |k|
+            next unless k.has_key?(:id)
+            ii = k[:id]
+            raise "#{i} KHI #{ii} mismatch" unless khi.point.has_key?(ii)
+          end
+        end
+      end
+    end
+
+    if io.has_key?(:edges)
+      io[:edges].each do |edge|
+        next unless edge.has_key?(:type)
+        next unless edge.has_key?(:surfaces)
+        t = edge[:type].to_sym
+
+        # One or more edges on file are valid if all listed surfaces (on file)
+        # together connect at least one or more edges in TBD/Topolys (in
+        # memory). The latter may connect e.g. 3x TBD/Topolys surfaces, but
+        # the list of surfaces on file may be shorter, e.g. only 2x surfaces
+        # on file.
+        n = 0
+        edges.values.each do |properties|      # TBD/Topolys objects in memory
+          next unless properties.has_key?(:surfaces)
+          match = false
+          edge[:surfaces].each do |s|                   # JSON objects on file
+            next if match
+            next unless properties[:surfaces].has_key?(s)
+            match = true              # ... well, at least one - so loop again
+            edge[:surfaces].each do |ss|
+              match = false unless properties[:surfaces].has_key?(ss)
+            end
+            next unless match
+            if edge.has_key?(:length)    # optional, narrows down search (~1")
+              match = false unless (e[:length] - edge[:length]).abs < 0.025
+            end
+            next unless match
+            n += 1
+            if edge.has_key?(:psi)                                  # optional
+              p = edge[:psi]
+              raise "PSI mismatch" unless psi.set.has_key?(p)
+              raise "#{p} missing PSI #{t}" unless psi.set[p].has_key?(t)
+              properties[:io_set] = p
+            end
+            properties[:io_type] = t
+          end
+        end
+        raise "Edge: missing OpenStudio match" if n == 0
+      end
+    end
+
   else
     # No (optional) user-defined TBD JSON input file.
     # In such cases, "set" must refer to a valid PSI set
@@ -588,7 +592,7 @@ def derate(os_model, os_surface, id, surface, c, index, type, r)
   return m
 end
 
-def processTBD(os_model, psi_set, io_path, schema_path)
+def processTBD(os_model, psi_set, io_path = nil, schema_path = nil)
   surfaces = {}
 
   os_model_class = OpenStudio::Model::Model
@@ -1374,6 +1378,8 @@ def processTBD(os_model, psi_set, io_path, schema_path)
         surface[:ratio] = ratio
       end
     end
+
+    surfaces
   end
 
   io[:edges] = []

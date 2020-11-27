@@ -39,6 +39,7 @@ lib/measures/test_results/*
 lib/measures/*/tests/output
 /lib/measures/test_results
 /lib/measures/.rubocop*
+/lib/measures/*/tests/tbd.json
 
 runner.conf
 
