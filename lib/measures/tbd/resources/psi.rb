@@ -164,16 +164,15 @@ class PSI
   #
   # @return [Boolean] Returns true if stored and has a complete PSI set
   def complete?(s) # true/false
-    answer = true
-    answer = false unless @set.has_key?(s)
-    answer = false unless @set[s].has_key?(:rimjoist)
-    answer = false unless @set[s].has_key?(:parapet)
-    answer = false unless @set[s].has_key?(:fenestration)
-    answer = false unless @set[s].has_key?(:concave)
-    answer = false unless @set[s].has_key?(:convex)
-    answer = false unless @set[s].has_key?(:balcony)
-    answer = false unless @set[s].has_key?(:party)
-    answer = false unless @set[s].has_key?(:grade)
+    answer = @set.has_key?(s)
+    answer = answer && @set[s].has_key?(:rimjoist)
+    answer = answer && @set[s].has_key?(:parapet)
+    answer = answer && @set[s].has_key?(:fenestration)
+    answer = answer && @set[s].has_key?(:concave)
+    answer = answer && @set[s].has_key?(:convex)
+    answer = answer && @set[s].has_key?(:balcony)
+    answer = answer && @set[s].has_key?(:party)
+    answer = answer && @set[s].has_key?(:grade)
     answer
   end
 end

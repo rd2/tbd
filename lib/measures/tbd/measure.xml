@@ -214,7 +214,11 @@
       <filename>psi.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
+<<<<<<< HEAD
       <checksum>537AE9C7</checksum>
+=======
+      <checksum>80D87DF3</checksum>
+>>>>>>> 38949b46d4784d8a728637e81aec61a12169ecee
     </file>
   </files>
 </measure>
