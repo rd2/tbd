@@ -8,6 +8,11 @@ RuboCop::RakeTask.new
 
 task default: :spec
 
+require 'yard'
+YARD::Rake::YardocTask.new do |t|
+  t.files   = ["lib/psi.rb"]
+end
+
 desc "Update Library Files"
 task :update_library_files do
   puts "Updating Library Files"

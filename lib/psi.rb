@@ -42,7 +42,7 @@ class KHI
   end
 
   ##
-  # Append a new KHI pair, based on a TBD JSON-formatted KHI object
+  # Append a new KHI pair, based on a TBD JSON-formatted KHI object.
   # Requires a valid, unique :id
   #
   # @param [Hash] k A (identifier):(KHI) pair
