@@ -1583,6 +1583,177 @@ RSpec.describe TBD do
 end
 
 RSpec.describe TBD do
+  it "can process TB & D : DOE Prototype test_warehouse.osm + JSON I/O" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_warehouse.osm")
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    # 1. run the measure with a basic TBD JSON input file, e.g. :
+    #    - a custom PSI set, e.g. "compliant" set
+    #    - (4x) custom edges, e.g. "bad" :fenestration perimeters between
+    #      - "Office Left Wall Window1" & "Office Left Wall"
+
+    # The TBD JSON input file should hold the following:
+    # "edges": [
+    #  {
+    #    "psi": "bad",
+    #    "type": "fenestration",
+    #    "surfaces": [
+    #      "Office Left Wall Window1",
+    #      "Office Left Wall"
+    #    ]
+    #  }
+    # ],
+
+    # Despite defining the psi_set as having no thermal bridges, the "compliant"
+    # PSI set on file will be considered as the building-wide default set.
+    psi_set = "(non thermal bridging)"
+    io_path = File.dirname(__FILE__) + "/../json/tbd_warehouse.json"
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    expect(surfaces.size).to eq(23)
+
+    surfaces.each do |id, surface|
+      next unless surface.has_key?(:edges)
+      os_model.getSurfaces.each do |s|
+        next unless id == s.nameString
+        expect(s.isConstructionDefaulted).to be(false)
+        expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
+      end
+    end
+
+    surfaces.each do |id, surface|
+      if surface.has_key?(:ratio)
+        ratio  = format "%3.1f", surface[:ratio]
+        name   = id.rjust(15, " ")
+        # puts "#{name} RSi derated by #{ratio}%"
+        # ... should print out:
+        # Fine Storage Office Front Wall  RSi derated by - 8.4%
+        # Office Left Wall                RSi derated by -36.8% ~+5% increase
+        # Fine Storage Office Left Wall   RSi derated by - 9.8%
+        # Fine Storage Roof               RSi derated by - 4.4%
+        # Office Front Wall               RSi derated by -22.6%
+        # Fine Storage Right Wall         RSi derated by - 8.8%
+        # Bulk Storage Right Wall         RSi derated by - 8.7%
+        # Bulk Storage Rear Wall          RSi derated by - 8.3%
+        # Fine Storage Front Wall         RSi derated by - 8.5%
+        # Fine Storage Left Wall          RSi derated by - 8.4%
+        # Bulk Storage Left Wall          RSi derated by -11.8%
+        # Bulk Storage Roof               RSi derated by - 4.0%
+
+        # ... yet the following WITHOUT the bad fenestration edges:
+        # Fine Storage Office Front Wall  RSi derated by - 8.4%
+        # Office Left Wall                RSi derated by -31.4% <<<
+        # Fine Storage Office Left Wall   RSi derated by - 9.8%
+        # Fine Storage Roof               RSi derated by - 4.4%
+        # Office Front Wall               RSi derated by -22.6%
+        # Fine Storage Right Wall         RSi derated by - 8.8%
+        # Bulk Storage Right Wall         RSi derated by - 8.7%
+        # Bulk Storage Rear Wall          RSi derated by - 8.3%
+        # Fine Storage Front Wall         RSi derated by - 8.5%
+        # Fine Storage Left Wall          RSi derated by - 8.4%
+        # Bulk Storage Left Wall          RSi derated by -11.8%
+        # Bulk Storage Roof               RSi derated by - 4.0%
+        next unless name == "Office Left Wall"
+        expect(surface[:ratio]).to be_within(0.2).of(-36.8)
+      else
+        expect(surface[:boundary].downcase).to_not eq("outdoors")
+      end
+    end
+
+    # Now mimic the export functionality of the measure
+    out = JSON.pretty_generate(io)
+    out_path = File.dirname(__FILE__) + "/../json/tbd_warehouse.out.json"
+    File.open(out_path, "w") do |out_path|
+      out_path.puts out
+    end
+
+    # 2. Re-use the exported file as input for another warehouse
+    os_model2 = translator.loadModel(path)
+    expect(os_model2.empty?).to be(false)
+    os_model2 = os_model2.get
+
+    io_path2 = File.dirname(__FILE__) + "/../json/tbd_warehouse.out.json"
+    io2, surfaces = processTBD(os_model2, psi_set, io_path2, schema_path)
+    expect(surfaces.size).to eq(23)
+
+    surfaces.each do |id, surface|
+      next unless surface.has_key?(:edges)
+      os_model.getSurfaces.each do |s|
+        next unless id == s.nameString
+        expect(s.isConstructionDefaulted).to be(false)
+        expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
+      end
+    end
+
+    surfaces.each do |id, surface|
+      if surface.has_key?(:ratio)
+        ratio  = format "%3.1f", surface[:ratio]
+        name   = id.rjust(15, " ")
+        # puts "#{name} RSi derated by #{ratio}%"
+        # ... should print out:
+        # Fine Storage Office Front Wall  RSi derated by - 8.4%
+        # Office Left Wall                RSi derated by -36.8% ~+5% increase
+        # Fine Storage Office Left Wall   RSi derated by - 9.8%
+        # Fine Storage Roof               RSi derated by - 4.4%
+        # Office Front Wall               RSi derated by -22.6%
+        # Fine Storage Right Wall         RSi derated by - 8.8%
+        # Bulk Storage Right Wall         RSi derated by - 8.7%
+        # Bulk Storage Rear Wall          RSi derated by - 8.3%
+        # Fine Storage Front Wall         RSi derated by - 8.5%
+        # Fine Storage Left Wall          RSi derated by - 8.4%
+        # Bulk Storage Left Wall          RSi derated by -11.8%
+        # Bulk Storage Roof               RSi derated by - 4.0%
+        next unless name == "Office Left Wall"
+        expect(surface[:ratio]).to be_within(0.2).of(-36.8)
+
+        # Note the content of the out.json file:
+        # {
+        #  "psi": "bad",
+        #  "type": "fenestration",
+        #  "length": 1.524940613884627,
+        #  "surfaces": [
+        #    "Office Left Wall Window1",
+        #    "Office Left Wall"
+        #  ],
+        #  "count": 2
+        # },
+        # {
+        #  "psi": "bad",
+        #  "type": "fenestration",
+        #  "length": 2.13349595113501,
+        #  "surfaces": [
+        #    "Office Left Wall Window1",
+        #    "Office Left Wall"
+        #  ],
+        #  "count": 2
+        # },
+        #
+        # 2x entries (instead of 1x):
+        #   - 2x 1.52m edges
+        #   - 2x 2.13m edges
+        # ... otherwise, same PSI set, PSI type and surface list
+      else
+        expect(surface[:boundary].downcase).to_not eq("outdoors")
+      end
+    end
+
+    # Now mimic (again) the export functionality of the measure
+    out2 = JSON.pretty_generate(io2)
+    out_path2 = File.dirname(__FILE__) + "/../json/tbd_warehouse2.out.json"
+    File.open(out_path2, "w") do |out_path2|
+      out_path2.puts out2
+    end
+
+    # Both output files should be the same ...
+    cmd = "diff #{out_path} #{out_path2}"
+    expect(system( cmd )).to be(true)
+  end
+end
+
+RSpec.describe TBD do
   it "can process TB & D : test_seb.osm" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
@@ -1666,7 +1837,7 @@ RSpec.describe TBD do
     expect(surfaces.size).to eq(56)
 
     # The :unit PSI set on file "compliant" supersedes the psi_set
-    #{ }"(non thermal bridging)", so one should expect differences in results,
+    # "(non thermal bridging)", so one should expect differences in results,
     # i.e. derating should occur. The next 2 tests:
     #   1. setting both psi_set & file :unit to "compliant"
     #   2. setting psi_set to "compliant" while removing the :unit from file
@@ -1861,7 +2032,7 @@ RSpec.describe TBD do
     # not expect differences in results, i.e. derating shouldn't occur. However,
     # the JSON file holds KHI entries for "Entryway  Wall 2" :
     # 3x "columns" @0.5 W/K + 4x supports @0.5W/K = 3.5 W/K (as in case above),
-    # and a "good" psi set (:rimjoist), which should override the default set
+    # and a "good" PSI set (:rimjoist), which should override the default set
     surfaces.each do |id, surface|
       next unless surface.has_key?(:ratio)
       expect(id).to eq("Entryway  Wall 5")
@@ -1875,7 +2046,12 @@ RSpec.describe TBD do
     expect(io[:edges].first.has_key?(:length)).to be(true)
     expect(io[:edges].first.has_key?(:surfaces)).to be(true)
 
-    expect(io[:edges].first[:psi]).to be_within(0.01).of(0.9)
+    p = io[:edges].first[:psi]
+    t = io[:edges].first[:type]
+    s = {}
+    io[:psis].each do |set| s = set if set[:id] == p; end
+
+    expect(s[t]).to be_within(0.01).of(0.9)
     expect(io[:edges].first[:type]).to eq(:rimjoist)
     expect(io[:edges].first[:length]).to be_within(0.01).of(3.6)
     expect(io[:edges].first[:surfaces].class).to eq(Array)

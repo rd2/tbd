@@ -39,7 +39,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
 
     load_tbd_json = OpenStudio::Measure::OSArgument.makeBoolArgument("load_tbd_json", true, false)
     load_tbd_json.setDisplayName("Load tbd.json")
-    load_tbd_json.setDescription("Loads existing TDB.json from model files directory, overrides other arguments if true.")
+    load_tbd_json.setDescription("Loads existing tbd.json from model files directory, overrides other arguments if true.")
     load_tbd_json.setDefaultValue(false)
     args << load_tbd_json
 
@@ -47,7 +47,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     psi = PSI.new
     psi.set.keys.each do |k| choices << k.to_s; end
     option = OpenStudio::Measure::OSArgument.makeChoiceArgument("option", choices, true)
-    option.setDisplayName("Default thermal bridge option to use if not reading TDB.json")
+    option.setDisplayName("Default thermal bridge option to use if not reading tbd.json")
     option.setDescription("e.g. poor, regular, efficient, code")
     option.setDefaultValue("poor (BC Hydro)")
     args << option

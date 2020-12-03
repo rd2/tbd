@@ -180,6 +180,12 @@
           },
           "minItems": 1,
           "uniqueItems": true
+        },
+        "count": {
+          "title": "Number of occurrences",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
         }
       },
       "additionalProperties": false,
