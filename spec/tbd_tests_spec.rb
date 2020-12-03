@@ -2428,4 +2428,44 @@ RSpec.describe TBD do
     expect(JSON::Validator.validate(schema, io)).to be(true)
     expect(JSON::Validator.validate(schema_path, io_path, uri: true)).to be(true)
   end
+
+  it "has a PSI class" do
+    psi = PSI.new
+    expect(psi.set.has_key?("poor (BC Hydro)")).to be(true)
+    expect(psi.complete?("poor (BC Hydro)")).to be(true)
+
+    expect(psi.set.has_key?("new set")).to be(false)
+    expect(psi.complete?("new set")).to be(false)
+    new_set =
+    {
+      id:           "new set",
+      rimjoist:     0.000, #
+      parapet:      0.000, #
+      fenestration: 0.000, #
+      concave:      0.000, #
+      convex:       0.000, #
+      balcony:      0.000, #
+      party:        0.000, #
+      grade:        0.000  #
+    }
+    psi.append(new_set)
+    expect(psi.set.has_key?("new set")).to be(true)
+    expect(psi.complete?("new set")).to be(true)
+
+    expect(psi.set["new set"][:grade]).to eq(0)
+    new_set[:grade] = 1.0
+    psi.append(new_set) # does not override existing value
+    expect(psi.set["new set"][:grade]).to eq(0)
+
+    expect(psi.set.has_key?("incomplete set")).to be(false)
+    expect(psi.complete?("incomplete set")).to be(false)
+    incomplete_set =
+    {
+      id:           "incomplete set",
+      grade:        0.000  #
+    }
+    psi.append(incomplete_set)
+    expect(psi.set.has_key?("incomplete set")).to be(true)
+    expect(psi.complete?("incomplete set")).to be(false)
+  end
 end
