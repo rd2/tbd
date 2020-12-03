@@ -20,7 +20,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
   # human readable name
   def name
     # Measure name should be the title case of the class name.
-    return "Thermal Bridging & Derating (TBD)"
+    return "Thermal Bridging and Derating - TBD"
   end
 
   # human readable description

@@ -2,7 +2,7 @@
 
 ###### (Automatically generated documentation)
 
-# Thermal Bridging & Derating (TBD)
+# Thermal Bridging and Derating - TBD
 
 ## Description
 Thermally derates opaque constructions from major thermal bridges

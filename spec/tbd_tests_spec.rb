@@ -1473,7 +1473,7 @@ RSpec.describe TBD do
 
         # m     - newly derated, cloned material
         m = nil
-        m = derate(os_model, s, id, surface, c, index, type, r) unless index.nil?
+        m = derate(os_model, id, surface, c, index, type, r) unless index.nil?
 
         # "m" may be nilled simply because the targeted construction has already
         # been derated, i.e. holds " tbd" in its name. Names of cloned/derated
@@ -1748,8 +1748,10 @@ RSpec.describe TBD do
     end
 
     # Both output files should be the same ...
-    cmd = "diff #{out_path} #{out_path2}"
-    expect(system( cmd )).to be(true)
+    # cmd = "diff #{out_path} #{out_path2}"
+    # expect(system( cmd )).to be(true)
+    # expect(FileUtils).to be_identical(out_path, out_path2)
+    expect(FileUtils.identical?(out_path, out_path2)).to be(true)
   end
 end
 
@@ -2427,5 +2429,45 @@ RSpec.describe TBD do
     io = JSON.parse(io_c, symbolize_names: true)
     expect(JSON::Validator.validate(schema, io)).to be(true)
     expect(JSON::Validator.validate(schema_path, io_path, uri: true)).to be(true)
+  end
+
+  it "has a PSI class" do
+    psi = PSI.new
+    expect(psi.set.has_key?("poor (BC Hydro)")).to be(true)
+    expect(psi.complete?("poor (BC Hydro)")).to be(true)
+
+    expect(psi.set.has_key?("new set")).to be(false)
+    expect(psi.complete?("new set")).to be(false)
+    new_set =
+    {
+      id:           "new set",
+      rimjoist:     0.000, #
+      parapet:      0.000, #
+      fenestration: 0.000, #
+      concave:      0.000, #
+      convex:       0.000, #
+      balcony:      0.000, #
+      party:        0.000, #
+      grade:        0.000  #
+    }
+    psi.append(new_set)
+    expect(psi.set.has_key?("new set")).to be(true)
+    expect(psi.complete?("new set")).to be(true)
+
+    expect(psi.set["new set"][:grade]).to eq(0)
+    new_set[:grade] = 1.0
+    psi.append(new_set) # does not override existing value
+    expect(psi.set["new set"][:grade]).to eq(0)
+
+    expect(psi.set.has_key?("incomplete set")).to be(false)
+    expect(psi.complete?("incomplete set")).to be(false)
+    incomplete_set =
+    {
+      id:           "incomplete set",
+      grade:        0.000  #
+    }
+    psi.append(incomplete_set)
+    expect(psi.set.has_key?("incomplete set")).to be(true)
+    expect(psi.complete?("incomplete set")).to be(false)
   end
 end

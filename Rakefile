@@ -39,10 +39,13 @@ task :update_measure do
   puts "Updating Measure"
 
   require 'openstudio'
+  require 'open3'
 
   cli = OpenStudio.getOpenStudioCLI
   command = "#{cli} measure -t './lib/measures'"
-  system({"BUNDLE_GEMFILE"=>nil}, command)
+  puts command
+  out, err, ps = Open3.capture3({"BUNDLE_GEMFILE"=>nil}, command)
+  raise "Failed to update measures\n\n#{out}\n\n#{err}" unless ps.success?
 end
 task :update_measure => [:update_library_files]
 
