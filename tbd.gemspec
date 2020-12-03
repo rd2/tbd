@@ -36,6 +36,7 @@ Gem::Specification.new do |spec|
     spec.add_development_dependency "rake",           "~> 12.3"
     spec.add_development_dependency "rspec",          "~> 3.7.0"
     spec.add_development_dependency "rubocop",        "~> 0.54.0"
+    spec.add_development_dependency "yard",           "~> 0.9"
   else
     spec.required_ruby_version = "~> 2.5.0"
 
@@ -46,5 +47,6 @@ Gem::Specification.new do |spec|
     spec.add_development_dependency "rake",           "~> 13.0"
     spec.add_development_dependency "rspec",          "~> 3.9"
     spec.add_development_dependency "rubocop",        "~> 0.54.0"
+    spec.add_development_dependency "yard",           "~> 0.9"
   end
 end
