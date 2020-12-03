@@ -2,8 +2,8 @@
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>1ff28253-f397-4ed7-ab2c-89a146d288eb</version_id>
-  <version_modified>20201127T115453Z</version_modified>
+  <version_id>eb8a7396-2949-4006-9503-b55139b3fa06</version_id>
+  <version_modified>20201203T002542Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging &amp; Derating (TBD)</display_name>
@@ -13,7 +13,7 @@
     <argument>
       <name>load_tbd_json</name>
       <display_name>Load tbd.json</display_name>
-      <description>Loads existing TDB.json from model files directory, overrides other arguments if true.</description>
+      <description>Loads existing tbd.json from model files directory, overrides other arguments if true.</description>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -31,7 +31,7 @@
     </argument>
     <argument>
       <name>option</name>
-      <display_name>Default thermal bridge option to use if not reading TDB.json</display_name>
+      <display_name>Default thermal bridge option to use if not reading tbd.json</display_name>
       <description>e.g. poor, regular, efficient, code</description>
       <type>Choice</type>
       <required>true</required>
@@ -152,12 +152,6 @@
       <checksum>72504284</checksum>
     </file>
     <file>
-      <filename>transformation.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>8EC912F6</checksum>
-    </file>
-    <file>
       <filename>version.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
@@ -194,10 +188,10 @@
       <checksum>9DEC541E</checksum>
     </file>
     <file>
-      <filename>README.md</filename>
-      <filetype>md</filetype>
-      <usage_type>readme</usage_type>
-      <checksum>6C1BA4C7</checksum>
+      <filename>transformation.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>8EC912F6</checksum>
     </file>
     <file>
       <version>
@@ -208,13 +202,19 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>270AA169</checksum>
+      <checksum>E5F3EAA2</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>B2679AB6</checksum>
     </file>
     <file>
       <filename>psi.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>B730B2DA</checksum>
+      <checksum>9D3853F3</checksum>
     </file>
   </files>
 </measure>

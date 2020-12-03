@@ -20,14 +20,14 @@ ModelMeasure
 
 
 ### Load tbd.json
-Loads existing TDB.json from model files directory, overrides other arguments if true.
+Loads existing tbd.json from model files directory, overrides other arguments if true.
 **Name:** load_tbd_json,
 **Type:** Boolean,
 **Units:** ,
 **Required:** true,
 **Model Dependent:** false
 
-### Default thermal bridge option to use if not reading TDB.json
+### Default thermal bridge option to use if not reading tbd.json
 e.g. poor, regular, efficient, code
 **Name:** option,
 **Type:** Choice,
