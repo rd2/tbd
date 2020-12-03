@@ -10,24 +10,29 @@ rescue LoadError
   require_relative "version.rb"
 end
 
-# sources for the following defaults KHI & PSI values/sets:
+# Sources for the following defaults KHI & PSI values/sets:
 
 # BETB = BC Hydro's Building Envelope Thermal Bridging Guide v1.4
 # www.bchydro.com/content/dam/BCHydro/customer-portal/documents/power-smart/
 # business/programs/BETB-Building-Envelope-Thermal-Bridging-Guide-v1-4.pdf
 
-# NECB-QC : Québec's energy code for new commercial buildings
+# NECB-QC: Québec's energy code for new commercial buildings
 # www2.publicationsduquebec.gouv.qc.ca/dynamicSearch/telecharge.php?type=1&file=72541.pdf
 
+##
+# Library of point thermal bridges (e.g. columns). Each key:value entry
+# requires a unique identifier e.g. "poor (BC Hydro)" and a KHI-value in W/K.
 class KHI
-  # @return [Hash] KHI
+  # @return [Hash] KHI library
   attr_reader :point
 
+  ##
+  # Construct a new KHI library (with defaults)
   def initialize
     @point = {}
 
-    # The following are defaults (* stated). Users may edit these defaults,
-    # add new KHI pairs, or even read-in other KHI pairs on file.
+    # The following are defaults. Users may edit these defaults,
+    # append new key:value pairs, or even read-in other pairs on file.
     # Units are in W/K.
     @point[ "poor (BC Hydro)" ]         = 0.900 # detail 5.7.2 BETB
     @point[ "regular (BC Hydro)" ]      = 0.500 # detail 5.7.4 BETB
@@ -36,25 +41,35 @@ class KHI
     @point[ "(non thermal bridging)" ]  = 0.000
   end
 
-  # Append a new KHI set, based on a JSON formatted KHI set object
+  ##
+  # Append a new KHI pair, based on a TBD JSON-formatted KHI object
   # Requires a valid, unique :id
+  #
+  # @param [Hash] k A (identifier):(KHI) pair
   def append(k)
     if k.is_a?(Hash) && k.has_key?(:id)
       id = k[:id]
       @point[id] = k[:point] unless @point.has_key?(id)
       # should log message if duplicate attempt
     end
+    # should log message if else
   end
 end
 
+##
+# Library of linear thermal bridges (e.g. corners, balconies). Each key:value
+# entry requires a unique identifier e.g. "poor (BC Hydro)" and a (partial or
+# complete) set of PSI-values in W/K per linear meter.
 class PSI
   # @return [Hash] PSI set
   attr_reader :set
 
+  ##
+  # Construct a new PSI library (with defaults)
   def initialize
     @set = {}
 
-    # The following are defaults (* stated, ** presumed). Users may edit
+    # The following are defaults (* stated, ** inferred). Users may edit
     # these sets, add new sets, or even read-in other sets on file.
     # Units are in W/K per linear meter.
     @set[ "poor (BC Hydro)" ] =
@@ -118,8 +133,11 @@ class PSI
     }.freeze
   end
 
-  # Append a new PSI set, based on a JSON formatted PSI set object.
+  ##
+  # Append a new PSI set, based on a TBD JSON-formatted PSI set object.
   # Requires a valid, unique :id.
+  #
+  # @param [Hash] p A (identifier):(PSI set) pair
   def append(p)
     if p.is_a?(Hash) && p.has_key?(:id)
       id = p[:id]
@@ -136,8 +154,15 @@ class PSI
         @set[id][:grade]        = p[:grade]        if p.has_key?(:grade)
       end
     end
+    # should log if else message
   end
 
+  ##
+  # Validate whether a stored PSI set has a complete list of PSI type:values
+  #
+  # @param [String] s A PSI set identifier
+  #
+  # @return [Boolean] Returns true if stored and has a complete PSI set
   def complete?(s) # true/false
     answer = true
     answer = false unless @set.has_key?(s)
@@ -153,22 +178,35 @@ class PSI
   end
 end
 
+##
+# Process TBD user inputs, after TBD has processed OpenStudio model variables
+# and retrieved corresponding Topolys model surface/edge properties. TBD user
+# inputs allow customization of default assumptions and inferred values.
+# If successful, "edges" (input) may inherit additional properties, e.g.:
+# :io_set  = edge-specific PSI set, held in TBD JSON file
+# :io_type = edge-specific PSI type (e.g. "corner"), held in TBD JSON file
+# :io_unit = project-wide PSI set, if absent from TBD JSON file
+#
+# @param [Hash] surfaces Preprocessed collection of TBD surfaces
+# @param [Hash] edges Preprocessed collection TBD edges
+# @param [String] set Default) PSI set identifier, can be "" (empty)
+# @param [String] io_path Path to a user-set TBD JSON input file (optional)
+# @param [String] schema_path Path to a TBD JSON schema file (optional)
+#
+# @return [Hash] Returns a JSON-generated collection of user inputs
+# @return [Hash] Returns a new PSI library, enriched with optional sets on file
+# @return [Hash] Returns a new KHI library, enriched with optional pairs on file
 def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
   # In the near future, the bulk of the "raises" in processTBDinputs will
   # be logged as mild or severe warnings, possibly halting all TBD processes
-  # The OpenStudio/EnergyPlus model would remain unaltered (or underated).
+  # The OpenStudio/EnergyPlus model would remain unaltered (or un-derated).
 
   # JSON validation relies on case-senitive string comparisons (e.g. OpenStudio
   # space or surface names, vs corresponding TBD JSON identifiers). So "Space-1"
   # would not match "SPACE-1". A head's up ...
-
-  # The following will also add ":io_type" & ":io_set" keys (true/false) to any
-  # TBD/Topolys edge (re: "edges" argument) with a match on file: if true
-  # (i.e. a match), the edge PSI set and/or PSI type on file take precedence
-  # over TBD/Topolys logical assignments.
   io = {}
-  psi = PSI.new # PSI hash, initially holding built-in defaults
-  khi = KHI.new # KHI hash, initially holding built-in defaults
+  psi = PSI.new                  # PSI hash, initially holding built-in defaults
+  khi = KHI.new                  # KHI hash, initially holding built-in defaults
 
   raise "processTBDinputs: invalid TBD surfaces?" unless surfaces
   unless surfaces.is_a?(Hash)
@@ -200,11 +238,11 @@ def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
 
     # Clear any stored log messages ... TO DO
 
-    if io.has_key?(:psis) # library of linear thermal bridges
+    if io.has_key?(:psis)                    # library of linear thermal bridges
       io[:psis].each do |p| psi.append(p); end
     end
 
-    if io.has_key?(:khis) # library of point thermal bridges
+    if io.has_key?(:khis)                     # library of point thermal bridges
       io[:khis].each do |k| khi.append(k); end
     end
 
@@ -212,7 +250,7 @@ def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
       raise "Unit PSI?" unless io[:unit].first.has_key?(:psi)
     else
       # No unit PSI - "set" must default to a built-in PSI set.
-      io[:unit] = [{ psi: set }] # i.e. default PSI set & no KHI's
+      io[:unit] = [{ psi: set }]               # i.e. default PSI set & no KHI's
     end
 
     p = io[:unit].first[:psi]
@@ -299,7 +337,7 @@ def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
             next unless match
             e[:io_type] = t
             n += 1
-            if edge.has_key?(:psi)                                  # optional
+            if edge.has_key?(:psi)                                    # optional
               p = edge[:psi]
               raise "PSI mismatch" unless psi.set.has_key?(p)
               raise "#{p} missing PSI #{t}" unless psi.set[p].has_key?(t)
@@ -314,13 +352,20 @@ def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
     # No (optional) user-defined TBD JSON input file.
     # In such cases, "set" must refer to a valid PSI set
     raise "Incomplete PSI set #{set}" unless psi.complete?(set)
-    io[:unit] = [{ psi: set }]       # i.e. default PSI set & no KHI's
+    io[:unit] = [{ psi: set }]                 # i.e. default PSI set & no KHI's
   end
 
   return io, psi, khi
 end
 
-# Returns site/space transformation & rotation
+##
+# Return OpenStudio site/space transformation & rotation
+#
+# @param [OpenStudio::Model::Model] model An OS model
+# @param [OpenStudio::Model::Space or ::ShadingSurfaceGroup] group An OS group
+#
+# @return [OpenStudio::Transformation] Returns group vs site transformation
+# @return [Float] Returns site + group rotation angle [0,2PI) radians
 def transforms(model, group)
   if model && group
     unless model.is_a?(OpenStudio::Model::Model)
@@ -336,7 +381,13 @@ def transforms(model, group)
   end
 end
 
-# Returns site-specific (or absolute) Topolys surface normal
+##
+# Return site-specific (or absolute) Topolys surface normal
+#
+# @param [OpenStudio::Model::PlanarSurface] s An OS planar surface
+# @param [Float] r A rotation angle [0,2PI) radians
+#
+# @return [OpenStudio::Vector3D] Returns normal vector <x,y,z> of s
 def trueNormal(s, r)
   if s && r
     c = OpenStudio::Model::PlanarSurface
@@ -344,17 +395,23 @@ def trueNormal(s, r)
     raise "Expected a numeric - got #{r.class}" unless r.is_a?(Numeric)
 
     n = Topolys::Vector3D.new(s.outwardNormal.x * Math.cos(r) -
-                              s.outwardNormal.y * Math.sin(r), # x
+                              s.outwardNormal.y * Math.sin(r),               # x
                               s.outwardNormal.x * Math.sin(r) +
-                              s.outwardNormal.y * Math.cos(r), # y
-                              s.outwardNormal.z)               # z
-    return n
+                              s.outwardNormal.y * Math.cos(r),               # y
+                              s.outwardNormal.z)                             # z
   end
 end
 
-# Returns Topolys vertices and a Topolys wire from Topolys points. As
+##
+# Return Topolys vertices and a Topolys wire from Topolys points. As
 # a side effect, it will - if successful - also populate the Topolys
 # model with the vertices and wire.
+#
+# @param [OpenStudio::Model::Model] model An OS model
+# @param [Array] points A 1D array of 3D Topolys points (min 2x)
+#
+# @return [Array] Returns a 1D array of 3D Topolys vertices
+# @return [Topolys::Wire] Returns a corresponding Topolys wire
 def topolysObjects(model, points)
   if model && points
     unless model.is_a?(Topolys::Model)
@@ -373,9 +430,15 @@ def topolysObjects(model, points)
   end
 end
 
-# Populates hash of TBD kids, relying on Topolys. As
+##
+# Populate collection of TBD "kids", i.e. subsurfaces, relying on Topolys. As
 # a side effect, it will - if successful - also populate the Topolys
 # model with Topolys vertices, wires, holes.
+#
+# @param [OpenStudio::Model::Model] model An OS model
+# @param [Hash] kids A collection of TBD subsurfaces
+#
+# @return [Array] Returns a 1D array of 3D Topolys holes, i.e. wires
 def populateTBDkids(model, kids)
   holes = []
   if model && kids
@@ -383,7 +446,7 @@ def populateTBDkids(model, kids)
       raise "Expected Topolys model - got #{model.class}"
     end
     unless kids.is_a?(Hash)
-      raise "Expected hash of TBD surafces - got a #{kids.class}"
+      raise "Expected hash of TBD surfaces - got a #{kids.class}"
     end
     kids.each do |id, properties|
       vtx, hole = topolysObjects(model, properties[:points])
@@ -393,12 +456,18 @@ def populateTBDkids(model, kids)
       holes << hole
     end
   end
-  return holes
+  holes
 end
 
-# Populates hash of TBD surfaces, relying on Topolys. As
+##
+# Populate hash of TBD "dads", i.e. (parent) surfaces, relying on Topolys. As
 # a side effect, it will - if successful - also populate the Topolys
 # model with Topolys vertices, wires, holes & faces.
+#
+# @param [OpenStudio::Model::Model] model An OS model
+# @param [Hash] dads A collection of TBD (parent) surfaces
+#
+# @return [Array] Returns a 1D array of 3D Topolys parent holes, i.e. wires
 def populateTBDdads(model, dads)
   tbd_holes = {}
 
@@ -413,7 +482,7 @@ def populateTBDdads(model, dads)
     dads.each do |id, properties|
       vertices, wire = topolysObjects(model, properties[:points])
 
-      # create surface holes for kids
+      # Create surface holes for kids.
       holes = []
       if properties.has_key?(:windows)
         holes += populateTBDkids(model, properties[:windows])
@@ -432,13 +501,18 @@ def populateTBDdads(model, dads)
       face.attributes[:n] = properties[:n] if properties.has_key?(:n)
       properties[:face] = face
 
-      # populate hash of created holes (to return)
+      # Populate hash of created holes (to return).
       holes.each do |h| tbd_holes[h.attributes[:id]] = h; end
     end
   end
-  return tbd_holes
+  tbd_holes
 end
 
+##
+# Populate TBD edges with linked Topolys faces.
+#
+# @param [Hash] surfaces A collection of TBD surfaces
+# @param [Hash] edges A collection TBD edges
 def tbdSurfaceEdges(surfaces, edges)
   if surfaces
     unless surfaces.is_a?(Hash)
@@ -469,8 +543,18 @@ def tbdSurfaceEdges(surfaces, edges)
   end
 end
 
+##
+# Populate hash of TBD "dads", i.e. (parent) surfaces, relying on Topolys. As
+# a side effect, it will - if successful - also populate the Topolys
+# model with Topolys vertices, wires, holes & faces.
+#
+# @param [OpenStudio::Model::Construction] construction An OS construction
+#
+# @return [Integer] Returns index of insulating material within construction
+# @return [Symbol] Returns type of insulating material (:standard or :massless)
+# @return [Float] Returns insulating layer thermal resistance [m2.K/W]
 def deratableLayer(construction)
-  # identify insulating material (and key attributes) within a construction
+  # Identify insulating material (and key attributes) within a construction.
   r                     = 0.0         # R-value of insulating material
   index                 = nil         # index of insulating material
   type                  = nil         # nil, :massless; or :standard
@@ -507,25 +591,36 @@ def deratableLayer(construction)
   return index, type, r
 end
 
-def derate(os_model, os_surface, id, surface, c, index, type, r)
+##
+# Thermally derate insulating material within construction.
+#
+# @param [OpenStudio::Model::Model] os_model An OS model
+# @param [String] id Insulating material identifier
+# @param [Hash] surface A TBD surface
+# @param [OpenStudio::Model::Construction] c An OS construction
+# @param [Integer] index Position of layer (to derate) within c
+# @param [Symbol] type Insulating material type (:standard or :massless)
+# @param [Float] r Thermal resistance of insulating layer [m2.K/W]
+#
+# @return [OpenStudio::Model::Material] Returns derated (cloned) material
+def derate(os_model, id, surface, c, index, type, r)
   m = nil
   if surface.has_key?(:heatloss)                   &&
     surface.has_key?(:net)                         &&
     surface[:heatloss].is_a?(Numeric)              &&
     surface[:net].is_a?(Numeric)                   &&
-    id == os_surface.nameString                    &&
     index != nil                                   &&
     index.is_a?(Integer)                           &&
     index >= 0                                     &&
     r.is_a?(Numeric)                               &&
     r >= 0.001                                     &&
     (type == :massless || type == :standard)       &&
-    / tbd/i.match(c.nameString) == nil # skip if already derated
+    / tbd/i.match(c.nameString) == nil                 # skip if already derated
 
     u              = surface[:heatloss] / surface[:net]
     loss           = 0.0
-    de_u           = 1.0 / r + u                       # derated U
-    de_r           = 1.0 / de_u                        # derated R
+    de_u           = 1.0 / r + u                                     # derated U
+    de_r           = 1.0 / de_u                                      # derated R
 
     if type == :massless
       m            = c.getLayer(index).to_MasslessOpaqueMaterial
@@ -544,7 +639,7 @@ def derate(os_model, os_surface, id, surface, c, index, type, r)
         m.setThermalResistance(de_r)
       end
 
-    else # type == :standard
+    else                                                     # type == :standard
       m            = c.getLayer(index).to_StandardOpaqueMaterial
       unless m.empty?
         m          = m.get
@@ -562,7 +657,7 @@ def derate(os_model, os_surface, id, surface, c, index, type, r)
               loss = (k / d - 1.0 / r) / surface[:net]
             end
           end
-        else       # de_r < 0.001 m2.K/W
+        else                                               # de_r < 0.001 m2.K/W
           d        = 0.001 * k
           unless d > 0.003
             d      = 0.003
@@ -580,9 +675,21 @@ def derate(os_model, os_surface, id, surface, c, index, type, r)
       surface[:r_heatloss] = loss if loss > 0
     end
   end
-  return m
+  m
 end
 
+##
+# Process TBD inputs from OpenStudio and Topolys, and derate admissible envelope
+# surfaces by substituting insulating material within surface constructions with
+# derated clones.
+#
+# @param [OpenStudio::Model::Model] os_model An OS model
+# @param [String] psi_set Default PSI set identifier, can be "" (empty)
+# @param [String] io_path Path to a user-set TBD JSON input file (optional)
+# @param [String] schema_path Path to a TBD JSON schema file (optional)
+#
+# @return [Hash] Returns TBD collection of objects for JSON serialization
+# @return [Hash] Returns collection of derated TBD surfaces
 def processTBD(os_model, psi_set, io_path = nil, schema_path = nil)
   surfaces = {}
 
@@ -626,7 +733,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil)
       minz:     minz,
       n:        n
     }
-  end # (opaque) surfaces populated
+  end                                              # (opaque) surfaces populated
 
   # Fetch OpenStudio subsurfaces & key attributes.
   os_model.getSubSurfaces.each do |s|
@@ -663,7 +770,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil)
         end
       end
     end
-  end # (opaque) surface "dads" populated with subsurface "kids"
+  end                 # (opaque) surface "dads" populated with subsurface "kids"
 
   # Sort kids.
   surfaces.values.each do |p|
@@ -718,7 +825,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil)
       minz:   minz,
       n:      n
     }
-  end # shading surfaces populated
+  end                                               # shading surfaces populated
 
   # Mutually populate TBD & Topolys surfaces. Keep track of created "holes".
   holes = {}
@@ -797,7 +904,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil)
       reference_V = north.dup
     elsif horizontal
       reference_V = zenith.dup
-    else # project zenith vector unto edge plane
+    else                                 # project zenith vector unto edge plane
       reference = edge_plane.project(origin + zenith)
       reference_V = reference - origin
     end
@@ -806,13 +913,13 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil)
       # Loop through each linked wire and determine farthest point from
       # edge while ensuring candidate point is not aligned with edge.
       t_model.wires.each do |wire|
-        if surface[:wire] == wire.id # there should be a unique match
+        if surface[:wire] == wire.id            # there should be a unique match
           normal = surfaces[id][:n]         if surfaces.has_key?(id)
           normal = holes[id].attributes[:n] if holes.has_key?(id)
           normal = shades[id][:n]           if shades.has_key?(id)
 
           farthest = Topolys::Point3D.new(origin.x, origin.y, origin.z)
-          farthest_V = farthest - origin # zero magnitude, initially
+          farthest_V = farthest - origin             # zero magnitude, initially
 
           inverted = false
 
@@ -879,12 +986,12 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil)
           surface[:polar] = farthest_V
           surface[:normal] = normal
         end
-      end # end of edge-linked, surface-to-wire loop
-    end # end of edge-linked surface loop
+      end                             # end of edge-linked, surface-to-wire loop
+    end                                        # end of edge-linked surface loop
 
     # sort angles
     edge[:surfaces] = edge[:surfaces].sort_by{ |i, p| p[:angle] }.to_h
-  end # end of edge loop
+  end                                                         # end of edge loop
 
   # Topolys edges may constitute thermal bridges (and therefore thermally
   # derate linked OpenStudio surfaces), depending on a number of factors such
@@ -899,7 +1006,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil)
 
   edges.values.each do |edge|
     next unless edge.has_key?(:surfaces)
-    next unless edge[:surfaces].size > 1 # may need to revisit e.g. :party
+    next unless edge[:surfaces].size > 1 #       may need to revisit e.g. :party
 
     # Skip unless one (at least) linked surface is deratable, i.e.
     # outside-facing floor, ceiling or wall. Ground-facing surfaces
@@ -914,11 +1021,11 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil)
     end
     next unless deratable
 
-    psi = {} # edge-specific PSI types
+    psi = {}                                           # edge-specific PSI types
     p = io[:unit].first[:psi]                                 # default unit PSI
 
     match = false
-    if edge.has_key?(:io_type) # customized edge in TBD JSON file
+    if edge.has_key?(:io_type)                # customized edge in TBD JSON file
       match = true
       t = edge[:io_type]
       p = edge[:io_set]       if edge.has_key?(:io_set)
@@ -1042,11 +1149,11 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil)
           psi[:convex]  = io_p.set[p][:convex]  if n1_d_p2 < 0 && p1_d_n2 < 0
         end
       end
-    end # edge's surfaces loop
+    end                                                   # edge's surfaces loop
 
     edge[:psi] = psi unless psi.empty?
     edge[:set] = p unless psi.empty?
-  end # edge loop
+  end                                                                # edge loop
 
   # In the preceding loop, TBD initially sets individual edge PSI types/values
   # to those of the project-wide :unit set. If the TBD JSON file holds custom
@@ -1057,10 +1164,10 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil)
   # completed/tested, so ignored for now ...
   # openstudio-sdk-documentation.s3.amazonaws.com/cpp/OpenStudio-2.9.0-doc/model/html/classopenstudio_1_1model_1_1_building_story.html
   if io
-    # if io.has_key?(:stories)               # ... will override :unit sets
+    # if io.has_key?(:stories)                    # ... will override :unit sets
     # end
 
-    if io.has_key?(:spaces)                  # ... will override :stories sets
+    if io.has_key?(:spaces)                    # ... will override :stories sets
       io[:spaces].each do |space|
         next unless space.has_key?(:id)
         next unless space.has_key?(:psi)
@@ -1085,7 +1192,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil)
             sp = surfaces[id][:space]
             next unless i == sp.nameString
 
-            if edge.has_key?(:io_type)        # custom edge w/o custom PSI set
+            if edge.has_key?(:io_type)          # custom edge w/o custom PSI set
               t = edge[:io_type]
               next unless io_p.set[p].has_key?(t)
               psi = {}
@@ -1102,7 +1209,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil)
       end
     end
 
-    if io.has_key?(:surfaces)   # ... will override :spaces sets
+    if io.has_key?(:surfaces)                   # ... will override :spaces sets
       io[:surfaces].each do |surface|
         next unless surface.has_key?(:id)
         next unless surface.has_key?(:psi)
@@ -1124,7 +1231,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil)
           edge[:surfaces].keys.each do |s|
             next unless surfaces.has_key?(s)
             next unless i == s
-            if edge.has_key?(:io_type)        # custom edge w/o custom PSI set
+            if edge.has_key?(:io_type)          # custom edge w/o custom PSI set
               t = edge[:io_type]
               next unless io_p.set[p].has_key?(t)
               psi = {}
@@ -1305,7 +1412,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil)
         construction_name = current_c.nameString
         c = current_c.clone(os_model).to_Construction.get
 
-      else # ... no defaults - surface-specific construction
+      else                     # ... no defaults - surface-specific construction
         current_c = s.construction.get
         construction_name = current_c.nameString
         c = current_c.clone(os_model).to_Construction.get
@@ -1320,11 +1427,11 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil)
                          index >=0            &&
                          index < c.layers.size
 
-      # m     - newly derated, cloned material
+      # m ... newly derated, cloned material
       m = nil
-      m = derate(os_model, s, id, surface, c, index, type, r) unless index.nil?
+      m = derate(os_model, id, surface, c, index, type, r) unless index.nil?
 
-      # "m" may be nilled simply because the targeted construction has already
+      # m may be nilled simply because the targeted construction has already
       # been derated, i.e. holds " tbd" in its name. Names of cloned/derated
       # constructions (due to TBD) include the surface name (since derated
       # constructions are unique to each surface) and the suffix " c tbd".
@@ -1380,7 +1487,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil)
 
   io[:edges] = []
 
-  # Enrich io with TBD/Topolys edge info before returning :
+  # Enrich io with TBD/Topolys edge info before returning:
   # 1. edge custom PSI set, if on file
   # 2. edge PSI type
   # 3. edge length (m)

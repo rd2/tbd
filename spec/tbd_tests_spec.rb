@@ -1473,7 +1473,7 @@ RSpec.describe TBD do
 
         # m     - newly derated, cloned material
         m = nil
-        m = derate(os_model, s, id, surface, c, index, type, r) unless index.nil?
+        m = derate(os_model, id, surface, c, index, type, r) unless index.nil?
 
         # "m" may be nilled simply because the targeted construction has already
         # been derated, i.e. holds " tbd" in its name. Names of cloned/derated
@@ -1748,8 +1748,10 @@ RSpec.describe TBD do
     end
 
     # Both output files should be the same ...
-    cmd = "diff #{out_path} #{out_path2}"
-    expect(system( cmd )).to be(true)
+    # cmd = "diff #{out_path} #{out_path2}"
+    # expect(system( cmd )).to be(true)
+    # expect(FileUtils).to be_identical(out_path, out_path2)
+    expect(FileUtils.identical?(out_path, out_path2)).to be(true)
   end
 end
 
