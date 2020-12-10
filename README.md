@@ -6,7 +6,7 @@ Within the context of building energy simulation (and as required by recent buil
 
 ## TO DO
 [Enhancements](https://github.com/rd2/tbd/issues) and documentation are planned over the next few weeks and months, including:
-1. JSON I/O
+1. JSON I/O (completed)
 2. dealing with ground-facing surfaces (e.g. foundation walls, slabs on grade)
 3. dealing with fully-glazed surfaces with thermal bridges
 4. adding point conductances
