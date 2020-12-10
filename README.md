@@ -188,3 +188,7 @@ bundle update
 bundle exec rake suites_clean
 bundle exec rake suites_run
 ```
+
+## sponsors
+
+[![](https://github.com/rd2/tbd/blob/master/sponsors/QUEBw3.gif)](https://transitionenergetique.gouv.qc.ca)
