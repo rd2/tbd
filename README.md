@@ -189,7 +189,8 @@ bundle exec rake suites_clean
 bundle exec rake suites_run
 ```
 
-## sponsors
+## Support
 
-[![](https://github.com/rd2/tbd/blob/master/sponsors/QUEBw3.gif)](https://transitionenergetique.gouv.qc.ca)
-[![](https://github.com/rd2/tbd/blob/master/sponsors/CNRC-Logo.jpg)](https://nrc.canada.ca/en/research-development/research-collaboration/research-centres/construction-research-centre)
+_Merci !_ to the following organizations
+[![](https://github.com/rd2/tbd/blob/master/sponsors/quebec.png)](https://transitionenergetique.gouv.qc.ca)
+[![](https://github.com/rd2/tbd/blob/master/sponsors/canada.png)](https://nrc.canada.ca/en/research-development/research-collaboration/research-centres/construction-research-centre)
