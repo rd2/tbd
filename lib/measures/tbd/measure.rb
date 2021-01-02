@@ -58,6 +58,12 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     write_tbd_json.setDefaultValue(true)
     args << write_tbd_json
 
+    gen_kiva = OpenStudio::Measure::OSArgument.makeBoolArgument("gen_kiva", true, false)
+    gen_kiva.setDisplayName("Generate Kiva inputs")
+    gen_kiva.setDescription("Generate OSM Kiva settings and objects if model surfaces have foundation boundary conditions")
+    gen_kiva.setDefaultValue(true)
+    args << gen_kiva
+
     return args
   end
 
@@ -71,6 +77,8 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     option = runner.getStringArgumentValue("option", user_arguments)
 
     write_tbd_json = runner.getBoolArgumentValue("write_tbd_json", user_arguments)
+
+    gen_kiva = runner.getBoolArgumentValue("gen_kiva", user_arguments)
 
     # use the built-in error checking
     if !runner.validateUserArguments(arguments(model), user_arguments)
@@ -92,7 +100,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
       end
     end
 
-    io, surfaces = processTBD(model, option, io_path, schema_path)
+    io, surfaces = processTBD(model, option, io_path, schema_path, gen_kiva)
 
     surfaces.each do |id, surface|
       if surface.has_key?(:ratio)
@@ -126,6 +134,76 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
           file.fsync
         rescue StandardError
           file.flush
+        end
+      end
+    end
+
+    if gen_kiva
+      # Although one may choose to auto-generate Kiva settings and objects,
+      # there must be at least one valid foundation-facing floor in the model.
+      kiva = false
+      surfaces.values.each do |surface|
+        next if kiva
+        kiva = true if surface.has_key?(:kiva)
+      end
+
+      if kiva
+        arg = "TotalExposedPerimeter"
+        foundation_kiva_settings = model.getFoundationKivaSettings
+        foundation_kiva_settings.setName("TBD-generated Kiva settings template")
+
+        # Generic 1" XPS insulation.
+        xps_25mm = OpenStudio::Model::StandardOpaqueMaterial.new(model)
+        xps_25mm.setName("XPS_25mm")
+        xps_25mm.setRoughness("Rough")
+        xps_25mm.setThickness(0.0254)
+        xps_25mm.setConductivity(0.029)
+        xps_25mm.setDensity(28)
+        xps_25mm.setSpecificHeat(1450)
+        xps_25mm.setThermalAbsorptance(0.9)
+        xps_25mm.setSolarAbsorptance(0.7)
+
+        # Typical circa-1980 slab-on-grade (perimeter) insulation setup.
+        kiva_slab = OpenStudio::Model::FoundationKiva.new(model)
+        kiva_slab.setName("Kiva slab")
+        kiva_slab.setInteriorHorizontalInsulationMaterial(xps_25mm)
+        kiva_slab.setInteriorHorizontalInsulationWidth(0.6)
+
+        # Basement wall setup (full-height insulation as construction layer)
+        kiva_basement = OpenStudio::Model::FoundationKiva.new(model)
+        kiva_basement.setName("Kiva basement")
+
+        # Once XPS and slab/basement objects are generated, assign either other.
+        surfaces.each do |id, surface|
+          next unless surface.has_key?(:kiva)
+          next unless surface.has_key?(:exposed)
+          next unless surface[:exposed] > 0.001
+          next unless surface[:kiva] == :basement || surface[:kiva] == :slab
+
+          found = false
+          model.getSurfaces.each do |s|
+            next unless s.nameString == id
+            next unless s.outsideBoundaryCondition.downcase == "foundation"
+
+            found = true
+            s.createSurfacePropertyExposedFoundationPerimeter(arg, surface[:exposed])
+            s.setAdjacentFoundation(kiva_basement) if surface[:kiva] == :basement
+            s.setAdjacentFoundation(kiva_slab) if surface[:kiva] == :slab
+          end
+
+          # Loop through basement wall surfaces and assign foundation object.
+          surfaces.each do |i, surf|
+            next unless found
+            next unless surf.has_key?(:foundation)
+            next unless id == surf[:foundation]
+
+            model.getSurfaces.each do |ss|
+              next unless ss.nameString == i
+              next unless ss.outsideBoundaryCondition.downcase == "foundation"
+              ss.setAdjacentFoundation(kiva_basement) if surface[:kiva] == :basement
+              ss.setAdjacentFoundation(kiva_slab) if surface[:kiva] == :slab
+            end
+          end
         end
       end
     end

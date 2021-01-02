@@ -1531,7 +1531,8 @@ RSpec.describe TBD do
     psi_set = "poor (BC Hydro)"
     io_path = ""
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, gen_kiva)
     expect(surfaces.size).to eq(43)
 
     # testing
@@ -1557,7 +1558,8 @@ RSpec.describe TBD do
     psi_set = "poor (BC Hydro)"
     io_path = ""
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(23)
 
     # testing
@@ -1612,7 +1614,8 @@ RSpec.describe TBD do
     psi_set = "(non thermal bridging)"
     io_path = File.dirname(__FILE__) + "/../json/tbd_warehouse.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(23)
 
     surfaces.each do |id, surface|
@@ -1676,7 +1679,8 @@ RSpec.describe TBD do
     os_model2 = os_model2.get
 
     io_path2 = File.dirname(__FILE__) + "/../json/tbd_warehouse.out.json"
-    io2, surfaces = processTBD(os_model2, psi_set, io_path2, schema_path)
+    gen_kiva = false
+    io2, surfaces = processTBD(os_model2, psi_set, io_path2, schema_path, gen_kiva)
     expect(surfaces.size).to eq(23)
 
     surfaces.each do |id, surface|
@@ -1766,7 +1770,8 @@ RSpec.describe TBD do
     psi_set = "poor (BC Hydro)"
     io_path = ""
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
 
     surfaces.each do |id, surface|
@@ -1792,7 +1797,8 @@ RSpec.describe TBD do
     psi_set = "(non thermal bridging)"
     io_path = ""
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
 
     # Since all PSI values = 0, we're not expecting any derated surfaces
@@ -1813,7 +1819,8 @@ RSpec.describe TBD do
     psi_set = "(non thermal bridging)"
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
 
     # As the :unit PSI set on file remains "(non thermal bridging)", one should
@@ -1835,7 +1842,8 @@ RSpec.describe TBD do
     psi_set = "(non thermal bridging)"
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n0.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
 
     # The :unit PSI set on file "compliant" supersedes the psi_set
@@ -1910,7 +1918,8 @@ RSpec.describe TBD do
     psi_set = "compliant" # instead of "(non thermal bridging)"
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n0.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
 
     surfaces.each do |id, surface|
@@ -1955,7 +1964,8 @@ RSpec.describe TBD do
     psi_set = "compliant" # instead of "(non thermal bridging)"
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n1.json" # no :unit
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
 
     surfaces.each do |id, surface|
@@ -1999,7 +2009,8 @@ RSpec.describe TBD do
     psi_set = "(non thermal bridging)"
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n2.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
 
     # As the :unit PSI set on file remains "(non thermal bridging)", one should
@@ -2024,7 +2035,8 @@ RSpec.describe TBD do
     psi_set = "(non thermal bridging)" # no :unit PSI set on file
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n3.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
     expect(io.has_key?(:unit)).to be(true) # despite no being on file - good
     expect(io[:unit].first.has_key?(:psi)).to be(true)
@@ -2079,7 +2091,8 @@ RSpec.describe TBD do
     psi_set = "(non thermal bridging)"
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n4.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
 
     # As the :unit PSI set on file == "(non thermal bridgin)", derating
@@ -2106,7 +2119,8 @@ RSpec.describe TBD do
     psi_set = "(non thermal bridging)"
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n5.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
 
     # As above, yet the KHI points are now set @0.5 W/K per m (instead of 0)
@@ -2130,7 +2144,8 @@ RSpec.describe TBD do
     psi_set = "(non thermal bridging)"
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n6.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
 
     # As above, with a "good" surface PSI set
@@ -2154,7 +2169,8 @@ RSpec.describe TBD do
     psi_set = "compliant" # ignored - superseded by :unit PSI set on file
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n7.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
 
     # In the JSON file, the "Entry way 1" space "compliant" PSI set supersedes
@@ -2469,5 +2485,237 @@ RSpec.describe TBD do
     psi.append(incomplete_set)
     expect(psi.set.has_key?("incomplete set")).to be(true)
     expect(psi.complete?("incomplete set")).to be(false)
+  end
+end
+
+RSpec.describe TBD do
+  it "can generate and access KIVA inputs (seb)" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    # Set one of the ground-facing surfaces to (Kiva) "Foundation".
+    os_model.getSurfaces.each do |s|
+      next unless s.nameString == "Entry way  Floor"
+      s.setOutsideBoundaryCondition("Foundation")
+    end
+
+    # The following is loosely adapted from :
+    # https://github.com/NREL/OpenStudio-resources/blob/develop/model
+    # /simulationtests/foundation_kiva.rb
+
+    # Generate template for KIVA settings. This is usually not required (the
+    # default KIVA settings are fine), but its explicit inclusion in the OSM
+    # does offer users easy access to further (manually) tweak settings e.g.,
+    # soil properties if required. Initial tests show slight differences in
+    # simulation results w/w/o explcit inclusion of the KIVA settings template
+    # in the OSM. TO-DO: Check in.idf vs in.osm for any deviation from default
+    # values as specified in the IO Reference Manual.
+    foundation_kiva_settings = os_model.getFoundationKivaSettings
+
+    # One way to expose in-built default parameters.
+    soil_k = foundation_kiva_settings.soilConductivity
+    foundation_kiva_settings.setSoilConductivity(soil_k)
+
+    # Create Kiva foundation objects, similar to reusable constructions (here,
+    # for a cold climate context). Set (interior/exterior) insulation parameters
+    # as required - other default Kiva parameters are fine. For continuous
+    # insulation and/or finishings, OpenStudio/EnergyPlus/Kiva offer 2x
+    # solutions : (i) adapt surface construction by adding required insulation
+    # and/or finishing layers *, or (ii) add layers as Kiva custom blocks.
+    # The former is preferred here. TO DO: sensitivity analysis.
+
+    # * ... only "standard" OS Materials can be used - not "massless" ones.
+
+    # Generic 1" XPS insulation.
+    xps_25mm = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
+    xps_25mm.setName("XPS_25mm")
+    xps_25mm.setRoughness("Rough")
+    xps_25mm.setThickness(0.0254)
+    xps_25mm.setConductivity(0.029)
+    xps_25mm.setDensity(28)
+    xps_25mm.setSpecificHeat(1450)
+    xps_25mm.setThermalAbsorptance(0.9)
+    xps_25mm.setSolarAbsorptance(0.7)
+
+    # Generic 1-1/2" XPS insulation.
+    xps_38mm = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
+    xps_38mm.setName("XPS_38mm")
+    xps_38mm.setRoughness("Rough")
+    xps_38mm.setThickness(0.0381)
+    xps_38mm.setConductivity(0.029)
+    xps_38mm.setDensity(28)
+    xps_38mm.setSpecificHeat(1450)
+    xps_38mm.setThermalAbsorptance(0.9)
+    xps_38mm.setSolarAbsorptance(0.7)
+
+    # 1. Typical circa-1980 slab-on-grade (perimeter) insulation setup.
+    kiva_slab_1980s = OpenStudio::Model::FoundationKiva.new(os_model)
+    kiva_slab_1980s.setName("Kiva slab 1980s")
+    kiva_slab_1980s.setInteriorHorizontalInsulationMaterial(xps_25mm)
+    kiva_slab_1980s.setInteriorHorizontalInsulationWidth(0.6)
+
+    # 2. Current code-compliant slab-on-grade (perimeter) solution.
+    kiva_slab_2020s = OpenStudio::Model::FoundationKiva.new(os_model)
+    kiva_slab_2020s.setName("Kiva slab 2020s")
+    kiva_slab_2020s.setInteriorHorizontalInsulationMaterial(xps_38mm)
+    kiva_slab_2020s.setInteriorHorizontalInsulationWidth(1.2)
+    kiva_slab_2020s.setInteriorVerticalInsulationMaterial(xps_38mm)
+    kiva_slab_2020s.setInteriorVerticalInsulationDepth(0.138)
+
+    # 3. Beyond-code slab-on-grade (continuous) insulation setup. Add 1-1/2"
+    #    XPS insulation layer (under slab) to surface construction.
+    kiva_slab_HP = OpenStudio::Model::FoundationKiva.new(os_model)
+    kiva_slab_HP.setName("Kiva slab HP")
+
+    # 4. Do the same for (full height) basements - no insulation under slab for
+    #    vintages 1980s & 2020s. Add (full-height) layered insulation and/or
+    #    finishing to basement wall construction.
+    kiva_basement = OpenStudio::Model::FoundationKiva.new(os_model)
+    kiva_basement.setName("Kiva basement")
+
+    # 5. Beyond-code basement slab (perimeter) insulation setup. Add
+    #    (full-height)layered insulation and/or finishing to basement wall
+    #    construction.
+    kiva_basement_HP = OpenStudio::Model::FoundationKiva.new(os_model)
+    kiva_basement_HP.setName("Kiva basement HP")
+    kiva_basement_HP.setInteriorHorizontalInsulationMaterial(xps_38mm)
+    kiva_basement_HP.setInteriorHorizontalInsulationWidth(1.2)
+    kiva_basement_HP.setInteriorVerticalInsulationMaterial(xps_25mm)
+    kiva_basement_HP.setInteriorVerticalInsulationDepth(0.138)
+
+    # Attach (1) 1980s slab-on-grade Kiva foundation object to floor surface.
+    os_model.getSurfaces.each do |s|
+      next unless s.nameString == "Entry way  Floor"
+      s.setAdjacentFoundation(kiva_slab_1980s)
+      arg = "TotalExposedPerimeter"
+      s.createSurfacePropertyExposedFoundationPerimeter(arg, 6.95)
+    end
+
+    os_model.save("os_model_KIVA.osm", true)
+
+    # Now re-open for testing.
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/../os_model_KIVA.osm")
+    os_model2 = translator.loadModel(path)
+    expect(os_model2.empty?).to be(false)
+    os_model2 = os_model2.get
+
+    os_model2.getSurfaces.each do |s|
+      next unless s.isGroundSurface
+      next unless s.nameString == "Entry way  Floor"
+      expect(s.outsideBoundaryCondition).to eq("Foundation")
+    end
+
+    # Set one of the linked outside-facing walls to (Kiva) "Foundation"
+    os_model2.getSurfaces.each do |s|
+      next unless s.nameString == "Entryway  Wall 4"
+      s.setOutsideBoundaryCondition("Foundation")
+      s.setAdjacentFoundation(kiva_slab_1980s)
+    end
+
+    kfs = os_model2.getFoundationKivas
+    expect(kfs.empty?).to be(false)
+    expect(kfs.size).to eq(5)
+    # puts os_model2.public_methods.grep(/Kiva/)
+
+    settings = os_model2.getFoundationKivaSettings
+    expect(settings.soilConductivity).to be_within(0.01).of(1.73)
+
+    psi_set = "poor (BC Hydro)"
+    io_path = ""
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    gen_kiva = true
+    io, surfaces = processTBD(os_model2, psi_set, io_path, schema_path, gen_kiva)
+    expect(surfaces.size).to eq(56)
+
+    surfaces.each do |id, surface|
+      next unless surface.has_key?(:kiva) # ... only one here
+      expect(surface[:kiva]).to eq(:basement)
+      expect(surface.has_key?(:exposed)).to be (true)
+      expect(surface[:exposed]).to be_within(0.01).of(6.95)
+    end
+  end
+
+  it "can generate and access KIVA inputs (midrise apts - variant)" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/midrise_KIVA.osm")
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    psi_set = "poor (BC Hydro)"
+    io_path = ""
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    gen_kiva = true
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    expect(surfaces.size).to eq(180)
+
+    kiva = false
+    surfaces.values.each do |surface|
+      next if kiva
+      kiva = true if surface.has_key?(:kiva)
+    end
+
+    if kiva
+      arg = "TotalExposedPerimeter"
+      foundation_kiva_settings = os_model.getFoundationKivaSettings
+      foundation_kiva_settings.setName("TBD-generated Kiva settings template")
+
+      # Generic 1" XPS insulation.
+      xps_25mm = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
+      xps_25mm.setName("XPS_25mm")
+      xps_25mm.setRoughness("Rough")
+      xps_25mm.setThickness(0.0254)
+      xps_25mm.setConductivity(0.029)
+      xps_25mm.setDensity(28)
+      xps_25mm.setSpecificHeat(1450)
+      xps_25mm.setThermalAbsorptance(0.9)
+      xps_25mm.setSolarAbsorptance(0.7)
+
+      # Typical circa-1980 slab-on-grade (perimeter) insulation setup.
+      kiva_slab = OpenStudio::Model::FoundationKiva.new(os_model)
+      kiva_slab.setName("Kiva slab")
+      kiva_slab.setInteriorHorizontalInsulationMaterial(xps_25mm)
+      kiva_slab.setInteriorHorizontalInsulationWidth(0.6)
+
+      # Basement wall setup (full-height insulation as construction layer)
+      kiva_basement = OpenStudio::Model::FoundationKiva.new(os_model)
+      kiva_basement.setName("Kiva basement")
+
+      # Once XPS and slab/basement objects are generated, assign either one.
+      surfaces.each do |id, surface|
+        next unless surface.has_key?(:kiva)
+        next unless surface.has_key?(:exposed)
+        next unless surface[:exposed] > 0.001
+        next unless surface[:kiva] == :basement || surface[:kiva] == :slab
+
+        found = false
+        os_model.getSurfaces.each do |s|
+          next unless s.nameString == id
+          next unless s.outsideBoundaryCondition.downcase == "foundation"
+
+          found = true
+          s.createSurfacePropertyExposedFoundationPerimeter(arg, surface[:exposed])
+          s.setAdjacentFoundation(kiva_basement) if surface[:kiva] == :basement
+          s.setAdjacentFoundation(kiva_slab) if surface[:kiva] == :slab
+        end
+
+        # Loop through basement wall surfaces and assign foundation object.
+        surfaces.each do |i, surf|
+          next unless found
+          next unless surf.has_key?(:foundation)
+          next unless id == surf[:foundation]
+
+          os_model.getSurfaces.each do |ss|
+            next unless ss.nameString == i
+            next unless ss.outsideBoundaryCondition.downcase == "foundation"
+            ss.setAdjacentFoundation(kiva_basement) if surface[:kiva] == :basement
+            ss.setAdjacentFoundation(kiva_slab) if surface[:kiva] == :slab
+          end
+        end
+      end
+    end
   end
 end

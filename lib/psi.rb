@@ -686,10 +686,11 @@ end
 # @param [String] psi_set Default PSI set identifier, can be "" (empty)
 # @param [String] io_path Path to a user-set TBD JSON input file (optional)
 # @param [String] schema_path Path to a TBD JSON schema file (optional)
+# @param [Bool] gen_kiva Have TBD generate Kiva objects (optional)
 #
 # @return [Hash] Returns TBD collection of objects for JSON serialization
 # @return [Hash] Returns collection of derated TBD surfaces
-def processTBD(os_model, psi_set, io_path = nil, schema_path = nil)
+def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
   surfaces = {}
 
   os_model_class = OpenStudio::Model::Model
@@ -1153,6 +1154,43 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil)
     edge[:psi] = psi unless psi.empty?
     edge[:set] = p unless psi.empty?
   end                                                                # edge loop
+
+  # Add ":basement" or ":slab" keyword to edge if the following are met:
+  # 1. "foundation"-facing floor surface
+  # 2. 1x foundation-facing (:basement) or exterior-facing (:slab) wall
+  edges.values.each do |edge|
+    next unless gen_kiva
+    next if edge.has_key?(:basement)
+    next if edge.has_key?(:slab)
+    edge[:surfaces].keys.each do |id|
+      next if edge.has_key?(:basement)
+      next if edge.has_key?(:slab)
+      next unless floors.has_key?(id)
+      next unless surfaces.has_key?(id)
+      next unless surfaces[id][:boundary].downcase == "foundation"
+
+      # Loop through linked walls: if exterior or foundation ...
+      edge[:surfaces].keys.each do |i|
+        next if edge.has_key?(:basement)
+        next if edge.has_key?(:slab)
+        next if i == id
+        next unless walls.has_key?(i)
+        next unless surfaces.has_key?(i)
+        b = surfaces[i][:boundary].downcase
+        next unless b == "foundation" || b == "outdoors"
+        edge[:slab] = true if b == "outdoors"
+        edge[:basement] = true if b == "foundation"
+        edge[:foundation] = id if b == "foundation"
+        #puts "... edge between #{i} & #{id}: basement" if edge.has_key?(:basement)
+        #puts "... edge between #{i} & #{id}: slab" if edge.has_key?(:slab)
+        surfaces[id][:exposed] = 0.0 unless surfaces[id].has_key?(:exposed)
+        surfaces[id][:exposed] += edge[:length]
+        surfaces[id][:kiva] = :slab unless surfaces[id].has_key?(:kiva)
+        surfaces[id][:kiva] = :basement if b == "foundation"
+      end
+    end
+  end
+
 
   # In the preceding loop, TBD initially sets individual edge PSI types/values
   # to those of the project-wide :unit set. If the TBD JSON file holds custom
