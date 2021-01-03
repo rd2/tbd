@@ -2718,4 +2718,100 @@ RSpec.describe TBD do
       end
     end
   end
+
+  it "can generate multiple KIVA exposed perimeters (midrise apts - variant)" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/midrise_KIVA.osm")
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    # Reset all ground-facing surfaces as "foundations".
+    os_model.getSurfaces.each do |s|
+      next unless s.outsideBoundaryCondition.downcase == "ground"
+      s.setOutsideBoundaryCondition("Foundation")
+    end
+
+    psi_set = "poor (BC Hydro)"
+    io_path = ""
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    gen_kiva = true
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    expect(surfaces.size).to eq(180)
+
+    kiva = false
+    surfaces.values.each do |surface|
+      next if kiva
+      kiva = true if surface.has_key?(:kiva)
+    end
+
+    expect(kiva).to be(true)
+    arg = "TotalExposedPerimeter"
+    foundation_kiva_settings = os_model.getFoundationKivaSettings
+    foundation_kiva_settings.setName("TBD-generated Kiva settings template")
+
+    # Generic 1" XPS insulation.
+    xps_25mm = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
+    xps_25mm.setName("XPS_25mm")
+    xps_25mm.setRoughness("Rough")
+    xps_25mm.setThickness(0.0254)
+    xps_25mm.setConductivity(0.029)
+    xps_25mm.setDensity(28)
+    xps_25mm.setSpecificHeat(1450)
+    xps_25mm.setThermalAbsorptance(0.9)
+    xps_25mm.setSolarAbsorptance(0.7)
+
+    # Typical circa-1980 slab-on-grade (perimeter) insulation setup.
+    kiva_slab = OpenStudio::Model::FoundationKiva.new(os_model)
+    kiva_slab.setName("Kiva slab")
+    kiva_slab.setInteriorHorizontalInsulationMaterial(xps_25mm)
+    kiva_slab.setInteriorHorizontalInsulationWidth(0.6)
+
+    # Basement wall setup (full-height insulation as construction layer)
+    kiva_basement = OpenStudio::Model::FoundationKiva.new(os_model)
+    kiva_basement.setName("Kiva basement")
+
+    # Once XPS and slab/basement objects are generated, assign either one.
+    surfaces.each do |id, surface|
+      next unless surface.has_key?(:kiva)
+      next unless surface.has_key?(:exposed)
+      next unless surface[:exposed] > 0.001
+      next unless surface[:kiva] == :basement || surface[:kiva] == :slab
+
+      found = false
+      os_model.getSurfaces.each do |s|
+        next unless s.nameString == id
+        next unless s.outsideBoundaryCondition.downcase == "foundation"
+
+        found = true
+        exp = surface[:exposed]
+        expect(exp).to be_within(0.01).of(19.20) if id == "g GFloor NWA"
+        expect(exp).to be_within(0.01).of(19.20) if id == "g GFloor NEA"
+        expect(exp).to be_within(0.01).of(19.20) if id == "g GFloor SWA"
+        expect(exp).to be_within(0.01).of(19.20) if id == "g GFloor SEA"
+        expect(exp).to be_within(0.01).of(11.58) if id == "g GFloor S1A"
+        expect(exp).to be_within(0.01).of(11.58) if id == "g GFloor S2A"
+        expect(exp).to be_within(0.01).of(11.58) if id == "g GFloor N1A"
+        expect(exp).to be_within(0.01).of(11.58) if id == "g GFloor N2A"
+        expect(exp).to be_within(0.01).of(3.36) if id == "g Floor C"
+        s.createSurfacePropertyExposedFoundationPerimeter(arg, surface[:exposed])
+        s.setAdjacentFoundation(kiva_basement) if surface[:kiva] == :basement
+        s.setAdjacentFoundation(kiva_slab) if surface[:kiva] == :slab
+      end
+
+      # Loop through basement wall surfaces and assign foundation object.
+      surfaces.each do |i, surf|
+        next unless found
+        next unless surf.has_key?(:foundation)
+        next unless id == surf[:foundation]
+
+        os_model.getSurfaces.each do |ss|
+          next unless ss.nameString == i
+          next unless ss.outsideBoundaryCondition.downcase == "foundation"
+          ss.setAdjacentFoundation(kiva_basement) if surface[:kiva] == :basement
+          ss.setAdjacentFoundation(kiva_slab) if surface[:kiva] == :slab
+        end
+      end
+    end
+  end
 end

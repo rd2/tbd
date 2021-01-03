@@ -543,9 +543,7 @@ def tbdSurfaceEdges(surfaces, edges)
 end
 
 ##
-# Populate hash of TBD "dads", i.e. (parent) surfaces, relying on Topolys. As
-# a side effect, it will - if successful - also populate the Topolys
-# model with Topolys vertices, wires, holes & faces.
+# Identifies a layered construction's insulating (or deratable) layer.
 #
 # @param [OpenStudio::Model::Construction] construction An OS construction
 #
