@@ -44,8 +44,16 @@ Write tbd.out.json to customize for subsequent runs. Edit and place in model fil
 **Model Dependent:** false
 
 ### Generate Kiva inputs
-Generate OSM Kiva settings and objects if model surfaces have foundation boundary conditions
+Generate OSM Kiva settings and objects if model surfaces have 'foundation' boundary conditions
 **Name:** gen_kiva,
+**Type:** Boolean,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+### Force-generate Kiva inputs
+Overwrites all 'ground' boundary conditions as 'foundation' before generating OSM Kiva inputs
+**Name:** gen_kiva_force,
 **Type:** Boolean,
 **Units:** ,
 **Required:** true,

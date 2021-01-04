@@ -1518,9 +1518,7 @@ RSpec.describe TBD do
     end
 
   end # can process thermal bridging and derating : LoScrigno
-end
 
-RSpec.describe TBD do
   it "can process TB & D : DOE Prototype test_smalloffice.osm" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_smalloffice.osm")
@@ -1545,9 +1543,7 @@ RSpec.describe TBD do
       end
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : DOE Prototype test_warehouse.osm" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_warehouse.osm")
@@ -1582,9 +1578,7 @@ RSpec.describe TBD do
       end
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : DOE Prototype test_warehouse.osm + JSON I/O" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_warehouse.osm")
@@ -1757,9 +1751,7 @@ RSpec.describe TBD do
     # expect(FileUtils).to be_identical(out_path, out_path2)
     expect(FileUtils.identical?(out_path, out_path2)).to be(true)
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : test_seb.osm" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
@@ -1784,9 +1776,7 @@ RSpec.describe TBD do
       end
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : test_seb.osm (0 W/K per m)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
@@ -1806,9 +1796,7 @@ RSpec.describe TBD do
       expect(surface.has_key?(:ratio)).to be(false)
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : test_seb.osm (0 W/K per m) with JSON" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
@@ -1829,9 +1817,7 @@ RSpec.describe TBD do
       expect(surface.has_key?(:ratio)).to be(false)
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : test_seb.osm (0 W/K per m) with JSON (non-0)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
@@ -1904,9 +1890,7 @@ RSpec.describe TBD do
       end
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : test_seb.osm (0 W/K per m) with JSON (non-0) 2" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
@@ -1950,9 +1934,7 @@ RSpec.describe TBD do
       end
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : test_seb.osm (0 W/K per m) with JSON (non-0) 3" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
@@ -1996,9 +1978,7 @@ RSpec.describe TBD do
       end
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : testing JSON surface KHI entries" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
@@ -2022,9 +2002,7 @@ RSpec.describe TBD do
       expect(surface[:heatloss]).to be_within(0.01).of(3.5)
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : testing JSON surface KHI & PSI entries" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
@@ -2078,9 +2056,7 @@ RSpec.describe TBD do
       out_path.puts out
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : JSON surface KHI & PSI entries + unit & edge" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
@@ -2106,9 +2082,7 @@ RSpec.describe TBD do
       expect(surface[:heatloss]).to be_within(0.01).of(8.89)
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : JSON surface KHI & PSI entries + unit & edge (2)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
@@ -2131,9 +2105,7 @@ RSpec.describe TBD do
       expect(surface[:heatloss]).to be_within(0.01).of(12.39)
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : JSON surface KHI & PSI entries + unit & edge (3)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
@@ -2156,9 +2128,7 @@ RSpec.describe TBD do
       expect(surface[:heatloss]).to be_within(0.01).of(15.62)  # 12.39 + 3.24
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : JSON surface KHI & PSI entries + unit & edge (4)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
@@ -2203,9 +2173,7 @@ RSpec.describe TBD do
       out_path.puts out
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : JSON file read/validate" do
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
     expect(File.exist?(schema_path)).to be(true)
@@ -2486,9 +2454,7 @@ RSpec.describe TBD do
     expect(psi.set.has_key?("incomplete set")).to be(true)
     expect(psi.complete?("incomplete set")).to be(false)
   end
-end
 
-RSpec.describe TBD do
   it "can generate and access KIVA inputs (seb)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
@@ -2502,43 +2468,15 @@ RSpec.describe TBD do
       s.setOutsideBoundaryCondition("Foundation")
     end
 
-    # The following is loosely adapted from :
-    # https://github.com/NREL/OpenStudio-resources/blob/develop/model
-    # /simulationtests/foundation_kiva.rb
+    # The following materials and foundation objects are provided here as
+    # placeholders for future tests.
 
-    # Generate template for KIVA settings. This is usually not required (the
-    # default KIVA settings are fine), but its explicit inclusion in the OSM
-    # does offer users easy access to further (manually) tweak settings e.g.,
-    # soil properties if required. Initial tests show slight differences in
-    # simulation results w/w/o explcit inclusion of the KIVA settings template
-    # in the OSM. TO-DO: Check in.idf vs in.osm for any deviation from default
-    # values as specified in the IO Reference Manual.
-    foundation_kiva_settings = os_model.getFoundationKivaSettings
-
-    # One way to expose in-built default parameters.
-    soil_k = foundation_kiva_settings.soilConductivity
-    foundation_kiva_settings.setSoilConductivity(soil_k)
-
-    # Create Kiva foundation objects, similar to reusable constructions (here,
-    # for a cold climate context). Set (interior/exterior) insulation parameters
-    # as required - other default Kiva parameters are fine. For continuous
-    # insulation and/or finishings, OpenStudio/EnergyPlus/Kiva offer 2x
-    # solutions : (i) adapt surface construction by adding required insulation
-    # and/or finishing layers *, or (ii) add layers as Kiva custom blocks.
-    # The former is preferred here. TO DO: sensitivity analysis.
+    # For continuous insulation and/or finishings, OpenStudio/EnergyPlus/Kiva
+    # offer 2x solutions : (i) adapt surface construction by adding required
+    # insulation and/or finishing layers *, or (ii) add layers as Kiva custom
+    # blocks. The former is preferred here. TO DO: sensitivity analysis.
 
     # * ... only "standard" OS Materials can be used - not "massless" ones.
-
-    # Generic 1" XPS insulation.
-    xps_25mm = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
-    xps_25mm.setName("XPS_25mm")
-    xps_25mm.setRoughness("Rough")
-    xps_25mm.setThickness(0.0254)
-    xps_25mm.setConductivity(0.029)
-    xps_25mm.setDensity(28)
-    xps_25mm.setSpecificHeat(1450)
-    xps_25mm.setThermalAbsorptance(0.9)
-    xps_25mm.setSolarAbsorptance(0.7)
 
     # Generic 1-1/2" XPS insulation.
     xps_38mm = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
@@ -2551,13 +2489,7 @@ RSpec.describe TBD do
     xps_38mm.setThermalAbsorptance(0.9)
     xps_38mm.setSolarAbsorptance(0.7)
 
-    # 1. Typical circa-1980 slab-on-grade (perimeter) insulation setup.
-    kiva_slab_1980s = OpenStudio::Model::FoundationKiva.new(os_model)
-    kiva_slab_1980s.setName("Kiva slab 1980s")
-    kiva_slab_1980s.setInteriorHorizontalInsulationMaterial(xps_25mm)
-    kiva_slab_1980s.setInteriorHorizontalInsulationWidth(0.6)
-
-    # 2. Current code-compliant slab-on-grade (perimeter) solution.
+    # 1. Current code-compliant slab-on-grade (perimeter) solution.
     kiva_slab_2020s = OpenStudio::Model::FoundationKiva.new(os_model)
     kiva_slab_2020s.setName("Kiva slab 2020s")
     kiva_slab_2020s.setInteriorHorizontalInsulationMaterial(xps_38mm)
@@ -2565,31 +2497,31 @@ RSpec.describe TBD do
     kiva_slab_2020s.setInteriorVerticalInsulationMaterial(xps_38mm)
     kiva_slab_2020s.setInteriorVerticalInsulationDepth(0.138)
 
-    # 3. Beyond-code slab-on-grade (continuous) insulation setup. Add 1-1/2"
+    # 2. Beyond-code slab-on-grade (continuous) insulation setup. Add 1-1/2"
     #    XPS insulation layer (under slab) to surface construction.
     kiva_slab_HP = OpenStudio::Model::FoundationKiva.new(os_model)
     kiva_slab_HP.setName("Kiva slab HP")
 
-    # 4. Do the same for (full height) basements - no insulation under slab for
+    # 3. Do the same for (full height) basements - no insulation under slab for
     #    vintages 1980s & 2020s. Add (full-height) layered insulation and/or
     #    finishing to basement wall construction.
     kiva_basement = OpenStudio::Model::FoundationKiva.new(os_model)
     kiva_basement.setName("Kiva basement")
 
-    # 5. Beyond-code basement slab (perimeter) insulation setup. Add
+    # 4. Beyond-code basement slab (perimeter) insulation setup. Add
     #    (full-height)layered insulation and/or finishing to basement wall
     #    construction.
     kiva_basement_HP = OpenStudio::Model::FoundationKiva.new(os_model)
     kiva_basement_HP.setName("Kiva basement HP")
     kiva_basement_HP.setInteriorHorizontalInsulationMaterial(xps_38mm)
     kiva_basement_HP.setInteriorHorizontalInsulationWidth(1.2)
-    kiva_basement_HP.setInteriorVerticalInsulationMaterial(xps_25mm)
+    kiva_basement_HP.setInteriorVerticalInsulationMaterial(xps_38mm)
     kiva_basement_HP.setInteriorVerticalInsulationDepth(0.138)
 
-    # Attach (1) 1980s slab-on-grade Kiva foundation object to floor surface.
+    # Attach (1) slab-on-grade Kiva foundation object to floor surface.
     os_model.getSurfaces.each do |s|
       next unless s.nameString == "Entry way  Floor"
-      s.setAdjacentFoundation(kiva_slab_1980s)
+      s.setAdjacentFoundation(kiva_slab_2020s)
       arg = "TotalExposedPerimeter"
       s.createSurfacePropertyExposedFoundationPerimeter(arg, 6.95)
     end
@@ -2612,12 +2544,11 @@ RSpec.describe TBD do
     os_model2.getSurfaces.each do |s|
       next unless s.nameString == "Entryway  Wall 4"
       s.setOutsideBoundaryCondition("Foundation")
-      s.setAdjacentFoundation(kiva_slab_1980s)
     end
 
     kfs = os_model2.getFoundationKivas
     expect(kfs.empty?).to be(false)
-    expect(kfs.size).to eq(5)
+    expect(kfs.size).to eq(4)
     # puts os_model2.public_methods.grep(/Kiva/)
 
     settings = os_model2.getFoundationKivaSettings
@@ -2631,7 +2562,8 @@ RSpec.describe TBD do
     expect(surfaces.size).to eq(56)
 
     surfaces.each do |id, surface|
-      next unless surface.has_key?(:kiva) # ... only one here
+      next unless surface.has_key?(:foundation) # ... only floors
+      next unless surface.has_key?(:kiva) # ... only one here.
       expect(surface[:kiva]).to eq(:basement)
       expect(surface.has_key?(:exposed)).to be (true)
       expect(surface[:exposed]).to be_within(0.01).of(6.95)
@@ -2652,70 +2584,23 @@ RSpec.describe TBD do
     io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(180)
 
-    kiva = false
-    surfaces.values.each do |surface|
-      next if kiva
-      kiva = true if surface.has_key?(:kiva)
-    end
+    # Validate.
+    surfaces.each do |id, surface|
+      next unless surface.has_key?(:foundation) # ... only floors
+      next unless surface.has_key?(:kiva)
+      expect(surface[:kiva]).to eq(:slab)
+      expect(surface.has_key?(:exposed)).to be(true)
+      exp = surface[:exposed]
 
-    if kiva
-      arg = "TotalExposedPerimeter"
-      foundation_kiva_settings = os_model.getFoundationKivaSettings
-      foundation_kiva_settings.setName("TBD-generated Kiva settings template")
+      found = false
+      os_model.getSurfaces.each do |s|
+        next unless s.nameString == id
+        next unless s.outsideBoundaryCondition.downcase == "foundation"
+        found = true
 
-      # Generic 1" XPS insulation.
-      xps_25mm = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
-      xps_25mm.setName("XPS_25mm")
-      xps_25mm.setRoughness("Rough")
-      xps_25mm.setThickness(0.0254)
-      xps_25mm.setConductivity(0.029)
-      xps_25mm.setDensity(28)
-      xps_25mm.setSpecificHeat(1450)
-      xps_25mm.setThermalAbsorptance(0.9)
-      xps_25mm.setSolarAbsorptance(0.7)
-
-      # Typical circa-1980 slab-on-grade (perimeter) insulation setup.
-      kiva_slab = OpenStudio::Model::FoundationKiva.new(os_model)
-      kiva_slab.setName("Kiva slab")
-      kiva_slab.setInteriorHorizontalInsulationMaterial(xps_25mm)
-      kiva_slab.setInteriorHorizontalInsulationWidth(0.6)
-
-      # Basement wall setup (full-height insulation as construction layer)
-      kiva_basement = OpenStudio::Model::FoundationKiva.new(os_model)
-      kiva_basement.setName("Kiva basement")
-
-      # Once XPS and slab/basement objects are generated, assign either one.
-      surfaces.each do |id, surface|
-        next unless surface.has_key?(:kiva)
-        next unless surface.has_key?(:exposed)
-        next unless surface[:exposed] > 0.001
-        next unless surface[:kiva] == :basement || surface[:kiva] == :slab
-
-        found = false
-        os_model.getSurfaces.each do |s|
-          next unless s.nameString == id
-          next unless s.outsideBoundaryCondition.downcase == "foundation"
-
-          found = true
-          s.createSurfacePropertyExposedFoundationPerimeter(arg, surface[:exposed])
-          s.setAdjacentFoundation(kiva_basement) if surface[:kiva] == :basement
-          s.setAdjacentFoundation(kiva_slab) if surface[:kiva] == :slab
-        end
-
-        # Loop through basement wall surfaces and assign foundation object.
-        surfaces.each do |i, surf|
-          next unless found
-          next unless surf.has_key?(:foundation)
-          next unless id == surf[:foundation]
-
-          os_model.getSurfaces.each do |ss|
-            next unless ss.nameString == i
-            next unless ss.outsideBoundaryCondition.downcase == "foundation"
-            ss.setAdjacentFoundation(kiva_basement) if surface[:kiva] == :basement
-            ss.setAdjacentFoundation(kiva_slab) if surface[:kiva] == :slab
-          end
-        end
+        expect(exp).to be_within(0.01).of(3.36) if id == "g Floor C"
       end
+      expect(found).to be(true)
     end
   end
 
@@ -2726,7 +2611,7 @@ RSpec.describe TBD do
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
-    # Reset all ground-facing surfaces as "foundations".
+    # Reset all ground-facing floor surfaces as "foundations".
     os_model.getSurfaces.each do |s|
       next unless s.outsideBoundaryCondition.downcase == "ground"
       s.setOutsideBoundaryCondition("Foundation")
@@ -2739,52 +2624,20 @@ RSpec.describe TBD do
     io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(180)
 
-    kiva = false
-    surfaces.values.each do |surface|
-      next if kiva
-      kiva = true if surface.has_key?(:kiva)
-    end
-
-    expect(kiva).to be(true)
-    arg = "TotalExposedPerimeter"
-    foundation_kiva_settings = os_model.getFoundationKivaSettings
-    foundation_kiva_settings.setName("TBD-generated Kiva settings template")
-
-    # Generic 1" XPS insulation.
-    xps_25mm = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
-    xps_25mm.setName("XPS_25mm")
-    xps_25mm.setRoughness("Rough")
-    xps_25mm.setThickness(0.0254)
-    xps_25mm.setConductivity(0.029)
-    xps_25mm.setDensity(28)
-    xps_25mm.setSpecificHeat(1450)
-    xps_25mm.setThermalAbsorptance(0.9)
-    xps_25mm.setSolarAbsorptance(0.7)
-
-    # Typical circa-1980 slab-on-grade (perimeter) insulation setup.
-    kiva_slab = OpenStudio::Model::FoundationKiva.new(os_model)
-    kiva_slab.setName("Kiva slab")
-    kiva_slab.setInteriorHorizontalInsulationMaterial(xps_25mm)
-    kiva_slab.setInteriorHorizontalInsulationWidth(0.6)
-
-    # Basement wall setup (full-height insulation as construction layer)
-    kiva_basement = OpenStudio::Model::FoundationKiva.new(os_model)
-    kiva_basement.setName("Kiva basement")
-
-    # Once XPS and slab/basement objects are generated, assign either one.
+    # Validate.
     surfaces.each do |id, surface|
+      next unless surface.has_key?(:foundation) # only floors
       next unless surface.has_key?(:kiva)
-      next unless surface.has_key?(:exposed)
-      next unless surface[:exposed] > 0.001
-      next unless surface[:kiva] == :basement || surface[:kiva] == :slab
+      expect(surface[:kiva]).to eq(:slab)
+      expect(surface.has_key?(:exposed)).to be(true)
+      exp = surface[:exposed]
 
       found = false
       os_model.getSurfaces.each do |s|
         next unless s.nameString == id
         next unless s.outsideBoundaryCondition.downcase == "foundation"
-
         found = true
-        exp = surface[:exposed]
+
         expect(exp).to be_within(0.01).of(19.20) if id == "g GFloor NWA"
         expect(exp).to be_within(0.01).of(19.20) if id == "g GFloor NEA"
         expect(exp).to be_within(0.01).of(19.20) if id == "g GFloor SWA"
@@ -2794,24 +2647,70 @@ RSpec.describe TBD do
         expect(exp).to be_within(0.01).of(11.58) if id == "g GFloor N1A"
         expect(exp).to be_within(0.01).of(11.58) if id == "g GFloor N2A"
         expect(exp).to be_within(0.01).of(3.36) if id == "g Floor C"
-        s.createSurfacePropertyExposedFoundationPerimeter(arg, surface[:exposed])
-        s.setAdjacentFoundation(kiva_basement) if surface[:kiva] == :basement
-        s.setAdjacentFoundation(kiva_slab) if surface[:kiva] == :slab
       end
-
-      # Loop through basement wall surfaces and assign foundation object.
-      surfaces.each do |i, surf|
-        next unless found
-        next unless surf.has_key?(:foundation)
-        next unless id == surf[:foundation]
-
-        os_model.getSurfaces.each do |ss|
-          next unless ss.nameString == i
-          next unless ss.outsideBoundaryCondition.downcase == "foundation"
-          ss.setAdjacentFoundation(kiva_basement) if surface[:kiva] == :basement
-          ss.setAdjacentFoundation(kiva_slab) if surface[:kiva] == :slab
-        end
-      end
+      expect(found).to be(true)
     end
+  end
+
+  it "can generate KIVA exposed perimeters (warehouse)" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_warehouse.osm")
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    # Reset all ground-facing floor surfaces as "foundations".
+    os_model.getSurfaces.each do |s|
+      next unless s.outsideBoundaryCondition.downcase == "ground"
+      s.setOutsideBoundaryCondition("Foundation")
+    end
+
+    psi_set = "poor (BC Hydro)"
+    io_path = ""
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    gen_kiva = true
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    expect(surfaces.size).to eq(23)
+
+    # Validate.
+    surfaces.each do |id, surface|
+      next unless surface.has_key?(:foundation) # only floors
+      next unless surface.has_key?(:kiva)
+      expect(surface[:kiva]).to eq(:slab)
+      expect(surface.has_key?(:exposed)).to be(true)
+      exp = surface[:exposed]
+
+      found = false
+      os_model.getSurfaces.each do |s|
+        next unless s.nameString == id
+        next unless s.outsideBoundaryCondition.downcase == "foundation"
+        found = true
+
+        expect(exp).to be_within(0.01).of(71.62) if id == "Fine Storage"
+        expect(exp).to be_within(0.01).of(35.05) if id == "Office Floor"
+        expect(exp).to be_within(0.01).of(185.92) if id == "Bulk Storage"
+      end
+      expect(found).to be(true)
+    end
+
+    os_model.save("warehouse_KIVA.osm", true)
+
+    # Now re-open for testing.
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/../warehouse_KIVA.osm")
+    os_model2 = translator.loadModel(path)
+    expect(os_model2.empty?).to be(false)
+    os_model2 = os_model2.get
+
+    os_model2.getSurfaces.each do |s|
+      next unless s.isGroundSurface
+      next unless s.nameString == "Fine Storage" ||
+                  s.nameString == "Office Storage" ||
+                  s.nameString == "Bulk Storage"
+      expect(s.outsideBoundaryCondition).to eq("Foundation")
+    end
+
+    kfs = os_model2.getFoundationKivas
+    expect(kfs.empty?).to be(false)
+    expect(kfs.size).to eq(3)
   end
 end

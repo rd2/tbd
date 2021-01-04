@@ -543,6 +543,144 @@ def tbdSurfaceEdges(surfaces, edges)
 end
 
 ##
+# Generate OSM Kiva settings and objects if model surfaces have 'foundation'
+# boundary conditions.
+#
+# @param [OpenStudio::Model::Model] os_model An OS model
+# @param [Hash] floors TBD-generated floors
+# @param [Hash] walls TBD-generated walls
+# @param [Hash] edges TBD-generated edges (many linking floors & walls
+#
+# @return [Bool] Returns true if all Kiva foundations are successfully generated.
+def generateKiva(os_model, walls, floors, edges)
+  # Strictly rely on Kiva's total exposed perimeter approach.
+  arg = "TotalExposedPerimeter"
+  kiva = true
+
+  # The following is loosely adapted from:
+  # https://github.com/NREL/OpenStudio-resources/blob/develop/model/simulationtests/foundation_kiva.rb
+  # ... thanks.
+
+  # Generate template for KIVA settings. This is usually not required (the
+  # default KIVA settings are fine), but its explicit inclusion in the OSM
+  # does offer users easy access to further (manually) tweak settings e.g.,
+  # soil properties if required. Initial tests show slight differences in
+  # simulation results w/w/o explcit inclusion of the KIVA settings template
+  # in the OSM. TO-DO: Check in.idf vs in.osm for any deviation from default
+  # values as specified in the IO Reference Manual.
+  foundation_kiva_settings = os_model.getFoundationKivaSettings
+
+  # One way to expose in-built default parameters (in the future), e.g.:
+  # soil_k = foundation_kiva_settings.soilConductivity
+  # foundation_kiva_settings.setSoilConductivity(soil_k)
+
+  # Generic 1" XPS insulation (for slab-on-grade setup) - unused if basement.
+  xps_25mm = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
+  xps_25mm.setRoughness("Rough")
+  xps_25mm.setThickness(0.0254)
+  xps_25mm.setConductivity(0.029)
+  xps_25mm.setDensity(28)
+  xps_25mm.setSpecificHeat(1450)
+  xps_25mm.setThermalAbsorptance(0.9)
+  xps_25mm.setSolarAbsorptance(0.7)
+
+  # Tag foundation-facing floors, then walls.
+  edges.values.each do |edge|
+    edge[:surfaces].keys.each do |id|
+
+      # Start by processing edge-linked foundation-facing floors.
+      next unless floors.has_key?(id)
+      next unless floors[id][:boundary].downcase == "foundation"
+
+      # A match, yet skip if previously processed.
+      next if floors[id].has_key?(:kiva)
+
+      # By default, foundation floors are initially slabs-on-grade.
+      floors[id][:kiva] = :slab
+
+      # Re(tag) floors as basements if foundation-facing walls.
+      edge[:surfaces].keys.each do |i|
+        next unless walls.has_key?(i)
+        next unless walls[i][:boundary].downcase == "foundation"
+        next if walls[i].has_key?(:kiva)
+
+        # (Re)tag as :basement if edge-linked foundation walls.
+        floors[id][:kiva] = :basement
+        walls[i][:kiva] = id
+      end
+    end
+  end
+
+  # Fetch exposed perimeters.
+  edges.values.each do |edge|
+    edge[:surfaces].keys.each do |id|
+      next unless floors.has_key?(id)
+      next unless floors[id].has_key?(:kiva)
+
+      # Initialize if first iteration.
+      floors[id][:exposed] = 0.0 unless floors[id].has_key?(:exposed)
+
+      edge[:surfaces].keys.each do |i|
+        next unless walls.has_key?(i)
+        b = walls[i][:boundary].downcase
+        next unless b == "foundation" || b == "outdoors"
+        floors[id][:exposed] += edge[:length]
+      end
+    end
+  end
+
+  # Generate unique Kiva foundation per foundation-facing floor.
+  edges.values.each do |edge|
+    edge[:surfaces].keys.each do |id|
+      next unless floors.has_key?(id)
+      next unless floors[id].has_key?(:kiva)
+      next if floors[id].has_key?(:foundation)
+
+      floors[id][:foundation] = OpenStudio::Model::FoundationKiva.new(os_model)
+
+      # It's assumed that generated foundation walls have insulated
+      # constructions. Perimeter insulation for slabs-on-grade.
+      # Typical circa-1980 slab-on-grade (perimeter) insulation setup.
+      if floors[id][:kiva] == :slab
+        floors[id][:foundation].setInteriorHorizontalInsulationMaterial(xps_25mm)
+        floors[id][:foundation].setInteriorHorizontalInsulationWidth(0.6)
+      end
+
+      # Locate OSM surface and assign foundation & perimeter.
+      found = false
+      os_model.getSurfaces.each do |s|
+        next unless s.nameString == id
+        next unless s.outsideBoundaryCondition.downcase == "foundation"
+        found = true
+
+        s.setAdjacentFoundation(floors[id][:foundation])
+        s.createSurfacePropertyExposedFoundationPerimeter(arg, floors[id][:exposed])
+      end
+      kiva = false unless found
+    end
+  end
+
+  # Link foundation walls to right Kiva foundation objects (if applicable).
+  edges.values.each do |edge|
+    edge[:surfaces].keys.each do |i|
+      next unless walls.has_key?(i)
+      next unless walls[i].has_key?(:kiva)
+      id = walls[i][:kiva]
+      next unless floors.has_key?(id)
+      next unless floors[id].has_key?(:foundation)
+
+      # Locate OSM wall.
+      os_model.getSurfaces.each do |s|
+        next unless s.nameString == i
+        s.setAdjacentFoundation(floors[id][:foundation])
+      end
+    end
+  end
+
+  kiva
+end
+
+##
 # Identifies a layered construction's insulating (or deratable) layer.
 #
 # @param [OpenStudio::Model::Construction] construction An OS construction
@@ -684,7 +822,7 @@ end
 # @param [String] psi_set Default PSI set identifier, can be "" (empty)
 # @param [String] io_path Path to a user-set TBD JSON input file (optional)
 # @param [String] schema_path Path to a TBD JSON schema file (optional)
-# @param [Bool] gen_kiva Have TBD generate Kiva objects (optional)
+# @param [Bool] gen_kiva Have TBD generate Kiva objects
 #
 # @return [Hash] Returns TBD collection of objects for JSON serialization
 # @return [Hash] Returns collection of derated TBD surfaces
@@ -1153,42 +1291,9 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
     edge[:set] = p unless psi.empty?
   end                                                                # edge loop
 
-  # Add ":basement" or ":slab" keyword to edge if the following are met:
-  # 1. "foundation"-facing floor surface
-  # 2. 1x foundation-facing (:basement) or exterior-facing (:slab) wall
-  edges.values.each do |edge|
-    next unless gen_kiva
-    next if edge.has_key?(:basement)
-    next if edge.has_key?(:slab)
-    edge[:surfaces].keys.each do |id|
-      next if edge.has_key?(:basement)
-      next if edge.has_key?(:slab)
-      next unless floors.has_key?(id)
-      next unless surfaces.has_key?(id)
-      next unless surfaces[id][:boundary].downcase == "foundation"
-
-      # Loop through linked walls: if exterior or foundation ...
-      edge[:surfaces].keys.each do |i|
-        next if edge.has_key?(:basement)
-        next if edge.has_key?(:slab)
-        next if i == id
-        next unless walls.has_key?(i)
-        next unless surfaces.has_key?(i)
-        b = surfaces[i][:boundary].downcase
-        next unless b == "foundation" || b == "outdoors"
-        edge[:slab] = true if b == "outdoors"
-        edge[:basement] = true if b == "foundation"
-        edge[:foundation] = id if b == "foundation"
-        #puts "... edge between #{i} & #{id}: basement" if edge.has_key?(:basement)
-        #puts "... edge between #{i} & #{id}: slab" if edge.has_key?(:slab)
-        surfaces[id][:exposed] = 0.0 unless surfaces[id].has_key?(:exposed)
-        surfaces[id][:exposed] += edge[:length]
-        surfaces[id][:kiva] = :slab unless surfaces[id].has_key?(:kiva)
-        surfaces[id][:kiva] = :basement if b == "foundation"
-      end
-    end
-  end
-
+  # Generate OSM Kiva settings and objects if foundation-facing floors.
+  # 'kiva' == false if partial failure (log failure eventually).
+  kiva = generateKiva(os_model, walls, floors, edges) if gen_kiva
 
   # In the preceding loop, TBD initially sets individual edge PSI types/values
   # to those of the project-wide :unit set. If the TBD JSON file holds custom

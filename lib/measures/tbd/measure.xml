@@ -2,8 +2,8 @@
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>2ba354cc-b81c-4939-95ac-b1cffb95cade</version_id>
-  <version_modified>20210103T120832Z</version_modified>
+  <version_id>bbe4bcd6-1090-4a5d-85ea-5b6c559e9025</version_id>
+  <version_modified>20210104T201320Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -82,11 +82,30 @@
     <argument>
       <name>gen_kiva</name>
       <display_name>Generate Kiva inputs</display_name>
-      <description>Generate OSM Kiva settings and objects if model surfaces have foundation boundary conditions</description>
+      <description>Generate OSM Kiva settings and objects if model surfaces have 'foundation' boundary conditions</description>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>true</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>gen_kiva_force</name>
+      <display_name>Force-generate Kiva inputs</display_name>
+      <description>Overwrites all 'ground' boundary conditions as 'foundation' before generating OSM Kiva inputs</description>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
       <choices>
         <choice>
           <value>true</value>
@@ -213,12 +232,6 @@
       <checksum>8EC912F6</checksum>
     </file>
     <file>
-      <filename>README.md</filename>
-      <filetype>md</filetype>
-      <usage_type>readme</usage_type>
-      <checksum>BDA64252</checksum>
-    </file>
-    <file>
       <version>
         <software_program>OpenStudio</software_program>
         <identifier>2.9.1</identifier>
@@ -227,13 +240,19 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>1886D124</checksum>
+      <checksum>0747C7BB</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>54C6A3C1</checksum>
     </file>
     <file>
       <filename>psi.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>8309329B</checksum>
+      <checksum>901FE79B</checksum>
     </file>
   </files>
 </measure>
