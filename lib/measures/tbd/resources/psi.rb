@@ -542,6 +542,7 @@ def tbdSurfaceEdges(surfaces, edges)
   end
 end
 
+
 ##
 # Generate OSM Kiva settings and objects if model surfaces have 'foundation'
 # boundary conditions.
@@ -653,7 +654,9 @@ def generateKiva(os_model, walls, floors, edges)
         next unless s.outsideBoundaryCondition.downcase == "foundation"
         found = true
 
+        # Retrieve surface (standard) construction
         s.setAdjacentFoundation(floors[id][:foundation])
+        s.setConstruction(s.construction.get)
         s.createSurfacePropertyExposedFoundationPerimeter(arg, floors[id][:exposed])
       end
       kiva = false unless found
@@ -673,6 +676,7 @@ def generateKiva(os_model, walls, floors, edges)
       os_model.getSurfaces.each do |s|
         next unless s.nameString == i
         s.setAdjacentFoundation(floors[id][:foundation])
+        s.setConstruction(s.construction.get)
       end
     end
   end
@@ -1004,6 +1008,10 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
   tbdSurfaceEdges(walls, edges)
   tbdSurfaceEdges(shades, edges)
 
+  # Generate OSM Kiva settings and objects if foundation-facing floors.
+  # 'kiva' == false if partial failure (log failure eventually).
+  kiva = generateKiva(os_model, walls, floors, edges) if gen_kiva
+
   # Thermal bridging characteristics of edges are determined - in part - by
   # relative polar position of linked surfaces (or wires) around each edge.
   # This characterization is key in distinguishing concave from convex edges.
@@ -1293,7 +1301,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
 
   # Generate OSM Kiva settings and objects if foundation-facing floors.
   # 'kiva' == false if partial failure (log failure eventually).
-  kiva = generateKiva(os_model, walls, floors, edges) if gen_kiva
+  # kiva = generateKiva(os_model, walls, floors, edges) if gen_kiva
 
   # In the preceding loop, TBD initially sets individual edge PSI types/values
   # to those of the project-wide :unit set. If the TBD JSON file holds custom
@@ -1511,52 +1519,10 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
     next unless surface[:heatloss] > 0.01
     os_model.getSurfaces.each do |s|
       next unless id == s.nameString
-      next if s.space.empty?
-      space = s.space.get
-
-      # Retrieve current surface construction.
-      current_c = nil
-      defaulted = false
-      if s.isConstructionDefaulted
-        # Check for space default set.
-        space_default_set = space.defaultConstructionSet
-        unless space_default_set.empty?
-          space_default_set = space_default_set.get
-          current_c = space_default_set.getDefaultConstruction(s)
-          next if current_c.empty?
-          current_c = current_c.get
-          defaulted = true
-        end
-
-        # Check for building default set.
-        building_default_set = os_building.defaultConstructionSet
-        unless building_default_set.empty? || defaulted
-          building_default_set = building_default_set.get
-          current_c = building_default_set.getDefaultConstruction(s)
-          next if current_c.empty?
-          current_c = current_c.get
-          defaulted = true
-        end
-
-        # No space or building defaults - resort to first set @model level.
-        model_default_sets = os_model.getDefaultConstructionSets
-        unless model_default_sets.empty? || defaulted
-          model_default_set = model_default_sets.first
-          current_c = model_default_set.getDefaultConstruction(s)
-          next if current_c.empty?
-          current_c = current_c.get
-          defaulted = true
-        end
-
-        next unless defaulted
-        construction_name = current_c.nameString
-        c = current_c.clone(os_model).to_Construction.get
-
-      else                     # ... no defaults - surface-specific construction
-        current_c = s.construction.get
-        construction_name = current_c.nameString
-        c = current_c.clone(os_model).to_Construction.get
-      end
+      current_c = s.construction.get
+      next if current_c.nil?
+      construction_name = current_c.nameString
+      c = current_c.clone(os_model).to_Construction.get
 
       # index - of layer/material (to derate) in cloned construction
       # type  - either massless (RSi) or standard (k + d)
@@ -1597,10 +1563,24 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
           current_R += r
         end
 
+        # In principle, the derated "ratio" could be calculated simply by
+        # accessing a surface's uFactor. However, it appears that air layers
+        # within constructions (not air films) are ignored in OpenStudio's
+        # uFactor calculation. An example would be 25mm-50mm air gaps behind
+        # brick veneer.
+        #
+        # If one comments-out the following loop (3 lines), tested surfaces
+        # with air layers will generate discrepencies between the calculed RSi
+        # value above and the inverse of the uFactor. All other surface
+        # constructions pass the test.
+        #
+        # if ((1/current_R) - s.uFactor.to_f).abs > 0.005
+        #   puts "#{s.nameString} - Usi:#{1/current_R} UFactor: #{s.uFactor}"
+        # end
+
         s.setConstruction(c)
 
-        # Compute updated RSi value from layers. Revise to use
-        # "thermalConductance" and/or "uFactor"
+        # Compute updated RSi value from layers.
         updated_R = s.filmResistance
         updated_c = s.construction.get
         updated_c.to_Construction.get.layers.each do |l|

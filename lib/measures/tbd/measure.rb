@@ -114,6 +114,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
       model.getSurfaces.each do |s|
         next unless s.isGroundSurface
         s.outsideBoundaryCondition == "Foundation"
+        s.setConstruction(s.construction.get)
       end
     end
 
