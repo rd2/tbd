@@ -2602,9 +2602,9 @@ RSpec.describe TBD do
     # Reset all ground-facing floor surfaces as "foundations".
     os_model.getSurfaces.each do |s|
       next unless s.outsideBoundaryCondition.downcase == "ground"
-      construction = s.construction.get
+      construction = s.construction
       s.setOutsideBoundaryCondition("Foundation")
-      s.setConstruction(construction)
+      s.setConstruction(construction.get) if !construction.empty?
     end
 
     #psi_set = "poor (BC Hydro)"
