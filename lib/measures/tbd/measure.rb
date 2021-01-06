@@ -113,8 +113,9 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
       gen_kiva = true
       model.getSurfaces.each do |s|
         next unless s.isGroundSurface
-        s.outsideBoundaryCondition == "Foundation"
-        s.setConstruction(s.construction.get)
+        construction = s.construction.get
+        s.setOutsideBoundaryCondition("Foundation")
+        s.setConstruction(construction)
       end
     end
 

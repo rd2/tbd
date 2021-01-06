@@ -657,7 +657,9 @@ def generateKiva(os_model, walls, floors, edges)
         # Retrieve surface (standard) construction
         s.setAdjacentFoundation(floors[id][:foundation])
         s.setConstruction(s.construction.get)
-        s.createSurfacePropertyExposedFoundationPerimeter(arg, floors[id][:exposed])
+        if floors[id][:exposed] > 0.01
+          s.createSurfacePropertyExposedFoundationPerimeter(arg, floors[id][:exposed])
+        end
       end
       kiva = false unless found
     end
