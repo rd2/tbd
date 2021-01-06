@@ -654,10 +654,117 @@ def generateKiva(os_model, walls, floors, edges)
         next unless s.outsideBoundaryCondition.downcase == "foundation"
         found = true
 
-        # Retrieve surface (standard) construction
+        # Retrieve surface (standard) construction before creating an exposed
+        # perimeter object.
+        construction = s.construction.get
         s.setAdjacentFoundation(floors[id][:foundation])
-        s.setConstruction(s.construction.get)
-        s.createSurfacePropertyExposedFoundationPerimeter(arg, floors[id][:exposed]) if floors[id][:exposed] > 0.01
+        s.setConstruction(construction)
+        exp = floors[id][:exposed]
+        exp = 0.01 if exp < 0.01
+        s.createSurfacePropertyExposedFoundationPerimeter(arg, exp)
+
+        # If instead: s.createSurfacePropertyExposedFoundationPerimeter(arg, 0.0)
+        # ... EnergyPlus will crash with the following errors (e.g. secondary
+        # school, once massless carpet layer is removed from floor construction):
+        #
+        # --- eplusout.err ---
+        #
+        # ** Severe  ** SurfaceProperty:ExposedFoundationPerimeter: GYM_ZN_1_FLR_1_FLOOR, TOTALEXPOSEDPERIMETER set as calculation method, but no value has been set for Total Exposed Perimeter
+        # ** Warning ** SurfaceProperty:ExposedFoundationPerimeter: GYM_ZN_1_FLR_1_FLOOR, TOTALEXPOSEDPERIMETER set as calculation method, but a value has been set for Exposed Perimeter Fraction. This value will be ignored.
+        # ** Severe  ** SurfaceProperty:ExposedFoundationPerimeter: MECH_ZN_1_FLR_1_FLOOR, TOTALEXPOSEDPERIMETER set as calculation method, but no value has been set for Total Exposed Perimeter
+        # ** Warning ** SurfaceProperty:ExposedFoundationPerimeter: MECH_ZN_1_FLR_1_FLOOR, TOTALEXPOSEDPERIMETER set as calculation method, but a value has been set for Exposed Perimeter Fraction. This value will be ignored.
+        # **  Fatal  ** GetSurfaceData: Errors discovered, program terminates.
+        #
+        # These are excerpts from the generated in.osm & in.idf:
+        #
+        # ----- in.osm -----
+        #
+        # OS:Surface,
+        # {c2791704-874a-4d21-aa34-423d7f7292b5}, !- Handle
+        # Gym_ZN_1_FLR_1_Floor,                   !- Name
+        # Floor,                                  !- Surface Type
+        # {a5d80205-450f-46c2-9ccb-f10ec360485c}, !- Construction Name
+        # {5b6d79a1-ca37-4ac2-86a5-1120aebe4e62}, !- Space Name
+        # Foundation,                             !- Outside Boundary Condition
+        # {50461f3c-cc66-4241-8bd6-e018f80373e3}, !- Outside Boundary Condition Object
+        # NoSun,                                  !- Sun Exposure
+        # NoWind,                                 !- Wind Exposure
+        # ,                                       !- View Factor to Ground
+        # ,                                       !- Number of Vertices
+        # 38, 52, 0,                              !- X,Y,Z Vertex 1 {m}
+        # 38, 0, 0,                               !- X,Y,Z Vertex 2 {m}
+        # 0, 0, 0,                                !- X,Y,Z Vertex 3 {m}
+        # 0, 52, 0;                               !- X,Y,Z Vertex 4 {m}
+        #
+        # OS:SurfaceProperty:ExposedFoundationPerimeter,
+        # {69b51a0c-29ca-4af3-8d0a-3d3b347af79a}, !- Handle
+        # {c2791704-874a-4d21-aa34-423d7f7292b5}, !- Surface Name
+        # TotalExposedPerimeter,                  !- Exposed Perimeter Calculation Method
+        # ;                                       !- Total Exposed Perimeter {m}
+        #
+        # Note that a "0.0" [m] argument value for Total Exposed Perimeter
+        # [ ... s.createSurfacePropertyExposedFoundationPerimeter(arg, 0.0) ... ]
+        # ... translates here into a blank (missing) input in the OSM. Yet here:
+        #
+        # https://github.com/NREL/EnergyPlus/pull/6249/files/e9d0ade99c9c95dab8c259e08af44d0f459d3bd4
+        #
+        # ... it seems admissible to have a 0.0m value for total exposed perimeter.
+        #
+        # ----- in.idf -----
+        #
+        # SurfaceProperty:ExposedFoundationPerimeter,
+        # Gym_ZN_1_FLR_1_Floor,                   !- Surface Name
+        # TotalExposedPerimeter,                  !- Exposed Perimeter Calculation Method
+        # ,                                       !- Total Exposed Perimeter {m}
+        # 1;                                      !- Exposed Perimeter Fraction {dimensionless}
+        #
+        # ... so it seems EnergyPlus rejects the OSM input and generates its own
+        # default SurfaceProperty:ExposedFoundationPerimeter object, yet with
+        # what looks like a mismatch between the "TotalExposedPerimeter" option
+        # and "Exposed Perimeter Fraction" (of 1).
+        #
+        #
+        # If instead wrapped in a conditional, e.g.
+        #   if floors[id][:exposed] > 0.01
+        #     s.createSurfacePropertyExposedFoundationPerimeter(arg, floors[id][:exposed])
+        #   end
+        #
+        # ... then no OS:SurfaceProperty:ExposedFoundationPerimeter gets
+        # generated in the OSM, yet the IDF will hold the same:
+        #
+        # ----- in.idf -----
+        #
+        # SurfaceProperty:ExposedFoundationPerimeter,
+        # Gym_ZN_1_FLR_1_Floor,                   !- Surface Name
+        # ExposedPerimeterFraction,               !- Exposed Perimeter Calculation Method
+        # ,                                       !- Total Exposed Perimeter {m}
+        # 1;                                      !- Exposed Perimeter Fraction {dimensionless}
+        #
+        # This time, no errors or warnings are generated. So it would seem OK
+        # when EnergyPlus auto-generates a default exposed perimeter object on
+        # its own. Nonetheless, it certainly isn't an exposed fraction of 1, so
+        # a fix is needed.
+        #
+        #
+        # The implemented solution above generates the following entries:
+        #
+        # ----- in.osm -----
+        #
+        # OS:SurfaceProperty:ExposedFoundationPerimeter,
+        # {d9e6b449-fcf6-401a-bda0-f066d8139cca}, !- Handle
+        # {c2791704-874a-4d21-aa34-423d7f7292b5}, !- Surface Name
+        # TotalExposedPerimeter,                  !- Exposed Perimeter Calculation Method
+        # 0.01;                                   !- Total Exposed Perimeter {m}
+        #
+        #
+        # SurfaceProperty:ExposedFoundationPerimeter,
+        # Gym_ZN_1_FLR_1_Floor,                   !- Surface Name
+        # TotalExposedPerimeter,                  !- Exposed Perimeter Calculation Method
+        # 0.01,                                   !- Total Exposed Perimeter {m}
+        # ;                                       !- Exposed Perimeter Fraction {dimensionless}
+        #
+        # ... no errors or warnings.
+
       end
       kiva = false unless found
     end
