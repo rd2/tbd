@@ -6,10 +6,10 @@ Within the context of building energy simulation (and as required by recent buil
 
 ## TO DO
 [Enhancements](https://github.com/rd2/tbd/issues) and documentation are planned over the next few weeks and months, including:
-1. JSON I/O (completed)
-2. dealing with ground-facing surfaces (e.g. foundation walls, slabs on grade)
+1. JSON I/O - _completed_
+2. dealing with ground-facing surfaces (e.g. KIVA foundations) - _completed_
 3. dealing with fully-glazed surfaces with thermal bridges
-4. adding point conductances
+4. adding point conductances - _completed_
 5. generating building-level clear-field R-values
 6. dealing with multipliers and spanners
 7. logging warnings and errors
