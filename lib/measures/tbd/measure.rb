@@ -58,6 +58,18 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     write_tbd_json.setDefaultValue(true)
     args << write_tbd_json
 
+    gen_kiva = OpenStudio::Measure::OSArgument.makeBoolArgument("gen_kiva", true, false)
+    gen_kiva.setDisplayName("Generate Kiva inputs")
+    gen_kiva.setDescription("Generate OSM Kiva settings and objects if model surfaces have 'foundation' boundary conditions")
+    gen_kiva.setDefaultValue(true)
+    args << gen_kiva
+
+    gen_kiva_force = OpenStudio::Measure::OSArgument.makeBoolArgument("gen_kiva_force", true, false)
+    gen_kiva_force.setDisplayName("Force-generate Kiva inputs")
+    gen_kiva_force.setDescription("Overwrites all 'ground' boundary conditions as 'foundation' before generating OSM Kiva inputs")
+    gen_kiva_force.setDefaultValue(false)
+    args << gen_kiva_force
+
     return args
   end
 
@@ -71,6 +83,10 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     option = runner.getStringArgumentValue("option", user_arguments)
 
     write_tbd_json = runner.getBoolArgumentValue("write_tbd_json", user_arguments)
+
+    gen_kiva = runner.getBoolArgumentValue("gen_kiva", user_arguments)
+
+    gen_kiva_force = runner.getBoolArgumentValue("gen_kiva_force", user_arguments)
 
     # use the built-in error checking
     if !runner.validateUserArguments(arguments(model), user_arguments)
@@ -92,7 +108,18 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
       end
     end
 
-    io, surfaces = processTBD(model, option, io_path, schema_path)
+    # Process all ground-facing surfaces as foundation-facing.
+    if gen_kiva_force
+      gen_kiva = true
+      model.getSurfaces.each do |s|
+        next unless s.isGroundSurface
+        construction = s.construction.get
+        s.setOutsideBoundaryCondition("Foundation")
+        s.setConstruction(construction)
+      end
+    end
+
+    io, surfaces = processTBD(model, option, io_path, schema_path, gen_kiva)
 
     surfaces.each do |id, surface|
       if surface.has_key?(:ratio)

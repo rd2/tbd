@@ -542,10 +542,175 @@ def tbdSurfaceEdges(surfaces, edges)
   end
 end
 
+
 ##
-# Populate hash of TBD "dads", i.e. (parent) surfaces, relying on Topolys. As
-# a side effect, it will - if successful - also populate the Topolys
-# model with Topolys vertices, wires, holes & faces.
+# Generate OSM Kiva settings and objects if model surfaces have 'foundation'
+# boundary conditions.
+#
+# @param [OpenStudio::Model::Model] os_model An OS model
+# @param [Hash] floors TBD-generated floors
+# @param [Hash] walls TBD-generated walls
+# @param [Hash] edges TBD-generated edges (many linking floors & walls
+#
+# @return [Bool] Returns true if all Kiva foundations are successfully generated.
+def generateKiva(os_model, walls, floors, edges)
+  # Strictly rely on Kiva's total exposed perimeter approach.
+  arg = "TotalExposedPerimeter"
+  kiva = true
+
+  # The following is loosely adapted from:
+  # https://github.com/NREL/OpenStudio-resources/blob/develop/model/simulationtests/foundation_kiva.rb
+  # ... thanks.
+
+  # Generate template for KIVA settings. This is usually not required (the
+  # default KIVA settings are fine), but its explicit inclusion in the OSM
+  # does offer users easy access to further (manually) tweak settings e.g.,
+  # soil properties if required. Initial tests show slight differences in
+  # simulation results w/w/o explcit inclusion of the KIVA settings template
+  # in the OSM. TO-DO: Check in.idf vs in.osm for any deviation from default
+  # values as specified in the IO Reference Manual.
+  foundation_kiva_settings = os_model.getFoundationKivaSettings
+
+  # One way to expose in-built default parameters (in the future), e.g.:
+  # soil_k = foundation_kiva_settings.soilConductivity
+  # foundation_kiva_settings.setSoilConductivity(soil_k)
+
+  # Generic 1" XPS insulation (for slab-on-grade setup) - unused if basement.
+  xps_25mm = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
+  xps_25mm.setRoughness("Rough")
+  xps_25mm.setThickness(0.0254)
+  xps_25mm.setConductivity(0.029)
+  xps_25mm.setDensity(28)
+  xps_25mm.setSpecificHeat(1450)
+  xps_25mm.setThermalAbsorptance(0.9)
+  xps_25mm.setSolarAbsorptance(0.7)
+
+  # Tag foundation-facing floors, then walls.
+  edges.values.each do |edge|
+    edge[:surfaces].keys.each do |id|
+
+      # Start by processing edge-linked foundation-facing floors.
+      next unless floors.has_key?(id)
+      next unless floors[id][:boundary].downcase == "foundation"
+
+      # A match, yet skip if previously processed.
+      next if floors[id].has_key?(:kiva)
+
+      # By default, foundation floors are initially slabs-on-grade.
+      floors[id][:kiva] = :slab
+
+      # Re(tag) floors as basements if foundation-facing walls.
+      edge[:surfaces].keys.each do |i|
+        next unless walls.has_key?(i)
+        next unless walls[i][:boundary].downcase == "foundation"
+        next if walls[i].has_key?(:kiva)
+
+        # (Re)tag as :basement if edge-linked foundation walls.
+        floors[id][:kiva] = :basement
+        walls[i][:kiva] = id
+      end
+    end
+  end
+
+  # Fetch exposed perimeters.
+  edges.values.each do |edge|
+    edge[:surfaces].keys.each do |id|
+      next unless floors.has_key?(id)
+      next unless floors[id].has_key?(:kiva)
+
+      # Initialize if first iteration.
+      floors[id][:exposed] = 0.0 unless floors[id].has_key?(:exposed)
+
+      edge[:surfaces].keys.each do |i|
+        next unless walls.has_key?(i)
+        b = walls[i][:boundary].downcase
+        next unless b == "foundation" || b == "outdoors"
+        floors[id][:exposed] += edge[:length]
+      end
+    end
+  end
+
+  # Generate unique Kiva foundation per foundation-facing floor.
+  edges.values.each do |edge|
+    edge[:surfaces].keys.each do |id|
+      next unless floors.has_key?(id)
+      next unless floors[id].has_key?(:kiva)
+      next if floors[id].has_key?(:foundation)
+
+      floors[id][:foundation] = OpenStudio::Model::FoundationKiva.new(os_model)
+
+      # It's assumed that generated foundation walls have insulated
+      # constructions. Perimeter insulation for slabs-on-grade.
+      # Typical circa-1980 slab-on-grade (perimeter) insulation setup.
+      if floors[id][:kiva] == :slab
+        floors[id][:foundation].setInteriorHorizontalInsulationMaterial(xps_25mm)
+        floors[id][:foundation].setInteriorHorizontalInsulationWidth(0.6)
+      end
+
+      # Locate OSM surface and assign Kiva foundation & perimeter objects.
+      found = false
+      os_model.getSurfaces.each do |s|
+        next unless s.nameString == id
+        next unless s.outsideBoundaryCondition.downcase == "foundation"
+        found = true
+
+        # Retrieve surface (standard) construction (which may be defaulted)
+        # before assigning a Kiva Foundation object to the surface. Then
+        # reassign the construction (no longer defaulted).
+        construction = s.construction.get
+        s.setAdjacentFoundation(floors[id][:foundation])
+        s.setConstruction(construction)
+
+        # Generate surface's Kiva exposed perimeter object.
+        exp = floors[id][:exposed]
+        #exp = 0.01 if exp < 0.01
+        perimeter = s.createSurfacePropertyExposedFoundationPerimeter(arg, exp)
+
+        # The following 5x lines are a (temporary?) fix for exposed perimeter
+        # lengths of 0m - a perfectly valid entry in an IDF (e.g. "core" slab).
+        # Unfortunately OpenStudio (currently) rejects 0 as an inclusive minimum
+        # value. So despite passing a valid 0 "exp" argument, OpenStudio does
+        # not initialize the "TotalExposedPerimeter" entry. Compare relevant
+        # EnergyPlus vs OpenStudio .idd entries.
+
+        # The fix: if a valid Kiva exposed perimeter is equal or less than 1mm,
+        # fetch the perimeter object and attempt to explicitely set the exposed
+        # perimeter length to 0m. If unsuccessful (situation remains unfixed),
+        # then set to 1mm. Simulations results should be virtually identical.
+        unless exp > 0.001 || perimeter.empty?
+          perimeter = perimeter.get
+          success = perimeter.setTotalExposedPerimeter(0)
+          perimeter.setTotalExposedPerimeter(0.001) unless success
+        end
+
+      end
+      kiva = false unless found
+    end
+  end
+
+  # Link foundation walls to right Kiva foundation objects (if applicable).
+  edges.values.each do |edge|
+    edge[:surfaces].keys.each do |i|
+      next unless walls.has_key?(i)
+      next unless walls[i].has_key?(:kiva)
+      id = walls[i][:kiva]
+      next unless floors.has_key?(id)
+      next unless floors[id].has_key?(:foundation)
+
+      # Locate OSM wall.
+      os_model.getSurfaces.each do |s|
+        next unless s.nameString == i
+        s.setAdjacentFoundation(floors[id][:foundation])
+        s.setConstruction(s.construction.get)
+      end
+    end
+  end
+
+  kiva
+end
+
+##
+# Identifies a layered construction's insulating (or deratable) layer.
 #
 # @param [OpenStudio::Model::Construction] construction An OS construction
 #
@@ -686,10 +851,11 @@ end
 # @param [String] psi_set Default PSI set identifier, can be "" (empty)
 # @param [String] io_path Path to a user-set TBD JSON input file (optional)
 # @param [String] schema_path Path to a TBD JSON schema file (optional)
+# @param [Bool] gen_kiva Have TBD generate Kiva objects
 #
 # @return [Hash] Returns TBD collection of objects for JSON serialization
 # @return [Hash] Returns collection of derated TBD surfaces
-def processTBD(os_model, psi_set, io_path = nil, schema_path = nil)
+def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
   surfaces = {}
 
   os_model_class = OpenStudio::Model::Model
@@ -866,6 +1032,10 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil)
   tbdSurfaceEdges(ceilings, edges)
   tbdSurfaceEdges(walls, edges)
   tbdSurfaceEdges(shades, edges)
+
+  # Generate OSM Kiva settings and objects if foundation-facing floors.
+  # 'kiva' == false if partial failure (log failure eventually).
+  kiva = generateKiva(os_model, walls, floors, edges) if gen_kiva
 
   # Thermal bridging characteristics of edges are determined - in part - by
   # relative polar position of linked surfaces (or wires) around each edge.
@@ -1154,6 +1324,10 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil)
     edge[:set] = p unless psi.empty?
   end                                                                # edge loop
 
+  # Generate OSM Kiva settings and objects if foundation-facing floors.
+  # 'kiva' == false if partial failure (log failure eventually).
+  # kiva = generateKiva(os_model, walls, floors, edges) if gen_kiva
+
   # In the preceding loop, TBD initially sets individual edge PSI types/values
   # to those of the project-wide :unit set. If the TBD JSON file holds custom
   # :story, :space or :surface PSI sets that are applicable to individual edges,
@@ -1370,52 +1544,10 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil)
     next unless surface[:heatloss] > 0.01
     os_model.getSurfaces.each do |s|
       next unless id == s.nameString
-      next if s.space.empty?
-      space = s.space.get
-
-      # Retrieve current surface construction.
-      current_c = nil
-      defaulted = false
-      if s.isConstructionDefaulted
-        # Check for space default set.
-        space_default_set = space.defaultConstructionSet
-        unless space_default_set.empty?
-          space_default_set = space_default_set.get
-          current_c = space_default_set.getDefaultConstruction(s)
-          next if current_c.empty?
-          current_c = current_c.get
-          defaulted = true
-        end
-
-        # Check for building default set.
-        building_default_set = os_building.defaultConstructionSet
-        unless building_default_set.empty? || defaulted
-          building_default_set = building_default_set.get
-          current_c = building_default_set.getDefaultConstruction(s)
-          next if current_c.empty?
-          current_c = current_c.get
-          defaulted = true
-        end
-
-        # No space or building defaults - resort to first set @model level.
-        model_default_sets = os_model.getDefaultConstructionSets
-        unless model_default_sets.empty? || defaulted
-          model_default_set = model_default_sets.first
-          current_c = model_default_set.getDefaultConstruction(s)
-          next if current_c.empty?
-          current_c = current_c.get
-          defaulted = true
-        end
-
-        next unless defaulted
-        construction_name = current_c.nameString
-        c = current_c.clone(os_model).to_Construction.get
-
-      else                     # ... no defaults - surface-specific construction
-        current_c = s.construction.get
-        construction_name = current_c.nameString
-        c = current_c.clone(os_model).to_Construction.get
-      end
+      current_c = s.construction.get
+      next if current_c.nil?
+      construction_name = current_c.nameString
+      c = current_c.clone(os_model).to_Construction.get
 
       # index - of layer/material (to derate) in cloned construction
       # type  - either massless (RSi) or standard (k + d)
@@ -1456,10 +1588,24 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil)
           current_R += r
         end
 
+        # In principle, the derated "ratio" could be calculated simply by
+        # accessing a surface's uFactor. However, it appears that air layers
+        # within constructions (not air films) are ignored in OpenStudio's
+        # uFactor calculation. An example would be 25mm-50mm air gaps behind
+        # brick veneer.
+        #
+        # If one comments-out the following loop (3 lines), tested surfaces
+        # with air layers will generate discrepencies between the calculed RSi
+        # value above and the inverse of the uFactor. All other surface
+        # constructions pass the test.
+        #
+        # if ((1/current_R) - s.uFactor.to_f).abs > 0.005
+        #   puts "#{s.nameString} - Usi:#{1/current_R} UFactor: #{s.uFactor}"
+        # end
+
         s.setConstruction(c)
 
-        # Compute updated RSi value from layers. Revise to use
-        # "thermalConductance" and/or "uFactor"
+        # Compute updated RSi value from layers.
         updated_R = s.filmResistance
         updated_c = s.construction.get
         updated_c.to_Construction.get.layers.each do |l|

@@ -729,24 +729,6 @@ RSpec.describe TBD do
     populateTBDdads(t_model, shades)
     expect(t_model.faces.size).to eq(33)
 
-    # Demo : Shared edges between an (opaque) Topolys face (outer edges) and
-    # one of its kids' (holes)' edges are the same Ruby and Topolys objects
-    # Good. Care should nonetheless be taken in TBD to avoid derating faces
-    # with 'outer' edges shared with their kids.
-    # ceilings.values.each do |properties|
-    #   if properties.has_key?(:skylights)
-    #     properties[:face].outer.edges.each do |e|
-    #       puts e.id
-    #     end
-    #     properties[:face]
-    #     properties[:face].holes.each do |h|
-    #       h.edges.each do |e|
-    #         puts e.id
-    #       end
-    #     end
-    #   end
-    # end
-
     # Loop through Topolys edges and populate TBD edge hash. Initially, there
     # should be a one-to-one correspondence between Topolys and TBD edge
     # objects. TBD edges shared only by non-deratble surfaces (e.g. 2x interior
@@ -964,15 +946,6 @@ RSpec.describe TBD do
       edge[:surfaces] = edge[:surfaces].sort_by{ |i, p| p[:angle] }.to_h
     end # end of edge loop
 
-    # test edge surface polar angles ...
-    # edges.values.each do |edge|
-    #   if edge[:surfaces].size > 1
-    #     puts "edge of (#{edge[:length]}m) is linked to #{edge[:surfaces].size}:"
-    #     edge[:surfaces].each do |i, surface|
-    #       puts "... #{i} : #{surface[:angle]}"
-    #     end
-    #   end
-    # end
     expect(edges.size).to eq(89)
     expect(t_model.edges.size).to eq(89)
 
@@ -1247,8 +1220,6 @@ RSpec.describe TBD do
       end
     end
 
-    # PROCESS KHI ... TO DO
-
     n_deratables = 0
     n_edges_at_grade = 0
     n_edges_as_balconies = 0
@@ -1415,52 +1386,10 @@ RSpec.describe TBD do
       next unless surface.has_key?(:edges)
       os_model.getSurfaces.each do |s|
         next unless id == s.nameString
-        next if s.space.empty?
-        space = s.space.get
-
-        # Retrieve current surface construction.
-        current_c = nil
-        defaulted = false
-        if s.isConstructionDefaulted
-          # Check for space default set.
-          space_default_set = space.defaultConstructionSet
-          unless space_default_set.empty?
-            space_default_set = space_default_set.get
-            current_c = space_default_set.getDefaultConstruction(s)
-            next if current_c.empty?
-            current_c = current_c.get
-            defaulted = true
-          end
-
-          # Check for building default set.
-          building_default_set = os_building.defaultConstructionSet
-          unless building_default_set.empty? || defaulted
-            building_default_set = building_default_set.get
-            current_c = building_default_set.getDefaultConstruction(s)
-            next if current_c.empty?
-            current_c = current_c.get
-            defaulted = true
-          end
-
-          # No space or building defaults - resort to first set @model level.
-          model_default_sets = os_model.getDefaultConstructionSets
-          unless model_default_sets.empty? || defaulted
-            model_default_set = model_default_sets.first
-            current_c = model_default_set.getDefaultConstruction(s)
-            next if current_c.empty?
-            current_c = current_c.get
-            defaulted = true
-          end
-
-          next unless defaulted
-          construction_name = current_c.nameString
-          c = current_c.clone(os_model).to_Construction.get
-
-        else # ... no defaults - surface-specific construction
-          current_c = s.construction.get
-          construction_name = current_c.nameString
-          c = current_c.clone(os_model).to_Construction.get
-        end
+        current_c = s.construction.get
+        next if current_c.nil?
+        construction_name = current_c.nameString
+        c = current_c.clone(os_model).to_Construction.get
 
         # index - of layer/material (to derate) in cloned construction
         # type  - either massless (RSi) or standard (k + d)
@@ -1518,9 +1447,7 @@ RSpec.describe TBD do
     end
 
   end # can process thermal bridging and derating : LoScrigno
-end
 
-RSpec.describe TBD do
   it "can process TB & D : DOE Prototype test_smalloffice.osm" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_smalloffice.osm")
@@ -1531,7 +1458,8 @@ RSpec.describe TBD do
     psi_set = "poor (BC Hydro)"
     io_path = ""
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, gen_kiva)
     expect(surfaces.size).to eq(43)
 
     # testing
@@ -1544,9 +1472,7 @@ RSpec.describe TBD do
       end
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : DOE Prototype test_warehouse.osm" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_warehouse.osm")
@@ -1557,7 +1483,8 @@ RSpec.describe TBD do
     psi_set = "poor (BC Hydro)"
     io_path = ""
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(23)
 
     # testing
@@ -1580,9 +1507,7 @@ RSpec.describe TBD do
       end
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : DOE Prototype test_warehouse.osm + JSON I/O" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_warehouse.osm")
@@ -1612,7 +1537,8 @@ RSpec.describe TBD do
     psi_set = "(non thermal bridging)"
     io_path = File.dirname(__FILE__) + "/../json/tbd_warehouse.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(23)
 
     surfaces.each do |id, surface|
@@ -1630,34 +1556,35 @@ RSpec.describe TBD do
         name   = id.rjust(15, " ")
         # puts "#{name} RSi derated by #{ratio}%"
         # ... should print out:
-        # Fine Storage Office Front Wall  RSi derated by - 8.4%
-        # Office Left Wall                RSi derated by -36.8% ~+5% increase
-        # Fine Storage Office Left Wall   RSi derated by - 9.8%
-        # Fine Storage Roof               RSi derated by - 4.4%
-        # Office Front Wall               RSi derated by -22.6%
-        # Fine Storage Right Wall         RSi derated by - 8.8%
-        # Bulk Storage Right Wall         RSi derated by - 8.7%
-        # Bulk Storage Rear Wall          RSi derated by - 8.3%
-        # Fine Storage Front Wall         RSi derated by - 8.5%
-        # Fine Storage Left Wall          RSi derated by - 8.4%
+        # Fine Storage Office Front Wall  RSi derated by -11.8%
+        # Office Left Wall                RSi derated by -45.9% ~14% increase
+        # Fine Storage Office Left Wall   RSi derated by -13.8%
+        # Fine Storage Roof               RSi derated by -8.1%
+        # Office Front Wall               RSi derated by -29.9%
+        # Fine Storage Right Wall         RSi derated by -12.4%
+        # Bulk Storage Right Wall         RSi derated by -8.7%
+        # Bulk Storage Rear Wall          RSi derated by -8.3%
+        # Fine Storage Front Wall         RSi derated by -12.0%
+        # Fine Storage Left Wall          RSi derated by -11.9%
         # Bulk Storage Left Wall          RSi derated by -11.8%
-        # Bulk Storage Roof               RSi derated by - 4.0%
+        # Bulk Storage Roof               RSi derated by -4.0%
 
         # ... yet the following WITHOUT the bad fenestration edges:
-        # Fine Storage Office Front Wall  RSi derated by - 8.4%
-        # Office Left Wall                RSi derated by -31.4% <<<
-        # Fine Storage Office Left Wall   RSi derated by - 9.8%
-        # Fine Storage Roof               RSi derated by - 4.4%
-        # Office Front Wall               RSi derated by -22.6%
-        # Fine Storage Right Wall         RSi derated by - 8.8%
-        # Bulk Storage Right Wall         RSi derated by - 8.7%
-        # Bulk Storage Rear Wall          RSi derated by - 8.3%
-        # Fine Storage Front Wall         RSi derated by - 8.5%
-        # Fine Storage Left Wall          RSi derated by - 8.4%
+        # Fine Storage Office Front Wall  RSi derated by -11.8%
+        # Office Left Wall                RSi derated by -40.1% <<< <<< <<< <<<
+        # Fine Storage Office Left Wall   RSi derated by -13.8%
+        # Fine Storage Roof               RSi derated by -8.1%
+        # Office Front Wall               RSi derated by -29.9%
+        # Fine Storage Right Wall         RSi derated by -12.4%
+        # Bulk Storage Right Wall         RSi derated by -8.7%
+        # Bulk Storage Rear Wall          RSi derated by -8.3%
+        # Fine Storage Front Wall         RSi derated by -12.0%
+        # Fine Storage Left Wall          RSi derated by -11.9%
         # Bulk Storage Left Wall          RSi derated by -11.8%
-        # Bulk Storage Roof               RSi derated by - 4.0%
+        # Bulk Storage Roof               RSi derated by -4.0%
+
         next unless name == "Office Left Wall"
-        expect(surface[:ratio]).to be_within(0.2).of(-36.8)
+        expect(surface[:ratio]).to be_within(0.2).of(-45.9)
       else
         expect(surface[:boundary].downcase).to_not eq("outdoors")
       end
@@ -1676,7 +1603,8 @@ RSpec.describe TBD do
     os_model2 = os_model2.get
 
     io_path2 = File.dirname(__FILE__) + "/../json/tbd_warehouse.out.json"
-    io2, surfaces = processTBD(os_model2, psi_set, io_path2, schema_path)
+    gen_kiva = false
+    io2, surfaces = processTBD(os_model2, psi_set, io_path2, schema_path, gen_kiva)
     expect(surfaces.size).to eq(23)
 
     surfaces.each do |id, surface|
@@ -1694,20 +1622,21 @@ RSpec.describe TBD do
         name   = id.rjust(15, " ")
         # puts "#{name} RSi derated by #{ratio}%"
         # ... should print out:
-        # Fine Storage Office Front Wall  RSi derated by - 8.4%
-        # Office Left Wall                RSi derated by -36.8% ~+5% increase
-        # Fine Storage Office Left Wall   RSi derated by - 9.8%
-        # Fine Storage Roof               RSi derated by - 4.4%
-        # Office Front Wall               RSi derated by -22.6%
-        # Fine Storage Right Wall         RSi derated by - 8.8%
-        # Bulk Storage Right Wall         RSi derated by - 8.7%
-        # Bulk Storage Rear Wall          RSi derated by - 8.3%
-        # Fine Storage Front Wall         RSi derated by - 8.5%
-        # Fine Storage Left Wall          RSi derated by - 8.4%
+        # Fine Storage Office Front Wall  RSi derated by -11.8%
+        # Office Left Wall                RSi derated by -45.9% ~14% increase
+        # Fine Storage Office Left Wall   RSi derated by -13.8%
+        # Fine Storage Roof               RSi derated by -8.1%
+        # Office Front Wall               RSi derated by -29.9%
+        # Fine Storage Right Wall         RSi derated by -12.4%
+        # Bulk Storage Right Wall         RSi derated by -8.7%
+        # Bulk Storage Rear Wall          RSi derated by -8.3%
+        # Fine Storage Front Wall         RSi derated by -12.0%
+        # Fine Storage Left Wall          RSi derated by -11.9%
         # Bulk Storage Left Wall          RSi derated by -11.8%
-        # Bulk Storage Roof               RSi derated by - 4.0%
+        # Bulk Storage Roof               RSi derated by -4.0%
+
         next unless name == "Office Left Wall"
-        expect(surface[:ratio]).to be_within(0.2).of(-36.8)
+        expect(surface[:ratio]).to be_within(0.2).of(-45.9)
 
         # Note the content of the out.json file:
         # {
@@ -1753,9 +1682,7 @@ RSpec.describe TBD do
     # expect(FileUtils).to be_identical(out_path, out_path2)
     expect(FileUtils.identical?(out_path, out_path2)).to be(true)
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : test_seb.osm" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
@@ -1766,7 +1693,8 @@ RSpec.describe TBD do
     psi_set = "poor (BC Hydro)"
     io_path = ""
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
 
     surfaces.each do |id, surface|
@@ -1779,9 +1707,7 @@ RSpec.describe TBD do
       end
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : test_seb.osm (0 W/K per m)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
@@ -1792,7 +1718,8 @@ RSpec.describe TBD do
     psi_set = "(non thermal bridging)"
     io_path = ""
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
 
     # Since all PSI values = 0, we're not expecting any derated surfaces
@@ -1800,9 +1727,7 @@ RSpec.describe TBD do
       expect(surface.has_key?(:ratio)).to be(false)
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : test_seb.osm (0 W/K per m) with JSON" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
@@ -1813,7 +1738,8 @@ RSpec.describe TBD do
     psi_set = "(non thermal bridging)"
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
 
     # As the :unit PSI set on file remains "(non thermal bridging)", one should
@@ -1822,9 +1748,7 @@ RSpec.describe TBD do
       expect(surface.has_key?(:ratio)).to be(false)
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : test_seb.osm (0 W/K per m) with JSON (non-0)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
@@ -1835,7 +1759,8 @@ RSpec.describe TBD do
     psi_set = "(non thermal bridging)"
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n0.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
 
     # The :unit PSI set on file "compliant" supersedes the psi_set
@@ -1846,8 +1771,8 @@ RSpec.describe TBD do
     # ... all 3x cases should yield the same results.
     surfaces.each do |id, surface|
       if surface.has_key?(:ratio)
-        #ratio  = format "%3.1f", surface[:ratio]
-        #name   = id.rjust(15, " ")
+        ratio  = format "%3.1f", surface[:ratio]
+        name   = id.rjust(15, " ")
         #puts "#{name} RSi derated by #{ratio}%"
         if id == "Level0 Utility 1 Ceiling Plenum AbvClgPlnmWall 5"
           expect(surface[:ratio]).to be_within(0.1).of(-18.1)
@@ -1882,6 +1807,7 @@ RSpec.describe TBD do
         # Entryway  Wall 5 RSi derated by -24.0%
         # Level 0 Utility 1 Ceiling Plenum RoofCeiling RSi derated by -26.3%
         # Level0 Entry way  Ceiling Plenum AbvClgPlnmWall 5 RSi derated by -18.4%
+
         if id == "Level 0 Entry way  Ceiling Plenum RoofCeiling"
           expect(surface[:ratio]).to be_within(0.1).of(-28.5)
         end
@@ -1896,9 +1822,7 @@ RSpec.describe TBD do
       end
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : test_seb.osm (0 W/K per m) with JSON (non-0) 2" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
@@ -1910,7 +1834,8 @@ RSpec.describe TBD do
     psi_set = "compliant" # instead of "(non thermal bridging)"
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n0.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
 
     surfaces.each do |id, surface|
@@ -1941,9 +1866,7 @@ RSpec.describe TBD do
       end
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : test_seb.osm (0 W/K per m) with JSON (non-0) 3" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
@@ -1955,7 +1878,8 @@ RSpec.describe TBD do
     psi_set = "compliant" # instead of "(non thermal bridging)"
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n1.json" # no :unit
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
 
     surfaces.each do |id, surface|
@@ -1986,9 +1910,7 @@ RSpec.describe TBD do
       end
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : testing JSON surface KHI entries" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
@@ -1999,7 +1921,8 @@ RSpec.describe TBD do
     psi_set = "(non thermal bridging)"
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n2.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
 
     # As the :unit PSI set on file remains "(non thermal bridging)", one should
@@ -2011,9 +1934,7 @@ RSpec.describe TBD do
       expect(surface[:heatloss]).to be_within(0.01).of(3.5)
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : testing JSON surface KHI & PSI entries" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
@@ -2024,7 +1945,8 @@ RSpec.describe TBD do
     psi_set = "(non thermal bridging)" # no :unit PSI set on file
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n3.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
     expect(io.has_key?(:unit)).to be(true) # despite no being on file - good
     expect(io[:unit].first.has_key?(:psi)).to be(true)
@@ -2066,9 +1988,7 @@ RSpec.describe TBD do
       out_path.puts out
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : JSON surface KHI & PSI entries + unit & edge" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
@@ -2079,7 +1999,8 @@ RSpec.describe TBD do
     psi_set = "(non thermal bridging)"
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n4.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
 
     # As the :unit PSI set on file == "(non thermal bridgin)", derating
@@ -2093,9 +2014,7 @@ RSpec.describe TBD do
       expect(surface[:heatloss]).to be_within(0.01).of(8.89)
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : JSON surface KHI & PSI entries + unit & edge (2)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
@@ -2106,7 +2025,8 @@ RSpec.describe TBD do
     psi_set = "(non thermal bridging)"
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n5.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
 
     # As above, yet the KHI points are now set @0.5 W/K per m (instead of 0)
@@ -2117,9 +2037,7 @@ RSpec.describe TBD do
       expect(surface[:heatloss]).to be_within(0.01).of(12.39)
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : JSON surface KHI & PSI entries + unit & edge (3)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
@@ -2130,7 +2048,8 @@ RSpec.describe TBD do
     psi_set = "(non thermal bridging)"
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n6.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
 
     # As above, with a "good" surface PSI set
@@ -2141,9 +2060,7 @@ RSpec.describe TBD do
       expect(surface[:heatloss]).to be_within(0.01).of(15.62)  # 12.39 + 3.24
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : JSON surface KHI & PSI entries + unit & edge (4)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
@@ -2154,7 +2071,8 @@ RSpec.describe TBD do
     psi_set = "compliant" # ignored - superseded by :unit PSI set on file
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n7.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path)
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
 
     # In the JSON file, the "Entry way 1" space "compliant" PSI set supersedes
@@ -2187,9 +2105,7 @@ RSpec.describe TBD do
       out_path.puts out
     end
   end
-end
 
-RSpec.describe TBD do
   it "can process TB & D : JSON file read/validate" do
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
     expect(File.exist?(schema_path)).to be(true)
@@ -2469,5 +2385,275 @@ RSpec.describe TBD do
     psi.append(incomplete_set)
     expect(psi.set.has_key?("incomplete set")).to be(true)
     expect(psi.complete?("incomplete set")).to be(false)
+  end
+
+  it "can generate and access KIVA inputs (seb)" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    # Set one of the ground-facing surfaces to (Kiva) "Foundation".
+    os_model.getSurfaces.each do |s|
+      next unless s.nameString == "Entry way  Floor"
+      construction = s.construction.get
+      s.setOutsideBoundaryCondition("Foundation")
+      s.setConstruction(construction)
+    end
+
+    # The following materials and foundation objects are provided here as
+    # placeholders for future tests.
+
+    # For continuous insulation and/or finishings, OpenStudio/EnergyPlus/Kiva
+    # offer 2x solutions : (i) adapt surface construction by adding required
+    # insulation and/or finishing layers *, or (ii) add layers as Kiva custom
+    # blocks. The former is preferred here. TO DO: sensitivity analysis.
+
+    # * ... only "standard" OS Materials can be used - not "massless" ones.
+
+    # Generic 1-1/2" XPS insulation.
+    xps_38mm = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
+    xps_38mm.setName("XPS_38mm")
+    xps_38mm.setRoughness("Rough")
+    xps_38mm.setThickness(0.0381)
+    xps_38mm.setConductivity(0.029)
+    xps_38mm.setDensity(28)
+    xps_38mm.setSpecificHeat(1450)
+    xps_38mm.setThermalAbsorptance(0.9)
+    xps_38mm.setSolarAbsorptance(0.7)
+
+    # 1. Current code-compliant slab-on-grade (perimeter) solution.
+    kiva_slab_2020s = OpenStudio::Model::FoundationKiva.new(os_model)
+    kiva_slab_2020s.setName("Kiva slab 2020s")
+    kiva_slab_2020s.setInteriorHorizontalInsulationMaterial(xps_38mm)
+    kiva_slab_2020s.setInteriorHorizontalInsulationWidth(1.2)
+    kiva_slab_2020s.setInteriorVerticalInsulationMaterial(xps_38mm)
+    kiva_slab_2020s.setInteriorVerticalInsulationDepth(0.138)
+
+    # 2. Beyond-code slab-on-grade (continuous) insulation setup. Add 1-1/2"
+    #    XPS insulation layer (under slab) to surface construction.
+    kiva_slab_HP = OpenStudio::Model::FoundationKiva.new(os_model)
+    kiva_slab_HP.setName("Kiva slab HP")
+
+    # 3. Do the same for (full height) basements - no insulation under slab for
+    #    vintages 1980s & 2020s. Add (full-height) layered insulation and/or
+    #    finishing to basement wall construction.
+    kiva_basement = OpenStudio::Model::FoundationKiva.new(os_model)
+    kiva_basement.setName("Kiva basement")
+
+    # 4. Beyond-code basement slab (perimeter) insulation setup. Add
+    #    (full-height)layered insulation and/or finishing to basement wall
+    #    construction.
+    kiva_basement_HP = OpenStudio::Model::FoundationKiva.new(os_model)
+    kiva_basement_HP.setName("Kiva basement HP")
+    kiva_basement_HP.setInteriorHorizontalInsulationMaterial(xps_38mm)
+    kiva_basement_HP.setInteriorHorizontalInsulationWidth(1.2)
+    kiva_basement_HP.setInteriorVerticalInsulationMaterial(xps_38mm)
+    kiva_basement_HP.setInteriorVerticalInsulationDepth(0.138)
+
+    # Attach (1) slab-on-grade Kiva foundation object to floor surface.
+    os_model.getSurfaces.each do |s|
+      next unless s.nameString == "Entry way  Floor"
+      s.setAdjacentFoundation(kiva_slab_2020s)
+      arg = "TotalExposedPerimeter"
+      s.createSurfacePropertyExposedFoundationPerimeter(arg, 6.95)
+    end
+
+    os_model.save("os_model_KIVA.osm", true)
+
+    # Now re-open for testing.
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/../os_model_KIVA.osm")
+    os_model2 = translator.loadModel(path)
+    expect(os_model2.empty?).to be(false)
+    os_model2 = os_model2.get
+
+    os_model2.getSurfaces.each do |s|
+      next unless s.isGroundSurface
+      next unless s.nameString == "Entry way  Floor"
+      construction = s.construction.get
+      s.setOutsideBoundaryCondition("Foundation")
+      s.setConstruction(construction)
+    end
+
+    # Set one of the linked outside-facing walls to (Kiva) "Foundation"
+    os_model2.getSurfaces.each do |s|
+      next unless s.nameString == "Entryway  Wall 4"
+      construction = s.construction.get
+      s.setOutsideBoundaryCondition("Foundation")
+      s.setConstruction(construction)
+    end
+
+    kfs = os_model2.getFoundationKivas
+    expect(kfs.empty?).to be(false)
+    expect(kfs.size).to eq(4)
+    # puts os_model2.public_methods.grep(/Kiva/)
+
+    settings = os_model2.getFoundationKivaSettings
+    expect(settings.soilConductivity).to be_within(0.01).of(1.73)
+
+    psi_set = "poor (BC Hydro)"
+    io_path = ""
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    gen_kiva = true
+    io, surfaces = processTBD(os_model2, psi_set, io_path, schema_path, gen_kiva)
+    expect(surfaces.size).to eq(56)
+
+    surfaces.each do |id, surface|
+      next unless surface.has_key?(:foundation) # ... only floors
+      next unless surface.has_key?(:kiva) # ... only one here.
+      expect(surface[:kiva]).to eq(:basement)
+      expect(surface.has_key?(:exposed)).to be (true)
+      expect(surface[:exposed]).to be_within(0.01).of(6.95)
+    end
+  end
+
+  it "can generate and access KIVA inputs (midrise apts - variant)" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/midrise_KIVA.osm")
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    psi_set = "poor (BC Hydro)"
+    io_path = ""
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    gen_kiva = true
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    expect(surfaces.size).to eq(180)
+
+    # Validate.
+    surfaces.each do |id, surface|
+      next unless surface.has_key?(:foundation) # ... only floors
+      next unless surface.has_key?(:kiva)
+      expect(surface[:kiva]).to eq(:slab)
+      expect(surface.has_key?(:exposed)).to be(true)
+      exp = surface[:exposed]
+
+      found = false
+      os_model.getSurfaces.each do |s|
+        next unless s.nameString == id
+        next unless s.outsideBoundaryCondition.downcase == "foundation"
+        found = true
+
+        expect(exp).to be_within(0.01).of(3.36) if id == "g Floor C"
+      end
+      expect(found).to be(true)
+    end
+  end
+
+  it "can generate multiple KIVA exposed perimeters (midrise apts - variant)" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/midrise_KIVA.osm")
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    # Reset all ground-facing floor surfaces as "foundations".
+    os_model.getSurfaces.each do |s|
+      next unless s.outsideBoundaryCondition.downcase == "ground"
+      construction = s.construction.get
+      s.setOutsideBoundaryCondition("Foundation")
+      s.setConstruction(construction)
+    end
+
+    psi_set = "poor (BC Hydro)"
+    io_path = ""
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    gen_kiva = true
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    expect(surfaces.size).to eq(180)
+
+    # Validate.
+    surfaces.each do |id, surface|
+      next unless surface.has_key?(:foundation) # only floors
+      next unless surface.has_key?(:kiva)
+      expect(surface[:kiva]).to eq(:slab)
+      expect(surface.has_key?(:exposed)).to be(true)
+      exp = surface[:exposed]
+
+      found = false
+      os_model.getSurfaces.each do |s|
+        next unless s.nameString == id
+        next unless s.outsideBoundaryCondition.downcase == "foundation"
+        found = true
+
+        expect(exp).to be_within(0.01).of(19.20) if id == "g GFloor NWA"
+        expect(exp).to be_within(0.01).of(19.20) if id == "g GFloor NEA"
+        expect(exp).to be_within(0.01).of(19.20) if id == "g GFloor SWA"
+        expect(exp).to be_within(0.01).of(19.20) if id == "g GFloor SEA"
+        expect(exp).to be_within(0.01).of(11.58) if id == "g GFloor S1A"
+        expect(exp).to be_within(0.01).of(11.58) if id == "g GFloor S2A"
+        expect(exp).to be_within(0.01).of(11.58) if id == "g GFloor N1A"
+        expect(exp).to be_within(0.01).of(11.58) if id == "g GFloor N2A"
+        expect(exp).to be_within(0.01).of(3.36) if id == "g Floor C"
+      end
+      expect(found).to be(true)
+    end
+  end
+
+  it "can generate KIVA exposed perimeters (warehouse)" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_warehouse.osm")
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    # Reset all ground-facing floor surfaces as "foundations".
+    os_model.getSurfaces.each do |s|
+      next unless s.outsideBoundaryCondition.downcase == "ground"
+      construction = s.construction.get
+      s.setOutsideBoundaryCondition("Foundation")
+      s.setConstruction(construction)
+    end
+
+    #psi_set = "poor (BC Hydro)"
+    psi_set = "(non thermal bridging)"
+    io_path = ""
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    gen_kiva = true
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    expect(surfaces.size).to eq(23)
+
+    # Validate.
+    surfaces.each do |id, surface|
+      next unless surface.has_key?(:foundation) # only floors
+      next unless surface.has_key?(:kiva)
+      expect(surface[:kiva]).to eq(:slab)
+      expect(surface.has_key?(:exposed)).to be(true)
+      exp = surface[:exposed]
+
+      found = false
+      os_model.getSurfaces.each do |s|
+        next unless s.nameString == id
+        next unless s.outsideBoundaryCondition.downcase == "foundation"
+        found = true
+
+        expect(exp).to be_within(0.01).of(71.62) if id == "Fine Storage"
+        expect(exp).to be_within(0.01).of(35.05) if id == "Office Floor"
+        expect(exp).to be_within(0.01).of(185.92) if id == "Bulk Storage"
+      end
+      expect(found).to be(true)
+    end
+
+    os_model.save("warehouse_KIVA.osm", true)
+
+    # Now re-open for testing.
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/../warehouse_KIVA.osm")
+    os_model2 = translator.loadModel(path)
+    expect(os_model2.empty?).to be(false)
+    os_model2 = os_model2.get
+
+    os_model2.getSurfaces.each do |s|
+      next unless s.isGroundSurface
+      next unless s.nameString == "Fine Storage" ||
+                  s.nameString == "Office Storage" ||
+                  s.nameString == "Bulk Storage"
+      expect(s.outsideBoundaryCondition).to eq("Foundation")
+    end
+
+    kfs = os_model2.getFoundationKivas
+    expect(kfs.empty?).to be(false)
+    expect(kfs.size).to eq(3)
   end
 end
