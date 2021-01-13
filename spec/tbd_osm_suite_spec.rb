@@ -55,7 +55,7 @@ RSpec.describe TBD do
   tbd_options << "regular (BC Hydro)"
   tbd_options << "efficient (BC Hydro)"
   tbd_options << "code (Quebec)"
-  tbd_options << "(without thermal bridges)"
+  tbd_options << "(non thermal bridging)"
 
   combos = []
   seed_osms.each do |seed_osm|

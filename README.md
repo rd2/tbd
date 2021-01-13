@@ -17,7 +17,7 @@ Within the context of building energy simulation (and as required by recent buil
 
 Submit [here](https://github.com/automaticmagic/topolys/issues) issues or desired enhancements more closely linked to Topolys.
 
-The following installation and testing instructions refer to OpenStudio 2.9.1, yet the measure is regularly tested against OpenStudio 3.0.0.
+Energy modelers simply interested in using the TBD OpenStudio _measure_ can either download the latest [release](https://github.com/rd2/tbd/releases) or access the measure via NREL's [BCL](https://bcl.nrel.gov) ... search for _bridging_ or _rd2_. The following installation and testing instructions are for those interested in exploring/tweaking the code (cloned or forked version of TBD). The following should refer to OpenStudio 2.9.1, yet the measure is regularly tested against OpenStudio 3.0.0.
 
 
 ## Windows Instructions
@@ -74,7 +74,7 @@ docker kill test
 
 ## MacOS (e.g. Catalina 10.15.4) Instructions
 
-OpenStudio [2.9.1](https://github.com/NREL/OpenStudio/releases/tag/v2.9.1) is the most up-to-date version that remains [compatible](https://github.com/NREL/OpenStudio/wiki/OpenStudio-Version-Compatibility-Matrix) with SketchUp 2017. OpenStudio 2.9.1 measures require Ruby 2.2.5, which is several iterations behind the default Ruby 2.6 version available on any recently-purchased Mac. Although it is quite common for developers to have access to more than one Ruby version, some effort is required for Ruby versions < 2.3 (e.g. 2.2.5 is no longer officially supported, OpenSSL-1.0 (not 1.1) is required yet considered deprecated). To help Mac users (and potentially Linux users as well), the following steps are recommended (although architecture-specific tweaks may be required).
+OpenStudio [2.9.1](https://github.com/NREL/OpenStudio/releases/tag/v2.9.1) is the most up-to-date version that remains [compatible](https://github.com/NREL/OpenStudio/wiki/OpenStudio-Version-Compatibility-Matrix) with SketchUp 2017. OpenStudio 2.9.1 measures require Ruby 2.2.5, which is several iterations behind the default Ruby 2.6 version available on any recently-purchased Mac. Although it is quite common for developers to have access to more than one Ruby version, some effort is required for Ruby versions < 2.3 (e.g. 2.2.5 is no longer officially supported, it requires OpenSSL-1.0 (not 1.1) which is considered deprecated). To help Mac users (and potentially Linux users as well), the following steps are recommended (although architecture-specific tweaks may be required).
 
 From a Terminal, install [Homebrew](https://brew.sh/index) - nice for package distribution and management. With a few tweaks, it will handle most package downloads, dependencies, etc. Using Homebrew, install OpenSSL-1.0, and then _rbenv_ (which allows users to manage multiple Ruby versions). One way of doing it:
 
@@ -128,7 +128,7 @@ In the Terminal, check the Ruby version:
 ruby -v
 ```
 
-It should report the current Ruby version used by macOS (e.g. ‘system’, or '2.6'). To ensure Ruby 2.2.5 is used for OpenStudio measures, a safe way is to instruct _rbenv_ to use Ruby 2.2.5 for anything within a user’s OpenStudio directory (the default OpenStudio installation would add a /Users/user/OpenStudio folder, containing a Measures folder):
+It should report the current Ruby version used by macOS (e.g. ‘system’, or '2.6'). To ensure Ruby 2.2.5 is used for developing OpenStudio v2.9.1-compatible measures, a safe way is to instruct _rbenv_ to use Ruby 2.2.5 for anything within a user’s OpenStudio directory (the default OpenStudio installation would add a /Users/user/OpenStudio folder, containing a Measures folder):
 
 ```
 cd ~/OpenStudio
@@ -158,21 +158,21 @@ Verify your OpenStudio and Ruby configuration:
 ruby -e "require 'openstudio'" -e "puts OpenStudio::Model::Model.new"
 ```
 
-Install the latest version of _git_ (e.g. through Homebrew), and _git clone_ the measure under the user’s local OpenStudio Measures directory.
+Install the latest version of _git_ (e.g. through Homebrew), and _git clone_ the TBD measure under the user’s local OpenStudio Measures directory.
 
 Run the basic tests below to ensure the measure operates as expected.
 
 
 ## Complete list of test commands
 
-Run the following (basic) tests in the root repository of the cloned measure:
+Run the following (basic) tests in the root repository of the cloned TBD measure:
 ```
 bundle update
 bundle exec rake update_library_files
 bundle exec rake
 ```
 
-For more extensive testing, run the following test suites in the root repository of the cloned measure:
+For more extensive testing, run the following test suites (also in the root repository of the cloned TBD measure):
 ```
 bundle update
 bundle exec rake osm_suite:clean
