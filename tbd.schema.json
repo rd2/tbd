@@ -172,6 +172,30 @@
           "minimum": 0,
           "exclusiveMinimum": true
         },
+        "v0x": {
+          "title": "Edge origin X vertex (m)",
+          "type": "number"
+        },
+        "v0y": {
+          "title": "Edge origin Y vertex (m)",
+          "type": "number"
+        },
+        "v0z": {
+          "title": "Edge origin Z vertex (m)",
+          "type": "number"
+        },
+        "v1x": {
+          "title": "Edge terminal X vertex (m)",
+          "type": "number"
+        },
+        "v1y": {
+          "title": "Edge terminal Y vertex (m)",
+          "type": "number"
+        },
+        "v1z": {
+          "title": "Edge terminal Z vertex (m)",
+          "type": "number"
+        },
         "surfaces": {
           "title": "Surface(s) connected to edge",
           "type": "array",
