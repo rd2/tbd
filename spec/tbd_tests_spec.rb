@@ -1864,7 +1864,6 @@ require "psi"
         #     "Office Left Wall Window1",
         #     "Office Left Wall"
         #   ],
-        #   "count": 1,
         #   "v0x": 0.0,
         #   "v0y": 7.51904930207155,
         #   "v0z": 2.43929602151392,
@@ -1880,7 +1879,6 @@ require "psi"
         #     "Office Left Wall Window1",
         #     "Office Left Wall"
         #   ],
-        #   "count": 1,
         #   "v0x": 0.0,
         #   "v0y": 7.51904930207155,
         #   "v0z": 0.914355407629293,
@@ -1896,7 +1894,6 @@ require "psi"
         #     "Office Left Wall Window1",
         #     "Office Left Wall"
         #   ],
-        #   "count": 1,
         #   "v0x": 0.0,
         #   "v0y": 5.38555335093654,
         #   "v0z": 0.914355407629293,
@@ -1912,7 +1909,6 @@ require "psi"
         #     "Office Left Wall Window1",
         #     "Office Left Wall"
         #   ],
-        #   "count": 1,
         #   "v0x": 0.0,
         #   "v0y": 5.38555335093654,
         #   "v0z": 2.43929602151392,
