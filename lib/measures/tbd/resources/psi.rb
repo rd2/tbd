@@ -10,6 +10,9 @@ rescue LoadError
   require_relative "version.rb"
 end
 
+# Set 10mm tolerance for edge (thermal bridge) vertices.
+TOL = 0.01
+
 # Sources for the following defaults KHI & PSI values/sets:
 
 # BETB = BC Hydro's Building Envelope Thermal Bridging Guide v1.4
@@ -178,6 +181,55 @@ class PSI
 end
 
 ##
+# Check for matching vertex pairs between edges (10mm tolerance).
+# @param [Hash] e1 First edge
+# @param [Hash] e2 Second edge
+#
+# @return [Boolean] Returns true if edges share vertex pairs
+def matches?(e1, e2)
+  raise "matches? missing edges" unless e1 && e2
+  raise "matches? missing :v0 for e1" unless e1.has_key?(:v0)
+  raise "matches? missing :v1 for e1" unless e1.has_key?(:v1)
+  raise "matches? missing :v0 for e2" unless e2.has_key?(:v0)
+  raise "matches? missing :v1 for e2" unless e2.has_key?(:v1)
+  raise "e1 v0: #{e1[:v0].class}? expected a Topolys point3D" unless e1[:v0].is_a?(Topolys::Point3D)
+  raise "e1 v1: #{e1[:v1].class}? expected a Topolys point3D" unless e1[:v1].is_a?(Topolys::Point3D)
+  raise "e2 v0: #{e1[:v0].class}? expected a Topolys point3D" unless e2[:v0].is_a?(Topolys::Point3D)
+  raise "e2 v1: #{e1[:v1].class}? expected a Topolys point3D" unless e2[:v1].is_a?(Topolys::Point3D)
+
+  answer = false
+  e1_vector = e1[:v1] - e1[:v0]
+  e2_vector = e2[:v1] - e2[:v0]
+  raise "matches? e1 length <= 10mm" if e1_vector.magnitude < TOL
+  raise "matches? e2 length <= 10mm" if e2_vector.magnitude < TOL
+
+  answer = true if
+  (
+    (
+      ( (e1[:v0].x - e2[:v0].x).abs < TOL &&
+        (e1[:v0].y - e2[:v0].y).abs < TOL &&
+        (e1[:v0].z - e2[:v0].z).abs < TOL
+      ) ||
+      ( (e1[:v0].x - e2[:v1].x).abs < TOL &&
+        (e1[:v0].y - e2[:v1].y).abs < TOL &&
+        (e1[:v0].z - e2[:v1].z).abs < TOL
+      )
+    ) &&
+    (
+      ( (e1[:v1].x - e2[:v0].x).abs < TOL &&
+        (e1[:v1].y - e2[:v0].y).abs < TOL &&
+        (e1[:v1].z - e2[:v0].z).abs < TOL
+      ) ||
+      ( (e1[:v1].x - e2[:v1].x).abs < TOL &&
+        (e1[:v1].y - e2[:v1].y).abs < TOL &&
+        (e1[:v1].z - e2[:v1].z).abs < TOL
+      )
+    )
+  )
+  answer
+end
+
+##
 # Process TBD user inputs, after TBD has processed OpenStudio model variables
 # and retrieved corresponding Topolys model surface/edge properties. TBD user
 # inputs allow customization of default assumptions and inferred values.
@@ -329,10 +381,36 @@ def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
             edge[:surfaces].each do |ss|
               match = false unless e[:surfaces].has_key?(ss)
             end
+
             next unless match
-            if edge.has_key?(:length)      # optional, narrows down search (~1")
-              match = false unless (e[:length] - edge[:length]).abs < 0.025
+            if edge.has_key?(:length)    # optional, narrows down search (~10mm)
+              match = false unless (e[:length] - edge[:length]).abs < TOL
             end
+
+            if edge.has_key?(:v0x) ||
+               edge.has_key?(:v0y) ||
+               edge.has_key?(:v0z) ||
+               edge.has_key?(:v1x) ||
+               edge.has_key?(:v1y) ||
+               edge.has_key?(:v1z)
+
+              unless edge.has_key?(:v0x) &&
+                     edge.has_key?(:v0y) &&
+                     edge.has_key?(:v0z) &&
+                     edge.has_key?(:v1x) &&
+                     edge.has_key?(:v1y) &&
+                     edge.has_key?(:v1z)
+                raise "Edge vertices must come in pairs"          # all or none
+              end
+              e1 = {}
+              e2 = {}
+              e1[:v0] = Topolys::Point3D.new(edge[:v0x].to_f, edge[:v0y].to_f, edge[:v0z].to_f)
+              e1[:v1] = Topolys::Point3D.new(edge[:v1x].to_f, edge[:v1y].to_f, edge[:v1z].to_f)
+              e2[:v0] = e[:v0].point
+              e2[:v1] = e[:v1].point
+              match = matches?(e1, e2)
+            end
+
             next unless match
             e[:io_type] = t
             n += 1
@@ -344,7 +422,10 @@ def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
             end
           end
         end
-        raise "Edge: missing OpenStudio match" if n == 0
+        if n == 0
+          puts edge[:surfaces]
+          raise "Edge: missing OpenStudio match"
+        end
       end
     end
   else
@@ -1636,7 +1717,8 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
   # 1. edge custom PSI set, if on file
   # 2. edge PSI type
   # 3. edge length (m)
-  # 4. array of linked outside- or ground-facing surfaces
+  # 4. edge origin & end vertices
+  # 5. array of linked outside- or ground-facing surfaces
   edges.values.each do |e|
     next unless e.has_key?(:psi)
     next unless e.has_key?(:set)
@@ -1645,35 +1727,14 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
     next unless v > 0.000
     t = e[:psi].key(v)
     l = e[:length]
-    edge = { psi: p, type: t, length: l, surfaces: e[:surfaces].keys, count: 1 }
-
-    # Only add edge if absent from array. For instance, a square skylight will
-    # have exactly 4x edges that both share the same parent/child surface pairs,
-    # the same length, the same PSI type and PSI set - it would be impossible to
-    # distinguish between the 4x edges.
-    match = false
-    ee = {}
-    io[:edges].each do |i|
-      next if match
-      next unless i.has_key?(:length)
-      next unless i.has_key?(:psi)
-      next unless i.has_key?(:type)
-      next unless i.has_key?(:surfaces)
-
-      next unless (i[:length] - l).abs < 0.025
-      next unless i[:psi] == p
-      next unless i[:type] == t
-      match = true
-      i[:surfaces].each do |s|
-        match = false unless edge[:surfaces].index(s)
-      end
-      ee = i if match
-    end
-    if match
-      ee[:count] += 1
-    else
-      io[:edges] << edge
-    end
+    edge = { psi: p, type: t, length: l, surfaces: e[:surfaces].keys }
+    edge[:v0x] = e[:v0].point.x
+    edge[:v0y] = e[:v0].point.y
+    edge[:v0z] = e[:v0].point.z
+    edge[:v1x] = e[:v1].point.x
+    edge[:v1y] = e[:v1].point.y
+    edge[:v1z] = e[:v1].point.z
+    io[:edges] << edge
   end
   io.delete(:edges) unless io[:edges].size > 0
 
