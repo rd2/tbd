@@ -181,11 +181,7 @@ class PSI
 end
 
 ##
-<<<<<<< HEAD
 # Check for matching vertex pairs between edges (10mm tolerance).
-=======
-# Check for matching vertex pairs between edges (1" tolerance).
->>>>>>> 6f6677af03712d0d60a18351fbd7b5a6c513dc91
 # @param [Hash] e1 First edge
 # @param [Hash] e2 Second edge
 #
@@ -202,7 +198,6 @@ def matches?(e1, e2)
   raise "e2 v1: #{e1[:v1].class}? expected a Topolys point3D" unless e2[:v1].is_a?(Topolys::Point3D)
 
   answer = false
-<<<<<<< HEAD
   e1_vector = e1[:v1] - e1[:v0]
   e2_vector = e2[:v1] - e2[:v0]
   raise "matches? e1 length <= 10mm" if e1_vector.magnitude < TOL
@@ -228,28 +223,6 @@ def matches?(e1, e2)
       ( (e1[:v1].x - e2[:v1].x).abs < TOL &&
         (e1[:v1].y - e2[:v1].y).abs < TOL &&
         (e1[:v1].z - e2[:v1].z).abs < TOL
-=======
-  answer = true if
-  (
-    (
-      ( (e1[:v0].x - e2[:v0].x).abs < 0.0254 &&
-        (e1[:v0].y - e2[:v0].y).abs < 0.0254 &&
-        (e1[:v0].z - e2[:v0].z).abs < 0.0254
-      ) ||
-      ( (e1[:v0].x - e2[:v1].x).abs < 0.0254 &&
-        (e1[:v0].y - e2[:v1].y).abs < 0.0254 &&
-        (e1[:v0].z - e2[:v1].z).abs < 0.0254
-      )
-    ) &&
-    (
-      ( (e1[:v1].x - e2[:v0].x).abs < 0.0254 &&
-        (e1[:v1].y - e2[:v0].y).abs < 0.0254 &&
-        (e1[:v1].z - e2[:v0].z).abs < 0.0254
-      ) ||
-      ( (e1[:v1].x - e2[:v1].x).abs < 0.0254 &&
-        (e1[:v1].y - e2[:v1].y).abs < 0.0254 &&
-        (e1[:v1].z - e2[:v1].z).abs < 0.0254
->>>>>>> 6f6677af03712d0d60a18351fbd7b5a6c513dc91
       )
     )
   )
@@ -410,7 +383,6 @@ def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
             end
 
             next unless match
-<<<<<<< HEAD
             if edge.has_key?(:length)    # optional, narrows down search (~10mm)
               match = false unless (e[:length] - edge[:length]).abs < TOL
             end
@@ -439,36 +411,6 @@ def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
               match = matches?(e1, e2)
             end
 
-=======
-            if edge.has_key?(:length)      # optional, narrows down search (~1")
-              match = false unless (e[:length] - edge[:length]).abs < 0.0254
-            end
-
-            if edge.has_key?(:v0x) ||
-               edge.has_key?(:v0y) ||
-               edge.has_key?(:v0z) ||
-               edge.has_key?(:v1x) ||
-               edge.has_key?(:v1y) ||
-               edge.has_key?(:v1z)
-
-              unless edge.has_key?(:v0x) &&
-                     edge.has_key?(:v0y) &&
-                     edge.has_key?(:v0z) &&
-                     edge.has_key?(:v1x) &&
-                     edge.has_key?(:v1y) &&
-                     edge.has_key?(:v1z)
-                raise "Edge vertices must come in pairs"          # all or none
-              end
-              e1 = {}
-              e2 = {}
-              e1[:v0] = Topolys::Point3D.new(edge[:v0x].to_f, edge[:v0y].to_f, edge[:v0z].to_f)
-              e1[:v1] = Topolys::Point3D.new(edge[:v1x].to_f, edge[:v1y].to_f, edge[:v1z].to_f)
-              e2[:v0] = e[:v0].point
-              e2[:v1] = e[:v1].point
-              match = matches?(e1, e2)
-            end
-
->>>>>>> 6f6677af03712d0d60a18351fbd7b5a6c513dc91
             next unless match
             e[:io_type] = t
             n += 1
@@ -1785,62 +1727,14 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
     next unless v > 0.000
     t = e[:psi].key(v)
     l = e[:length]
-<<<<<<< HEAD
     edge = { psi: p, type: t, length: l, surfaces: e[:surfaces].keys }
-=======
-    edge = { psi: p, type: t, length: l, surfaces: e[:surfaces].keys, count: 1 }
->>>>>>> 6f6677af03712d0d60a18351fbd7b5a6c513dc91
     edge[:v0x] = e[:v0].point.x
     edge[:v0y] = e[:v0].point.y
     edge[:v0z] = e[:v0].point.z
     edge[:v1x] = e[:v1].point.x
     edge[:v1y] = e[:v1].point.y
     edge[:v1z] = e[:v1].point.z
-<<<<<<< HEAD
     io[:edges] << edge
-=======
-
-    # Only add edge if absent from array. For instance, a square skylight will
-    # have exactly 4x edges that both share the same parent/child surface pairs,
-    # the same length, the same PSI type and PSI set - it would be impossible to
-    # distinguish between the 4x edges.
-    match = false
-    ee = {}
-    io[:edges].each do |i|
-      next if match
-      next unless i.has_key?(:length)
-      next unless i.has_key?(:vertices)
-      next unless i.has_key?(:psi)
-      next unless i.has_key?(:type)
-      next unless i.has_key?(:surfaces)
-      next unless i.has_key?[:v0x]
-      next unless i.has_key?[:v0y]
-      next unless i.has_key?[:v0z]
-      next unless i.has_key?[:v1x]
-      next unless i.has_key?[:v1y]
-      next unless i.has_key?[:v1z]
-
-      next unless (i[:length] - l).abs < 0.0254
-      next unless i[:psi] == p
-      next unless i[:type] == t
-      next unless (i[:v0x] - edge[:v0x]).abs < 0.0254
-      next unless (i[:v0y] - edge[:v0y]).abs < 0.0254
-      next unless (i[:v0z] - edge[:v0z]).abs < 0.0254
-      next unless (i[:v1x] - edge[:v1x]).abs < 0.0254
-      next unless (i[:v1y] - edge[:v1y]).abs < 0.0254
-      next unless (i[:v1z] - edge[:v1z]).abs < 0.0254
-      match = true
-      i[:surfaces].each do |s|
-        match = false unless edge[:surfaces].index(s)
-      end
-      ee = i if match
-    end
-    if match
-      ee[:count] += 1
-    else
-      io[:edges] << edge
-    end
->>>>>>> 6f6677af03712d0d60a18351fbd7b5a6c513dc91
   end
   io.delete(:edges) unless io[:edges].size > 0
 
