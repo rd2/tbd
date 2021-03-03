@@ -41,6 +41,7 @@ lib/measures/*/tests/output
 /lib/measures/.rubocop*
 /lib/measures/*/tests/tbd.json
 json/*out.json
+spec/files/osms/tbd.out.json
 os_model_KIVA.osm
 warehouse_KIVA.osm
 
