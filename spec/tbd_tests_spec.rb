@@ -1,6 +1,6 @@
 require "psi"
 
-RSpec.describe TBD do
+  RSpec.describe TBD do
   it "can process thermal bridging and derating : LoScrigno" do
     # The following populates both OpenStudio and Topolys models of "Lo scrigno"
     # (or Jewel Box), by Renzo Piano (Lingotto Factory, Turin); a cantilevered,
@@ -1640,30 +1640,65 @@ RSpec.describe TBD do
 
         # Note the content of the out.json file:
         # {
-        #  "psi": "bad",
-        #  "type": "fenestration",
-        #  "length": 1.524940613884627,
-        #  "surfaces": [
-        #    "Office Left Wall Window1",
-        #    "Office Left Wall"
-        #  ],
-        #  "count": 2
+        #   "psi": "bad",
+        #   "type": "fenestration",
+        #   "length": 1.524940613884627,
+        #   "surfaces": [
+        #     "Office Left Wall Window1",
+        #     "Office Left Wall"
+        #   ],
+        #   "v0x": 0.0,
+        #   "v0y": 7.51904930207155,
+        #   "v0z": 2.43929602151392,
+        #   "v1x": 0.0,
+        #   "v1y": 7.51904930207155,
+        #   "v1z": 0.914355407629293
         # },
         # {
-        #  "psi": "bad",
-        #  "type": "fenestration",
-        #  "length": 2.13349595113501,
-        #  "surfaces": [
-        #    "Office Left Wall Window1",
-        #    "Office Left Wall"
-        #  ],
-        #  "count": 2
+        #   "psi": "bad",
+        #   "type": "fenestration",
+        #   "length": 2.13349595113501,
+        #   "surfaces": [
+        #     "Office Left Wall Window1",
+        #     "Office Left Wall"
+        #   ],
+        #   "v0x": 0.0,
+        #   "v0y": 7.51904930207155,
+        #   "v0z": 0.914355407629293,
+        #   "v1x": 0.0,
+        #   "v1y": 5.38555335093654,
+        #   "v1z": 0.914355407629293
         # },
-        #
-        # 2x entries (instead of 1x):
-        #   - 2x 1.52m edges
-        #   - 2x 2.13m edges
-        # ... otherwise, same PSI set, PSI type and surface list
+        # {
+        #   "psi": "bad",
+        #   "type": "fenestration",
+        #   "length": 1.524940613884627,
+        #   "surfaces": [
+        #     "Office Left Wall Window1",
+        #     "Office Left Wall"
+        #   ],
+        #   "v0x": 0.0,
+        #   "v0y": 5.38555335093654,
+        #   "v0z": 0.914355407629293,
+        #   "v1x": 0.0,
+        #   "v1y": 5.38555335093654,
+        #   "v1z": 2.43929602151392
+        # },
+        # {
+        #   "psi": "bad",
+        #   "type": "fenestration",
+        #   "length": 2.13349595113501,
+        #   "surfaces": [
+        #     "Office Left Wall Window1",
+        #     "Office Left Wall"
+        #   ],
+        #   "v0x": 0.0,
+        #   "v0y": 5.38555335093654,
+        #   "v0z": 2.43929602151392,
+        #   "v1x": 0.0,
+        #   "v1y": 7.51904930207155,
+        #   "v1z": 2.43929602151392
+        # },
       else
         expect(surface[:boundary].downcase).to_not eq("outdoors")
       end
@@ -1672,6 +1707,223 @@ RSpec.describe TBD do
     # Now mimic (again) the export functionality of the measure
     out2 = JSON.pretty_generate(io2)
     out_path2 = File.dirname(__FILE__) + "/../json/tbd_warehouse2.out.json"
+    File.open(out_path2, "w") do |out_path2|
+      out_path2.puts out2
+    end
+
+    # Both output files should be the same ...
+    # cmd = "diff #{out_path} #{out_path2}"
+    # expect(system( cmd )).to be(true)
+    # expect(FileUtils).to be_identical(out_path, out_path2)
+    expect(FileUtils.identical?(out_path, out_path2)).to be(true)
+  end
+
+  it "can process TB & D : DOE Prototype test_warehouse.osm + JSON I/O (2)" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_warehouse.osm")
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    # 1. run the measure with a basic TBD JSON input file, e.g. :
+    #    - a custom PSI set, e.g. "compliant" set
+    #    - (1x) custom edges, e.g. "bad" :fenestration perimeters between
+    #      - "Office Left Wall Window1" & "Office Left Wall"
+    #      - 1x? this time, with explicit 3D coordinates for shared edge.
+
+    # The TBD JSON input file should hold the following:
+    # "edges": [
+    #  {
+    #    "psi": "bad",
+    #    "type": "fenestration",
+    #    "surfaces": [
+    #      "Office Left Wall Window1",
+    #      "Office Left Wall"
+    #    ],
+    #    "v0x": 0.0,
+    #    "v0y": 7.51904930207155,
+    #    "v0z": 0.914355407629293,
+    #    "v1x": 0.0,
+    #    "v1y": 5.38555335093654,
+    #    "v1z": 0.914355407629293
+    #   }
+    # ],
+
+    # Despite defining the psi_set as having no thermal bridges, the "compliant"
+    # PSI set on file will be considered as the building-wide default set.
+    psi_set = "(non thermal bridging)"
+    io_path = File.dirname(__FILE__) + "/../json/tbd_warehouse1.json"
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    expect(surfaces.size).to eq(23)
+
+    surfaces.each do |id, surface|
+      next unless surface.has_key?(:edges)
+      os_model.getSurfaces.each do |s|
+        next unless id == s.nameString
+        expect(s.isConstructionDefaulted).to be(false)
+        expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
+      end
+    end
+
+    surfaces.each do |id, surface|
+      if surface.has_key?(:ratio)
+        ratio  = format "%3.1f", surface[:ratio]
+        name   = id.rjust(15, " ")
+        # puts "#{name} RSi derated by #{ratio}%"
+        # ... should print out:
+        # Fine Storage Office Front Wall  RSi derated by -11.8%
+        # Office Left Wall                RSi derated by -41.9% ~4% increase
+        # Fine Storage Office Left Wall   RSi derated by -13.8%
+        # Fine Storage Roof               RSi derated by -8.1%
+        # Office Front Wall               RSi derated by -29.9%
+        # Fine Storage Right Wall         RSi derated by -12.4%
+        # Bulk Storage Right Wall         RSi derated by -8.7%
+        # Bulk Storage Rear Wall          RSi derated by -8.3%
+        # Fine Storage Front Wall         RSi derated by -12.0%
+        # Fine Storage Left Wall          RSi derated by -11.9%
+        # Bulk Storage Left Wall          RSi derated by -11.8%
+        # Bulk Storage Roof               RSi derated by -4.0%
+
+        # ... yet the following WITHOUT the bad fenestration edge:
+        # Fine Storage Office Front Wall  RSi derated by -11.8%
+        # Office Left Wall                RSi derated by -40.1% <<< <<< <<< <<<
+        # Fine Storage Office Left Wall   RSi derated by -13.8%
+        # Fine Storage Roof               RSi derated by -8.1%
+        # Office Front Wall               RSi derated by -29.9%
+        # Fine Storage Right Wall         RSi derated by -12.4%
+        # Bulk Storage Right Wall         RSi derated by -8.7%
+        # Bulk Storage Rear Wall          RSi derated by -8.3%
+        # Fine Storage Front Wall         RSi derated by -12.0%
+        # Fine Storage Left Wall          RSi derated by -11.9%
+        # Bulk Storage Left Wall          RSi derated by -11.8%
+        # Bulk Storage Roof               RSi derated by -4.0%
+
+        next unless name == "Office Left Wall"
+        expect(surface[:ratio]).to be_within(0.2).of(-41.9)
+      else
+        expect(surface[:boundary].downcase).to_not eq("outdoors")
+      end
+    end
+
+    # Now mimic the export functionality of the measure
+    out = JSON.pretty_generate(io)
+    out_path = File.dirname(__FILE__) + "/../json/tbd_warehouse1.out.json"
+    File.open(out_path, "w") do |out_path|
+      out_path.puts out
+    end
+
+    # 2. Re-use the exported file as input for another warehouse
+    os_model2 = translator.loadModel(path)
+    expect(os_model2.empty?).to be(false)
+    os_model2 = os_model2.get
+
+    io_path2 = File.dirname(__FILE__) + "/../json/tbd_warehouse1.out.json"
+    gen_kiva = false
+    io2, surfaces = processTBD(os_model2, psi_set, io_path2, schema_path, gen_kiva)
+    expect(surfaces.size).to eq(23)
+
+    surfaces.each do |id, surface|
+      next unless surface.has_key?(:edges)
+      os_model.getSurfaces.each do |s|
+        next unless id == s.nameString
+        expect(s.isConstructionDefaulted).to be(false)
+        expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
+      end
+    end
+
+    surfaces.each do |id, surface|
+      if surface.has_key?(:ratio)
+        ratio  = format "%3.1f", surface[:ratio]
+        name   = id.rjust(15, " ")
+        # puts "#{name} RSi derated by #{ratio}%"
+        # ... should print out:
+        # Fine Storage Office Front Wall  RSi derated by -11.8%
+        # Office Left Wall                RSi derated by -41.9% ~4% increase
+        # Fine Storage Office Left Wall   RSi derated by -13.8%
+        # Fine Storage Roof               RSi derated by -8.1%
+        # Office Front Wall               RSi derated by -29.9%
+        # Fine Storage Right Wall         RSi derated by -12.4%
+        # Bulk Storage Right Wall         RSi derated by -8.7%
+        # Bulk Storage Rear Wall          RSi derated by -8.3%
+        # Fine Storage Front Wall         RSi derated by -12.0%
+        # Fine Storage Left Wall          RSi derated by -11.9%
+        # Bulk Storage Left Wall          RSi derated by -11.8%
+        # Bulk Storage Roof               RSi derated by -4.0%
+
+        next unless name == "Office Left Wall"
+        expect(surface[:ratio]).to be_within(0.2).of(-41.9)
+
+        # Note the content of the out.json file:
+        # {
+        #   "psi": "compliant",
+        #   "type": "fenestration",
+        #   "length": 1.524940613884627,
+        #   "surfaces": [
+        #     "Office Left Wall Window1",
+        #     "Office Left Wall"
+        #   ],
+        #   "v0x": 0.0,
+        #   "v0y": 7.51904930207155,
+        #   "v0z": 2.43929602151392,
+        #   "v1x": 0.0,
+        #   "v1y": 7.51904930207155,
+        #   "v1z": 0.914355407629293
+        # },
+        # {
+        #   "psi": "bad",
+        #   "type": "fenestration",
+        #   "length": 2.13349595113501,
+        #   "surfaces": [
+        #     "Office Left Wall Window1",
+        #     "Office Left Wall"
+        #   ],
+        #   "v0x": 0.0,
+        #   "v0y": 7.51904930207155,
+        #   "v0z": 0.914355407629293,
+        #   "v1x": 0.0,
+        #   "v1y": 5.38555335093654,
+        #   "v1z": 0.914355407629293
+        # },
+        # {
+        #   "psi": "compliant",
+        #   "type": "fenestration",
+        #   "length": 1.524940613884627,
+        #   "surfaces": [
+        #     "Office Left Wall Window1",
+        #     "Office Left Wall"
+        #   ],
+        #   "v0x": 0.0,
+        #   "v0y": 5.38555335093654,
+        #   "v0z": 0.914355407629293,
+        #   "v1x": 0.0,
+        #   "v1y": 5.38555335093654,
+        #   "v1z": 2.43929602151392
+        # },
+        # {
+        #   "psi": "compliant",
+        #   "type": "fenestration",
+        #   "length": 2.13349595113501,
+        #   "surfaces": [
+        #     "Office Left Wall Window1",
+        #     "Office Left Wall"
+        #   ],
+        #   "v0x": 0.0,
+        #   "v0y": 5.38555335093654,
+        #   "v0z": 2.43929602151392,
+        #   "v1x": 0.0,
+        #   "v1y": 7.51904930207155,
+        #   "v1z": 2.43929602151392
+        # },
+      else
+        expect(surface[:boundary].downcase).to_not eq("outdoors")
+      end
+    end
+
+    # Now mimic (again) the export functionality of the measure
+    out2 = JSON.pretty_generate(io2)
+    out_path2 = File.dirname(__FILE__) + "/../json/tbd_warehouse3.out.json"
     File.open(out_path2, "w") do |out_path2|
       out_path2.puts out2
     end

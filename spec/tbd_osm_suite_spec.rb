@@ -23,7 +23,7 @@ end
 RSpec.describe TBD do
 
   # number of processors to use
-  nproc = [1, Parallel.processor_count - 1].max
+  nproc = [1, Parallel.processor_count - 2].max
 
   osm_suite_runs_dir = File.join(File.dirname(__FILE__), 'osm_suite_runs')
 
