@@ -74,9 +74,28 @@ class PSI
   def initialize
     @set = {}
 
-    # The following are defaults (* stated, ** inferred). Users may edit
-    # these sets, add new sets, or even read-in other sets on file.
-    # Units are in W/K per linear meter.
+    # The following are defaults PSI values (* published, ** calculated). Users
+    # may edit these sets, add new sets here, or read-in bespoke sets from a TBD
+    # JSON input file. PSI units are in W/K per linear meter.
+
+    # Convex or concave corner PSI adjustments may be warranted if there is a
+    # mismatch between dimensioning conventions (interior vs exterior) used for
+    # the OSM vs published PSI data. For instance, the BETBG data reflects an
+    # interior dimensioning convention, while ISO 14683 reports PSI values for
+    # both conventions. The following may be used to adjust BETBG PSI values for
+    # convex corners when using outside dimensions for an OSM.
+    #
+    # PSIe = PSIi + U * 2(Li-Le), where:
+    #   PSIe = adjusted PSI                                          (W/K per m)
+    #   PSIi = initial published PSI                                 (W/K per m)
+    #      U = average clear field U-factor of adjacent walls           (W/m2.K)
+    #     Li = from interior corner to edge of "zone of influence"           (m)
+    #     Le = from exterior corner to edge of "zone of influence"           (m)
+    #
+    #  Li-Le = wall thickness e.g., -0.25m (negative here as Li < Le)
+    #
+    # TO DO: Allow negative PSI values (see ISO 14683).
+
     @set[ "poor (BETBG)" ] =
     {
       rimjoist:     1.000, # *
@@ -85,9 +104,9 @@ class PSI
       concave:      0.850, # *
       convex:       0.850, # *
       balcony:      1.000, # *
-      party:        1.000, # **
-      grade:        1.000  # **
-    }.freeze
+      party:        0.850, # *
+      grade:        0.850  # *
+    }.freeze               # based on INTERIOR dimensions (p.15 BETBG)
 
     @set[ "regular (BETBG)" ] =
     {
@@ -97,9 +116,9 @@ class PSI
       concave:      0.450, # *
       convex:       0.450, # *
       balcony:      0.500, # *
-      party:        0.500, # **
+      party:        0.450, # *
       grade:        0.450  # *
-    }.freeze
+    }.freeze               # based on INTERIOR dimensions (p.15 BETBG)
 
     @set[ "efficient (BETBG)" ] =
     {
@@ -111,19 +130,19 @@ class PSI
       balcony:      0.200, # *
       party:        0.200, # *
       grade:        0.200  # *
-    }.freeze
+    }.freeze               # based on INTERIOR dimensions (p.15 BETBG)
 
     @set[ "code (Quebec)" ] = # NECB-QC (code-compliant) defaults:
     {
       rimjoist:     0.300, # *
       parapet:      0.325, # *
-      fenestration: 0.350, # **
-      concave:      0.450, # **
-      convex:       0.450, # **
+      fenestration: 0.350, # ** "regular (BETBG)"
+      concave:      0.300, # ** (see convex)
+      convex:       0.300, # ** "regular (BETBG)", adjusted for ext. dimension
       balcony:      0.500, # *
-      party:        0.500, # **
-      grade:        0.450  # **
-    }.freeze
+      party:        0.450, # ** "regular (BETBG)"
+      grade:        0.450  # *
+    }.freeze               # based on EXTERIOR dimensions (art. 3.1.1.6)
 
     @set[ "(non thermal bridging)" ] = # ... would not derate surfaces:
     {
