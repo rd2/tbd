@@ -49,19 +49,19 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     option = OpenStudio::Measure::OSArgument.makeChoiceArgument("option", choices, true)
     option.setDisplayName("Default thermal bridge option to use if not reading tbd.json")
     option.setDescription("e.g. poor, regular, efficient, code")
-    option.setDefaultValue("poor (BC Hydro)")
+    option.setDefaultValue("poor (BETBG)")
     args << option
 
     write_tbd_json = OpenStudio::Measure::OSArgument.makeBoolArgument("write_tbd_json", true, false)
     write_tbd_json.setDisplayName("Write tbd.out.json")
     write_tbd_json.setDescription("Write tbd.out.json to customize for subsequent runs. Edit and place in model files directory as tbd.json")
-    write_tbd_json.setDefaultValue(true)
+    write_tbd_json.setDefaultValue(false)
     args << write_tbd_json
 
     gen_kiva = OpenStudio::Measure::OSArgument.makeBoolArgument("gen_kiva", true, false)
     gen_kiva.setDisplayName("Generate Kiva inputs")
     gen_kiva.setDescription("Generate OSM Kiva settings and objects if model surfaces have 'foundation' boundary conditions")
-    gen_kiva.setDefaultValue(true)
+    gen_kiva.setDefaultValue(false)
     args << gen_kiva
 
     gen_kiva_force = OpenStudio::Measure::OSArgument.makeBoolArgument("gen_kiva_force", true, false)

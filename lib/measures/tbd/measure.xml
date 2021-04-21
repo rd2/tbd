@@ -2,8 +2,8 @@
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>33609ac1-6096-4b0c-a457-53bffa56f84a</version_id>
-  <version_modified>20210302T125404Z</version_modified>
+  <version_id>63c1422d-6703-4ca7-b592-acdfac1afa56</version_id>
+  <version_modified>20210421T174147Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -36,19 +36,19 @@
       <type>Choice</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
-      <default_value>poor (BC Hydro)</default_value>
+      <default_value>poor (BETBG)</default_value>
       <choices>
         <choice>
-          <value>poor (BC Hydro)</value>
-          <display_name>poor (BC Hydro)</display_name>
+          <value>poor (BETBG)</value>
+          <display_name>poor (BETBG)</display_name>
         </choice>
         <choice>
-          <value>regular (BC Hydro)</value>
-          <display_name>regular (BC Hydro)</display_name>
+          <value>regular (BETBG)</value>
+          <display_name>regular (BETBG)</display_name>
         </choice>
         <choice>
-          <value>efficient (BC Hydro)</value>
-          <display_name>efficient (BC Hydro)</display_name>
+          <value>efficient (BETBG)</value>
+          <display_name>efficient (BETBG)</display_name>
         </choice>
         <choice>
           <value>code (Quebec)</value>
@@ -67,7 +67,7 @@
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
-      <default_value>true</default_value>
+      <default_value>false</default_value>
       <choices>
         <choice>
           <value>true</value>
@@ -86,7 +86,7 @@
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
-      <default_value>true</default_value>
+      <default_value>false</default_value>
       <choices>
         <choice>
           <value>true</value>
@@ -220,17 +220,6 @@
       <checksum>8EC912F6</checksum>
     </file>
     <file>
-      <version>
-        <software_program>OpenStudio</software_program>
-        <identifier>2.9.1</identifier>
-        <min_compatible>2.9.1</min_compatible>
-      </version>
-      <filename>measure.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>script</usage_type>
-      <checksum>032991DB</checksum>
-    </file>
-    <file>
       <filename>version.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
@@ -249,10 +238,21 @@
       <checksum>54C6A3C1</checksum>
     </file>
     <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.9.1</identifier>
+        <min_compatible>2.9.1</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>4040ADF0</checksum>
+    </file>
+    <file>
       <filename>psi.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>9C0A88EC</checksum>
+      <checksum>02589923</checksum>
     </file>
   </files>
 </measure>

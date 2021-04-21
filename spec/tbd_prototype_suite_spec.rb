@@ -63,9 +63,9 @@ RSpec.describe TBD do
 
   tbd_options = []
   tbd_options << "skip"
-  tbd_options << "poor (BC Hydro)"
-  tbd_options << "regular (BC Hydro)"
-  tbd_options << "efficient (BC Hydro)"
+  tbd_options << "poor (BETBG)"
+  tbd_options << "regular (BETBG)"
+  tbd_options << "efficient (BETBG)"
   tbd_options << "code (Quebec)"
   tbd_options << "(non thermal bridging)"
 

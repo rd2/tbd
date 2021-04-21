@@ -13,18 +13,20 @@ end
 # Set 10mm tolerance for edge (thermal bridge) vertices.
 TOL = 0.01
 
-# Sources for the following defaults KHI & PSI values/sets:
+# Sources for thermal bridge types and/or linked default KHI & PSI values/sets:
 
-# BETB = BC Hydro's Building Envelope Thermal Bridging Guide v1.4
+# BETBG = Building Envelope Thermal Bridging Guide v1.4
 # www.bchydro.com/content/dam/BCHydro/customer-portal/documents/power-smart/
 # business/programs/BETB-Building-Envelope-Thermal-Bridging-Guide-v1-4.pdf
+
+# ISO 14683 (Appendix C) www.iso.org/standard/65706.html
 
 # NECB-QC: Québec's energy code for new commercial buildings
 # www2.publicationsduquebec.gouv.qc.ca/dynamicSearch/telecharge.php?type=1&file=72541.pdf
 
 ##
 # Library of point thermal bridges (e.g. columns). Each key:value entry
-# requires a unique identifier e.g. "poor (BC Hydro)" and a KHI-value in W/K.
+# requires a unique identifier e.g. "poor (BETBG)" and a KHI-value in W/K.
 class KHI
   # @return [Hash] KHI library
   attr_reader :point
@@ -37,9 +39,9 @@ class KHI
     # The following are defaults. Users may edit these defaults,
     # append new key:value pairs, or even read-in other pairs on file.
     # Units are in W/K.
-    @point[ "poor (BC Hydro)" ]         = 0.900 # detail 5.7.2 BETB
-    @point[ "regular (BC Hydro)" ]      = 0.500 # detail 5.7.4 BETB
-    @point[ "efficient (BC Hydro)" ]    = 0.150 # detail 5.7.3 BETB
+    @point[ "poor (BETBG)" ]            = 0.900 # detail 5.7.2 BETBG
+    @point[ "regular (BETBG)" ]         = 0.500 # detail 5.7.4 BETBG
+    @point[ "efficient (BETBG)" ]       = 0.150 # detail 5.7.3 BETBG
     @point[ "code (Quebec)" ]           = 0.500 # art. 3.3.1.3. NECB-QC
     @point[ "(non thermal bridging)" ]  = 0.000
   end
@@ -61,7 +63,7 @@ end
 
 ##
 # Library of linear thermal bridges (e.g. corners, balconies). Each key:value
-# entry requires a unique identifier e.g. "poor (BC Hydro)" and a (partial or
+# entry requires a unique identifier e.g. "poor (BETBG)" and a (partial or
 # complete) set of PSI-values in W/K per linear meter.
 class PSI
   # @return [Hash] PSI set
@@ -75,7 +77,7 @@ class PSI
     # The following are defaults (* stated, ** inferred). Users may edit
     # these sets, add new sets, or even read-in other sets on file.
     # Units are in W/K per linear meter.
-    @set[ "poor (BC Hydro)" ] =
+    @set[ "poor (BETBG)" ] =
     {
       rimjoist:     1.000, # *
       parapet:      0.800, # *
@@ -87,7 +89,7 @@ class PSI
       grade:        1.000  # **
     }.freeze
 
-    @set[ "regular (BC Hydro)" ] =
+    @set[ "regular (BETBG)" ] =
     {
       rimjoist:     0.500, # *
       parapet:      0.450, # *
@@ -99,7 +101,7 @@ class PSI
       grade:        0.450  # *
     }.freeze
 
-    @set[ "efficient (BC Hydro)" ] =
+    @set[ "efficient (BETBG)" ] =
     {
       rimjoist:     0.200, # *
       parapet:      0.200, # *

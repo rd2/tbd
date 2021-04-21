@@ -955,7 +955,7 @@ require "psi"
     # (type & PSI-value pairs) are grouped into PSI sets, normally accessed
     # through the 'set' user-argument (in the OpenStudio Measure interface).
 
-    psi_set = "poor (BC Hydro)"
+    psi_set = "poor (BETBG)"
     # psi_set = "(non thermal bridging)"
     # psi_set = "code (Quebec)" # thermal bridging effect less critical
 
@@ -1322,9 +1322,9 @@ require "psi"
       n_surfaces_to_derate += 1
     end
     #expect(n_surfaces_to_derate).to eq(0) # if "(non thermal bridging)"
-    expect(n_surfaces_to_derate).to eq(22) # if "poor (BC Hydro)"
+    expect(n_surfaces_to_derate).to eq(22) # if "poor (BETBG)"
 
-    # if "poor (BC Hydro)"
+    # if "poor (BETBG)"
     expect(surfaces["s_floor"   ][:heatloss]).to be_within(0.01).of( 8.800)
     expect(surfaces["s_E_wall"  ][:heatloss]).to be_within(0.01).of( 5.041)
     expect(surfaces["p_E_floor" ][:heatloss]).to be_within(0.01).of(18.650)
@@ -1455,7 +1455,7 @@ require "psi"
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
-    psi_set = "poor (BC Hydro)"
+    psi_set = "poor (BETBG)"
     io_path = ""
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
     gen_kiva = false
@@ -1480,7 +1480,7 @@ require "psi"
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
-    psi_set = "poor (BC Hydro)"
+    psi_set = "poor (BETBG)"
     io_path = ""
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
     gen_kiva = false
@@ -1942,7 +1942,7 @@ require "psi"
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
-    psi_set = "poor (BC Hydro)"
+    psi_set = "poor (BETBG)"
     io_path = ""
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
     gen_kiva = false
@@ -2385,9 +2385,9 @@ require "psi"
     expect(io.has_key?(:psis)).to be(true)
     io[:psis].each do |p| psi.append(p); end
     expect(psi.set.size).to eq(7)
-    expect(psi.set.has_key?("poor (BC Hydro)")).to be(true)
-    expect(psi.set.has_key?("regular (BC Hydro)")).to be(true)
-    expect(psi.set.has_key?("efficient (BC Hydro)")).to be(true)
+    expect(psi.set.has_key?("poor (BETBG)")).to be(true)
+    expect(psi.set.has_key?("regular (BETBG)")).to be(true)
+    expect(psi.set.has_key?("efficient (BETBG)")).to be(true)
     expect(psi.set.has_key?("code (Quebec)")).to be(true)
     expect(psi.set.has_key?("(non thermal bridging)")).to be(true)
     expect(psi.set.has_key?("good")).to be(true)
@@ -2398,9 +2398,9 @@ require "psi"
     expect(io.has_key?(:khis)).to be(true)
     io[:khis].each do |k| khi.append(k); end
     expect(khi.point.size).to eq(7)
-    expect(khi.point.has_key?("poor (BC Hydro)")).to be(true)
-    expect(khi.point.has_key?("regular (BC Hydro)")).to be(true)
-    expect(khi.point.has_key?("efficient (BC Hydro)")).to be(true)
+    expect(khi.point.has_key?("poor (BETBG)")).to be(true)
+    expect(khi.point.has_key?("regular (BETBG)")).to be(true)
+    expect(khi.point.has_key?("efficient (BETBG)")).to be(true)
     expect(khi.point.has_key?("code (Quebec)")).to be(true)
     expect(khi.point.has_key?("(non thermal bridging)")).to be(true)
     expect(khi.point.has_key?("column")).to be(true)
@@ -2467,9 +2467,9 @@ require "psi"
     expect(io.has_key?(:psis)).to be(true)
     io[:psis].each do |p| psi.append(p); end
     expect(psi.set.size).to eq(7)
-    expect(psi.set.has_key?("poor (BC Hydro)")).to be(true)
-    expect(psi.set.has_key?("regular (BC Hydro)")).to be(true)
-    expect(psi.set.has_key?("efficient (BC Hydro)")).to be(true)
+    expect(psi.set.has_key?("poor (BETBG)")).to be(true)
+    expect(psi.set.has_key?("regular (BETBG)")).to be(true)
+    expect(psi.set.has_key?("efficient (BETBG)")).to be(true)
     expect(psi.set.has_key?("code (Quebec)")).to be(true)
     expect(psi.set.has_key?("(non thermal bridging)")).to be(true)
     expect(psi.set.has_key?("OK")).to be(true)
@@ -2513,9 +2513,9 @@ require "psi"
     expect(io.has_key?(:psis)).to be(true)
     io[:psis].each do |p| psi.append(p); end
     expect(psi.set.size).to eq(8)
-    expect(psi.set.has_key?("poor (BC Hydro)")).to be(true)
-    expect(psi.set.has_key?("regular (BC Hydro)")).to be(true)
-    expect(psi.set.has_key?("efficient (BC Hydro)")).to be(true)
+    expect(psi.set.has_key?("poor (BETBG)")).to be(true)
+    expect(psi.set.has_key?("regular (BETBG)")).to be(true)
+    expect(psi.set.has_key?("efficient (BETBG)")).to be(true)
     expect(psi.set.has_key?("code (Quebec)")).to be(true)
     expect(psi.set.has_key?("(non thermal bridging)")).to be(true)
     expect(psi.set.has_key?("OK")).to be(true)
@@ -2577,9 +2577,9 @@ require "psi"
     expect(io.has_key?(:psis)).to be(true)
     io[:psis].each do |p| psi.append(p); end
     expect(psi.set.size).to eq(6)
-    expect(psi.set.has_key?("poor (BC Hydro)")).to be(true)
-    expect(psi.set.has_key?("regular (BC Hydro)")).to be(true)
-    expect(psi.set.has_key?("efficient (BC Hydro)")).to be(true)
+    expect(psi.set.has_key?("poor (BETBG)")).to be(true)
+    expect(psi.set.has_key?("regular (BETBG)")).to be(true)
+    expect(psi.set.has_key?("efficient (BETBG)")).to be(true)
     expect(psi.set.has_key?("code (Quebec)")).to be(true)
     expect(psi.set.has_key?("(non thermal bridging)")).to be(true)
     expect(psi.set.has_key?("OK")).to be(true)
@@ -2601,8 +2601,8 @@ require "psi"
 
   it "has a PSI class" do
     psi = PSI.new
-    expect(psi.set.has_key?("poor (BC Hydro)")).to be(true)
-    expect(psi.complete?("poor (BC Hydro)")).to be(true)
+    expect(psi.set.has_key?("poor (BETBG)")).to be(true)
+    expect(psi.complete?("poor (BETBG)")).to be(true)
 
     expect(psi.set.has_key?("new set")).to be(false)
     expect(psi.complete?("new set")).to be(false)
@@ -2744,7 +2744,7 @@ require "psi"
     settings = os_model2.getFoundationKivaSettings
     expect(settings.soilConductivity).to be_within(0.01).of(1.73)
 
-    psi_set = "poor (BC Hydro)"
+    psi_set = "poor (BETBG)"
     io_path = ""
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
     gen_kiva = true
@@ -2767,7 +2767,7 @@ require "psi"
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
-    psi_set = "poor (BC Hydro)"
+    psi_set = "poor (BETBG)"
     io_path = ""
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
     gen_kiva = true
@@ -2809,7 +2809,7 @@ require "psi"
       s.setConstruction(construction)
     end
 
-    psi_set = "poor (BC Hydro)"
+    psi_set = "poor (BETBG)"
     io_path = ""
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
     gen_kiva = true
@@ -2859,7 +2859,7 @@ require "psi"
       s.setConstruction(construction)
     end
 
-    #psi_set = "poor (BC Hydro)"
+    #psi_set = "poor (BETBG)"
     psi_set = "(non thermal bridging)"
     io_path = ""
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
