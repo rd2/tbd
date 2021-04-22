@@ -257,7 +257,7 @@ end
 # If successful, "edges" (input) may inherit additional properties, e.g.:
 # :io_set  = edge-specific PSI set, held in TBD JSON file
 # :io_type = edge-specific PSI type (e.g. "corner"), held in TBD JSON file
-# :io_unit = project-wide PSI set, if absent from TBD JSON file
+# :io_building = project-wide PSI set, if absent from TBD JSON file
 #
 # @param [Hash] surfaces Preprocessed collection of TBD surfaces
 # @param [Hash] edges Preprocessed collection TBD edges
@@ -318,14 +318,14 @@ def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
       io[:khis].each do |k| khi.append(k); end
     end
 
-    if io.has_key?(:unit)
-      raise "Unit PSI?" unless io[:unit].first.has_key?(:psi)
+    if io.has_key?(:building)
+      raise "Building PSI?" unless io[:building].first.has_key?(:psi)
     else
-      # No unit PSI - "set" must default to a built-in PSI set.
-      io[:unit] = [{ psi: set }]               # i.e. default PSI set & no KHI's
+      # No building PSI - "set" must default to a built-in PSI set.
+      io[:building] = [{ psi: set }]           # i.e. default PSI set & no KHI's
     end
 
-    p = io[:unit].first[:psi]
+    p = io[:building].first[:psi]
     raise "Incomplete PSI set #{p}" unless psi.complete?(p)
 
     if io.has_key?(:stories)
@@ -336,6 +336,16 @@ def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
         p = story[:psi]
         raise "#{i} PSI mismatch" unless psi.set.has_key?(p)
         # ... later, validate "id" vs OSM/IDF group names (ZoneLists?)
+      end
+    end
+
+    if io.has_key?(:spacetypes)
+      io[:spacetypes].each do |spacetype|
+        next unless spacetype.has_key?(:id)
+        next unless spacetype.has_key?(:psi)
+        i = spacetype[:id]
+        p = spacetype[:psi]
+        raise "#{i} PSI mismatch" unless psi.set.has_key?(p)
       end
     end
 
@@ -453,7 +463,7 @@ def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
     # No (optional) user-defined TBD JSON input file.
     # In such cases, "set" must refer to a valid PSI set
     raise "Incomplete PSI set #{set}" unless psi.complete?(set)
-    io[:unit] = [{ psi: set }]                 # i.e. default PSI set & no KHI's
+    io[:building] = [{ psi: set }]             # i.e. default PSI set & no KHI's
   end
 
   return io, psi, khi
@@ -1293,7 +1303,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
     next unless deratable
 
     psi = {}                                           # edge-specific PSI types
-    p = io[:unit].first[:psi]                                 # default unit PSI
+    p = io[:building].first[:psi]                         # default building PSI
 
     match = false
     if edge.has_key?(:io_type)                # customized edge in TBD JSON file
@@ -1430,19 +1440,33 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
   # 'kiva' == false if partial failure (log failure eventually).
   # kiva = generateKiva(os_model, walls, floors, edges) if gen_kiva
 
-  # In the preceding loop, TBD initially sets individual edge PSI types/values
-  # to those of the project-wide :unit set. If the TBD JSON file holds custom
-  # :story, :space or :surface PSI sets that are applicable to individual edges,
-  # then those override the default :unit ones.
+  # A priori, TBD applies (default) :building PSI types and values to individual
+  # edges. If a TBD JSON input file holds custom:
+  #   :stories
+  #   :spacetypes
+  #   :surfaces
+  #   :edges
+  # ... PSI sets that may appliy to individual edges, then the default :building
+  # PSI types and/or values are overridden, as follows:
+  #   custom :stories    PSI sets trump :building PSI sets
+  #   custom :spacetypes PSI sets trump the aforementioned PSI sets
+  #   custom :spaces     PSI sets trump the aforementioned PSI sets
+  #   custom :surfaces   PSI sets trump the aforementioned PSI sets
+  #   custom :edges      PSI sets trump the aforementioned PSI sets
 
-  # For now, the link between TBD :stories and OSM BuildingStories isn't yet
-  # completed/tested, so ignored for now ...
-  # openstudio-sdk-documentation.s3.amazonaws.com/cpp/OpenStudio-2.9.0-doc/model/html/classopenstudio_1_1model_1_1_building_story.html
+  # Linking TBD :stories    vs OSM BuildingStory objects: TO DO
+  # Linking TBD :spacetypes vs OSM SpaceType objects    : TO DO
+  # openstudio-sdk-documentation.s3.amazonaws.com/cpp/OpenStudio-2.9.0-doc/model
+  #   /html/classopenstudio_1_1model_1_1_building_story.html
+  #   /html/classopenstudio_1_1model_1_1_space_type.html
   if io
-    # if io.has_key?(:stories)                    # ... will override :unit sets
-    # end
+    if io.has_key?(:stories)
+    end
 
-    if io.has_key?(:spaces)                    # ... will override :stories sets
+    if io.has_key?(:spacetypes)
+    end
+
+    if io.has_key?(:spaces)
       io[:spaces].each do |space|
         next unless space.has_key?(:id)
         next unless space.has_key?(:psi)
@@ -1451,8 +1475,8 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
         next unless io_p.set.has_key?(p)
 
         edges.values.each do |edge|
-          next unless edge.has_key?(:psi)   # open to transition edges TO DO ...
-          next if edge.has_key?(:io_set)    # customized edge WITH custom PSI
+          next unless edge.has_key?(:psi)
+          next if edge.has_key?(:io_set)       # customized edge WITH custom PSI
           next unless edge.has_key?(:surfaces)
 
           # TBD/Topolys edges will generally be linked to more than one surface
@@ -1461,6 +1485,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
           # both spaces. As with Ruby and JSON hashes, the last processed TBD
           # JSON space PSI set will supersede preceding ones. Caution ...
           # Future revisons to TBD JSON I/O validation, e.g. log warning?
+          # Maybe revise e.g., retain most stringent PSI value?
           edge[:surfaces].keys.each do |id|
             next unless surfaces.has_key?(id)
             next unless surfaces[id].has_key?(:space)
@@ -1484,7 +1509,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
       end
     end
 
-    if io.has_key?(:surfaces)                   # ... will override :spaces sets
+    if io.has_key?(:surfaces)
       io[:surfaces].each do |surface|
         next unless surface.has_key?(:id)
         next unless surface.has_key?(:psi)
@@ -1493,16 +1518,17 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
         next unless io_p.set.has_key?(p)
 
         edges.values.each do |edge|
-          next unless edge.has_key?(:psi)   # open to transition edges TO DO ...
-          next if edge.has_key?(:io_set)    # customized edge WITH custom PSI
+          next unless edge.has_key?(:psi)
+          next if edge.has_key?(:io_set)       # customized edge WITH custom PSI
           next unless edge.has_key?(:surfaces)
 
-          # TBD/Topolys edges will generally be linked to more than one
-          # surface. It is possible for a TBD JSON file to hold 2x surface PSI
-          # sets that affect one or more edges common to both surfaces. As
-          # with Ruby and JSON hashes, the last processed TBD JSON surface PSI
-          # set will supersede preceding ones. Caution ...
+          # TBD/Topolys edges will generally be linked to more than one surface
+          # and hence to more than one space. It is possible for a TBD JSON file
+          # to hold 2x space PSI sets that affect one or more edges common to
+          # both spaces. As with Ruby and JSON hashes, the last processed TBD
+          # JSON space PSI set will supersede preceding ones. Caution ...
           # Future revisons to TBD JSON I/O validation, e.g. log warning?
+          # Maybe revise e.g., retain most stringent PSI value?
           edge[:surfaces].keys.each do |s|
             next unless surfaces.has_key?(s)
             next unless i == s
@@ -1526,7 +1552,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
 
     # Loop through all customized edges on file WITH a custom PSI set
     edges.values.each do |edge|
-      next unless edge.has_key?(:psi)      # open to transition edges TO DO ...
+      next unless edge.has_key?(:psi)
       next unless edge.has_key?(:io_set)
       next unless edge.has_key?(:io_type)
       next unless edge.has_key?(:surfaces)

@@ -1013,7 +1013,7 @@ require "psi"
           if e.has_key?(:psi)
             p = e[:psi]
           else
-            p = io[:unit].first[:psi]
+            p = io[:building].first[:psi]
           end
           next unless io_p.set.has_key?(p)
           next unless io_p.set[p].has_key?(t)
@@ -1022,7 +1022,7 @@ require "psi"
         end
       end
 
-      p = io[:unit].first[:psi]
+      p = io[:building].first[:psi]
       edge[:surfaces].keys.each do |id|
         next if match # customized edge from TBD JSON file
         next unless surfaces.has_key?(id)
@@ -1144,19 +1144,34 @@ require "psi"
       edge[:psi] = psi unless psi.empty?
     end # edge loop
 
-    # In the preceding loop, TBD initially sets individual edge PSI types/values
-    # to those of the project-wide :unit set. If the TBD JSON file holds custom
-    # :story, :space or :surface PSI sets that are applicable to individual edges,
-    # then those override the default :unit ones.
+    # A priori, TBD applies (default) :building PSI types/values to individual
+    # edges (preceding loop). If a TBD JSON input file holds custom
+    #   :stories
+    #   :spacetypes
+    #   :spaces
+    #   :surfaces
+    #   :edges
+    # ... PSI sets that may apply to individual edges, then the default
+    # :building PSI types and/or values will be overriden:
+    #   :stories    PSI sets trump the default :building set
+    #   :spacetypes PSI sets trump the aforementioned PSI sets
+    #   :spaces     PSI sets trump the aforementioned PSI sets
+    #   :surfaces   PSI sets trump the aforementioned PSI sets
+    #   :edges      PSI sets trump the aforementioned PSI sets
 
-    # For now, the link between TBD :stories and OSM BuildingStories isn't yet
-    # completed/tested, so ignored for now ...
-    # openstudio-sdk-documentation.s3.amazonaws.com/cpp/OpenStudio-2.9.0-doc/model/html/classopenstudio_1_1model_1_1_building_story.html
+    # TBD :stories    vs OS BuildingStory objects ... TO DO
+    # TBD :spacetypes vs OS SpaceType     objects ... TO DO
+    # openstudio-sdk-documentation.s3.amazonaws.com/cpp/OpenStudio-2.9.0-doc
+    #   /model/html/classopenstudio_1_1model_1_1_building_story.html
+    #   /model/html/classopenstudio_1_1model_1_1_space_type.html
     if io
-      # if io.has_key?(:stories)    # ... will override :unit sets
+      # if io.has_key?(:stories) # TO DO
       # end
 
-      if io.has_key?(:spaces)     # ... will override :stories sets
+      # if io.has_key?(:spacetypes) # TO DO
+      # end
+
+      if io.has_key?(:spaces)
         io[:spaces].each do |space|
           next unless space.has_key?(:id)
           next unless space.has_key?(:psi)
@@ -1189,7 +1204,7 @@ require "psi"
         end
       end
 
-      if io.has_key?(:surfaces)   # ... will override :spaces sets
+      if io.has_key?(:surfaces)
         io[:surfaces].each do |surface|
           next unless surface.has_key?(:id)
           i = surface[:id]
@@ -1994,7 +2009,7 @@ require "psi"
     io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
 
-    # As the :unit PSI set on file remains "(non thermal bridging)", one should
+    # As the :building PSI set on file remains "(non thermal bridging)", one should
     # not expect differences in results, i.e. derating shouldn't occur.
     surfaces.values.each do |surface|
       expect(surface.has_key?(:ratio)).to be(false)
@@ -2015,11 +2030,11 @@ require "psi"
     io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
 
-    # The :unit PSI set on file "compliant" supersedes the psi_set
+    # The :building PSI set on file "compliant" supersedes the psi_set
     # "(non thermal bridging)", so one should expect differences in results,
     # i.e. derating should occur. The next 2 tests:
-    #   1. setting both psi_set & file :unit to "compliant"
-    #   2. setting psi_set to "compliant" while removing the :unit from file
+    #   1. setting both psi_set & file :building to "compliant"
+    #   2. setting psi_set to "compliant" while removing the :building from file
     # ... all 3x cases should yield the same results.
     surfaces.each do |id, surface|
       if surface.has_key?(:ratio)
@@ -2082,7 +2097,7 @@ require "psi"
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
-    #   1. setting both psi_set & file :unit to "compliant"
+    #   1. setting both psi_set & file :building to "compliant"
     psi_set = "compliant" # instead of "(non thermal bridging)"
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n0.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
@@ -2126,9 +2141,9 @@ require "psi"
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
-    #   2. setting psi_set to "compliant" while removing the :unit from file
+    #   2. setting psi_set to "compliant" while removing the :building from file
     psi_set = "compliant" # instead of "(non thermal bridging)"
-    io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n1.json" # no :unit
+    io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n1.json" # no :building
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
     gen_kiva = false
     io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
@@ -2177,7 +2192,7 @@ require "psi"
     io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
 
-    # As the :unit PSI set on file remains "(non thermal bridging)", one should
+    # As the :building PSI set on file remains "(non thermal bridging)", one should
     # not expect differences in results, i.e. derating shouldn't occur. However,
     # the JSON file holds KHI entries for "Entryway  Wall 2" :
     # 3x "columns" @0.5 W/K + 4x supports @0.5W/K = 3.5 W/K
@@ -2194,17 +2209,17 @@ require "psi"
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
-    psi_set = "(non thermal bridging)" # no :unit PSI set on file
+    psi_set = "(non thermal bridging)" # no :building PSI set on file
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n3.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
     gen_kiva = false
     io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
-    expect(io.has_key?(:unit)).to be(true) # despite no being on file - good
-    expect(io[:unit].first.has_key?(:psi)).to be(true)
-    expect(io[:unit].first[:psi]).to eq("(non thermal bridging)")
+    expect(io.has_key?(:building)).to be(true) # despite no being on file - good
+    expect(io[:building].first.has_key?(:psi)).to be(true)
+    expect(io[:building].first[:psi]).to eq("(non thermal bridging)")
 
-    # As the :unit PSI set on file remains "(non thermal bridging)", one should
+    # As the :building PSI set on file remains "(non thermal bridging)", one should
     # not expect differences in results, i.e. derating shouldn't occur. However,
     # the JSON file holds KHI entries for "Entryway  Wall 2" :
     # 3x "columns" @0.5 W/K + 4x supports @0.5W/K = 3.5 W/K (as in case above),
@@ -2241,7 +2256,7 @@ require "psi"
     end
   end
 
-  it "can process TB & D : JSON surface KHI & PSI entries + unit & edge" do
+  it "can process TB & D : JSON surface KHI & PSI entries + building & edge" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -2255,7 +2270,7 @@ require "psi"
     io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(56)
 
-    # As the :unit PSI set on file == "(non thermal bridgin)", derating
+    # As the :building PSI set on file == "(non thermal bridgin)", derating
     # shouldn't occur at large. However, the JSON file holds a custom edge
     # entry for "Entryway  Wall 5" : "bad" fenestration permieters, which
     # only derates the host wall itself
@@ -2267,7 +2282,7 @@ require "psi"
     end
   end
 
-  it "can process TB & D : JSON surface KHI & PSI entries + unit & edge (2)" do
+  it "can process TB & D : JSON surface KHI & PSI entries + building & edge (2)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -2290,7 +2305,7 @@ require "psi"
     end
   end
 
-  it "can process TB & D : JSON surface KHI & PSI entries + unit & edge (3)" do
+  it "can process TB & D : JSON surface KHI & PSI entries + building & edge (3)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -2313,14 +2328,14 @@ require "psi"
     end
   end
 
-  it "can process TB & D : JSON surface KHI & PSI entries + unit & edge (4)" do
+  it "can process TB & D : JSON surface KHI & PSI entries + building & edge (4)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
-    psi_set = "compliant" # ignored - superseded by :unit PSI set on file
+    psi_set = "compliant" # ignored - superseded by :building PSI set on file
     io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n7.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
     gen_kiva = false
@@ -2328,7 +2343,7 @@ require "psi"
     expect(surfaces.size).to eq(56)
 
     # In the JSON file, the "Entry way 1" space "compliant" PSI set supersedes
-    # the default :unit PSI set "(non thermal bridging)". And hence the 3x walls
+    # the default :building PSI set "(non thermal bridging)". And hence the 3x walls
     # below (4, 5 & 6) - opaque envelope surfaces part of "Entry way 1" - will
     # be derated. Exceptionally, Wall 5 has (in addition to a handful of point
     # conductances) derating edges based on the "good" PSI set; in this case,
@@ -2365,7 +2380,7 @@ require "psi"
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
-    psi_set = "compliant" # ignored - superseded by :unit PSI set on file
+    psi_set = "compliant" # ignored - superseded by :building PSI set on file
     io_path = File.dirname(__FILE__) + "/../json/tbd_warehouse4.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
     gen_kiva = false
@@ -2430,7 +2445,7 @@ require "psi"
     expect(io.has_key?(:surfaces)).to be(true)
     expect(io.has_key?(:spaces)).to be(false)
     expect(io.has_key?(:stories)).to be(false)
-    expect(io.has_key?(:unit)).to be(true)
+    expect(io.has_key?(:building)).to be(true)
     expect(io.has_key?(:logs)).to be(false)
     expect(io[:edges].size).to eq(1)
     expect(io[:surfaces].size).to eq(1)
@@ -2463,10 +2478,10 @@ require "psi"
     expect(khi.point["column"]).to eq(0.5)
     expect(khi.point["support"]).to eq(0.5)
 
-    expect(io.has_key?(:unit)).to be(true)
-    expect(io[:unit].first.has_key?(:psi)).to be(true)
-    expect(io[:unit].first[:psi]).to eq("compliant")
-    expect(psi.set.has_key?(io[:unit].first[:psi])).to be(true)
+    expect(io.has_key?(:building)).to be(true)
+    expect(io[:building].first.has_key?(:psi)).to be(true)
+    expect(io[:building].first[:psi]).to eq("compliant")
+    expect(psi.set.has_key?(io[:building].first[:psi])).to be(true)
 
     expect(io.has_key?(:surfaces)).to be(true)
     io[:surfaces].each do |surface|
@@ -2512,10 +2527,10 @@ require "psi"
     expect(io.has_key?(:surfaces)).to be(false)
     expect(io.has_key?(:spaces)).to be(true)
     expect(io.has_key?(:stories)).to be(false)
-    expect(io.has_key?(:unit)).to be(true)
+    expect(io.has_key?(:building)).to be(true)
     expect(io.has_key?(:logs)).to be(false)
     expect(io[:spaces].size).to eq(1)
-    expect(io[:unit].size).to eq(1)
+    expect(io[:building].size).to eq(1)
 
     # Loop through input psis to ensure uniqueness vs PSI defaults
     psi = PSI.new
@@ -2531,10 +2546,10 @@ require "psi"
     expect(psi.set.has_key?("Awesome")).to be(true)
     expect(psi.set["Awesome"][:rimjoist]).to eq(0.2)
 
-    expect(io.has_key?(:unit)).to be (true)
-    expect(io[:unit].first.has_key?(:psi)).to be(true)
-    expect(io[:unit].first[:psi]).to eq("Awesome")
-    expect(psi.set.has_key?(io[:unit].first[:psi])).to be(true)
+    expect(io.has_key?(:building)).to be (true)
+    expect(io[:building].first.has_key?(:psi)).to be(true)
+    expect(io[:building].first[:psi]).to eq("Awesome")
+    expect(psi.set.has_key?(io[:building].first[:psi])).to be(true)
 
     expect(io.has_key?(:spaces)).to be(true)
     io[:spaces].each do |space|
@@ -2557,11 +2572,11 @@ require "psi"
     expect(io.has_key?(:surfaces)).to be(true)
     expect(io.has_key?(:spaces)).to be(false)
     expect(io.has_key?(:stories)).to be(false)
-    expect(io.has_key?(:unit)).to be(true)
+    expect(io.has_key?(:building)).to be(true)
     expect(io.has_key?(:logs)).to be(false)
     expect(io[:edges].size).to eq(1)
     expect(io[:surfaces].size).to eq(1)
-    expect(io[:unit].size).to eq(1)
+    expect(io[:building].size).to eq(1)
 
     # Loop through input psis to ensure uniqueness vs PSI defaults
     psi = PSI.new
@@ -2578,10 +2593,10 @@ require "psi"
     expect(psi.set.has_key?("Party wall edge")).to be(true)
     expect(psi.set["Party wall edge"][:party]).to eq(0.4)
 
-    expect(io.has_key?(:unit)).to be(true)
-    expect(io[:unit].first.has_key?(:psi)).to be(true)
-    expect(io[:unit].first[:psi]).to eq("Awesome")
-    expect(psi.set.has_key?(io[:unit].first[:psi])).to be(true)
+    expect(io.has_key?(:building)).to be(true)
+    expect(io[:building].first.has_key?(:psi)).to be(true)
+    expect(io[:building].first[:psi]).to eq("Awesome")
+    expect(psi.set.has_key?(io[:building].first[:psi])).to be(true)
 
     expect(io.has_key?(:surfaces)).to be(true)
     io[:surfaces].each do |surface|
@@ -2624,7 +2639,7 @@ require "psi"
     expect(io.has_key?(:surfaces)).to be(false)
     expect(io.has_key?(:spaces)).to be(false)
     expect(io.has_key?(:stories)).to be(false)
-    expect(io.has_key?(:unit)).to be(false)
+    expect(io.has_key?(:building)).to be(false)
     expect(io.has_key?(:logs)).to be(false)
 
     # Loop through input psis to ensure uniqueness vs PSI defaults

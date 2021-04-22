@@ -46,6 +46,13 @@
       },
       "uniqueItems": true
     },
+    "spacetypes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/SpaceType"
+      },
+      "uniqueItems": true
+    },
     "stories": {
       "type": "array",
       "items": {
@@ -53,10 +60,10 @@
       },
       "uniqueItems": true
     },
-    "unit": {
+    "building": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/Unit"
+        "$ref": "#/definitions/Building"
       },
       "uniqueItems": true
     },
@@ -265,6 +272,25 @@
         "psi"
       ]
     },
+    "SpaceType": {
+      "description": "SpaceType default PSI-set (optional for OS)",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "e.g. OS spacetype identifier",
+          "type": "string"
+        },
+        "psi": {
+          "title": "PSI-set identifier",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "psi"
+      ]
+    },
     "Story": {
       "description": "Story default PSI-set (optional for OS)",
       "type": "object",
@@ -284,8 +310,8 @@
         "psi"
       ]
     },
-    "Unit": {
-      "description": "Building unit default PSI-set (optional for OS)",
+    "Building": {
+      "description": "Building default PSI-set (optional for OS)",
       "type": "object",
       "properties": {
         "psi": {
