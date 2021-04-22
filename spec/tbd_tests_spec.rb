@@ -2358,6 +2358,61 @@ require "psi"
     end
   end
 
+  it "can factor in negative PSI values (JSON input)" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_warehouse.osm")
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    psi_set = "compliant" # ignored - superseded by :unit PSI set on file
+    io_path = File.dirname(__FILE__) + "/../json/tbd_warehouse4.json"
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    expect(surfaces.size).to eq(23)
+
+    surfaces.each do |id, surface|
+      next unless surface[:boundary].downcase == "outdoors"
+      next unless surface.has_key?(:ratio)
+      expect surface.has_key?(:heatloss)
+
+      # Ratios are typically negative e.g., a steel corner column decreasing
+      # linked surface RSi values. In some cases, a corner PSI can be negative
+      # (and thus increasing linked surface RSi values). This happens when
+      # estimating PSI values for convex corners while relying on an interior
+      # dimensioning convention e.g., BETBG Detail 7.6.2, ISO 14683.
+      expect(surface[:ratio]).to be_within(0.01).of(0.15) if id == "Fine Storage Office Front Wall"
+      expect(surface[:ratio]).to be_within(0.01).of(0.55) if id == "Office Left Wall"
+      expect(surface[:ratio]).to be_within(0.01).of(0.43) if id == "Fine Storage Office Left Wall"
+      expect(surface[:ratio]).to be_within(0.01).of(0.18) if id == "Office Front Wall"
+      expect(surface[:ratio]).to be_within(0.01).of(0.13) if id == "Fine Storage Right Wall"
+      expect(surface[:ratio]).to be_within(0.01).of(0.04) if id == "Bulk Storage Right Wall"
+      expect(surface[:ratio]).to be_within(0.01).of(0.12) if id == "Bulk Storage Rear Wall"
+      expect(surface[:ratio]).to be_within(0.01).of(0.20) if id == "Fine Storage Front Wall"
+      expect(surface[:ratio]).to be_within(0.01).of(0.04) if id == "Bulk Storage Left Wall"
+
+      # In such cases, negative heatloss means heat gained.
+      expect(surface[:heatloss]).to be_within(0.01).of(-0.10) if id == "Fine Storage Office Front Wall"
+      expect(surface[:heatloss]).to be_within(0.01).of(-0.10) if id == "Office Left Wall"
+      expect(surface[:heatloss]).to be_within(0.01).of(-0.10) if id == "Fine Storage Office Left Wall"
+      expect(surface[:heatloss]).to be_within(0.01).of(-0.10) if id == "Office Front Wall"
+      expect(surface[:heatloss]).to be_within(0.01).of(-0.20) if id == "Fine Storage Right Wall"
+      expect(surface[:heatloss]).to be_within(0.01).of(-0.20) if id == "Bulk Storage Right Wall"
+      expect(surface[:heatloss]).to be_within(0.01).of(-0.40) if id == "Bulk Storage Rear Wall"
+      expect(surface[:heatloss]).to be_within(0.01).of(-0.20) if id == "Fine Storage Front Wall"
+      expect(surface[:heatloss]).to be_within(0.01).of(-0.20) if id == "Bulk Storage Left Wall"
+
+      # The results above have been validated.
+    end
+
+    out = JSON.pretty_generate(io)
+    out_path = File.dirname(__FILE__) + "/../json/tbd_warehouse4.out.json"
+    File.open(out_path, "w") do |out_path|
+      out_path.puts out
+    end
+  end
+
   it "can process TB & D : JSON file read/validate" do
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
     expect(File.exist?(schema_path)).to be(true)

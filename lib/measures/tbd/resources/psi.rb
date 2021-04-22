@@ -1643,7 +1643,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
   surfaces.each do |id, surface|
     next unless surface.has_key?(:edges)
     next unless surface.has_key?(:heatloss)
-    next unless surface[:heatloss] > 0.01
+    next unless surface[:heatloss].abs > 0.01
     os_model.getSurfaces.each do |s|
       next unless id == s.nameString
       current_c = s.construction.get

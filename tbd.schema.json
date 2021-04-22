@@ -79,43 +79,35 @@
         },
         "rimjoist": {
           "title": "Floor/wall edge PSI",
-          "type": "number",
-          "minimum": 0
+          "type": "number"
         },
         "parapet": {
           "title": "Roof/wall or exposed-floor/wall edge PSI",
-          "type": "number",
-          "minimum": 0
+          "type": "number"
         },
         "fenestration": {
           "title": "Window, door, skylight perimeter PSI",
-          "type": "number",
-          "minimum": 0
+          "type": "number"
         },
         "concave": {
           "title": "Wall corner [0°,135°) PSI",
-          "type": "number",
-          "minimum": 0
+          "type": "number"
         },
         "convex": {
           "title": "Wall corner (225°,360°] PSI",
-          "type": "number",
-          "minimum": 0
+          "type": "number"
         },
         "balcony": {
           "title": "Floor/balcony edge PSI ",
-          "type": "number",
-          "minimum": 0
+          "type": "number"
         },
         "party": {
           "title": "Party wall edge PSI",
-          "type": "number",
-          "minimum": 0
+          "type": "number"
         },
         "grade": {
           "title": "Floor/foundation edge PSI",
-          "type": "number",
-          "minimum": 0
+          "type": "number"
         }
       },
       "additionalProperties": false,
@@ -134,8 +126,7 @@
         },
         "point": {
           "title": "Point KHI-value",
-          "type": "number",
-          "minimum": 0
+          "type": "number"
         }
       },
       "additionalProperties": false,
