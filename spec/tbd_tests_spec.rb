@@ -1144,32 +1144,31 @@ require "psi"
       edge[:psi] = psi unless psi.empty?
     end # edge loop
 
-    # A priori, TBD applies (default) :building PSI types/values to individual
-    # edges (preceding loop). If a TBD JSON input file holds custom
+    # A priori, TBD applies (default) :building PSI types and values to individual
+    # edges. If a TBD JSON input file holds custom:
     #   :stories
     #   :spacetypes
-    #   :spaces
     #   :surfaces
     #   :edges
-    # ... PSI sets that may apply to individual edges, then the default
-    # :building PSI types and/or values will be overriden:
-    #   :stories    PSI sets trump the default :building set
-    #   :spacetypes PSI sets trump the aforementioned PSI sets
-    #   :spaces     PSI sets trump the aforementioned PSI sets
-    #   :surfaces   PSI sets trump the aforementioned PSI sets
-    #   :edges      PSI sets trump the aforementioned PSI sets
+    # ... PSI sets that may appliy to individual edges, then the default :building
+    # PSI types and/or values are overridden, as follows:
+    #   custom :stories    PSI sets trump :building PSI sets
+    #   custom :spacetypes PSI sets trump the aforementioned PSI sets
+    #   custom :spaces     PSI sets trump the aforementioned PSI sets
+    #   custom :surfaces   PSI sets trump the aforementioned PSI sets
+    #   custom :edges      PSI sets trump the aforementioned PSI sets
 
-    # TBD :stories    vs OS BuildingStory objects ... TO DO
-    # TBD :spacetypes vs OS SpaceType     objects ... TO DO
-    # openstudio-sdk-documentation.s3.amazonaws.com/cpp/OpenStudio-2.9.0-doc
-    #   /model/html/classopenstudio_1_1model_1_1_building_story.html
-    #   /model/html/classopenstudio_1_1model_1_1_space_type.html
+    # Linking TBD :stories    vs OSM BuildingStory objects: TO DO
+    # Linking TBD :spacetypes vs OSM SpaceType objects    : TO DO
+    # openstudio-sdk-documentation.s3.amazonaws.com/cpp/OpenStudio-2.9.0-doc/model
+    #   /html/classopenstudio_1_1model_1_1_building_story.html
+    #   /html/classopenstudio_1_1model_1_1_space_type.html
     if io
-      # if io.has_key?(:stories) # TO DO
-      # end
+      if io.has_key?(:stories)
+      end
 
-      # if io.has_key?(:spacetypes) # TO DO
-      # end
+      if io.has_key?(:spacetypes)
+      end
 
       if io.has_key?(:spaces)
         io[:spaces].each do |space|

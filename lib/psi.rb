@@ -74,8 +74,8 @@ class PSI
   def initialize
     @set = {}
 
-    # The following are defaults PSI values (* published, ** calculated). Users
-    # may edit these sets, add new sets here, or read-in bespoke sets from a TBD
+    # The following are default PSI values (* published, ** calculated). Users
+    # may edit these sets, add new sets here, or read-in custom sets from a TBD
     # JSON input file. PSI units are in W/K per linear meter.
 
     # Convex or concave corner PSI adjustments may be warranted if there is a
@@ -93,8 +93,6 @@ class PSI
     #     Le = from exterior corner to edge of "zone of influence"           (m)
     #
     #  Li-Le = wall thickness e.g., -0.25m (negative here as Li < Le)
-    #
-    # TO DO: Allow negative PSI values (see ISO 14683).
 
     @set[ "poor (BETBG)" ] =
     {
@@ -1522,11 +1520,11 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
           next if edge.has_key?(:io_set)       # customized edge WITH custom PSI
           next unless edge.has_key?(:surfaces)
 
-          # TBD/Topolys edges will generally be linked to more than one surface
-          # and hence to more than one space. It is possible for a TBD JSON file
-          # to hold 2x space PSI sets that affect one or more edges common to
-          # both spaces. As with Ruby and JSON hashes, the last processed TBD
-          # JSON space PSI set will supersede preceding ones. Caution ...
+          # TBD/Topolys edges will generally be linked to more than one
+          # surface. It is possible for a TBD JSON file to hold 2x surface PSI
+          # sets that affect one or more edges common to both surfaces. As
+          # with Ruby and JSON hashes, the last processed TBD JSON surface PSI
+          # set will supersede preceding ones. Caution ...
           # Future revisons to TBD JSON I/O validation, e.g. log warning?
           # Maybe revise e.g., retain most stringent PSI value?
           edge[:surfaces].keys.each do |s|
