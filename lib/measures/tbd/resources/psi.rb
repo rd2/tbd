@@ -332,17 +332,36 @@ def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
         next unless story.has_key?(:psi)
         i = story[:id]
         p = story[:psi]
+
+        # Validate if story "id" is found in stories hash
+        match = false
+        surfaces.values.each do |properties|
+          next if match
+          next unless properties.has_key?(:story)
+          st = properties[:story]
+          match = true if i = st.nameString
+        end
+        raise "Mismatch OpenStudio #{i}" unless match
         raise "#{i} PSI mismatch" unless psi.set.has_key?(p)
-        # ... later, validate "id" vs OSM/IDF group names (ZoneLists?)
       end
     end
 
     if io.has_key?(:spacetypes)
-      io[:spacetypes].each do |spacetype|
-        next unless spacetype.has_key?(:id)
-        next unless spacetype.has_key?(:psi)
-        i = spacetype[:id]
-        p = spacetype[:psi]
+      io[:spacetypes].each do |stype|
+        next unless stype.has_key?(:id)
+        next unless stype.has_key?(:psi)
+        i = stype[:id]
+        p = stype[:psi]
+
+        # Validate if spacetype "id" is found in spacetypes hash
+        match = false
+        surfaces.values.each do |properties|
+          next if match
+          next unless properties.has_key?(:stype)
+          spt = properties[:stype]
+          match = true if i = spt.nameString
+        end
+        raise "Mismatch OpenStudio #{i}" unless match
         raise "#{i} PSI mismatch" unless psi.set.has_key?(p)
       end
     end
@@ -429,7 +448,7 @@ def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
                      edge.has_key?(:v1x) &&
                      edge.has_key?(:v1y) &&
                      edge.has_key?(:v1z)
-                raise "Edge vertices must come in pairs"          # all or none
+                raise "Edge vertices must come in pairs"           # all or none
               end
               e1 = {}
               e2 = {}
@@ -451,10 +470,7 @@ def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
             end
           end
         end
-        if n == 0
-          puts edge[:surfaces]
-          raise "Edge: missing OpenStudio match"
-        end
+        raise "Edge: missing OpenStudio match" if n == 0
       end
     end
   else
@@ -1008,6 +1024,8 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
       minz:     minz,
       n:        n
     }
+    surfaces[id][:stype] = space.spaceType.get unless space.spaceType.empty?
+    surfaces[id][:story] = space.buildingStory.get unless space.buildingStory.empty?
   end                                              # (opaque) surfaces populated
 
   # Fetch OpenStudio subsurfaces & key attributes.
@@ -1288,10 +1306,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
     next unless edge[:surfaces].size > 1 #       may need to revisit e.g. :party
 
     # Skip unless one (at least) linked surface is deratable, i.e.
-    # outside-facing floor, ceiling or wall. Ground-facing surfaces
-    # are equally processed (up to a point), as the coupling of TBD
-    # edges and OpenStudio/EnergyPlus ground-facing surfaces
-    # isn't currently enabled, e.g. KIVA ... TO DO.
+    # outside-facing floor, ceiling or wall.
     deratable = false
     edge[:surfaces].each do |id, surface|
       deratable = true if floors.has_key?(id)
@@ -1318,9 +1333,8 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
 
       # Skipping the :party wall label for now. Criteria determining party
       # wall edges from TBD edges is to be determined. Most likely scenario
-      # seems to be an edge linking only 1x outside-facing or ground-facing
-      # surface with only 1x adiabatic surface. Warrants separate tests.
-      # TO DO.
+      # seems to be an edge linking only 1x outside-facing with only 1x
+      # adiabatic surface. Warrants separate tests. TO DO.
 
       # Label edge as :grade if linked to:
       #   1x ground-facing surface (e.g. slab or wall)
@@ -1434,34 +1448,104 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
     edge[:set] = p unless psi.empty?
   end                                                                # edge loop
 
-  # Generate OSM Kiva settings and objects if foundation-facing floors.
-  # 'kiva' == false if partial failure (log failure eventually).
-  # kiva = generateKiva(os_model, walls, floors, edges) if gen_kiva
-
   # A priori, TBD applies (default) :building PSI types and values to individual
   # edges. If a TBD JSON input file holds custom:
   #   :stories
   #   :spacetypes
   #   :surfaces
   #   :edges
-  # ... PSI sets that may appliy to individual edges, then the default :building
+  # ... PSI sets that may apply to individual edges, then the default :building
   # PSI types and/or values are overridden, as follows:
   #   custom :stories    PSI sets trump :building PSI sets
   #   custom :spacetypes PSI sets trump the aforementioned PSI sets
   #   custom :spaces     PSI sets trump the aforementioned PSI sets
   #   custom :surfaces   PSI sets trump the aforementioned PSI sets
   #   custom :edges      PSI sets trump the aforementioned PSI sets
-
-  # Linking TBD :stories    vs OSM BuildingStory objects: TO DO
-  # Linking TBD :spacetypes vs OSM SpaceType objects    : TO DO
-  # openstudio-sdk-documentation.s3.amazonaws.com/cpp/OpenStudio-2.9.0-doc/model
-  #   /html/classopenstudio_1_1model_1_1_building_story.html
-  #   /html/classopenstudio_1_1model_1_1_space_type.html
   if io
     if io.has_key?(:stories)
+      io[:stories].each do |story|
+        next unless story.has_key?(:id)
+        next unless story.has_key?(:psi)
+        i = story[:id]
+        p = story[:psi]
+        next unless io_p.set.has_key?(p)
+
+        edges.values.each do |edge|
+          next unless edge.has_key?(:psi)
+          next if edge.has_key?(:io_set)       # customized edge WITH custom PSI
+          next unless edge.has_key?(:surfaces)
+
+          # TBD/Topolys edges will generally be linked to more than one surface
+          # and hence to more than one space. It is possible for a TBD JSON file
+          # to hold 2x space PSI sets that affect one or more edges common to
+          # both spaces. As with Ruby and JSON hashes, the last processed TBD
+          # JSON space PSI set will supersede preceding ones. Caution ...
+          # Future revisons to TBD JSON I/O validation, e.g. log warning?
+          # Maybe revise e.g., retain most stringent PSI value?
+          edge[:surfaces].keys.each do |id|
+            next unless surfaces.has_key?(id)
+            next unless surfaces[id].has_key?(:stype)
+            st = surfaces[id][:stype]
+            next unless i == st.nameString
+
+            if edge.has_key?(:io_type)          # custom edge w/o custom PSI set
+              t = edge[:io_type]
+              next unless io_p.set[p].has_key?(t)
+              psi = {}
+              psi[t] = io_p.set[p][t]
+              edge[:psi] = psi
+            else
+              edge[:psi].keys.each do |t|
+                edge[:psi][t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+              end
+            end
+            egde[:set] = p
+          end
+        end
+      end
     end
 
     if io.has_key?(:spacetypes)
+      io[:spacetypes].each do |stype|
+        next unless stype.has_key?(:id)
+        next unless stype.has_key?(:psi)
+        i = stype[:id]
+        p = stype[:psi]
+        next unless io_p.set.has_key?(p)
+
+        edges.values.each do |edge|
+          next unless edge.has_key?(:psi)
+          next if edge.has_key?(:io_set)       # customized edge WITH custom PSI
+          next unless edge.has_key?(:surfaces)
+
+          # TBD/Topolys edges will generally be linked to more than one surface
+          # and hence to more than one space. It is possible for a TBD JSON file
+          # to hold 2x space PSI sets that affect one or more edges common to
+          # both spaces. As with Ruby and JSON hashes, the last processed TBD
+          # JSON space PSI set will supersede preceding ones. Caution ...
+          # Future revisons to TBD JSON I/O validation, e.g. log warning?
+          # Maybe revise e.g., retain most stringent PSI value?
+          edge[:surfaces].keys.each do |id|
+            next unless surfaces.has_key?(id)
+            next unless surfaces[id].has_key?(:stype)
+            st = surfaces[id][:stype]
+            next unless i == st.nameString
+
+            if edge.has_key?(:io_type)          # custom edge w/o custom PSI set
+              t = edge[:io_type]
+              next unless io_p.set[p].has_key?(t)
+              psi = {}
+              psi[t] = io_p.set[p][t]
+              edge[:psi] = psi
+            else
+              edge[:psi].keys.each do |t|
+                edge[:psi][t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+              end
+            end
+            edge[:set] = p
+          end
+        end
+      end
     end
 
     if io.has_key?(:spaces)

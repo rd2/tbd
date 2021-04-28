@@ -558,6 +558,8 @@ require "psi"
     os_model.getSurfaces.each do |s|
       next if s.space.empty?
       space = s.space.get
+      stype = space.spaceType.get unless space.spaceType.empty?
+      story = space.buildingStory.get unless space.buildingStory.empty?
       id    = s.nameString
 
       t, r = transforms(os_model, space)
@@ -578,6 +580,8 @@ require "psi"
         ground:   ground,
         boundary: boundary,
         space:    space,
+        stype:    stype,
+        story:    story,
         gross:    s.grossArea,
         net:      s.netArea,
         points:   points,
@@ -2443,6 +2447,7 @@ require "psi"
     expect(io.has_key?(:edges)).to be(true)
     expect(io.has_key?(:surfaces)).to be(true)
     expect(io.has_key?(:spaces)).to be(false)
+    expect(io.has_key?(:spacetypes)).to be(false)
     expect(io.has_key?(:stories)).to be(false)
     expect(io.has_key?(:building)).to be(true)
     expect(io.has_key?(:logs)).to be(false)
@@ -2525,6 +2530,7 @@ require "psi"
     expect(io.has_key?(:edges)).to be(false)
     expect(io.has_key?(:surfaces)).to be(false)
     expect(io.has_key?(:spaces)).to be(true)
+    expect(io.has_key?(:spacetypes)).to be(false)
     expect(io.has_key?(:stories)).to be(false)
     expect(io.has_key?(:building)).to be(true)
     expect(io.has_key?(:logs)).to be(false)
@@ -2570,6 +2576,7 @@ require "psi"
     expect(io.has_key?(:edges)).to be(true)
     expect(io.has_key?(:surfaces)).to be(true)
     expect(io.has_key?(:spaces)).to be(false)
+    expect(io.has_key?(:spacetypes)).to be(false)
     expect(io.has_key?(:stories)).to be(false)
     expect(io.has_key?(:building)).to be(true)
     expect(io.has_key?(:logs)).to be(false)
@@ -2637,6 +2644,7 @@ require "psi"
     expect(io.has_key?(:edges)).to be(false)
     expect(io.has_key?(:surfaces)).to be(false)
     expect(io.has_key?(:spaces)).to be(false)
+    expect(io.has_key?(:spacetypes)).to be(false)
     expect(io.has_key?(:stories)).to be(false)
     expect(io.has_key?(:building)).to be(false)
     expect(io.has_key?(:logs)).to be(false)
@@ -2666,6 +2674,44 @@ require "psi"
     io = JSON.parse(io_c, symbolize_names: true)
     expect(JSON::Validator.validate(schema, io)).to be(true)
     expect(JSON::Validator.validate(schema_path, io_path, uri: true)).to be(true)
+  end
+
+  it "can factor in spacetype-specific PSI sets (JSON input)" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_warehouse.osm")
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    psi_set = "compliant" # ignored - superseded by :building PSI set on file
+    io_path = File.dirname(__FILE__) + "/../json/tbd_warehouse5.json"
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    expect(surfaces.size).to eq(23)
+
+    expect(io.has_key?(:spacetypes)).to be(true)
+    io[:spacetypes].each do |spacetype|
+      expect(spacetype.has_key?(:id)).to be(true)
+      expect(spacetype[:id]).to eq("Warehouse Office")
+      expect(spacetype.has_key?(:psi)).to be(true)
+    end
+
+    surfaces.each do |id, surface|
+      next unless surface[:boundary].downcase == "outdoors"
+      next unless surface.has_key?(:ratio)
+      expect(surface.has_key?(:heatloss)).to be(true)
+      heatloss = surface[:heatloss]
+      expect(heatloss.abs).to be > 0
+      next unless surface[:space].nameString == "Zone1 Office"
+
+      # Without the "Warehouse Office" spacetype JSON override, additional
+      # heatloss from thermal bridging would be as follows:
+      # "Office Left Wall":  ~14.75 W/K
+      # "Office Front Wall": ~20.35 W/K
+      expect(heatloss).to be_within(0.01).of(10.70) if id == "Office Left Wall"
+      expect(heatloss).to be_within(0.01).of(20.35) if id == "Office Front Wall"
+    end
   end
 
   it "has a PSI class" do

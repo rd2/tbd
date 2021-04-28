@@ -1,0 +1,28 @@
+{
+  "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
+  "description": "test_warehouse.osm with negative PSI values",
+  "psis": [
+    {
+      "id": "office PSI set",
+      "rimjoist": 0.300,
+      "parapet": 0.300,
+      "fenestration": 0.300,
+      "concave": 0.300,
+      "convex": 0.300,
+      "balcony": 0.300,
+      "party": 0.300,
+      "grade": 0.300
+    }
+  ],
+  "building": [
+    {
+      "psi": "regular (BETBG)"
+    }
+  ],
+  "spacetypes": [
+    {
+      "id": "Warehouse Office",
+      "psi": "office PSI set"
+    }
+  ]
+}
