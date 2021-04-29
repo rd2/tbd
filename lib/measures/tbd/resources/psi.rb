@@ -1484,8 +1484,8 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
           # Maybe revise e.g., retain most stringent PSI value?
           edge[:surfaces].keys.each do |id|
             next unless surfaces.has_key?(id)
-            next unless surfaces[id].has_key?(:stype)
-            st = surfaces[id][:stype]
+            next unless surfaces[id].has_key?(:story)
+            st = surfaces[id][:story]
             next unless i == st.nameString
 
             if edge.has_key?(:io_type)          # custom edge w/o custom PSI set
@@ -1499,7 +1499,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
                 edge[:psi][t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
               end
             end
-            egde[:set] = p
+            edge[:set] = p
           end
         end
       end

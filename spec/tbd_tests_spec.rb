@@ -2703,14 +2703,59 @@ require "psi"
       expect(surface.has_key?(:heatloss)).to be(true)
       heatloss = surface[:heatloss]
       expect(heatloss.abs).to be > 0
+      expect(surface.has_key?(:space)).to be(true)
       next unless surface[:space].nameString == "Zone1 Office"
 
       # Without the "Warehouse Office" spacetype JSON override, additional
       # heatloss from thermal bridging would be as follows:
       # "Office Left Wall":  ~14.75 W/K
-      # "Office Front Wall": ~20.35 W/K
+      # "Office Front Wall": ~29.78 W/K
       expect(heatloss).to be_within(0.01).of(10.70) if id == "Office Left Wall"
       expect(heatloss).to be_within(0.01).of(20.35) if id == "Office Front Wall"
+    end
+  end
+
+  it "can factor in story-specific PSI sets (JSON input)" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_smalloffice.osm")
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    psi_set = "compliant" # ignored - superseded by :building PSI set on file
+    io_path = File.dirname(__FILE__) + "/../json/tbd_smalloffice.json"
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    gen_kiva = false
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    expect(surfaces.size).to eq(43)
+
+    expect(io.has_key?(:stories)).to be(true)
+    io[:stories].each do |story|
+      expect(story.has_key?(:id)).to be(true)
+      expect(story[:id]).to eq("Building Story 1")
+      expect(story.has_key?(:psi)).to be(true)
+    end
+
+    surfaces.each do |id, surface|
+      next unless surface[:boundary].downcase == "outdoors"
+      next unless surface.has_key?(:ratio)
+      expect(surface.has_key?(:heatloss)).to be(true)
+      heatloss = surface[:heatloss]
+      expect(heatloss.abs).to be > 0
+      next unless surface.has_key?(:story)
+      expect(surface[:story].nameString).to eq("Building Story 1")
+
+      # Without the "Building Story 1" story JSON override, additional
+      # heatloss from thermal bridging would be as follows:
+      # "Perimeter_ZN_1_wall_south": ~38.36
+      # "Perimeter_ZN_2_wall_east" : ~24.61
+      # "Perimeter_ZN_3_wall_north": ~36.23
+      # "Perimeter_ZN_4_wall_west" : ~24.61
+
+      expect(heatloss).to be_within(0.01).of(27.28) if id == "Perimeter_ZN_1_wall_south"
+      expect(heatloss).to be_within(0.01).of(17.27) if id == "Perimeter_ZN_2_wall_east"
+      expect(heatloss).to be_within(0.01).of(25.45) if id == "Perimeter_ZN_3_wall_north"
+      expect(heatloss).to be_within(0.01).of(17.27) if id == "Perimeter_ZN_4_wall_west"
     end
   end
 

@@ -1,6 +1,6 @@
 {
   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
-  "description": "test_warehouse.osm with spacetype PSI values",
+  "description": "test_smalloffice.osm with building story PSI set",
   "psis": [
     {
       "id": "office PSI set",
@@ -19,9 +19,9 @@
       "psi": "regular (BETBG)"
     }
   ],
-  "spacetypes": [
+  "stories": [
     {
-      "id": "Warehouse Office",
+      "id": "Building Story 1",
       "psi": "office PSI set"
     }
   ]
