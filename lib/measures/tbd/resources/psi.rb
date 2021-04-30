@@ -1674,7 +1674,6 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
   # Loop through each edge and assign heat loss to linked surfaces.
   edges.each do |identifier, edge|
     next unless edge.has_key?(:psi)
-
     psi = edge[:psi].values.max
 
     bridge = { psi: psi,
@@ -1724,7 +1723,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
 
     next unless deratables.size > 0
 
-    # Split thermal bridge heat loss equally amongst deratable surfaces. NONONONON
+    # Split thermal bridge heat loss equally amongst deratable surfaces. TO REVISE!
     bridge[:psi] /= deratables.size
 
     # Assign heat loss from thermal bridges to surfaces.
@@ -1781,21 +1780,9 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
       next unless id == s.nameString
       index = surface[:index]
       current_c = surface[:construction]
-      # next if current_c.nil?
       c = current_c.clone(os_model).to_Construction.get
 
-      # index - of layer/material (to derate) in cloned construction
-      # type  - either massless (RSi) or standard (k + d)
-      # r     - initial RSi value of the indexed layer to derate
-
-      # index, type, r = deratableLayer(c)
-      # index = nil unless index.is_a?(Numeric)
-      # index = nil unless index >=0
-      # index = nil unless index < c.layers.size
-
-      # m ... newly derated, cloned material
       m = nil
-      # m = derate(os_model, id, surface, c, index, type, r) unless index.nil? # still need type?
       m = derate(os_model, id, surface, c) unless index.nil?
 
       # m may be nilled simply because the targeted construction has already

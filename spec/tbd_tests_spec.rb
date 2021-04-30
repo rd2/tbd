@@ -1003,53 +1003,16 @@ require "psi"
       next unless deratable
 
       psi = {} # edge-specific PSI types
-
-      # Check if customized edge in TBD JSON file
-      # match = false
-      # if io && io.has_key?(:edges)
-      #   io[:edges].each do |e|
-      #     next if match
-      #     next unless e.has_key?(:type) # a precaution, it should ...
-      #     t = e[:type]
-      #     next unless e.has_key?(:surfaces) # a precaution, it should ...
-      #     e[:surfaces].each do |s|
-      #       next if match
-      #       next unless edge[:surfaces].has_key?(s)
-      #       match = true # ... well, at least one ... so loop again
-      #       e[:surfaces].each do |ss|
-      #         next unless match
-      #         match = false unless edges[:surfaces].has_key?(ss)
-      #       end
-      #     end
-      #     next unless match
-      #     if e.has_key?(:length) # optional edge length finetuning (up to 1 inch)
-      #       match = false unless (e[:length] - edge[:length]).abs < 0.025
-      #     end
-      #     next unless match # valid user entry - overriding TBD ruleset
-      #     if e.has_key?(:psi)
-      #       p = e[:psi]
-      #     else
-      #       p = io[:building].first[:psi]
-      #     end
-      #     next unless io_p.set.has_key?(p)
-      #     next unless io_p.set[p].has_key?(t)
-      #     psi[t] = io_p.set[p][t]
-      #     edge[:psi] = psi
-      #   end
-      # end
-
       p = io[:building].first[:psi]
 
-      # NEW
       match = false
-      if edge.has_key?(:io_type)                # customized edge in TBD JSON file
+      if edge.has_key?(:io_type)              # customized edge in TBD JSON file
         match = true
         t = edge[:io_type]
         p = edge[:io_set]       if edge.has_key?(:io_set)
         edge[:set] = p          if io_p.set.has_key?(p)
         psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
       end
-      # NEW
 
       edge[:surfaces].keys.each do |id|
         next if match                                       # skip if customized
@@ -1407,7 +1370,7 @@ require "psi"
     edges.each do |identifier, edge|
       next unless edge.has_key?(:psi)
       psi = edge[:psi].values.max
-      next unless psi > 0.01
+
       bridge = { psi: psi,
                  type: edge[:psi].key(psi),
                  length: edge[:length] }
@@ -1455,7 +1418,7 @@ require "psi"
 
       next unless deratables.size > 0
 
-      # Split thermal bridge heat loss equally amongst deratable surfaces.
+      # Split thermal bridge heat loss equally amongst deratable surfaces. TO REVISE!
       bridge[:psi] /= deratables.size
 
       # Assign heat loss from thermal bridges to surfaces.
@@ -1547,30 +1510,13 @@ require "psi"
       os_model.getSurfaces.each do |s|
         next unless id == s.nameString
         index = surface[:index]
-        #current_c = s.construction.get
-        #next if current_c.nil?
-        #construction_name = current_c.nameString
-        #c = current_c.clone(os_model).to_Construction.get
-
         current_c = surface[:construction]
-        # next if current_c.nil?
         c = current_c.clone(os_model).to_Construction.get
 
-        # index - of layer/material (to derate) in cloned construction
-        # type  - either massless (RSi) or standard (k + d)
-        # r     - initial RSi value of the targeted layer to derate
-        #index, type, r = deratableLayer(c)
-
-        #index = nil unless index.is_a?(Numeric) &&
-        #                   index >=0            &&
-        #                   index < c.layers.size
-
-        # m     - newly derated, cloned material
         m = nil
         m = derate(os_model, id, surface, c) unless index.nil?
-        #m = derate(os_model, id, surface, c, index, type, r) unless index.nil?
 
-        # "m" may be nilled simply because the targeted construction has already
+        # m may be nilled simply because the targeted construction has already
         # been derated, i.e. holds " tbd" in its name. Names of cloned/derated
         # constructions (due to TBD) include the surface name (since derated
         # constructions are unique to each surface) and the suffix " c tbd".
