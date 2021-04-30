@@ -558,8 +558,6 @@ require "psi"
     os_model.getSurfaces.each do |s|
       next if s.space.empty?
       space = s.space.get
-      stype = space.spaceType.get unless space.spaceType.empty?
-      story = space.buildingStory.get unless space.buildingStory.empty?
       id    = s.nameString
 
       t, r = transforms(os_model, space)
@@ -580,15 +578,32 @@ require "psi"
         ground:   ground,
         boundary: boundary,
         space:    space,
-        stype:    stype,
-        story:    story,
         gross:    s.grossArea,
         net:      s.netArea,
         points:   points,
         minz:     minz,
         n:        n
       }
-    end # (opaque) surfaces populated
+      surfaces[id][:stype] = space.spaceType.get unless space.spaceType.empty?
+      surfaces[id][:story] = space.buildingStory.get unless space.buildingStory.empty?
+
+      unless s.construction.empty?
+        construction = s.construction.get.to_Construction.get
+        # index  - of layer/material (to derate) in construction
+        # ltype  - either massless (RSi) or standard (k + d)
+        # r      - initial RSi value of the indexed layer to derate
+        index, ltype, r = deratableLayer(construction)
+        index = nil unless index.is_a?(Numeric)
+        index = nil unless index >= 0
+        index = nil unless index < c.layers.size
+        unless index.nil?
+          surfaces[id][:construction] = construction
+          surfaces[id][:index]        = index
+          surfaces[id][:ltype]        = ltype
+          surfaces[id][:r]            = r
+        end
+      end
+    end                                              # (opaque) surfaces populated
 
     # Fetch OpenStudio subsurfaces & key attributes.
     os_model.getSubSurfaces.each do |s|
@@ -625,7 +640,7 @@ require "psi"
           end
         end
       end
-    end # (opaque) surface "dads" populated with subsurface "kids"
+    end               # (opaque) surface "dads" populated with subsurface "kids"
 
     # Sort kids.
     surfaces.values.each do |p|
@@ -978,10 +993,7 @@ require "psi"
       next unless edge[:surfaces].size > 1
 
       # Skip unless one (at least) linked surface is deratable, i.e.
-      # outside-facing floor, ceiling or wall. Ground-facing surfaces
-      # are equally processed (up to a point), as the coupling of TBD
-      # edges and OpenStudio/EnergyPlus ground-facing surfaces
-      # isn't currently enabled, e.g. KIVA ... TO DO.
+      # outside-facing floor, ceiling or wall.
       deratable = false
       edge[:surfaces].each do |id, surface|
         deratable = true if floors.has_key?(id)
@@ -993,49 +1005,60 @@ require "psi"
       psi = {} # edge-specific PSI types
 
       # Check if customized edge in TBD JSON file
-      match = false
-      if io && io.has_key?(:edges)
-        io[:edges].each do |e|
-          next if match
-          next unless e.has_key?(:type) # a precaution, it should ...
-          t = e[:type]
-          next unless e.has_key?(:surfaces) # a precaution, it should ...
-          e[:surfaces].each do |s|
-            next if match
-            next unless edge[:surfaces].has_key?(s)
-            match = true # ... well, at least one ... so loop again
-            e[:surfaces].each do |ss|
-              next unless match
-              match = false unless edges[:surfaces].has_key?(ss)
-            end
-          end
-          next unless match
-          if e.has_key?(:length) # optional edge length finetuning (up to 1 inch)
-            match = false unless (e[:length] - edge[:length]).abs < 0.025
-          end
-          next unless match # valid user entry - overriding TBD ruleset
-          if e.has_key?(:psi)
-            p = e[:psi]
-          else
-            p = io[:building].first[:psi]
-          end
-          next unless io_p.set.has_key?(p)
-          next unless io_p.set[p].has_key?(t)
-          psi[t] = io_p.set[p][t]
-          edge[:psi] = psi
-        end
-      end
+      # match = false
+      # if io && io.has_key?(:edges)
+      #   io[:edges].each do |e|
+      #     next if match
+      #     next unless e.has_key?(:type) # a precaution, it should ...
+      #     t = e[:type]
+      #     next unless e.has_key?(:surfaces) # a precaution, it should ...
+      #     e[:surfaces].each do |s|
+      #       next if match
+      #       next unless edge[:surfaces].has_key?(s)
+      #       match = true # ... well, at least one ... so loop again
+      #       e[:surfaces].each do |ss|
+      #         next unless match
+      #         match = false unless edges[:surfaces].has_key?(ss)
+      #       end
+      #     end
+      #     next unless match
+      #     if e.has_key?(:length) # optional edge length finetuning (up to 1 inch)
+      #       match = false unless (e[:length] - edge[:length]).abs < 0.025
+      #     end
+      #     next unless match # valid user entry - overriding TBD ruleset
+      #     if e.has_key?(:psi)
+      #       p = e[:psi]
+      #     else
+      #       p = io[:building].first[:psi]
+      #     end
+      #     next unless io_p.set.has_key?(p)
+      #     next unless io_p.set[p].has_key?(t)
+      #     psi[t] = io_p.set[p][t]
+      #     edge[:psi] = psi
+      #   end
+      # end
 
       p = io[:building].first[:psi]
+
+      # NEW
+      match = false
+      if edge.has_key?(:io_type)                # customized edge in TBD JSON file
+        match = true
+        t = edge[:io_type]
+        p = edge[:io_set]       if edge.has_key?(:io_set)
+        edge[:set] = p          if io_p.set.has_key?(p)
+        psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+      end
+      # NEW
+
       edge[:surfaces].keys.each do |id|
-        next if match # customized edge from TBD JSON file
+        next if match                                       # skip if customized
         next unless surfaces.has_key?(id)
 
         # Skipping the :party wall label for now. Criteria determining party
         # wall edges from TBD edges is to be determined. Most likely scenario
-        # seems to be an edge linking only 1x outside-facing or ground-facing
-        # surface with only 1x adiabatic surface. Warrants separate tests.
-        # TO DO.
+        # seems to be an edge linking only 1x outside-facing with only 1x
+        # adiabatic surface. Warrants separate tests. TO DO.
 
         # Label edge as :grade if linked to:
         #   1x ground-facing surface (e.g. slab or wall)
@@ -1121,7 +1144,7 @@ require "psi"
 
         # Label edge as :concave or :convex (corner) if linked to:
         #   2x outside-facing walls (& relative polar positions of walls)
-        unless psi.has_key?(:concave)
+        unless psi.has_key?(:concave) || psi.has_key?(:convex)
           edge[:surfaces].keys.each do |i|
             next if i == id
             next unless walls.has_key?(i)
@@ -1143,10 +1166,11 @@ require "psi"
             psi[:convex]  = io_p.set[p][:convex]  if n1_d_p2 < 0 && p1_d_n2 < 0
           end
         end
-      end # edge's surfaces loop
+      end                                                 # edge's surfaces loop
 
       edge[:psi] = psi unless psi.empty?
-    end # edge loop
+      edge[:set] = p unless psi.empty?
+    end                                                              # edge loop
 
     # A priori, TBD applies (default) :building PSI types and values to individual
     # edges. If a TBD JSON input file holds custom:
@@ -1154,24 +1178,98 @@ require "psi"
     #   :spacetypes
     #   :surfaces
     #   :edges
-    # ... PSI sets that may appliy to individual edges, then the default :building
+    # ... PSI sets that may apply to individual edges, then the default :building
     # PSI types and/or values are overridden, as follows:
     #   custom :stories    PSI sets trump :building PSI sets
     #   custom :spacetypes PSI sets trump the aforementioned PSI sets
     #   custom :spaces     PSI sets trump the aforementioned PSI sets
     #   custom :surfaces   PSI sets trump the aforementioned PSI sets
     #   custom :edges      PSI sets trump the aforementioned PSI sets
-
-    # Linking TBD :stories    vs OSM BuildingStory objects: TO DO
-    # Linking TBD :spacetypes vs OSM SpaceType objects    : TO DO
-    # openstudio-sdk-documentation.s3.amazonaws.com/cpp/OpenStudio-2.9.0-doc/model
-    #   /html/classopenstudio_1_1model_1_1_building_story.html
-    #   /html/classopenstudio_1_1model_1_1_space_type.html
     if io
       if io.has_key?(:stories)
+        io[:stories].each do |story|
+          next unless story.has_key?(:id)
+          next unless story.has_key?(:psi)
+          i = story[:id]
+          p = story[:psi]
+          next unless io_p.set.has_key?(p)
+
+          edges.values.each do |edge|
+            next unless edge.has_key?(:psi)
+            next if edge.has_key?(:io_set)       # customized edge WITH custom PSI
+            next unless edge.has_key?(:surfaces)
+
+            # TBD/Topolys edges will generally be linked to more than one surface
+            # and hence to more than one space. It is possible for a TBD JSON file
+            # to hold 2x space PSI sets that affect one or more edges common to
+            # both spaces. As with Ruby and JSON hashes, the last processed TBD
+            # JSON space PSI set will supersede preceding ones. Caution ...
+            # Future revisons to TBD JSON I/O validation, e.g. log warning?
+            # Maybe revise e.g., retain most stringent PSI value?
+            edge[:surfaces].keys.each do |id|
+              next unless surfaces.has_key?(id)
+              next unless surfaces[id].has_key?(:story)
+              st = surfaces[id][:story]
+              next unless i == st.nameString
+
+              if edge.has_key?(:io_type)          # custom edge w/o custom PSI set
+                t = edge[:io_type]
+                next unless io_p.set[p].has_key?(t)
+                psi = {}
+                psi[t] = io_p.set[p][t]
+                edge[:psi] = psi
+              else
+                edge[:psi].keys.each do |t|
+                  edge[:psi][t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                end
+              end
+              edge[:set] = p
+            end
+          end
+        end
       end
 
       if io.has_key?(:spacetypes)
+        io[:spacetypes].each do |stype|
+          next unless stype.has_key?(:id)
+          next unless stype.has_key?(:psi)
+          i = stype[:id]
+          p = stype[:psi]
+          next unless io_p.set.has_key?(p)
+
+          edges.values.each do |edge|
+            next unless edge.has_key?(:psi)
+            next if edge.has_key?(:io_set)       # customized edge WITH custom PSI
+            next unless edge.has_key?(:surfaces)
+
+            # TBD/Topolys edges will generally be linked to more than one surface
+            # and hence to more than one space. It is possible for a TBD JSON file
+            # to hold 2x space PSI sets that affect one or more edges common to
+            # both spaces. As with Ruby and JSON hashes, the last processed TBD
+            # JSON space PSI set will supersede preceding ones. Caution ...
+            # Future revisons to TBD JSON I/O validation, e.g. log warning?
+            # Maybe revise e.g., retain most stringent PSI value?
+            edge[:surfaces].keys.each do |id|
+              next unless surfaces.has_key?(id)
+              next unless surfaces[id].has_key?(:stype)
+              st = surfaces[id][:stype]
+              next unless i == st.nameString
+
+              if edge.has_key?(:io_type)          # custom edge w/o custom PSI set
+                t = edge[:io_type]
+                next unless io_p.set[p].has_key?(t)
+                psi = {}
+                psi[t] = io_p.set[p][t]
+                edge[:psi] = psi
+              else
+                edge[:psi].keys.each do |t|
+                  edge[:psi][t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                end
+              end
+              edge[:set] = p
+            end
+          end
+        end
       end
 
       if io.has_key?(:spaces)
@@ -1184,6 +1282,7 @@ require "psi"
 
           edges.values.each do |edge|
             next unless edge.has_key?(:psi)
+            next if edge.has_key?(:io_set)       # customized edge WITH custom PSI
             next unless edge.has_key?(:surfaces)
 
             # TBD/Topolys edges will generally be linked to more than one surface
@@ -1191,17 +1290,26 @@ require "psi"
             # to hold 2x space PSI sets that affect one or more edges common to
             # both spaces. As with Ruby and JSON hashes, the last processed TBD
             # JSON space PSI set will supersede preceding ones. Caution ...
-            # Maybe future revisons to TBD JSON I/O validation ...
-            edge[:surfaces].each do |s|
-              next unless surfaces.has_key?(s)
-              next unless surfaces[s].has_key?(:space)
-              sp = surfaces[s][:space]
-              next if sp.empty?
-              sp = sp.get
+            # Future revisons to TBD JSON I/O validation, e.g. log warning?
+            # Maybe revise e.g., retain most stringent PSI value?
+            edge[:surfaces].keys.each do |id|
+              next unless surfaces.has_key?(id)
+              next unless surfaces[id].has_key?(:space)
+              sp = surfaces[id][:space]
               next unless i == sp.nameString
-              edge[:psi].keys.each do |t|
-                edge[:psi][t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+
+              if edge.has_key?(:io_type)          # custom edge w/o custom PSI set
+                t = edge[:io_type]
+                next unless io_p.set[p].has_key?(t)
+                psi = {}
+                psi[t] = io_p.set[p][t]
+                edge[:psi] = psi
+              else
+                edge[:psi].keys.each do |t|
+                  edge[:psi][t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                end
               end
+              edge[:set] = p
             end
           end
         end
@@ -1210,31 +1318,59 @@ require "psi"
       if io.has_key?(:surfaces)
         io[:surfaces].each do |surface|
           next unless surface.has_key?(:id)
+          next unless surface.has_key?(:psi)
           i = surface[:id]
-          if surface.has_key?(:psi)
-            p = surface[:psi]
-            next unless io_p.set.has_key?(p)
+          p = surface[:psi]
+          next unless io_p.set.has_key?(p)
 
-            edges.values.each do |edge|
-              next unless edge.has_key?(:psi)
-              next unless edge.has_key?(:surfaces)
+          edges.values.each do |edge|
+            next unless edge.has_key?(:psi)
+            next if edge.has_key?(:io_set)       # customized edge WITH custom PSI
+            next unless edge.has_key?(:surfaces)
 
-              # TBD/Topolys edges will generally be linked to more than one
-              # surface. It is possible for a TBD JSON file to hold 2x surface PSI
-              # sets that affect one or more edges common to both surfaces. As
-              # with Ruby and JSON hashes, the last processed TBD JSON surface PSI
-              # set will supersede preceding ones. Caution ...
-              # Maybe future revisons to TBD JSON I/O validation ...
-              edge[:surfaces].each do |s|
-                next unless surfaces.has_key?(s)
-                next unless i == s
+            # TBD/Topolys edges will generally be linked to more than one
+            # surface. It is possible for a TBD JSON file to hold 2x surface PSI
+            # sets that affect one or more edges common to both surfaces. As
+            # with Ruby and JSON hashes, the last processed TBD JSON surface PSI
+            # set will supersede preceding ones. Caution ...
+            # Future revisons to TBD JSON I/O validation, e.g. log warning?
+            # Maybe revise e.g., retain most stringent PSI value?
+            edge[:surfaces].keys.each do |s|
+              next unless surfaces.has_key?(s)
+              next unless i == s
+              if edge.has_key?(:io_type)          # custom edge w/o custom PSI set
+                t = edge[:io_type]
+                next unless io_p.set[p].has_key?(t)
+                psi = {}
+                psi[t] = io_p.set[p][t]
+                edge[:psi] = psi
+              else
+                edge[:psi] = {} unless edge.has_key?(:psi)
                 edge[:psi].keys.each do |t|
                   edge[:psi][t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
                 end
               end
+              edge[:set] = p
             end
           end
         end
+      end
+
+      # Loop through all customized edges on file WITH a custom PSI set
+      edges.values.each do |edge|
+        next unless edge.has_key?(:psi)
+        next unless edge.has_key?(:io_set)
+        next unless edge.has_key?(:io_type)
+        next unless edge.has_key?(:surfaces)
+
+        t = edge[:io_type]
+        p = edge[:io_set]
+        next unless io_p.set.has_key?(p)
+        next unless io_p.set[p].has_key?(t)
+        psi = {}
+        psi[t] = io_p.set[p][t]
+        edge[:psi] = psi
+        edge[:set] = p
       end
     end
 
@@ -1401,26 +1537,38 @@ require "psi"
     # avoiding inadvertent derating - TBD will not derate constructions
     # (or rather materials) having " tbd" in its OpenStudio name.
     surfaces.each do |id, surface|
+      next unless surface.has_key?(:construction)
+      next unless surface.has_key?(:index)
+      next unless surface.has_key?(:ltype)
+      next unless surface.has_key?(:r)
       next unless surface.has_key?(:edges)
+      next unless surface.has_key?(:heatloss)
+      next unless surface[:heatloss].abs > 0.01
       os_model.getSurfaces.each do |s|
         next unless id == s.nameString
-        current_c = s.construction.get
-        next if current_c.nil?
-        construction_name = current_c.nameString
+        index = surface[:index]
+        #current_c = s.construction.get
+        #next if current_c.nil?
+        #construction_name = current_c.nameString
+        #c = current_c.clone(os_model).to_Construction.get
+
+        current_c = surface[:construction]
+        # next if current_c.nil?
         c = current_c.clone(os_model).to_Construction.get
 
         # index - of layer/material (to derate) in cloned construction
         # type  - either massless (RSi) or standard (k + d)
         # r     - initial RSi value of the targeted layer to derate
-        index, type, r = deratableLayer(c)
+        #index, type, r = deratableLayer(c)
 
-        index = nil unless index.is_a?(Numeric) &&
-                           index >=0            &&
-                           index < c.layers.size
+        #index = nil unless index.is_a?(Numeric) &&
+        #                   index >=0            &&
+        #                   index < c.layers.size
 
         # m     - newly derated, cloned material
         m = nil
-        m = derate(os_model, id, surface, c, index, type, r) unless index.nil?
+        m = derate(os_model, id, surface, c) unless index.nil?
+        #m = derate(os_model, id, surface, c, index, type, r) unless index.nil?
 
         # "m" may be nilled simply because the targeted construction has already
         # been derated, i.e. holds " tbd" in its name. Names of cloned/derated

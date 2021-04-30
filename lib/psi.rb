@@ -888,31 +888,35 @@ end
 # @param [String] id Insulating material identifier
 # @param [Hash] surface A TBD surface
 # @param [OpenStudio::Model::Construction] c An OS construction
-# @param [Integer] index Position of layer (to derate) within c
-# @param [Symbol] type Insulating material type (:standard or :massless)
-# @param [Float] r Thermal resistance of insulating layer [m2.K/W]
 #
 # @return [OpenStudio::Model::Material] Returns derated (cloned) material
-def derate(os_model, id, surface, c, index, type, r)
+def derate(os_model, id, surface, c)
   m = nil
-  if surface.has_key?(:heatloss)                   &&
-    surface.has_key?(:net)                         &&
-    surface[:heatloss].is_a?(Numeric)              &&
-    surface[:net].is_a?(Numeric)                   &&
-    index != nil                                   &&
-    index.is_a?(Integer)                           &&
-    index >= 0                                     &&
-    r.is_a?(Numeric)                               &&
-    r >= 0.001                                     &&
-    (type == :massless || type == :standard)       &&
+  if surface.has_key?(:heatloss)                                    &&
+    surface.has_key?(:net)                                          &&
+    surface[:heatloss].is_a?(Numeric)                               &&
+    surface[:net].is_a?(Numeric)                                    &&
+    surface.has_key?(:construction)                                 &&
+    surface.has_key?(:index)                                        &&
+    surface.has_key?(:ltype)                                        &&
+    surface.has_key?(:r)                                            &&
+    surface[:index] != nil                                          &&
+    surface[:index].is_a?(Integer)                                  &&
+    surface[:index] >= 0                                            &&
+    surface[:r].is_a?(Numeric)                                      &&
+    surface[:r] >= 0.001                                            &&
+    (surface[:ltype] == :massless || surface[:ltype] == :standard)  &&
     / tbd/i.match(c.nameString) == nil                 # skip if already derated
 
+    index          = surface[:index]
+    ltype          = surface[:ltype]
+    r              = surface[:r]
     u              = surface[:heatloss] / surface[:net]
     loss           = 0.0
     de_u           = 1.0 / r + u                                     # derated U
     de_r           = 1.0 / de_u                                      # derated R
 
-    if type == :massless
+    if ltype == :massless
       m            = c.getLayer(index).to_MasslessOpaqueMaterial
 
       unless m.empty?
@@ -929,7 +933,7 @@ def derate(os_model, id, surface, c, index, type, r)
         m.setThermalResistance(de_r)
       end
 
-    else                                                     # type == :standard
+    else                                                    # ltype == :standard
       m            = c.getLayer(index).to_StandardOpaqueMaterial
       unless m.empty?
         m          = m.get
@@ -1014,18 +1018,35 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
 
     # Content of the hash will evolve over the next few hundred lines.
     surfaces[id] = {
-      type:     type,
-      ground:   ground,
-      boundary: boundary,
-      space:    space,
-      gross:    s.grossArea,
-      net:      s.netArea,
-      points:   points,
-      minz:     minz,
-      n:        n
+      type:         type,
+      ground:       ground,
+      boundary:     boundary,
+      space:        space,
+      gross:        s.grossArea,
+      net:          s.netArea,
+      points:       points,
+      minz:         minz,
+      n:            n
     }
     surfaces[id][:stype] = space.spaceType.get unless space.spaceType.empty?
     surfaces[id][:story] = space.buildingStory.get unless space.buildingStory.empty?
+
+    unless s.construction.empty?
+      construction = s.construction.get.to_Construction.get
+      # index  - of layer/material (to derate) in construction
+      # ltype  - either massless (RSi) or standard (k + d)
+      # r      - initial RSi value of the indexed layer to derate
+      index, ltype, r = deratableLayer(construction)
+      index = nil unless index.is_a?(Numeric)
+      index = nil unless index >= 0
+      index = nil unless index < construction.layers.size
+      unless index.nil?
+        surfaces[id][:construction] = construction
+        surfaces[id][:index]        = index
+        surfaces[id][:ltype]        = ltype
+        surfaces[id][:r]            = r
+      end
+    end
   end                                              # (opaque) surfaces populated
 
   # Fetch OpenStudio subsurfaces & key attributes.
@@ -1703,7 +1724,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
 
     next unless deratables.size > 0
 
-    # Split thermal bridge heat loss equally amongst deratable surfaces.
+    # Split thermal bridge heat loss equally amongst deratable surfaces. NONONONON
     bridge[:psi] /= deratables.size
 
     # Assign heat loss from thermal bridges to surfaces.
@@ -1749,33 +1770,38 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
   # avoiding inadvertent derating - TBD will not derate constructions
   # (or rather materials) having " tbd" in its OpenStudio name.
   surfaces.each do |id, surface|
+    next unless surface.has_key?(:construction)
+    next unless surface.has_key?(:index)
+    next unless surface.has_key?(:ltype)
+    next unless surface.has_key?(:r)
     next unless surface.has_key?(:edges)
     next unless surface.has_key?(:heatloss)
     next unless surface[:heatloss].abs > 0.01
     os_model.getSurfaces.each do |s|
       next unless id == s.nameString
-      current_c = s.construction.get
-      next if current_c.nil?
-      construction_name = current_c.nameString
+      index = surface[:index]
+      current_c = surface[:construction]
+      # next if current_c.nil?
       c = current_c.clone(os_model).to_Construction.get
 
       # index - of layer/material (to derate) in cloned construction
       # type  - either massless (RSi) or standard (k + d)
-      # r     - initial RSi value of the targeted layer to derate
-      index, type, r = deratableLayer(c)
+      # r     - initial RSi value of the indexed layer to derate
 
-      index = nil unless index.is_a?(Numeric) &&
-                         index >=0            &&
-                         index < c.layers.size
+      # index, type, r = deratableLayer(c)
+      # index = nil unless index.is_a?(Numeric)
+      # index = nil unless index >=0
+      # index = nil unless index < c.layers.size
 
       # m ... newly derated, cloned material
       m = nil
-      m = derate(os_model, id, surface, c, index, type, r) unless index.nil?
+      # m = derate(os_model, id, surface, c, index, type, r) unless index.nil? # still need type?
+      m = derate(os_model, id, surface, c) unless index.nil?
 
       # m may be nilled simply because the targeted construction has already
       # been derated, i.e. holds " tbd" in its name. Names of cloned/derated
       # constructions (due to TBD) include the surface name (since derated
-      # constructions are unique to each surface) and the suffix " c tbd".
+      # constructions are now unique to each surface) and the suffix " c tbd".
       unless m.nil?
         c.setLayer(index, m)
         c.setName("#{id} c tbd")
@@ -1804,7 +1830,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
         # uFactor calculation. An example would be 25mm-50mm air gaps behind
         # brick veneer.
         #
-        # If one comments-out the following loop (3 lines), tested surfaces
+        # If one comments out the following loop (3 lines), tested surfaces
         # with air layers will generate discrepencies between the calculed RSi
         # value above and the inverse of the uFactor. All other surface
         # constructions pass the test.
