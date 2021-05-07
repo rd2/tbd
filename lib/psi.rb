@@ -479,8 +479,210 @@ def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
     raise "Incomplete PSI set #{set}" unless psi.complete?(set)
     io[:building] = [{ psi: set }]             # i.e. default PSI set & no KHI's
   end
-
   return io, psi, khi
+end
+
+##
+# Validate if model has zones with valid winter DD temperature setpoints
+#
+# @param [OpenStudio::Model::Model] model An OS model
+#
+# @return [Bool] Returns true if valid winter DD temperature setpoints
+def winterDesignDayTemperatureSetpoints?(model)
+  answer = false
+  if model
+    unless model.is_a?(OpenStudio::Model::Model)
+      raise "Expected OpenStudio model - got a #{model.class} (winter DD)"
+    end
+
+    model.getThermalZones.each do |zone|
+      next if answer
+
+      next if zone.thermostatSetpointDualSetpoint.empty?
+      dual = zone.thermostatSetpointDualSetpoint.get
+
+      next if dual.heatingSetpointTemperatureSchedule.empty?
+      schedule = dual.heatingSetpointTemperatureSchedule.get
+
+      dd = nil
+      unless schedule.to_ScheduleRuleset.empty?
+        ruleset = schedule.to_ScheduleRuleset.get
+        dd = ruleset.winterDesignDaySchedule
+      end
+
+      unless schedule.to_ScheduleYear.empty?
+        year = schedule.to_ScheduleYear.get
+        year.getScheduleWeeks.each do |week|
+          next if dd
+          next if week.winterDesignDaySchedule.empty?
+          dd = week.winterDesignDaySchedule.get
+        end
+      end
+
+      next unless dd
+      next if dd.values.empty?
+      answer = true if dd.values.max.is_a?(Numeric)
+    end
+  end
+  answer
+end
+
+##
+# Return valid zone winter DD temperature setpoint [°C]
+#
+# @param [OpenStudio::Model::Model] zone An OS thermal zone
+#
+# @return [Bool] Returns zone winter DD temperature setpoint if valid; else, nil
+def winterDesignDayTemperatureSetpoint(zone)
+  setpoint = nil
+
+  if zone
+    unless zone.is_a?(OpenStudio::Model::ThermalZone)
+      raise "Expected OpenStudio Thermal Zone - got a #{zone.class} (winter DD)"
+    end
+
+    unless zone.thermostatSetpointDualSetpoint.empty?
+      dual = zone.thermostatSetpointDualSetpoint.get
+
+      unless dual.heatingSetpointTemperatureSchedule.empty?
+        schedule = dual.heatingSetpointTemperatureSchedule.get
+
+        unless schedule.to_ScheduleRuleset.empty?
+          ruleset = schedule.to_ScheduleRuleset.get
+          dd = ruleset.winterDesignDaySchedule
+          setpoint = dd.values.max unless dd.values.empty?
+        end
+
+        unless schedule.to_ScheduleYear.empty?
+          year = schedule.to_ScheduleYear.get
+          year.getScheduleWeeks.each do |week|
+            next if week.winterDesignDaySchedule.empty?
+            dd = week.winterDesignDaySchedule.get
+            t = dd.values.max unless dd.values.empty?
+            if setpoint
+              setpoint = t unless t < setpoint
+            else
+              setpoint = t
+            end
+          end
+        end
+      end
+    end
+  end
+  setpoint
+end
+
+##
+# Return valid zone summer DD temperature setpoint [°C]
+#
+# @param [OpenStudio::Model::Model] zone An OS thermal zone
+#
+# @return [Bool] Returns zone summer DD temperature setpoint if valid; else, nil
+def summerDesignDayTemperatureSetpoint(zone)
+  setpoint = nil
+
+  if zone
+    unless zone.is_a?(OpenStudio::Model::ThermalZone)
+      raise "Expected OpenStudio Thermal Zone - got a #{zone.class} (summer DD)"
+    end
+
+    unless zone.thermostatSetpointDualSetpoint.empty?
+      dual = zone.thermostatSetpointDualSetpoint.get
+
+      unless dual.coolingSetpointTemperatureSchedule.empty?
+        schedule = dual.coolingSetpointTemperatureSchedule.get
+
+        unless schedule.to_ScheduleRuleset.empty?
+          ruleset = schedule.to_ScheduleRuleset.get
+          dd = ruleset.summerDesignDaySchedule
+          setpoint = dd.values.max unless dd.values.empty?
+        end
+
+        unless schedule.to_ScheduleYear.empty?
+          year = schedule.to_ScheduleYear.get
+          year.getScheduleWeeks.each do |week|
+            next if week.coolingDesignDaySchedule.empty?
+            dd = week.summerDesignDaySchedule.get
+            t = dd.values.max unless dd.values.empty?
+            if setpoint
+              setpoint = t unless t < setpoint
+            else
+              setpoint = t
+            end
+          end
+        end
+      end
+    end
+  end
+  setpoint
+end
+
+##
+# Validate if model has zones with valid summer DD temperature setpoints
+#
+# @param [OpenStudio::Model::Model] model An OS model
+#
+# @return [Bool] Returns true if valid summer DD temperature setpoints
+def summerDesignDayTemperatureSetpoints?(model)
+  answer = false
+  if model
+    unless model.is_a?(OpenStudio::Model::Model)
+      raise "Expected OpenStudio model - got a #{model.class} (summer DD)"
+    end
+
+    model.getThermalZones.each do |zone|
+      next if answer
+
+      next if zone.thermostatSetpointDualSetpoint.empty?
+      dual = zone.thermostatSetpointDualSetpoint.get
+
+      next if dual.coolingSetpointTemperatureSchedule.empty?
+      schedule = dual.coolingSetpointTemperatureSchedule.get
+
+      dd = nil
+      unless schedule.to_ScheduleRuleset.empty?
+        ruleset = schedule.to_ScheduleRuleset.get
+        dd = ruleset.summerDesignDaySchedule
+      end
+
+      unless schedule.to_ScheduleYear.empty?
+        year = schedule.to_ScheduleYear.get
+        year.getScheduleWeeks.each do |week|
+          next if dd
+          next if week.summerDesignDaySchedule.empty?
+          dd = week.summerDesignDaySchedule.get
+        end
+      end
+
+      next unless dd
+      next if dd.values.empty?
+      answer = true if dd.values.min.is_a?(Numeric)
+    end
+  end
+  answer
+end
+
+##
+# Validate if model has zones with HVAC air loops
+#
+# @param [OpenStudio::Model::Model] model An OS model
+#
+# @return [Bool] Returns true if HVAC air loops
+def airLoopsHVAC?(model)
+  answer = false
+  if model
+    unless model.is_a?(OpenStudio::Model::Model)
+      raise "Expected OpenStudio model - got a #{model.class} (HVAC air loops)"
+    end
+
+    model.getThermalZones.each do |zone|
+      next if answer
+      next if zone.canBePlenum
+      answer = true unless zone.airLoopHVACs.empty?
+      answer = true if zone.isPlenum
+    end
+  end
+  answer
 end
 
 ##
@@ -685,7 +887,7 @@ def generateKiva(os_model, walls, floors, edges)
   kiva = true
 
   # The following is loosely adapted from:
-  # https://github.com/NREL/OpenStudio-resources/blob/develop/model/simulationtests/foundation_kiva.rb
+  # github.com/NREL/OpenStudio-resources/blob/develop/model/simulationtests/foundation_kiva.rb
   # ... thanks.
 
   # Generate template for KIVA settings. This is usually not required (the
@@ -845,35 +1047,35 @@ end
 # @return [Float] Returns insulating layer thermal resistance [m2.K/W]
 def deratableLayer(construction)
   # Identify insulating material (and key attributes) within a construction.
-  r                     = 0.0         # R-value of insulating material
-  index                 = nil         # index of insulating material
-  type                  = nil         # nil, :massless; or :standard
-  i                     = 0           # iterator
+  r                = 0.0         # R-value of insulating material
+  index            = nil         # index of insulating material
+  type             = nil         # nil, :massless; or :standard
+  i                = 0           # iterator
 
   construction.layers.each do |m|
     unless m.to_MasslessOpaqueMaterial.empty?
-      m                 = m.to_MasslessOpaqueMaterial.get
+      m            = m.to_MasslessOpaqueMaterial.get
       if m.thermalResistance < 0.001 || m.thermalResistance < r
         i += 1
         next
       else
-        r                 = m.thermalResistance
-        index             = i
-        type              = :massless
+        r          = m.thermalResistance
+        index      = i
+        type       = :massless
       end
     end
 
     unless m.to_StandardOpaqueMaterial.empty?
-      m                 = m.to_StandardOpaqueMaterial.get
-      k                 = m.thermalConductivity
-      d                 = m.thickness
+      m            = m.to_StandardOpaqueMaterial.get
+      k            = m.thermalConductivity
+      d            = m.thickness
       if d < 0.003 || k > 3.0 || d / k < r
         i += 1
         next
       else
-        r                 = d / k
-        index             = i
-        type              = :standard
+        r          = d / k
+        index      = i
+        type       = :standard
       end
     end
     i += 1
@@ -986,7 +1188,6 @@ end
 # @return [Hash] Returns TBD collection of objects for JSON serialization
 # @return [Hash] Returns collection of derated TBD surfaces
 def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
-  surfaces = {}
 
   os_model_class = OpenStudio::Model::Model
   raise "Empty OpenStudio Model"    unless os_model
@@ -997,11 +1198,147 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
   # Create the Topolys Model.
   t_model = Topolys::Model.new
 
+  # TBD deals with ~insulated envelope surfaces enclosing spaces that are
+  # directly or indirectly CONDITIONED, or SEMI-HEATED. TBD is designed to
+  # ignore surfaces in UNCONDITIONED and UNENCLOSED spaces. TBD relies as
+  # much as possible on space conditioning categories found in standards like
+  # ASHRAE 90.1 and energy codes like the Canadian NECB. Both documents share
+  # many similarities, regardless of nomenclature. There are however
+  # noticeable differences between approaches on how a space is tagged as
+  # falling into any of the aforementioned categories. First, an overview of
+  # 90.1 requirements (with some minor edits for brevity + added emphasis):
+  #
+  # www.pnnl.gov/main/publications/external/technical_reports/PNNL-26917.pdf
+  #
+  #   3.2.1. General Information - SPACE CONDITIONING CATEGORY
+  #
+  #     - CONDITIONED space: an ENCLOSED space that has a heating and/or
+  #       cooling system of sufficient size to maintain temperatures suitable
+  #       for HUMAN COMFORT:
+  #         - COOLED: cooled by a system >= 10 W/m2
+  #         - HEATED: heated by a system e.g., >= 50 W/m2 in Climate Zone CZ-7
+  #         - INDIRECTLY: heated or cooled via adjacent space(s) provided:
+  #             - UA of adjacent surfaces > UA of other surfaces
+  #                 or
+  #             - intentional air transfer from HEATED/COOLED space > 3 ACH
+  #
+  #               ... includes plenums, atria, etc.
+  #
+  #     - SEMI-HEATED space: an ENCLOSED space that has a heating system
+  #       >= 10 W/m2, yet NOT a CONDITIONED space (see above).
+  #
+  #     - UNCONDITIONED space: an ENCLOSED space that is NOT a conditioned
+  #       space or a SEMI-HEATED space (see above).
+  #
+  #       NOTE: Crawlspaces, attics, and parking garages with natural or
+  #       mechanical ventilation are considered UNENCLOSED spaces.
+  #
+  #       2.3.3 Modeling Requirements: surfaces adjacent to UNENCLOSED spaces
+  #       shall be treated as exterior surfaces. All other UNENCLOSED surfaces
+  #       are to be modeled as is in both proposed and baseline models. For
+  #       instance, modeled fenestration in UNENCLOSED spaces would not be
+  #       factored in WWR calculations.
+  #
+  #
+  # Related NECB definitions and concepts, starting with CONDITIONED space:
+  #
+  # "[...] the temperature of which is controlled to limit variation in
+  # response to the exterior ambient temperature by the provision, either
+  # DIRECTLY or INDIRECTLY, of heating or cooling [...]". Although criteria
+  # differ (e.g., not sizing-based), the general idea is sufficiently similar
+  # to ASHRAE 90.1 for TBD purposes (e.g., heating and/or cooling based, no
+  # distinction for INDIRECTLY conditioned spaces like plenums).
+  #
+  # SEMI-HEATED spaces are also a defined NECB term, but again the distinction
+  # is based on desired/intended design space setpoint temperatures - not
+  # system sizing criteria. However, as there is currently little-to-no
+  # guidance on how to adapt thermal bridge PSI-values when dealing with
+  # spaces not intended to be maintained at 21°C (ref: BETBG), by default TBD
+  # will seek to process envelope surfaces in SEMI-HEATED spaces as those in
+  # CONDITIONED spaces. Users can always rely of customized PSI sets to target
+  # SEMI-HEATED spaces e.g., space- or spacetype-specific.
+  #
+  # The single NECB criterion distinguishing UNCONDITIONED ENCLOSED spaces
+  # (such as vestibules) from UNENCLOSED spaces (such as attics) remains the
+  # intention to ventilate - or rather to what degree. Regardless, TBD will
+  # process both classifications in the same way, namely by focusing on
+  # adjacent surfaces to CONDITIONED (or SEMI-HEATED) spaces as part of the
+  # building envelope.
+
+  # In light of the preceding compare/contrast analysis, TBD is designed to
+  # handle envelope surfaces without a priori knowledge of explicit system
+  # sizing choices or access to iterative autosizing processes. As discussed
+  # in the following, TBD seeks to rely on zoning info and/or "intended"
+  # design day (DD) setpoint temperatures to determine which surfaces to
+  # process.
+  #
+  # For an OSM in an incomplete or preliminary state (e.g., holding fully-formed
+  # ENCLOSED spaces without thermal zoning information or design day (DD)
+  # conditions [early design stage assessments of form/porosity/envelope])
+  # TBD will seek to derate opaque, outdoor-facing surfaces only by positing
+  # that all OSM spaces are CONDITIONED, having DD setpoints of ~21°C (heating)
+  # and ~24°C (cooling), à la BETBG.
+  #
+  # If any valid space/zone-specific DD setpoints are found in the OSM, TBD
+  # will instead seek to tag outdoor-facing opaque surfaces with their parent
+  # space/zone's explicit heating and/or cooling DD setpoints. In such cases,
+  # spaces/zones without valid DD heating or cooling setpoints are either
+  # considered as UNCONDITIONED or UNENCLOSED spaces (like attics), or
+  # INDIRECTLY CONDITIONED spaces (like plenums), as follows:
+  #
+  #   For a fully-developed OSM (complete with HVAC), the OpenStudio API
+  #   offers a very useful method to distinguish between UNCONDITIONED or
+  #   UNENCLOSED vs INDIRECTLY CONDITIONED spaces/zones, "canBePlenum":
+  #
+  #     "true" if zone is UNCONDITIONED and available to be used as a plenum.
+  #     This means the zone is not attached to an AirLoopHVAC structure as a
+  #     CONDITIONED zone and there is no zone equipment.
+  #
+  #   For a partially developed OSM (DD setpoints, yet without HVAC),
+  #   "canBePlenum" is not an option. In absence of any OSM HVAC air loop, the
+  #   following workaround is instead followed:
+  #
+  #     Does thermal zone have a ThermostatSetpointDualSetpoint (TSDS)?
+  #       NO?
+  #         - UNCONDITIONED/UNENCLOSED
+  #       YES?
+  #         Does TSDS hold a heating or cooling setpoint schedule (HCSS)?
+  #           NO?
+  #             - INDIRECTLY CONDITIONED
+  #           YES?
+  #             Does HCSS hold a valid winter or summer (cooling) DD schedule?
+  #               NO?
+  #                 - INDIRECTLY CONDITIONED
+  #               YES?
+  #                 - CONDITIONED
+
+  # "true" if any OSM space/zone holds DD setpoint temperatures.
+  # ... is heating/winter or cooling/summer "northern hemisphere" biased?
+  setpoints = winterDesignDayTemperatureSetpoints?(os_model)
+  setpoints = summerDesignDayTemperatureSetpoints?(os_model) unless setpoints
+
+  # "true" if any OSM space/zone is part of an HVAC air loop.
+  airloops = airLoopsHVAC?(os_model)
+
   # Fetch OpenStudio (opaque) surfaces & key attributes.
+  surfaces = {}
   os_model.getSurfaces.each do |s|
     next if s.space.empty?
     space = s.space.get
     id    = s.nameString
+
+    conditioned = true
+    if setpoints
+      unless space.thermalZone.empty?
+        zone = space.thermalZone.get
+        heating = winterDesignDayTemperatureSetpoint(zone)
+        cooling = summerDesignDayTemperatureSetpoint(zone)
+
+        conditioned = false if airloops && zone.canBePlenum
+      else
+        conditioned = false
+      end
+    end
 
     # Site-specific (or absolute, or true) surface normal.
     t, r = transforms(os_model, space)
@@ -1019,6 +1356,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
     # Content of the hash will evolve over the next few hundred lines.
     surfaces[id] = {
       type:         type,
+      conditioned:  conditioned,
       ground:       ground,
       boundary:     boundary,
       space:        space,
@@ -1028,6 +1366,8 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
       minz:         minz,
       n:            n
     }
+    surfaces[id][:heating] = heating if heating  # if valid winter DD setpoint
+    surfaces[id][:cooling] = cooling if cooling  # if valid summer DD setpoint
     surfaces[id][:stype] = space.spaceType.get unless space.spaceType.empty?
     surfaces[id][:story] = space.buildingStory.get unless space.buildingStory.empty?
 
@@ -1155,10 +1495,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
 
   # Loop through Topolys edges and populate TBD edge hash. Initially, there
   # should be a one-to-one correspondence between Topolys and TBD edge
-  # objects. TBD edges shared only by non-deratable surfaces (e.g. 2x interior
-  # walls, or outer edges of shadng surfaces) will either be removed from the
-  # hash, or ignored (on the fence right now). Use Topolys-generated
-  # identifiers as unique edge hash keys.
+  # objects. Use Topolys-generated identifiers as unique edge hash keys.
   edges = {}
 
   # Start with hole edges.
@@ -1313,8 +1650,10 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
 
   # Topolys edges may constitute thermal bridges (and therefore thermally
   # derate linked OpenStudio surfaces), depending on a number of factors such
-  # as surface types and boundary conditions. Thermal bridging attributes
-  # (type & PSI-value pairs) are grouped into PSI sets (method argument).
+  # as surface types, space conditioning and boundary conditions. Thermal
+  # bridging attributes (type & PSI-value pairs) are grouped into PSI sets,
+  # normally accessed through the 'set' user-argument (in the OpenStudio
+  # Measure interface).
 
   # Process user-defined TBD JSON file inputs if file exists & valid:
   #   "io" holds valid TBD JSON hash from file
@@ -1324,10 +1663,10 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
 
   edges.values.each do |edge|
     next unless edge.has_key?(:surfaces)
-    next unless edge[:surfaces].size > 1 #       may need to revisit e.g. :party
+    next unless edge[:surfaces].size > 1          # no longer required if :party
 
-    # Skip unless one (at least) linked surface is deratable, i.e.
-    # outside-facing floor, ceiling or wall.
+    # Skip unless one (at least) linked surface is deratable i.e.,
+    # floor, ceiling or wall facing outdoors or UNCONDITIONED space.
     deratable = false
     edge[:surfaces].each do |id, surface|
       deratable = true if floors.has_key?(id)
@@ -1354,16 +1693,18 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
 
       # Skipping the :party wall label for now. Criteria determining party
       # wall edges from TBD edges is to be determined. Most likely scenario
-      # seems to be an edge linking only 1x outside-facing with only 1x
-      # adiabatic surface. Warrants separate tests. TO DO.
+      # seems to be an edge linking only 1x surface facings outdoors (or
+      # unconditioned space) with only 1x adiabatic surface. Warrants separate
+      # tests. TO DO.
 
       # Label edge as :grade if linked to:
-      #   1x ground-facing surface (e.g. slab or wall)
-      #   1x outside-facing surface (i.e. normally a wall)
+      #   1x surface (e.g. slab or wall) facing ground
+      #   1x surface (i.e. wall) facing outdoors OR UNCONDITIONED space
       unless psi.has_key?(:grade)
         edge[:surfaces].keys.each do |i|
           next unless surfaces.has_key?(i)
-          next unless surfaces[i][:boundary].downcase == "outdoors"
+          next unless surfaces[i][:boundary].downcase == "outdoors" ||
+                      surfaces[i][:conditioned] == false
           next unless surfaces[id].has_key?(:ground)
           next unless surfaces[id][:ground]
           psi[:grade] = io_p.set[p][:grade]
@@ -1382,14 +1723,16 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
       end
 
       # Label edge as :parapet if linked to:
-      #   1x outside-facing wall &
-      #   1x outside-facing ceiling
+      #   1x wall facing outdoors OR UNCONDITIONED space &
+      #   1x ceiling facing outdoors OR UNCONDITIONED space
       unless psi.has_key?(:parapet)
         edge[:surfaces].keys.each do |i|
           next unless walls.has_key?(i)
-          next unless walls[i][:boundary].downcase == "outdoors"
+          next unless walls[i][:boundary].downcase == "outdoors" ||
+                      walls[i][:conditioned] == false
           next unless ceilings.has_key?(id)
-          next unless ceilings[id][:boundary].downcase == "outdoors"
+          next unless ceilings[id][:boundary].downcase == "outdoors" ||
+                      ceilings[id][:conditioned] == false
           psi[:parapet] = io_p.set[p][:parapet]
         end
       end
@@ -1399,9 +1742,11 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
       unless psi.has_key?(:parapet)
         edge[:surfaces].keys.each do |i|
           next unless walls.has_key?(i)
-          next unless walls[i][:boundary].downcase == "outdoors"
+          next unless walls[i][:boundary].downcase == "outdoors" ||
+                      walls[i][:conditioned] == false
           next unless floors.has_key?(id)
-          next unless floors[id][:boundary].downcase == "outdoors"
+          next unless floors[id][:boundary].downcase == "outdoors" ||
+                      floors[id][:conditioned] == false
           psi[:parapet] = io_p.set[p][:parapet]
         end
       end
@@ -1411,21 +1756,24 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
       unless psi.has_key?(:parapet)
         edge[:surfaces].keys.each do |i|
           next unless ceilings.has_key?(i)
-          next unless ceilings[i][:boundary].downcase == "outdoors"
+          next unless ceilings[i][:boundary].downcase == "outdoors" ||
+                      ceilings[i][:conditioned] == false
           next unless floors.has_key?(id)
-          next unless floors[id][:boundary].downcase == "outdoors"
+          next unless floors[id][:boundary].downcase == "outdoors" ||
+                      floors[id][:conditioned] == false
           psi[:parapet] = io_p.set[p][:parapet]
         end
       end
 
       # Label edge as :rimjoist if linked to:
-      #   1x outside-facing wall &
+      #   1x wall facing outdoors OR UNCONDITIONED space &
       #   1x floor
       unless psi.has_key?(:rimjoist)
         edge[:surfaces].keys.each do |i|
           next unless floors.has_key?(i)
           next unless walls.has_key?(id)
-          next unless walls[id][:boundary].downcase == "outdoors"
+          next unless walls[id][:boundary].downcase == "outdoors" ||
+                      walls[id][:conditioned] == false
           psi[:rimjoist] = io_p.set[p][:rimjoist]
         end
       end
@@ -1440,14 +1788,17 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
       end
 
       # Label edge as :concave or :convex (corner) if linked to:
-      #   2x outside-facing walls (& relative polar positions of walls)
+      #   2x walls facing outdoors OR UNCONDITIONED space &
+      #            f(relative polar positions of walls)
       unless psi.has_key?(:concave) || psi.has_key?(:convex)
         edge[:surfaces].keys.each do |i|
           next if i == id
           next unless walls.has_key?(i)
-          next unless walls[i][:boundary].downcase == "outdoors"
+          next unless walls[i][:boundary].downcase == "outdoors" ||
+                      walls[i][:conditioned] == false
           next unless walls.has_key?(id)
-          next unless walls[id][:boundary].downcase == "outdoors"
+          next unless walls[id][:boundary].downcase == "outdoors" ||
+                      walls[id][:conditioned] == false
 
           s1 = edge[:surfaces][id]
           s2 = edge[:surfaces][i]
@@ -1684,7 +2035,17 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
     deratables = {}
     edge[:surfaces].each do |id, surface|
       next unless surfaces.has_key?(id)
-      next unless surfaces[id][:boundary].downcase == "outdoors"
+      deratable = false
+      if surfaces[id][:boundary].downcase == "outdoors"
+        deratable = true if surfaces[id][:conditioned] == true
+      elsif surfaces[id][:boundary].downcase == "space"
+        expect(surfaces[id].adjacentSurface.empty?).to be(false)
+        adjacent = surfaces[id].adjacentSurface.get
+        i = adjacent.nameString
+        expect(surfaces.has_key?(i)).to be(true)
+        deratable = true if surfaces[i][:conditioned] == false
+      end
+      next unless deratable
       deratables[id] = surface
     end
 
@@ -1723,13 +2084,22 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
 
     next unless deratables.size > 0
 
-    # Split thermal bridge heat loss equally amongst deratable surfaces. TO REVISE!
-    bridge[:psi] /= deratables.size
+    # Sum RSI of targeted insulating layer from each deratable surface.
+    rsi = 0
+    deratables.each do |id, deratable|
+      expect(surfaces[id].has_key?(:r)).to be(true)
+      rsi += surfaces[id][:r]
+    end
 
-    # Assign heat loss from thermal bridges to surfaces.
+    # Assign heat loss from thermal bridges to surfaces, in proportion to
+    # insulating layer thermal resistance
     deratables.each do |id, deratable|
       surfaces[id][:edges] = {} unless surfaces[id].has_key?(:edges)
-      surfaces[id][:edges][identifier] = bridge
+      loss = bridge[:psi] * surfaces[id][:r] / rsi
+
+      b = { psi: loss, type: bridge[:type], length: bridge[:length] }
+
+      surfaces[id][:edges][identifier] = b
     end
   end
 
@@ -1827,6 +2197,22 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
         # end
 
         s.setConstruction(c)
+
+        # If derated surface construction separates 2x spaces, then derate
+        # adjacent surface construction as well.
+        if s.outsideBoundaryCondition.downcase == "space"
+          expect(s.adjacentSurface.empty?).to be(false)
+          adjacent = s.adjacentSurface.get
+          i = adjacent.nameString
+          if surfaces.has_key?(i)
+            indx = surfaces[i][:index]
+            c_c = surface[:construction]
+            cc = c_c.clone(os_model).to_Construction.get
+            cc.setLayer(indx, m)
+            cc.setName("#{i} c tbd")
+            adjacent.setConstruction(cc)
+          end
+        end
 
         # Compute updated RSi value from layers.
         updated_R = s.filmResistance

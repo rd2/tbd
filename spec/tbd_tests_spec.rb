@@ -553,12 +553,33 @@ require "psi"
     # Create the Topolys Model.
     t_model = Topolys::Model.new
 
+    # "true" if any OSM space/zone holds DD setpoint temperatures.
+    # ... is heating/winter or cooling/summer "northern hemisphere" biased?
+    setpoints = winterDesignDayTemperatureSetpoints?(os_model)
+    setpoints = summerDesignDayTemperatureSetpoints?(os_model) unless setpoints
+
+    # "true" if any OSM space/zone is part of an HVAC air loop.
+    airloops = airLoopsHVAC?(os_model)
+
     # Fetch OpenStudio (opaque) surfaces & key attributes.
     surfaces = {}
     os_model.getSurfaces.each do |s|
       next if s.space.empty?
       space = s.space.get
       id    = s.nameString
+
+      conditioned = true
+      if setpoints
+        unless space.thermalZone.empty?
+          zone = space.thermalZone.get
+          heating = winterDesignDayTemperatureSetpoint(zone)
+          cooling = summerDesignDayTemperatureSetpoint(zone)
+
+          conditioned = false if airloops && zone.canBePlenum
+        else
+          conditioned = false
+        end
+      end
 
       t, r = transforms(os_model, space)
       n = trueNormal(s, r)
@@ -574,16 +595,19 @@ require "psi"
 
       # Content of the hash will evolve over the next few hundred lines.
       surfaces[id] = {
-        type:     type,
-        ground:   ground,
-        boundary: boundary,
-        space:    space,
-        gross:    s.grossArea,
-        net:      s.netArea,
-        points:   points,
-        minz:     minz,
-        n:        n
+        type:         type,
+        conditioned:  conditioned,
+        ground:       ground,
+        boundary:     boundary,
+        space:        space,
+        gross:        s.grossArea,
+        net:          s.netArea,
+        points:       points,
+        minz:         minz,
+        n:            n
       }
+      surfaces[id][:heating] = heating if heating  # if valid winter DD setpoint
+      surfaces[id][:cooling] = cooling if cooling  # if valid summer DD setpoint
       surfaces[id][:stype] = space.spaceType.get unless space.spaceType.empty?
       surfaces[id][:story] = space.buildingStory.get unless space.buildingStory.empty?
 
@@ -603,15 +627,21 @@ require "psi"
           surfaces[id][:r]            = r
         end
       end
-    end                                              # (opaque) surfaces populated
+    end                                            # (opaque) surfaces populated
+
+    surfaces.each do |id, surface|
+      expect(surface[:conditioned]).to be(true)
+      expect(surface.has_key?(:heating)).to be(false)
+      expect(surface.has_key?(:cooling)).to be(false)
+    end
 
     # Fetch OpenStudio subsurfaces & key attributes.
     os_model.getSubSurfaces.each do |s|
       next if s.space.empty?
       next if s.surface.empty?
       space = s.space.get
-      dad = s.surface.get.nameString
-      id = s.nameString
+      dad   = s.surface.get.nameString
+      id    = s.nameString
 
       # Site-specific (or absolute, or true) surface normal.
       t, r = transforms(os_model, space)
@@ -750,10 +780,7 @@ require "psi"
 
     # Loop through Topolys edges and populate TBD edge hash. Initially, there
     # should be a one-to-one correspondence between Topolys and TBD edge
-    # objects. TBD edges shared only by non-deratble surfaces (e.g. 2x interior
-    # walls, or outer edges of shadng surfaces) will either be removed from the
-    # hash, or ignored (on the fence right now). Use Topolys-generated
-    # identifiers as unique edge hash keys.
+    # objects. Use Topolys-generated identifiers as unique edge hash keys.
     edges = {}
 
     # Start with hole edges.
@@ -970,9 +997,10 @@ require "psi"
 
     # Topolys edges may constitute thermal bridges (and therefore thermally
     # derate linked OpenStudio surfaces), depending on a number of factors such
-    # as surface types and boundary conditions. Thermal bridging attributes
-    # (type & PSI-value pairs) are grouped into PSI sets, normally accessed
-    # through the 'set' user-argument (in the OpenStudio Measure interface).
+    # as surface types, space conditioning and boundary conditions. Thermal
+    # bridging attributes (type & PSI-value pairs) are grouped into PSI sets,
+    # normally accessed through the 'set' user-argument (in the OpenStudio
+    # Measure interface).
 
     psi_set = "poor (BETBG)"
     # psi_set = "(non thermal bridging)"
@@ -990,20 +1018,21 @@ require "psi"
 
     edges.values.each do |edge|
       next unless edge.has_key?(:surfaces)
-      next unless edge[:surfaces].size > 1
+      next unless edge[:surfaces].size > 1        # no longer required if :party
 
-      # Skip unless one (at least) linked surface is deratable, i.e.
-      # outside-facing floor, ceiling or wall.
+      # Skip unless one (at least) linked surface is deratable i.e.,
+      # floor, ceiling or wall facing outdoors or UNCONDITIONED space.
       deratable = false
-      edge[:surfaces].each do |id, surface|
+      edge[:surfaces].keys.each do |id|
+        next if deratable
         deratable = true if floors.has_key?(id)
         deratable = true if ceilings.has_key?(id)
         deratable = true if walls.has_key?(id)
       end
       next unless deratable
 
-      psi = {} # edge-specific PSI types
-      p = io[:building].first[:psi]
+      psi = {}                                         # edge-specific PSI types
+      p = io[:building].first[:psi]                       # default building PSI
 
       match = false
       if edge.has_key?(:io_type)              # customized edge in TBD JSON file
@@ -1020,16 +1049,18 @@ require "psi"
 
         # Skipping the :party wall label for now. Criteria determining party
         # wall edges from TBD edges is to be determined. Most likely scenario
-        # seems to be an edge linking only 1x outside-facing with only 1x
-        # adiabatic surface. Warrants separate tests. TO DO.
+        # seems to be an edge linking only 1x surface facings outdoors (or
+        # unconditioned space) with only 1x adiabatic surface. Warrants separate
+        # tests. TO DO.
 
         # Label edge as :grade if linked to:
-        #   1x ground-facing surface (e.g. slab or wall)
-        #   1x outside-facing surface (i.e. normally a wall)
+        #   1x surface (e.g. slab or wall) facing ground
+        #   1x surface (i.e. wall) facing outdoors OR UNCONDITIONED space
         unless psi.has_key?(:grade)
           edge[:surfaces].keys.each do |i|
             next unless surfaces.has_key?(i)
-            next unless surfaces[i][:boundary].downcase == "outdoors"
+            next unless surfaces[i][:boundary].downcase == "outdoors" ||
+                        surfaces[i][:conditioned] == false
             next unless surfaces[id].has_key?(:ground)
             next unless surfaces[id][:ground]
             psi[:grade] = io_p.set[p][:grade]
@@ -1048,14 +1079,16 @@ require "psi"
         end
 
         # Label edge as :parapet if linked to:
-        #   1x outside-facing wall &
-        #   1x outside-facing ceiling
+        #   1x wall facing outdoors OR UNCONDITIONED space &
+        #   1x ceiling facing outdoors OR UNCONDITIONED space
         unless psi.has_key?(:parapet)
           edge[:surfaces].keys.each do |i|
             next unless walls.has_key?(i)
-            next unless walls[i][:boundary].downcase == "outdoors"
+            next unless walls[i][:boundary].downcase == "outdoors" ||
+                        walls[i][:conditioned] == false
             next unless ceilings.has_key?(id)
-            next unless ceilings[id][:boundary].downcase == "outdoors"
+            next unless ceilings[id][:boundary].downcase == "outdoors" ||
+                        ceilings[id][:conditioned] == false
             psi[:parapet] = io_p.set[p][:parapet]
           end
         end
@@ -1065,9 +1098,11 @@ require "psi"
         unless psi.has_key?(:parapet)
           edge[:surfaces].keys.each do |i|
             next unless walls.has_key?(i)
-            next unless walls[i][:boundary].downcase == "outdoors"
+            next unless walls[i][:boundary].downcase == "outdoors" ||
+                        walls[i][:conditioned] == false
             next unless floors.has_key?(id)
-            next unless floors[id][:boundary].downcase == "outdoors"
+            next unless floors[id][:boundary].downcase == "outdoors" ||
+                        floors[id][:conditioned] == false
             psi[:parapet] = io_p.set[p][:parapet]
           end
         end
@@ -1077,21 +1112,24 @@ require "psi"
         unless psi.has_key?(:parapet)
           edge[:surfaces].keys.each do |i|
             next unless ceilings.has_key?(i)
-            next unless ceilings[i][:boundary].downcase == "outdoors"
+            next unless ceilings[i][:boundary].downcase == "outdoors" ||
+                        ceilings[i][:conditioned] == false
             next unless floors.has_key?(id)
-            next unless floors[id][:boundary].downcase == "outdoors"
+            next unless floors[id][:boundary].downcase == "outdoors" ||
+                        floors[id][:conditioned] == false
             psi[:parapet] = io_p.set[p][:parapet]
           end
         end
 
         # Label edge as :rimjoist if linked to:
-        #   1x outside-facing wall &
+        #   1x wall facing outdoors OR UNCONDITIONED space &
         #   1x floor
         unless psi.has_key?(:rimjoist)
           edge[:surfaces].keys.each do |i|
             next unless floors.has_key?(i)
             next unless walls.has_key?(id)
-            next unless walls[id][:boundary].downcase == "outdoors"
+            next unless walls[id][:boundary].downcase == "outdoors" ||
+                        walls[id][:conditioned] == false
             psi[:rimjoist] = io_p.set[p][:rimjoist]
           end
         end
@@ -1106,14 +1144,17 @@ require "psi"
         end
 
         # Label edge as :concave or :convex (corner) if linked to:
-        #   2x outside-facing walls (& relative polar positions of walls)
+        #   2x walls facing outdoors OR UNCONDITIONED space &
+        #            f(relative polar positions of walls)
         unless psi.has_key?(:concave) || psi.has_key?(:convex)
           edge[:surfaces].keys.each do |i|
             next if i == id
             next unless walls.has_key?(i)
-            next unless walls[i][:boundary].downcase == "outdoors"
+            next unless walls[i][:boundary].downcase == "outdoors" ||
+                        walls[i][:conditioned] == false
             next unless walls.has_key?(id)
-            next unless walls[id][:boundary].downcase == "outdoors"
+            next unless walls[id][:boundary].downcase == "outdoors" ||
+                        walls[id][:conditioned] == false
 
             s1 = edge[:surfaces][id]
             s2 = edge[:surfaces][i]
@@ -1379,7 +1420,17 @@ require "psi"
       deratables = {}
       edge[:surfaces].each do |id, surface|
         next unless surfaces.has_key?(id)
-        next unless surfaces[id][:boundary].downcase == "outdoors"
+        deratable = false
+        if surfaces[id][:boundary].downcase == "outdoors"
+          deratable = true if surfaces[id][:conditioned] == true
+        elsif surfaces[id][:boundary].downcase == "space"
+          expect(surfaces[id].adjacentSurface.empty?).to be(false)
+          adjacent = surfaces[id].adjacentSurface.get
+          i = adjacent.nameString
+          expect(surfaces.has_key?(i)).to be(true)
+          deratable = true if surfaces[i][:conditioned] == false
+        end
+        next unless deratable
         deratables[id] = surface
       end
 
@@ -1418,13 +1469,22 @@ require "psi"
 
       next unless deratables.size > 0
 
-      # Split thermal bridge heat loss equally amongst deratable surfaces. TO REVISE!
-      bridge[:psi] /= deratables.size
+      # Sum RSI of targeted insulating layer from each deratable surface.
+      rsi = 0
+      deratables.each do |id, deratable|
+        expect(surfaces[id].has_key?(:r)).to be(true)
+        rsi += surfaces[id][:r]
+      end
 
-      # Assign heat loss from thermal bridges to surfaces.
+      # Assign heat loss from thermal bridges to surfaces, in proportion to
+      # insulating layer thermal resistance
       deratables.each do |id, deratable|
         surfaces[id][:edges] = {} unless surfaces[id].has_key?(:edges)
-        surfaces[id][:edges][identifier] = bridge
+        loss = bridge[:psi] * surfaces[id][:r] / rsi
+
+        b = { psi: loss, type: bridge[:type], length: bridge[:length] }
+
+        surfaces[id][:edges][identifier] = b
       end
     end
 
@@ -1446,21 +1506,21 @@ require "psi"
     expect(surfaces["s_E_wall"  ][:heatloss]).to be_within(0.01).of( 5.041)
     expect(surfaces["p_E_floor" ][:heatloss]).to be_within(0.01).of(18.650)
     expect(surfaces["s_S_wall"  ][:heatloss]).to be_within(0.01).of( 6.583)
-    expect(surfaces["e_W_wall"  ][:heatloss]).to be_within(0.01).of( 6.365)
+    expect(surfaces["e_W_wall"  ][:heatloss]).to be_within(0.01).of( 6.023) # 6.365
     expect(surfaces["p_N_wall"  ][:heatloss]).to be_within(0.01).of(37.250)
     expect(surfaces["p_S2_wall" ][:heatloss]).to be_within(0.01).of(27.268)
     expect(surfaces["p_S1_wall" ][:heatloss]).to be_within(0.01).of( 7.063)
     expect(surfaces["g_S_wall"  ][:heatloss]).to be_within(0.01).of(56.150)
     expect(surfaces["p_floor"   ][:heatloss]).to be_within(0.01).of(10.000)
     expect(surfaces["p_W1_floor"][:heatloss]).to be_within(0.01).of(13.775)
-    expect(surfaces["e_N_wall"  ][:heatloss]).to be_within(0.01).of( 5.639)
+    expect(surfaces["e_N_wall"  ][:heatloss]).to be_within(0.01).of( 4.727) # 5.639
     expect(surfaces["s_N_wall"  ][:heatloss]).to be_within(0.01).of( 6.583)
     expect(surfaces["g_E_wall"  ][:heatloss]).to be_within(0.01).of(18.195)
-    expect(surfaces["e_S_wall"  ][:heatloss]).to be_within(0.01).of( 8.615)
+    expect(surfaces["e_S_wall"  ][:heatloss]).to be_within(0.01).of( 7.703) # 8.615
     expect(surfaces["e_top"     ][:heatloss]).to be_within(0.01).of( 4.400)
     expect(surfaces["s_W_wall"  ][:heatloss]).to be_within(0.01).of( 5.670)
-    expect(surfaces["e_E_wall"  ][:heatloss]).to be_within(0.01).of( 6.365)
-    expect(surfaces["e_floor"   ][:heatloss]).to be_within(0.01).of( 5.500)
+    expect(surfaces["e_E_wall"  ][:heatloss]).to be_within(0.01).of( 6.023) # 6.365
+    expect(surfaces["e_floor"   ][:heatloss]).to be_within(0.01).of( 8.007) # 5.500
     expect(surfaces["g_W_wall"  ][:heatloss]).to be_within(0.01).of(18.195)
     expect(surfaces["g_N_wall"  ][:heatloss]).to be_within(0.01).of(54.255)
     expect(surfaces["p_W2_floor"][:heatloss]).to be_within(0.01).of(13.729)
@@ -1493,6 +1553,7 @@ require "psi"
     #wall_c      = defaults.wallConstruction.get.to_Construction.get
     #floor_c     = defaults.floorConstruction.get.to_Construction.get
 
+
     # Derated (cloned) constructions are unique to each deratable surface.
     # Unique construction names are prefixed with the surface name,
     # and suffixed with " tbd", indicating that the construction is
@@ -1524,6 +1585,22 @@ require "psi"
           c.setLayer(index, m)
           c.setName("#{id} c tbd")
           s.setConstruction(c)
+
+          # If derated surface construction separates 2x spaces, then derate
+          # adjacent surface construction as well.
+          if s.outsideBoundaryCondition.downcase == "space"
+            expect(s.adjacentSurface.empty?).to be(false)
+            adjacent = s.adjacentSurface.get
+            i = adjacent.nameString
+            if surfaces.has_key?(i)
+              indx = surfaces[i][:index]
+              c_c = surface[:construction]
+              cc = c_c.clone(os_model).to_Construction.get
+              cc.setLayer(indx, m)
+              cc.setName("#{i} c tbd")
+              adjacent.setConstruction(cc)
+            end
+          end
         end
       end
     end
@@ -2067,7 +2144,9 @@ require "psi"
         name   = id.rjust(15, " ")
         #puts "#{name} RSi derated by #{ratio}%"
       else
-        expect(surface[:boundary].downcase).to_not eq("outdoors")
+        if surface[:boundary].downcase == "outdoors"
+          expect(surface[:conditioned]).to be(false)
+        end
       end
     end
   end
@@ -2142,36 +2221,11 @@ require "psi"
           expect(surface[:ratio]).to be_within(0.1).of(-18.1)
         end
         if id == "Utility1 Wall 5"
-          expect(surface[:ratio]).to be_within(0.1).of(-24.5)
+          expect(surface[:ratio]).to be_within(0.1).of(-27.4) # -24.5
         end
         if id == "Openarea 1 Wall 7"
-          expect(surface[:ratio]).to be_within(0.1).of(-15.5)
+          expect(surface[:ratio]).to be_within(0.1).of(-19.3) # -15.5
         end
-        # Level0 Small office 1 Ceiling Plenum AbvClgPlnmWall 6 RSi derated by -19.5%
-        # Level 0 Small office 1 Ceiling Plenum RoofCeiling RSi derated by -26.3%
-        # Level0 Small office 1 Ceiling Plenum AbvClgPlnmWall 2 RSi derated by -19.4%
-        # Level0 Small office 1 Ceiling Plenum AbvClgPlnmWall 1 RSi derated by -20.3%
-        # Smalloffice 1 Wall 1 RSi derated by -30.2%
-        # Smalloffice 1 Wall 2 RSi derated by -30.4%
-        # Level0 Open area 1 Ceiling Plenum AbvClgPlnmWall 6 RSi derated by -22.5%
-        # Level0 Open area 1 Ceiling Plenum AbvClgPlnmWall 7 RSi derated by -20.6%
-        # Level0 Entry way  Ceiling Plenum AbvClgPlnmWall 6 RSi derated by -15.9%
-        # Level0 Open area 1 Ceiling Plenum AbvClgPlnmWall 5 RSi derated by -20.3%
-        # Openarea 1 Wall 5 RSi derated by -15.2%
-        # Level0 Open area 1 Ceiling Plenum AbvClgPlnmWall 4 RSi derated by -23.2%
-        # Openarea 1 Wall 4 RSi derated by -19.0%
-        # Level0 Utility 1 Ceiling Plenum AbvClgPlnmWall 1 RSi derated by -18.1%
-        # Level0 Open area 1 Ceiling Plenum AbvClgPlnmWall 3 RSi derated by -19.7%
-        # Openarea 1 Wall 3 RSi derated by -14.4%
-        # Smalloffice 1 Wall 6 RSi derated by -30.6%
-        # Entryway  Wall 6 RSi derated by -23.0%
-        # Openarea 1 Wall 6 RSi derated by -18.0%
-        # Utility1 Wall 1 RSi derated by -24.5%
-        # Entryway  Wall 4 RSi derated by -26.7%
-        # Entryway  Wall 5 RSi derated by -24.0%
-        # Level 0 Utility 1 Ceiling Plenum RoofCeiling RSi derated by -26.3%
-        # Level0 Entry way  Ceiling Plenum AbvClgPlnmWall 5 RSi derated by -18.4%
-
         if id == "Level 0 Entry way  Ceiling Plenum RoofCeiling"
           expect(surface[:ratio]).to be_within(0.1).of(-28.5)
         end
@@ -2182,7 +2236,9 @@ require "psi"
           expect(surface[:ratio]).to be_within(0.1).of(-20.4)
         end
       else
-        expect(surface[:boundary].downcase).to_not eq("outdoors")
+        if surface[:boundary].downcase == "outdoors"
+          expect(surface[:conditioned]).to be(false)
+        end
       end
     end
   end
@@ -2211,10 +2267,10 @@ require "psi"
           expect(surface[:ratio]).to be_within(0.1).of(-18.1)
         end
         if id == "Utility1 Wall 5"
-          expect(surface[:ratio]).to be_within(0.1).of(-24.5)
+          expect(surface[:ratio]).to be_within(0.1).of(-27.3) #-24.5
         end
         if id == "Openarea 1 Wall 7"
-          expect(surface[:ratio]).to be_within(0.1).of(-15.5)
+          expect(surface[:ratio]).to be_within(0.1).of(-19.3) # -15.5
         end
         if id == "Level 0 Entry way  Ceiling Plenum RoofCeiling"
           expect(surface[:ratio]).to be_within(0.1).of(-28.5)
@@ -2226,7 +2282,9 @@ require "psi"
           expect(surface[:ratio]).to be_within(0.1).of(-20.4)
         end
       else
-        expect(surface[:boundary].downcase).to_not eq("outdoors")
+        if surface[:boundary].downcase == "outdoors"
+          expect(surface[:conditioned]).to be(false)
+        end
       end
     end
   end
@@ -2255,10 +2313,10 @@ require "psi"
           expect(surface[:ratio]).to be_within(0.1).of(-18.1)
         end
         if id == "Utility1 Wall 5"
-          expect(surface[:ratio]).to be_within(0.1).of(-24.5)
+          expect(surface[:ratio]).to be_within(0.1).of(-27.3) # -24.5
         end
         if id == "Openarea 1 Wall 7"
-          expect(surface[:ratio]).to be_within(0.1).of(-15.5)
+          expect(surface[:ratio]).to be_within(0.1).of(-19.3) # -15.5
         end
         if id == "Level 0 Entry way  Ceiling Plenum RoofCeiling"
           expect(surface[:ratio]).to be_within(0.1).of(-28.5)
@@ -2270,7 +2328,9 @@ require "psi"
           expect(surface[:ratio]).to be_within(0.1).of(-20.4)
         end
       else
-        expect(surface[:boundary].downcase).to_not eq("outdoors")
+        if surface[:boundary].downcase == "outdoors"
+          expect(surface[:conditioned]).to be(false)
+        end
       end
     end
   end
@@ -2324,27 +2384,26 @@ require "psi"
     surfaces.each do |id, surface|
       next unless surface.has_key?(:ratio)
       expect(id).to eq("Entryway  Wall 5")
-      expect(surface[:heatloss]).to be_within(0.01).of(6.74)
+      expect(surface[:heatloss]).to be_within(0.01).of(8.54) # 6.74
     end
 
     expect(io.has_key?(:edges)).to be(true)
-    expect(io[:edges].size).to eq(1)
-    expect(io[:edges].first.has_key?(:psi)).to be(true)
-    expect(io[:edges].first.has_key?(:type)).to be(true)
-    expect(io[:edges].first.has_key?(:length)).to be(true)
-    expect(io[:edges].first.has_key?(:surfaces)).to be(true)
+    expect(io[:edges].size).to eq(2)
+    io[:edges].each do |edge|
+      expect(edge.has_key?(:psi)).to be(true)
+      expect(edge.has_key?(:type)).to be(true)
+      expect(edge.has_key?(:length)).to be(true)
+      expect(edge.has_key?(:surfaces)).to be(true)
 
-    p = io[:edges].first[:psi]
-    t = io[:edges].first[:type]
-    s = {}
-    io[:psis].each do |set| s = set if set[:id] == p; end
-
-    expect(s[t]).to be_within(0.01).of(0.9)
-    expect(io[:edges].first[:type]).to eq(:rimjoist)
-    expect(io[:edges].first[:length]).to be_within(0.01).of(3.6)
-    expect(io[:edges].first[:surfaces].class).to eq(Array)
-    expect(io[:edges].first[:surfaces][0]).to eq("Entryway  Wall 5")
-    expect(io[:edges].first[:surfaces][1]).to eq("Entry way  Floor")
+      p = edge[:psi]
+      t = edge[:type]
+      s = {}
+      io[:psis].each do |set| s = set if set[:id] == p; end
+      expect(s[t]).to be_within(0.01).of(0.9).or be_within(0.01).of(0.5)
+      expect(t).to eq(:rimjoist).or eq(:parapet)
+      expect(edge[:length]).to be_within(0.01).of(3.6)
+      expect(edge[:surfaces].class).to eq(Array)
+    end
 
     out = JSON.pretty_generate(io)
     out_path = File.dirname(__FILE__) + "/../json/tbd_seb_n3.out.json"
@@ -2421,7 +2480,7 @@ require "psi"
       next unless surface[:boundary].downcase == "outdoors"
       expect(surface.has_key?(:ratio)).to be(false) unless id == "Entryway  Wall 5"
       next unless id == "Entryway  Wall 5"
-      expect(surface[:heatloss]).to be_within(0.01).of(15.62)  # 12.39 + 3.24
+      expect(surface[:heatloss]).to be_within(0.01).of(17.42)  # 12.39 + 5.04
     end
   end
 
@@ -2440,16 +2499,15 @@ require "psi"
     expect(surfaces.size).to eq(56)
 
     # In the JSON file, the "Entry way 1" space "compliant" PSI set supersedes
-    # the default :building PSI set "(non thermal bridging)". And hence the 3x walls
-    # below (4, 5 & 6) - opaque envelope surfaces part of "Entry way 1" - will
-    # be derated. Exceptionally, Wall 5 has (in addition to a handful of point
-    # conductances) derating edges based on the "good" PSI set; in this case,
-    # only the :grade type (0.9 W/k per m instead of 0.6) applies (not so "good"
-    # in hindsight). Finally, any edges between Wall 5 and its "Sub Surface 8"
-    # have their types overwritten (from :fenestration to :balcony), i.e.
-    # 0.8 W/K per m instead of 0.35. The latter is a weird one, but illustrates
-    # the basic functionality. A more realistic override: a switch between
-    # :corner to :fenestration (or vice versa) for corner windows, for instance.
+    # the default :building PSI set "(non thermal bridging)". And hence the 3x
+    # walls below (4, 5 & 6) - opaque envelope surfaces part of "Entry way 1" -
+    # will be derated. Exceptionally, Wall 5 has (in addition to a handful of
+    # point conductances) derating edges based on the "good" PSI set. Finally,
+    # any edges between Wall 5 and its "Sub Surface 8" have their types
+    # overwritten (from :fenestration to :balcony), i.e. 0.8 W/K per m instead
+    # of 0.35. The latter is a weird one, but illustrates the basic
+    # functionality. A more realistic override: a switch between :corner to
+    # :fenestration (or vice versa) for corner windows, for instance.
     surfaces.each do |id, surface|
       next unless surface[:boundary].downcase == "outdoors"
       if id == "Entryway  Wall 5" ||
@@ -2460,7 +2518,7 @@ require "psi"
         expect(surface.has_key?(:ratio)).to be(false)
       end
       next unless id == "Entryway  Wall 5"
-      expect(surface[:heatloss]).to be_within(0.01).of(13.96)
+      expect(surface[:heatloss]).to be_within(0.01).of(15.75)
     end
 
     out = JSON.pretty_generate(io)
@@ -2839,18 +2897,27 @@ require "psi"
       next unless surface.has_key?(:story)
       expect(surface[:story].nameString).to eq("Building Story 1")
 
-      # Without the "Building Story 1" story JSON override, additional
-      # heatloss from thermal bridging would be as follows:
-      # "Perimeter_ZN_1_wall_south": ~38.36
-      # "Perimeter_ZN_2_wall_east" : ~24.61
-      # "Perimeter_ZN_3_wall_north": ~36.23
-      # "Perimeter_ZN_4_wall_west" : ~24.61
-
-      expect(heatloss).to be_within(0.01).of(27.28) if id == "Perimeter_ZN_1_wall_south"
-      expect(heatloss).to be_within(0.01).of(17.27) if id == "Perimeter_ZN_2_wall_east"
-      expect(heatloss).to be_within(0.01).of(25.45) if id == "Perimeter_ZN_3_wall_north"
-      expect(heatloss).to be_within(0.01).of(17.27) if id == "Perimeter_ZN_4_wall_west"
+      expect(heatloss).to be_within(0.01).of(31.41) if id == "Perimeter_ZN_1_wall_south"
+      expect(heatloss).to be_within(0.01).of(20.05) if id == "Perimeter_ZN_2_wall_east"
+      expect(heatloss).to be_within(0.01).of(29.61) if id == "Perimeter_ZN_3_wall_north"
+      expect(heatloss).to be_within(0.01).of(20.05) if id == "Perimeter_ZN_4_wall_west"
     end
+  end
+
+  it "can factor in temperature setpoints" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_smalloffice.osm")
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    psi_set = "regular (BETBG)"
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model, psi_set, "", schema_path, false)
+    expect(surfaces.size).to eq(43)
+
+    expect(winterDesignDayTemperatureSetpoints?(os_model)).to be(true)
+    expect(summerDesignDayTemperatureSetpoints?(os_model)).to be(true)
   end
 
   it "has a PSI class" do
