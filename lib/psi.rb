@@ -1327,6 +1327,16 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
     space = s.space.get
     id    = s.nameString
 
+    ground   = s.isGroundSurface
+    boundary = s.outsideBoundaryCondition
+    if boundary.downcase == "surface"
+      raise "#{id}: adjacent surface?" if s.adjacentSurface.empty?
+      adjacent = s.adjacentSurface.get.nameString
+      test = os_model.getSurfaceByName(adjacent)
+      raise "mismatch #{id} vs #{adjacent}" if test.empty?
+      boundary = adjacent
+    end
+
     conditioned = true
     if setpoints
       unless space.thermalZone.empty?
@@ -1348,8 +1358,6 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
     type = :ceiling if /ceiling/i.match(s.surfaceType)
     type = :wall    if /wall/i.match(s.surfaceType)
 
-    ground   = s.isGroundSurface
-    boundary = s.outsideBoundaryCondition
     points   = (t * s.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
     minz     = (points.map{ |p| p.z }).min
 
@@ -1366,8 +1374,8 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
       minz:         minz,
       n:            n
     }
-    surfaces[id][:heating] = heating if heating  # if valid winter DD setpoint
-    surfaces[id][:cooling] = cooling if cooling  # if valid summer DD setpoint
+    surfaces[id][:heating] = heating if heating    # if valid winter DD setpoint
+    surfaces[id][:cooling] = cooling if cooling    # if valid summer DD setpoint
     surfaces[id][:stype] = space.spaceType.get unless space.spaceType.empty?
     surfaces[id][:story] = space.buildingStory.get unless space.buildingStory.empty?
 
@@ -1693,20 +1701,37 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
 
       # Skipping the :party wall label for now. Criteria determining party
       # wall edges from TBD edges is to be determined. Most likely scenario
-      # seems to be an edge linking only 1x surface facings outdoors (or
+      # seems to be an edge linking only 1x surface facing outdoors (or
       # unconditioned space) with only 1x adiabatic surface. Warrants separate
       # tests. TO DO.
 
       # Label edge as :grade if linked to:
       #   1x surface (e.g. slab or wall) facing ground
-      #   1x surface (i.e. wall) facing outdoors OR UNCONDITIONED space
+      #   1x surface (i.e. wall) facing outdoors OR facing UNCONDITIONED space
       unless psi.has_key?(:grade)
         edge[:surfaces].keys.each do |i|
-          next unless surfaces.has_key?(i)
-          next unless surfaces[i][:boundary].downcase == "outdoors" ||
-                      surfaces[i][:conditioned] == false
           next unless surfaces[id].has_key?(:ground)
           next unless surfaces[id][:ground]
+          next unless surfaces.has_key?(i)
+          next unless surfaces[i].has_key?(:conditioned)
+          next unless surfaces[i][:conditioned]
+
+          if surfaces.has_key?(surfaces[i][:boundary])      # adjacent surface
+            adjacent = surfaces[i][:boundary]
+            next unless surfaces[adjacent].has_key?(:conditioned)
+            next if surfaces[adjacent][:conditioned]
+          else
+            next unless surfaces[i][:boundary].downcase == "outdoors"
+          end
+
+          if surfaces.has_key?(surfaces[id][:boundary])     # adjacent surface
+            adjacent = surfaces[id][:boundary]
+            next unless surfaces[adjacent].has_key?(:conditioned)
+            next if surfaces[adjacent][:conditioned]
+          else
+            next unless surfaces[id][:boundary].downcase == "outdoors"
+          end
+
           psi[:grade] = io_p.set[p][:grade]
         end
       end
@@ -1723,16 +1748,31 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
       end
 
       # Label edge as :parapet if linked to:
-      #   1x wall facing outdoors OR UNCONDITIONED space &
-      #   1x ceiling facing outdoors OR UNCONDITIONED space
+      #   1x wall facing outdoors OR facing UNCONDITIONED space &
+      #   1x ceiling facing outdoors OR facing UNCONDITIONED space
       unless psi.has_key?(:parapet)
         edge[:surfaces].keys.each do |i|
-          next unless walls.has_key?(i)
-          next unless walls[i][:boundary].downcase == "outdoors" ||
-                      walls[i][:conditioned] == false
           next unless ceilings.has_key?(id)
-          next unless ceilings[id][:boundary].downcase == "outdoors" ||
-                      ceilings[id][:conditioned] == false
+          next unless walls.has_key?(i)
+          next unless walls[i].has_key?(:conditioned)
+          next unless walls[i][:conditioned]
+
+          if surfaces.has_key?(walls[i][:boundary])         # adjacent surface
+            adjacent = walls[i][:boundary]
+            next unless surfaces[adjacent].has_key?(:conditioned)
+            next if surfaces[adjacent][:conditioned]
+          else
+            next unless walls[i][:boundary].downcase == "outdoors"
+          end
+
+          if surfaces.has_key?(ceilings[id][:boundary])     # adjacent surface
+            adjacent = surfaces[id][:boundary]
+            next unless surfaces[adjacent].has_key?(:conditioned)
+            next if surfaces[adjacent][:conditioned]
+          else
+            next unless ceilings[id][:boundary].downcase == "outdoors"
+          end
+
           psi[:parapet] = io_p.set[p][:parapet]
         end
       end
@@ -1741,12 +1781,27 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
       # proxy for intersections between exposed floors & walls
       unless psi.has_key?(:parapet)
         edge[:surfaces].keys.each do |i|
-          next unless walls.has_key?(i)
-          next unless walls[i][:boundary].downcase == "outdoors" ||
-                      walls[i][:conditioned] == false
           next unless floors.has_key?(id)
-          next unless floors[id][:boundary].downcase == "outdoors" ||
-                      floors[id][:conditioned] == false
+          next unless walls.has_key?(i)
+          next unless walls[i].has_key?(:conditioned)
+          next unless walls[i][:conditioned]
+
+          if surfaces.has_key?(walls[i][:boundary])         # adjacent surface
+            adjacent = walls[i][:boundary]
+            next unless surfaces[adjacent].has_key?(:conditioned)
+            next if surfaces[adjacent][:conditioned]
+          else
+            next unless walls[i][:boundary].downcase == "outdoors"
+          end
+
+          if surfaces.has_key?(floors[id][:boundary])       # adjacent surface
+            adjacent = floors[id][:boundary]
+            next unless surfaces[adjacent].has_key?(:conditioned)
+            next if surfaces[adjacent][:conditioned]
+          else
+            next unless floors[id][:boundary].downcase == "outdoors"
+          end
+
           psi[:parapet] = io_p.set[p][:parapet]
         end
       end
@@ -1755,25 +1810,47 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
       # proxy for intersections between exposed floors & roofs
       unless psi.has_key?(:parapet)
         edge[:surfaces].keys.each do |i|
-          next unless ceilings.has_key?(i)
-          next unless ceilings[i][:boundary].downcase == "outdoors" ||
-                      ceilings[i][:conditioned] == false
           next unless floors.has_key?(id)
-          next unless floors[id][:boundary].downcase == "outdoors" ||
-                      floors[id][:conditioned] == false
+          next unless ceilings.has_key?(i)
+          next unless ceilings[i].has_key?(:conditioned)
+          next unless ceilings[i][:conditioned]
+
+          if surfaces.has_key?(ceilings[i][:boundary])      # adjacent surface
+            adjacent = ceilings[i][:boundary]
+            next unless surfaces[adjacent].has_key?(:conditioned)
+            next if surfaces[adjacent][:conditioned]
+          else
+            next unless ceilings[i][:boundary].downcase == "outdoors"
+          end
+
+          if surfaces.has_key?(floors[id][:boundary])       # adjacent surface
+            adjacent = floors[id][:boundary]
+            next unless surfaces[adjacent].has_key?(:conditioned)
+            next if surfaces[adjacent][:conditioned]
+          else
+            next unless floors[id][:boundary].downcase == "outdoors"
+          end
+
           psi[:parapet] = io_p.set[p][:parapet]
         end
       end
 
       # Label edge as :rimjoist if linked to:
-      #   1x wall facing outdoors OR UNCONDITIONED space &
+      #   1x wall facing outdoors OR facing UNCONDITIONED space &
       #   1x floor
       unless psi.has_key?(:rimjoist)
         edge[:surfaces].keys.each do |i|
           next unless floors.has_key?(i)
           next unless walls.has_key?(id)
-          next unless walls[id][:boundary].downcase == "outdoors" ||
-                      walls[id][:conditioned] == false
+
+          if surfaces.has_key?(walls[id][:boundary])        # adjacent surface
+            adjacent = walls[id][:boundary]
+            next unless surfaces[adjacent].has_key?(:conditioned)
+            next if surfaces[adjacent][:conditioned]
+          else
+            next unless walls[id][:boundary].downcase == "outdoors"
+          end
+
           psi[:rimjoist] = io_p.set[p][:rimjoist]
         end
       end
@@ -1788,17 +1865,31 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
       end
 
       # Label edge as :concave or :convex (corner) if linked to:
-      #   2x walls facing outdoors OR UNCONDITIONED space &
+      #   2x walls facing outdoors OR facing UNCONDITIONED space &
       #            f(relative polar positions of walls)
       unless psi.has_key?(:concave) || psi.has_key?(:convex)
         edge[:surfaces].keys.each do |i|
           next if i == id
-          next unless walls.has_key?(i)
-          next unless walls[i][:boundary].downcase == "outdoors" ||
-                      walls[i][:conditioned] == false
           next unless walls.has_key?(id)
-          next unless walls[id][:boundary].downcase == "outdoors" ||
-                      walls[id][:conditioned] == false
+          next unless walls.has_key?(i)
+          next unless walls[i].has_key?(:conditioned)
+          next unless walls[i][:conditioned]
+
+          if surfaces.has_key?(walls[i][:boundary])         # adjacent surface
+            adjacent = walls[i][:boundary]
+            next unless surfaces[adjacent].has_key?(:conditioned)
+            next if surfaces[adjacent][:conditioned]
+          else
+            next unless walls[i][:boundary].downcase == "outdoors"
+          end
+
+          if surfaces.has_key?(walls[id][:boundary])         # adjacent surface
+            adjacent = walls[id][:boundary]
+            next unless surfaces[adjacent].has_key?(:conditioned)
+            next if surfaces[adjacent][:conditioned]
+          else
+            next unless walls[id][:boundary].downcase == "outdoors"
+          end
 
           s1 = edge[:surfaces][id]
           s2 = edge[:surfaces][i]
@@ -2038,12 +2129,14 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
       deratable = false
       if surfaces[id][:boundary].downcase == "outdoors"
         deratable = true if surfaces[id][:conditioned] == true
-      elsif surfaces[id][:boundary].downcase == "space"
-        expect(surfaces[id].adjacentSurface.empty?).to be(false)
-        adjacent = surfaces[id].adjacentSurface.get
-        i = adjacent.nameString
-        expect(surfaces.has_key?(i)).to be(true)
-        deratable = true if surfaces[i][:conditioned] == false
+      elsif surfaces[id][:boundary].downcase == "space" # !!!!! "surface"
+        unless surfaces[id].adjacentSurface.empty?
+          adjacent = surfaces[id].adjacentSurface.get
+          i = adjacent.nameString
+          if surfaces.has_key?(i)
+            deratable = true if surfaces[i][:conditioned] == false
+          end
+        end
       end
       next unless deratable
       deratables[id] = surface
@@ -2082,7 +2175,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
       end
     end
 
-    next unless deratables.size > 0
+    next if deratables.empty?
 
     # Sum RSI of targeted insulating layer from each deratable surface.
     rsi = 0
