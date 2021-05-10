@@ -1726,14 +1726,6 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
             next unless surfaces[i][:boundary].downcase == "outdoors"
           end
 
-          if surfaces.has_key?(surfaces[id][:boundary])       # adjacent surface
-            adjacent = surfaces[id][:boundary]
-            next unless surfaces[adjacent].has_key?(:conditioned)
-            next if surfaces[adjacent][:conditioned]
-          else
-            next unless surfaces[id][:boundary].downcase == "outdoors"
-          end
-
           psi[:grade] = io_p.set[p][:grade]
         end
       end
@@ -2130,18 +2122,16 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
     # Retrieve valid linked surfaces as deratables.
     deratables = {}
     edge[:surfaces].each do |id, surface|
-      next unless surfaces.has_key?(id)
       deratable = false
-      if surfaces[id][:boundary].downcase == "outdoors"
-        deratable = true if surfaces[id][:conditioned] == true
-      elsif surfaces[id][:boundary].downcase == "space" # !!!!! "surface"
-        unless surfaces[id].adjacentSurface.empty?
-          adjacent = surfaces[id].adjacentSurface.get
-          i = adjacent.nameString
-          if surfaces.has_key?(i)
-            deratable = true if surfaces[i][:conditioned] == false
-          end
-        end
+      next unless surfaces.has_key?(id)
+      next unless surfaces[id].has_key?(:conditioned)
+      next unless surfaces[id].has_key?(:boundary)
+      b = surfaces[id][:boundary]
+      if b.downcase == "outdoors"
+        deratable = true if surfaces[id][:conditioned]
+      else
+        next unless surfaces.has_key?(b)
+        deratable = true if surfaces[b][:conditioned] == false
       end
       next unless deratable
       deratables[id] = surface

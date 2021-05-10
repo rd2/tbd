@@ -1082,14 +1082,6 @@ require "psi"
               next unless surfaces[i][:boundary].downcase == "outdoors"
             end
 
-            if surfaces.has_key?(surfaces[id][:boundary])     # adjacent surface
-              adjacent = surfaces[id][:boundary]
-              next unless surfaces[adjacent].has_key?(:conditioned)
-              next if surfaces[adjacent][:conditioned]
-            else
-              next unless surfaces[id][:boundary].downcase == "outdoors"
-            end
-
             psi[:grade] = io_p.set[p][:grade]
           end
         end
@@ -1195,7 +1187,7 @@ require "psi"
 
         # Label edge as :rimjoist if linked to:
         #   1x wall facing outdoors OR facing UNCONDITIONED space &
-        #   1x floor
+        #   1x CONDITIONED floor
         unless psi.has_key?(:rimjoist)
           edge[:surfaces].keys.each do |i|
             next unless floors.has_key?(i)
@@ -1737,6 +1729,14 @@ require "psi"
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
+    # rimjoist:     1.000, # *
+    # parapet:      0.800, # *
+    # fenestration: 0.500, # *
+    # concave:      0.850, # *
+    # convex:       0.850, # *
+    # balcony:      1.000, # *
+    # party:        0.850, # *
+    # grade:        0.850  # *
     psi_set = "poor (BETBG)"
     io_path = ""
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
@@ -1744,7 +1744,34 @@ require "psi"
     io, surfaces = processTBD(os_model, psi_set, io_path, gen_kiva)
     expect(surfaces.size).to eq(43)
 
-    # testing
+    # testing attic surfaces
+    surfaces.each do |id, surface|
+      expect(surface.has_key?(:space)).to be(true)
+      next unless surface[:space].nameString == "Attic"
+      expect(surface.has_key?(:conditioned)).to be(true)
+      expect(surface[:conditioned]).to be(false)
+      expect(surface.has_key?(:boundary)).to be(true)
+      b = surface[:boundary]
+      if b == "Outdoors"
+        expect(surface.has_key?(:heatloss)).to be(false)
+        expect(surface.has_key?(:ratio)).to be(false)
+      else
+        expect(surfaces.has_key?(b)).to be(true)
+        expect(surfaces[b].has_key?(:conditioned)).to be(true)
+        expect(surfaces[b][:conditioned]).to be(true)
+        if id == "Attic_floor_core"
+          expect(surface.has_key?(:heatloss)).to be(false)
+          expect(surface.has_key?(:ratio)).to be(false)
+        else
+          expect(surface.has_key?(:heatloss)).to be(false)
+          expect(surface.has_key?(:ratio)).to be(false)
+          expect(surfaces[b].has_key?(:heatloss)).to be(true)
+          expect(surfaces[b].has_key?(:ratio)).to be(true)
+
+        end
+      end
+    end
+
     surfaces.each do |id, surface|
       next unless surface.has_key?(:edges)
       os_model.getSurfaces.each do |s|
@@ -1838,7 +1865,7 @@ require "psi"
         name   = id.rjust(15, " ")
 
         next unless name == "Office Left Wall"
-        expect(surface[:ratio]).to be_within(0.2).of(-40.5) # -44.1
+        expect(surface[:ratio]).to be_within(0.2).of(-45.9) # validate ...
       else
         expect(surface[:boundary].downcase).to_not eq("outdoors")
       end
@@ -1876,7 +1903,7 @@ require "psi"
         name   = id.rjust(15, " ")
 
         next unless name == "Office Left Wall"
-        expect(surface[:ratio]).to be_within(0.2).of(-40.4) # -44.1
+        expect(surface[:ratio]).to be_within(0.2).of(-45.9) # validate ...
       else
         expect(surface[:boundary].downcase).to_not eq("outdoors")
       end
@@ -1951,7 +1978,7 @@ require "psi"
         name   = id.rjust(15, " ")
 
         next unless name == "Office Left Wall"
-        expect(surface[:ratio]).to be_within(0.2).of(-35.3) # -39.8
+        expect(surface[:ratio]).to be_within(0.2).of(-41.9) # validate ...
       else
         expect(surface[:boundary].downcase).to_not eq("outdoors")
       end
@@ -1988,7 +2015,7 @@ require "psi"
         ratio  = format "%3.1f", surface[:ratio]
         name   = id.rjust(15, " ")
         next unless name == "Office Left Wall"
-        expect(surface[:ratio]).to be_within(0.2).of(-35.3) # -39.8
+        expect(surface[:ratio]).to be_within(0.2).of(-41.9) # validate ...
 
       else
         expect(surface[:boundary].downcase).to_not eq("outdoors")
@@ -2106,10 +2133,10 @@ require "psi"
           expect(surface[:ratio]).to be_within(0.1).of(-18.1)
         end
         if id == "Utility1 Wall 5"
-          expect(surface[:ratio]).to be_within(0.1).of(-23.2) # -26.1
+          expect(surface[:ratio]).to be_within(0.1).of(-27.2) # validate ...
         end
         if id == "Openarea 1 Wall 7"
-          expect(surface[:ratio]).to be_within(0.1).of(-13.8) # -17.7
+          expect(surface[:ratio]).to be_within(0.1).of(-19.1) # validate ...
         end
         if id == "Level 0 Entry way  Ceiling Plenum RoofCeiling"
           expect(surface[:ratio]).to be_within(0.1).of(-28.5)
@@ -2152,10 +2179,10 @@ require "psi"
           expect(surface[:ratio]).to be_within(0.1).of(-18.1)
         end
         if id == "Utility1 Wall 5"
-          expect(surface[:ratio]).to be_within(0.1).of(-23.2) # -26.1
+          expect(surface[:ratio]).to be_within(0.1).of(-27.2) # validate ...
         end
         if id == "Openarea 1 Wall 7"
-          expect(surface[:ratio]).to be_within(0.1).of(-13.8) # -17.7
+          expect(surface[:ratio]).to be_within(0.1).of(-19.1) # validate ...
         end
         if id == "Level 0 Entry way  Ceiling Plenum RoofCeiling"
           expect(surface[:ratio]).to be_within(0.1).of(-28.5)
@@ -2198,10 +2225,10 @@ require "psi"
           expect(surface[:ratio]).to be_within(0.1).of(-18.1)
         end
         if id == "Utility1 Wall 5"
-          expect(surface[:ratio]).to be_within(0.1).of(-23.2) # -26.1
+          expect(surface[:ratio]).to be_within(0.1).of(-27.2) # validate ...
         end
         if id == "Openarea 1 Wall 7"
-          expect(surface[:ratio]).to be_within(0.1).of(-13.8) # -17.7
+          expect(surface[:ratio]).to be_within(0.1).of(-19.1) # validate ...
         end
         if id == "Level 0 Entry way  Ceiling Plenum RoofCeiling"
           expect(surface[:ratio]).to be_within(0.1).of(-28.5)
@@ -2268,8 +2295,12 @@ require "psi"
     # and a "good" PSI set (:parapet, of 0.5 W/K per m).
     surfaces.each do |id, surface|
       next unless surface.has_key?(:ratio)
-      expect(id).to eq("Entryway  Wall 5")
-      expect(surface[:heatloss]).to be_within(0.01).of(5.3) # 3.5 + (3.6m x 0.5)
+      expect(id).to eq("Entryway  Wall 5").or eq("Entry way  DroppedCeiling")
+      if id == "Entryway  Wall 5"
+        expect(surface[:heatloss]).to be_within(0.01).of(5.17) # validate ...
+      else
+        expect(surface[:heatloss]).to be_within(0.01).of(0.13) # validate ...
+      end
     end
 
     expect(io.has_key?(:edges)).to be(true)
@@ -2365,8 +2396,10 @@ require "psi"
       next unless surface[:boundary].downcase == "outdoors"
       expect(surface.has_key?(:ratio)).to be(false) unless id == "Entryway  Wall 5"
       next unless id == "Entryway  Wall 5"
-      expect(surface[:heatloss]).to be_within(0.01).of(14.18)  # 12.39 + 5.04
+      expect(surface[:heatloss]).to be_within(0.01).of(14.05) # validate ...
     end
+
+    # test dropped ceiling
   end
 
   it "can process TB & D : JSON surface KHI & PSI entries + building & edge (4)" do
@@ -2403,7 +2436,7 @@ require "psi"
         expect(surface.has_key?(:ratio)).to be(false)
       end
       next unless id == "Entryway  Wall 5"
-      expect(surface[:heatloss]).to be_within(0.01).of(12.51) # 13.6
+      expect(surface[:heatloss]).to be_within(0.01).of(15.62) # validate ...
     end
 
     out = JSON.pretty_generate(io)
@@ -2743,8 +2776,8 @@ require "psi"
       expect(surface.has_key?(:space)).to be(true)
       next unless surface[:space].nameString == "Zone1 Office"
 
-      expect(heatloss).to be_within(0.01).of(8.23) if id == "Office Left Wall" # 10.7
-      expect(heatloss).to be_within(0.01).of(13.12) if id == "Office Front Wall" # 20.35
+      expect(heatloss).to be_within(0.01).of(10.70) if id == "Office Left Wall" # 8.23
+      expect(heatloss).to be_within(0.01).of(20.35) if id == "Office Front Wall" # 13.12
     end
   end
 
@@ -2838,7 +2871,7 @@ require "psi"
     surfaces.each do |id, surface|
       next unless surface.has_key?(:ratio)
       next if surface[:boundary].downcase == "outdoors"
-      puts id if surface.has_key?(:heatloss)
+      # puts id if surface.has_key?(:heatloss)
       #heatloss = surface[:heatloss]
       #expect(heatloss.abs).to be > 0
     end
