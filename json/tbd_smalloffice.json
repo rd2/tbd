@@ -5,13 +5,13 @@
     {
       "id": "office PSI set",
       "rimjoist": 0.300,
-      "parapet": 0.300,
-      "fenestration": 0.300,
-      "concave": 0.300,
-      "convex": 0.300,
-      "balcony": 0.300,
-      "party": 0.300,
-      "grade": 0.300
+      "parapet": 0.310,
+      "fenestration": 0.320,
+      "concave": 0.330,
+      "convex": 0.340,
+      "balcony": 0.350,
+      "party": 0.360,
+      "grade": 0.370
     }
   ],
   "building": [

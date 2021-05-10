@@ -1836,37 +1836,9 @@ require "psi"
       if surface.has_key?(:ratio)
         ratio  = format "%3.1f", surface[:ratio]
         name   = id.rjust(15, " ")
-        # puts "#{name} RSi derated by #{ratio}%"
-        # ... should print out:
-        # Fine Storage Office Front Wall  RSi derated by -11.8%
-        # Office Left Wall                RSi derated by -45.9% ~14% increase
-        # Fine Storage Office Left Wall   RSi derated by -13.8%
-        # Fine Storage Roof               RSi derated by -8.1%
-        # Office Front Wall               RSi derated by -29.9%
-        # Fine Storage Right Wall         RSi derated by -12.4%
-        # Bulk Storage Right Wall         RSi derated by -8.7%
-        # Bulk Storage Rear Wall          RSi derated by -8.3%
-        # Fine Storage Front Wall         RSi derated by -12.0%
-        # Fine Storage Left Wall          RSi derated by -11.9%
-        # Bulk Storage Left Wall          RSi derated by -11.8%
-        # Bulk Storage Roof               RSi derated by -4.0%
-
-        # ... yet the following WITHOUT the bad fenestration edges:
-        # Fine Storage Office Front Wall  RSi derated by -11.8%
-        # Office Left Wall                RSi derated by -40.1% <<< <<< <<< <<<
-        # Fine Storage Office Left Wall   RSi derated by -13.8%
-        # Fine Storage Roof               RSi derated by -8.1%
-        # Office Front Wall               RSi derated by -29.9%
-        # Fine Storage Right Wall         RSi derated by -12.4%
-        # Bulk Storage Right Wall         RSi derated by -8.7%
-        # Bulk Storage Rear Wall          RSi derated by -8.3%
-        # Fine Storage Front Wall         RSi derated by -12.0%
-        # Fine Storage Left Wall          RSi derated by -11.9%
-        # Bulk Storage Left Wall          RSi derated by -11.8%
-        # Bulk Storage Roof               RSi derated by -4.0%
 
         next unless name == "Office Left Wall"
-        expect(surface[:ratio]).to be_within(0.2).of(-44.1)
+        expect(surface[:ratio]).to be_within(0.2).of(-40.5) # -44.1
       else
         expect(surface[:boundary].downcase).to_not eq("outdoors")
       end
@@ -1902,85 +1874,9 @@ require "psi"
       if surface.has_key?(:ratio)
         ratio  = format "%3.1f", surface[:ratio]
         name   = id.rjust(15, " ")
-        # puts "#{name} RSi derated by #{ratio}%"
-        # ... should print out:
-        # Fine Storage Office Front Wall  RSi derated by -11.8%
-        # Office Left Wall                RSi derated by -45.9% ~14% increase
-        # Fine Storage Office Left Wall   RSi derated by -13.8%
-        # Fine Storage Roof               RSi derated by -8.1%
-        # Office Front Wall               RSi derated by -29.9%
-        # Fine Storage Right Wall         RSi derated by -12.4%
-        # Bulk Storage Right Wall         RSi derated by -8.7%
-        # Bulk Storage Rear Wall          RSi derated by -8.3%
-        # Fine Storage Front Wall         RSi derated by -12.0%
-        # Fine Storage Left Wall          RSi derated by -11.9%
-        # Bulk Storage Left Wall          RSi derated by -11.8%
-        # Bulk Storage Roof               RSi derated by -4.0%
 
         next unless name == "Office Left Wall"
-        expect(surface[:ratio]).to be_within(0.2).of(-44.1)
-
-        # Note the content of the out.json file:
-        # {
-        #   "psi": "bad",
-        #   "type": "fenestration",
-        #   "length": 1.524940613884627,
-        #   "surfaces": [
-        #     "Office Left Wall Window1",
-        #     "Office Left Wall"
-        #   ],
-        #   "v0x": 0.0,
-        #   "v0y": 7.51904930207155,
-        #   "v0z": 2.43929602151392,
-        #   "v1x": 0.0,
-        #   "v1y": 7.51904930207155,
-        #   "v1z": 0.914355407629293
-        # },
-        # {
-        #   "psi": "bad",
-        #   "type": "fenestration",
-        #   "length": 2.13349595113501,
-        #   "surfaces": [
-        #     "Office Left Wall Window1",
-        #     "Office Left Wall"
-        #   ],
-        #   "v0x": 0.0,
-        #   "v0y": 7.51904930207155,
-        #   "v0z": 0.914355407629293,
-        #   "v1x": 0.0,
-        #   "v1y": 5.38555335093654,
-        #   "v1z": 0.914355407629293
-        # },
-        # {
-        #   "psi": "bad",
-        #   "type": "fenestration",
-        #   "length": 1.524940613884627,
-        #   "surfaces": [
-        #     "Office Left Wall Window1",
-        #     "Office Left Wall"
-        #   ],
-        #   "v0x": 0.0,
-        #   "v0y": 5.38555335093654,
-        #   "v0z": 0.914355407629293,
-        #   "v1x": 0.0,
-        #   "v1y": 5.38555335093654,
-        #   "v1z": 2.43929602151392
-        # },
-        # {
-        #   "psi": "bad",
-        #   "type": "fenestration",
-        #   "length": 2.13349595113501,
-        #   "surfaces": [
-        #     "Office Left Wall Window1",
-        #     "Office Left Wall"
-        #   ],
-        #   "v0x": 0.0,
-        #   "v0y": 5.38555335093654,
-        #   "v0z": 2.43929602151392,
-        #   "v1x": 0.0,
-        #   "v1y": 7.51904930207155,
-        #   "v1z": 2.43929602151392
-        # },
+        expect(surface[:ratio]).to be_within(0.2).of(-40.4) # -44.1
       else
         expect(surface[:boundary].downcase).to_not eq("outdoors")
       end
@@ -2053,37 +1949,9 @@ require "psi"
       if surface.has_key?(:ratio)
         ratio  = format "%3.1f", surface[:ratio]
         name   = id.rjust(15, " ")
-        # puts "#{name} RSi derated by #{ratio}%"
-        # ... should print out:
-        # Fine Storage Office Front Wall  RSi derated by -11.8%
-        # Office Left Wall                RSi derated by -41.9% ~4% increase
-        # Fine Storage Office Left Wall   RSi derated by -13.8%
-        # Fine Storage Roof               RSi derated by -8.1%
-        # Office Front Wall               RSi derated by -29.9%
-        # Fine Storage Right Wall         RSi derated by -12.4%
-        # Bulk Storage Right Wall         RSi derated by -8.7%
-        # Bulk Storage Rear Wall          RSi derated by -8.3%
-        # Fine Storage Front Wall         RSi derated by -12.0%
-        # Fine Storage Left Wall          RSi derated by -11.9%
-        # Bulk Storage Left Wall          RSi derated by -11.8%
-        # Bulk Storage Roof               RSi derated by -4.0%
-
-        # ... yet the following WITHOUT the bad fenestration edge:
-        # Fine Storage Office Front Wall  RSi derated by -11.8%
-        # Office Left Wall                RSi derated by -40.1% <<< <<< <<< <<<
-        # Fine Storage Office Left Wall   RSi derated by -13.8%
-        # Fine Storage Roof               RSi derated by -8.1%
-        # Office Front Wall               RSi derated by -29.9%
-        # Fine Storage Right Wall         RSi derated by -12.4%
-        # Bulk Storage Right Wall         RSi derated by -8.7%
-        # Bulk Storage Rear Wall          RSi derated by -8.3%
-        # Fine Storage Front Wall         RSi derated by -12.0%
-        # Fine Storage Left Wall          RSi derated by -11.9%
-        # Bulk Storage Left Wall          RSi derated by -11.8%
-        # Bulk Storage Roof               RSi derated by -4.0%
 
         next unless name == "Office Left Wall"
-        expect(surface[:ratio]).to be_within(0.2).of(-39.8)
+        expect(surface[:ratio]).to be_within(0.2).of(-35.3) # -39.8
       else
         expect(surface[:boundary].downcase).to_not eq("outdoors")
       end
@@ -2119,85 +1987,9 @@ require "psi"
       if surface.has_key?(:ratio)
         ratio  = format "%3.1f", surface[:ratio]
         name   = id.rjust(15, " ")
-        # puts "#{name} RSi derated by #{ratio}%"
-        # ... should print out:
-        # Fine Storage Office Front Wall  RSi derated by -11.8%
-        # Office Left Wall                RSi derated by -41.9% ~4% increase
-        # Fine Storage Office Left Wall   RSi derated by -13.8%
-        # Fine Storage Roof               RSi derated by -8.1%
-        # Office Front Wall               RSi derated by -29.9%
-        # Fine Storage Right Wall         RSi derated by -12.4%
-        # Bulk Storage Right Wall         RSi derated by -8.7%
-        # Bulk Storage Rear Wall          RSi derated by -8.3%
-        # Fine Storage Front Wall         RSi derated by -12.0%
-        # Fine Storage Left Wall          RSi derated by -11.9%
-        # Bulk Storage Left Wall          RSi derated by -11.8%
-        # Bulk Storage Roof               RSi derated by -4.0%
-
         next unless name == "Office Left Wall"
-        expect(surface[:ratio]).to be_within(0.2).of(-39.8)
+        expect(surface[:ratio]).to be_within(0.2).of(-35.3) # -39.8
 
-        # Note the content of the out.json file:
-        # {
-        #   "psi": "compliant",
-        #   "type": "fenestration",
-        #   "length": 1.524940613884627,
-        #   "surfaces": [
-        #     "Office Left Wall Window1",
-        #     "Office Left Wall"
-        #   ],
-        #   "v0x": 0.0,
-        #   "v0y": 7.51904930207155,
-        #   "v0z": 2.43929602151392,
-        #   "v1x": 0.0,
-        #   "v1y": 7.51904930207155,
-        #   "v1z": 0.914355407629293
-        # },
-        # {
-        #   "psi": "bad",
-        #   "type": "fenestration",
-        #   "length": 2.13349595113501,
-        #   "surfaces": [
-        #     "Office Left Wall Window1",
-        #     "Office Left Wall"
-        #   ],
-        #   "v0x": 0.0,
-        #   "v0y": 7.51904930207155,
-        #   "v0z": 0.914355407629293,
-        #   "v1x": 0.0,
-        #   "v1y": 5.38555335093654,
-        #   "v1z": 0.914355407629293
-        # },
-        # {
-        #   "psi": "compliant",
-        #   "type": "fenestration",
-        #   "length": 1.524940613884627,
-        #   "surfaces": [
-        #     "Office Left Wall Window1",
-        #     "Office Left Wall"
-        #   ],
-        #   "v0x": 0.0,
-        #   "v0y": 5.38555335093654,
-        #   "v0z": 0.914355407629293,
-        #   "v1x": 0.0,
-        #   "v1y": 5.38555335093654,
-        #   "v1z": 2.43929602151392
-        # },
-        # {
-        #   "psi": "compliant",
-        #   "type": "fenestration",
-        #   "length": 2.13349595113501,
-        #   "surfaces": [
-        #     "Office Left Wall Window1",
-        #     "Office Left Wall"
-        #   ],
-        #   "v0x": 0.0,
-        #   "v0y": 5.38555335093654,
-        #   "v0z": 2.43929602151392,
-        #   "v1x": 0.0,
-        #   "v1y": 7.51904930207155,
-        #   "v1z": 2.43929602151392
-        # },
       else
         expect(surface[:boundary].downcase).to_not eq("outdoors")
       end
@@ -2314,10 +2106,10 @@ require "psi"
           expect(surface[:ratio]).to be_within(0.1).of(-18.1)
         end
         if id == "Utility1 Wall 5"
-          expect(surface[:ratio]).to be_within(0.1).of(-26.1)
+          expect(surface[:ratio]).to be_within(0.1).of(-23.2) # -26.1
         end
         if id == "Openarea 1 Wall 7"
-          expect(surface[:ratio]).to be_within(0.1).of(-17.7)
+          expect(surface[:ratio]).to be_within(0.1).of(-13.8) # -17.7
         end
         if id == "Level 0 Entry way  Ceiling Plenum RoofCeiling"
           expect(surface[:ratio]).to be_within(0.1).of(-28.5)
@@ -2360,10 +2152,10 @@ require "psi"
           expect(surface[:ratio]).to be_within(0.1).of(-18.1)
         end
         if id == "Utility1 Wall 5"
-          expect(surface[:ratio]).to be_within(0.1).of(-26.1)
+          expect(surface[:ratio]).to be_within(0.1).of(-23.2) # -26.1
         end
         if id == "Openarea 1 Wall 7"
-          expect(surface[:ratio]).to be_within(0.1).of(-17.7)
+          expect(surface[:ratio]).to be_within(0.1).of(-13.8) # -17.7
         end
         if id == "Level 0 Entry way  Ceiling Plenum RoofCeiling"
           expect(surface[:ratio]).to be_within(0.1).of(-28.5)
@@ -2406,10 +2198,10 @@ require "psi"
           expect(surface[:ratio]).to be_within(0.1).of(-18.1)
         end
         if id == "Utility1 Wall 5"
-          expect(surface[:ratio]).to be_within(0.1).of(-26.1)
+          expect(surface[:ratio]).to be_within(0.1).of(-23.2) # -26.1
         end
         if id == "Openarea 1 Wall 7"
-          expect(surface[:ratio]).to be_within(0.1).of(-17.7)
+          expect(surface[:ratio]).to be_within(0.1).of(-13.8) # -17.7
         end
         if id == "Level 0 Entry way  Ceiling Plenum RoofCeiling"
           expect(surface[:ratio]).to be_within(0.1).of(-28.5)
@@ -2470,18 +2262,18 @@ require "psi"
     expect(io[:building].first[:psi]).to eq("(non thermal bridging)")
 
     # As the :building PSI set on file remains "(non thermal bridging)", one should
-    # not expect differences in results, i.e. derating shouldn't occur. However,
-    # the JSON file holds KHI entries for "Entryway  Wall 2" :
+    # not expect differences in results, i.e. derating shouldn't occur for most
+    # surfaces. However, the JSON file holds KHI entries for "Entryway  Wall 5":
     # 3x "columns" @0.5 W/K + 4x supports @0.5W/K = 3.5 W/K (as in case above),
-    # and a "good" PSI set (:rimjoist), which should override the default set
+    # and a "good" PSI set (:parapet, of 0.5 W/K per m).
     surfaces.each do |id, surface|
       next unless surface.has_key?(:ratio)
       expect(id).to eq("Entryway  Wall 5")
-      expect(surface[:heatloss]).to be_within(0.01).of(8.54) # 6.74
+      expect(surface[:heatloss]).to be_within(0.01).of(5.3) # 3.5 + (3.6m x 0.5)
     end
 
     expect(io.has_key?(:edges)).to be(true)
-    expect(io[:edges].size).to eq(2)
+    expect(io[:edges].size).to eq(1)
     io[:edges].each do |edge|
       expect(edge.has_key?(:psi)).to be(true)
       expect(edge.has_key?(:type)).to be(true)
@@ -2492,8 +2284,8 @@ require "psi"
       t = edge[:type]
       s = {}
       io[:psis].each do |set| s = set if set[:id] == p; end
-      expect(s[t]).to be_within(0.01).of(0.9).or be_within(0.01).of(0.5)
-      expect(t).to eq(:rimjoist).or eq(:parapet)
+      expect(s[t]).to be_within(0.01).of(0.5)
+      expect(t).to eq(:parapet)
       expect(edge[:length]).to be_within(0.01).of(3.6)
       expect(edge[:surfaces].class).to eq(Array)
     end
@@ -2573,7 +2365,7 @@ require "psi"
       next unless surface[:boundary].downcase == "outdoors"
       expect(surface.has_key?(:ratio)).to be(false) unless id == "Entryway  Wall 5"
       next unless id == "Entryway  Wall 5"
-      expect(surface[:heatloss]).to be_within(0.01).of(17.42)  # 12.39 + 5.04
+      expect(surface[:heatloss]).to be_within(0.01).of(14.18)  # 12.39 + 5.04
     end
   end
 
@@ -2611,7 +2403,7 @@ require "psi"
         expect(surface.has_key?(:ratio)).to be(false)
       end
       next unless id == "Entryway  Wall 5"
-      expect(surface[:heatloss]).to be_within(0.01).of(13.60)
+      expect(surface[:heatloss]).to be_within(0.01).of(12.51) # 13.6
     end
 
     out = JSON.pretty_generate(io)
@@ -2951,12 +2743,8 @@ require "psi"
       expect(surface.has_key?(:space)).to be(true)
       next unless surface[:space].nameString == "Zone1 Office"
 
-      # Without the "Warehouse Office" spacetype JSON override, additional
-      # heatloss from thermal bridging would be as follows:
-      # "Office Left Wall":  ~14.75 W/K
-      # "Office Front Wall": ~29.78 W/K
-      expect(heatloss).to be_within(0.01).of(10.70) if id == "Office Left Wall"
-      expect(heatloss).to be_within(0.01).of(20.35) if id == "Office Front Wall"
+      expect(heatloss).to be_within(0.01).of(8.23) if id == "Office Left Wall" # 10.7
+      expect(heatloss).to be_within(0.01).of(13.12) if id == "Office Front Wall" # 20.35
     end
   end
 
@@ -2971,6 +2759,7 @@ require "psi"
     io_path = File.dirname(__FILE__) + "/../json/tbd_smalloffice.json"
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
     gen_kiva = false
+
     io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(43)
 
@@ -2981,26 +2770,7 @@ require "psi"
       expect(story.has_key?(:psi)).to be(true)
     end
 
-    expect(airLoopsHVAC?(os_model)).to be(true)
-    expect(winterDesignDayTemperatureSetpoints?(os_model)).to be(true)
-    expect(summerDesignDayTemperatureSetpoints?(os_model)).to be(true)
-
-    os_model.getSpaces.each do |space|
-      name = space.nameString
-      next unless name == "Attic"
-      expect(space.thermalZone.empty?).to be(false)
-      zone = space.thermalZone.get
-      expect(zone.isPlenum).to be(false)
-      expect(zone.canBePlenum).to be(true)
-      surfaces.each do |id, surface|
-        next unless surface.has_key?(:space)
-        next unless surface[:space].nameString == "Attic"
-      end
-    end
-
     surfaces.each do |id, surface|
-      next unless surface[:boundary].downcase == "outdoors" ||
-                  surface[:conditioned] == false
       next unless surface.has_key?(:ratio)
       expect(surface.has_key?(:heatloss)).to be(true)
       heatloss = surface[:heatloss]
@@ -3022,13 +2792,62 @@ require "psi"
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
-    psi_set = "(non thermal bridging)"
-    io, surfaces = processTBD(os_model, psi_set, "", "", false)
+    expect(airLoopsHVAC?(os_model)).to be(true)
+    expect(winterDesignDayTemperatureSetpoints?(os_model)).to be(true)
+    expect(summerDesignDayTemperatureSetpoints?(os_model)).to be(true)
+
+    psi_set = "compliant" # ignored - superseded by :building PSI set on file
+    io_path = File.dirname(__FILE__) + "/../json/tbd_smalloffice.json"
+    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
+    gen_kiva = false
+
+    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
     expect(surfaces.size).to eq(43)
 
+    # Check derating of attic floor (5x surfaces)
+    os_model.getSpaces.each do |space|
+      next unless space.nameString == "Attic"
+      expect(space.thermalZone.empty?).to be(false)
+      zone = space.thermalZone.get
+      expect(zone.isPlenum).to be(false)
+      expect(zone.canBePlenum).to be(true)
+      space.surfaces.each do |s|
+        id = s.nameString
+        expect(surfaces.has_key?(id)).to be(true)
+        expect(surfaces[id].has_key?(:space)).to be(true)
+        next unless surfaces[id][:space].nameString == "Attic"
+        expect(surfaces[id][:conditioned]).to be(false)
+        next if surfaces[id][:boundary] == "Outdoors"
+        expect(s.adjacentSurface.empty?).to be(false)
+        adjacent = s.adjacentSurface.get.nameString
+        expect(surfaces.has_key?(adjacent)).to be(true)
+        expect(surfaces[id][:boundary]).to eq(adjacent)
+        expect(surfaces[adjacent][:conditioned]).to be(true)
+        #puts surfaces[adjacent].keys if adjacent == "Perimeter_ZN_2_ceiling"
+        # expect(surfaces[adjacent].has_key?(:heatloss)).to be(true)
+        #if surfaces[id][:boundary].include?("Core")
+        #  puts "core #{id} : adjacent = #{adjacent}"
+        #else
+        #  puts "not core #{id} : adjacent = #{adjacent}"
+          #expect(surfaces[id].has_key?(:heatloss)).to be(true)
+        #end
+      end
+    end
+
+    # CHeck derating of outdoor-facing walls
     surfaces.each do |id, surface|
-      next unless surface[:boundary].downcase == "outdoors"
       next unless surface.has_key?(:ratio)
+      next if surface[:boundary].downcase == "outdoors"
+      puts id if surface.has_key?(:heatloss)
+      #heatloss = surface[:heatloss]
+      #expect(heatloss.abs).to be > 0
+    end
+
+    # CHeck derating of outdoor-facing walls
+    surfaces.each do |id, surface|
+      next unless surface.has_key?(:ratio)
+      next unless surface[:boundary].downcase == "outdoors"
+      #puts id if surface.has_key?(:heatloss)
       expect(surface.has_key?(:heatloss)).to be(true)
       heatloss = surface[:heatloss]
       expect(heatloss.abs).to be > 0

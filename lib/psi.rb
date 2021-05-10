@@ -573,51 +573,6 @@ def winterDesignDayTemperatureSetpoint(zone)
 end
 
 ##
-# Return valid zone summer DD temperature setpoint [°C]
-#
-# @param [OpenStudio::Model::Model] zone An OS thermal zone
-#
-# @return [Bool] Returns zone summer DD temperature setpoint if valid; else, nil
-def summerDesignDayTemperatureSetpoint(zone)
-  setpoint = nil
-
-  if zone
-    unless zone.is_a?(OpenStudio::Model::ThermalZone)
-      raise "Expected OpenStudio Thermal Zone - got a #{zone.class} (summer DD)"
-    end
-
-    unless zone.thermostatSetpointDualSetpoint.empty?
-      dual = zone.thermostatSetpointDualSetpoint.get
-
-      unless dual.coolingSetpointTemperatureSchedule.empty?
-        schedule = dual.coolingSetpointTemperatureSchedule.get
-
-        unless schedule.to_ScheduleRuleset.empty?
-          ruleset = schedule.to_ScheduleRuleset.get
-          dd = ruleset.summerDesignDaySchedule
-          setpoint = dd.values.max unless dd.values.empty?
-        end
-
-        unless schedule.to_ScheduleYear.empty?
-          year = schedule.to_ScheduleYear.get
-          year.getScheduleWeeks.each do |week|
-            next if week.coolingDesignDaySchedule.empty?
-            dd = week.summerDesignDaySchedule.get
-            t = dd.values.max unless dd.values.empty?
-            if setpoint
-              setpoint = t unless t < setpoint
-            else
-              setpoint = t
-            end
-          end
-        end
-      end
-    end
-  end
-  setpoint
-end
-
-##
 # Validate if model has zones with valid summer DD temperature setpoints
 #
 # @param [OpenStudio::Model::Model] model An OS model
@@ -660,6 +615,51 @@ def summerDesignDayTemperatureSetpoints?(model)
     end
   end
   answer
+end
+
+##
+# Return valid zone summer DD temperature setpoint [°C]
+#
+# @param [OpenStudio::Model::Model] zone An OS thermal zone
+#
+# @return [Bool] Returns zone summer DD temperature setpoint if valid; else, nil
+def summerDesignDayTemperatureSetpoint(zone)
+  setpoint = nil
+
+  if zone
+    unless zone.is_a?(OpenStudio::Model::ThermalZone)
+      raise "Expected OpenStudio Thermal Zone - got a #{zone.class} (summer DD)"
+    end
+
+    unless zone.thermostatSetpointDualSetpoint.empty?
+      dual = zone.thermostatSetpointDualSetpoint.get
+
+      unless dual.coolingSetpointTemperatureSchedule.empty?
+        schedule = dual.coolingSetpointTemperatureSchedule.get
+
+        unless schedule.to_ScheduleRuleset.empty?
+          ruleset = schedule.to_ScheduleRuleset.get
+          dd = ruleset.summerDesignDaySchedule
+          setpoint = dd.values.max unless dd.values.empty?
+        end
+
+        unless schedule.to_ScheduleYear.empty?
+          year = schedule.to_ScheduleYear.get
+          year.getScheduleWeeks.each do |week|
+            next if week.coolingDesignDaySchedule.empty?
+            dd = week.summerDesignDaySchedule.get
+            t = dd.values.max unless dd.values.empty?
+            if setpoint
+              setpoint = t unless t < setpoint
+            else
+              setpoint = t
+            end
+          end
+        end
+      end
+    end
+  end
+  setpoint
 end
 
 ##
@@ -1698,6 +1698,8 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
     edge[:surfaces].keys.each do |id|
       next if match                                         # skip if customized
       next unless surfaces.has_key?(id)
+      next unless surfaces[id].has_key?(:conditioned)
+      next unless surfaces[id][:conditioned]
 
       # Skipping the :party wall label for now. Criteria determining party
       # wall edges from TBD edges is to be determined. Most likely scenario
@@ -1716,7 +1718,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
           next unless surfaces[i].has_key?(:conditioned)
           next unless surfaces[i][:conditioned]
 
-          if surfaces.has_key?(surfaces[i][:boundary])      # adjacent surface
+          if surfaces.has_key?(surfaces[i][:boundary])        # adjacent surface
             adjacent = surfaces[i][:boundary]
             next unless surfaces[adjacent].has_key?(:conditioned)
             next if surfaces[adjacent][:conditioned]
@@ -1724,7 +1726,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
             next unless surfaces[i][:boundary].downcase == "outdoors"
           end
 
-          if surfaces.has_key?(surfaces[id][:boundary])     # adjacent surface
+          if surfaces.has_key?(surfaces[id][:boundary])       # adjacent surface
             adjacent = surfaces[id][:boundary]
             next unless surfaces[adjacent].has_key?(:conditioned)
             next if surfaces[adjacent][:conditioned]
@@ -1757,7 +1759,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
           next unless walls[i].has_key?(:conditioned)
           next unless walls[i][:conditioned]
 
-          if surfaces.has_key?(walls[i][:boundary])         # adjacent surface
+          if surfaces.has_key?(walls[i][:boundary])           # adjacent surface
             adjacent = walls[i][:boundary]
             next unless surfaces[adjacent].has_key?(:conditioned)
             next if surfaces[adjacent][:conditioned]
@@ -1765,7 +1767,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
             next unless walls[i][:boundary].downcase == "outdoors"
           end
 
-          if surfaces.has_key?(ceilings[id][:boundary])     # adjacent surface
+          if surfaces.has_key?(ceilings[id][:boundary])       # adjacent surface
             adjacent = surfaces[id][:boundary]
             next unless surfaces[adjacent].has_key?(:conditioned)
             next if surfaces[adjacent][:conditioned]
@@ -1786,7 +1788,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
           next unless walls[i].has_key?(:conditioned)
           next unless walls[i][:conditioned]
 
-          if surfaces.has_key?(walls[i][:boundary])         # adjacent surface
+          if surfaces.has_key?(walls[i][:boundary])           # adjacent surface
             adjacent = walls[i][:boundary]
             next unless surfaces[adjacent].has_key?(:conditioned)
             next if surfaces[adjacent][:conditioned]
@@ -1794,7 +1796,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
             next unless walls[i][:boundary].downcase == "outdoors"
           end
 
-          if surfaces.has_key?(floors[id][:boundary])       # adjacent surface
+          if surfaces.has_key?(floors[id][:boundary])         # adjacent surface
             adjacent = floors[id][:boundary]
             next unless surfaces[adjacent].has_key?(:conditioned)
             next if surfaces[adjacent][:conditioned]
@@ -1815,7 +1817,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
           next unless ceilings[i].has_key?(:conditioned)
           next unless ceilings[i][:conditioned]
 
-          if surfaces.has_key?(ceilings[i][:boundary])      # adjacent surface
+          if surfaces.has_key?(ceilings[i][:boundary])        # adjacent surface
             adjacent = ceilings[i][:boundary]
             next unless surfaces[adjacent].has_key?(:conditioned)
             next if surfaces[adjacent][:conditioned]
@@ -1823,7 +1825,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
             next unless ceilings[i][:boundary].downcase == "outdoors"
           end
 
-          if surfaces.has_key?(floors[id][:boundary])       # adjacent surface
+          if surfaces.has_key?(floors[id][:boundary])         # adjacent surface
             adjacent = floors[id][:boundary]
             next unless surfaces[adjacent].has_key?(:conditioned)
             next if surfaces[adjacent][:conditioned]
@@ -1837,13 +1839,16 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
 
       # Label edge as :rimjoist if linked to:
       #   1x wall facing outdoors OR facing UNCONDITIONED space &
-      #   1x floor
+      #   1x CONDITIONED floor
       unless psi.has_key?(:rimjoist)
         edge[:surfaces].keys.each do |i|
           next unless floors.has_key?(i)
+          next unless floors[i].has_key?(:conditioned)
+          next unless floors[i][:conditioned]
+          next if floors[i][:ground]
           next unless walls.has_key?(id)
 
-          if surfaces.has_key?(walls[id][:boundary])        # adjacent surface
+          if surfaces.has_key?(walls[id][:boundary])          # adjacent surface
             adjacent = walls[id][:boundary]
             next unless surfaces[adjacent].has_key?(:conditioned)
             next if surfaces[adjacent][:conditioned]
@@ -1875,7 +1880,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
           next unless walls[i].has_key?(:conditioned)
           next unless walls[i][:conditioned]
 
-          if surfaces.has_key?(walls[i][:boundary])         # adjacent surface
+          if surfaces.has_key?(walls[i][:boundary])           # adjacent surface
             adjacent = walls[i][:boundary]
             next unless surfaces[adjacent].has_key?(:conditioned)
             next if surfaces[adjacent][:conditioned]
@@ -1883,7 +1888,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
             next unless walls[i][:boundary].downcase == "outdoors"
           end
 
-          if surfaces.has_key?(walls[id][:boundary])         # adjacent surface
+          if surfaces.has_key?(walls[id][:boundary])          # adjacent surface
             adjacent = walls[id][:boundary]
             next unless surfaces[adjacent].has_key?(:conditioned)
             next if surfaces[adjacent][:conditioned]
