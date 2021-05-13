@@ -2287,18 +2287,15 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
         s.setConstruction(c)
 
         # If derated surface construction separates 2x spaces, then derate
-        # adjacent surface construction as well.
-        if s.outsideBoundaryCondition.downcase == "space"
-          expect(s.adjacentSurface.empty?).to be(false)
-          adjacent = s.adjacentSurface.get
-          i = adjacent.nameString
-          if surfaces.has_key?(i)
-            indx = surfaces[i][:index]
-            c_c = surface[:construction]
-            cc = c_c.clone(os_model).to_Construction.get
-            cc.setLayer(indx, m)
-            cc.setName("#{i} c tbd")
-            adjacent.setConstruction(cc)
+        # adjacent surface construction as well (unless defaulted).
+        if s.outsideBoundaryCondition.downcase == "surface"
+          unless s.adjacentSurface.empty?
+            adjacent = s.adjacentSurface.get
+            i = adjacent.nameString
+            if surfaces.has_key?(i) && adjacent.isConstructionDefaulted == false
+              indx = surfaces[i][:index]
+              cc = surfaces[i][:construction].setLayer(indx, m)
+            end
           end
         end
 

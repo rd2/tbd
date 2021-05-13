@@ -488,14 +488,14 @@ require "psi"
     os_p_W1_floor.setSurfaceType("Floor") # slanted floors are walls (default)
 
     os_v = OpenStudio::Point3dVector.new
-    os_v << OpenStudio::Point3d.new( 24.0, 29.8, 43.00) #  3.30m
-    os_v << OpenStudio::Point3d.new( 24.0, 33.1, 43.00) #  5.06m
-    os_v << OpenStudio::Point3d.new( 29.0, 33.1, 42.26) #  3.80m
-    os_v << OpenStudio::Point3d.new( 29.0, 36.9, 42.26) #  5.06m
-    os_v << OpenStudio::Point3d.new( 24.0, 36.9, 43.00) #  3.30m
-    os_v << OpenStudio::Point3d.new( 24.0, 40.2, 43.00) #  6.77m
-    os_v << OpenStudio::Point3d.new( 30.7, 40.2, 42.00) # 10.40m
-    os_v << OpenStudio::Point3d.new( 30.7, 29.8, 42.00) #  6.77m
+    os_v << OpenStudio::Point3d.new( 24.0, 29.8, 43.00) #  3.30m D
+    os_v << OpenStudio::Point3d.new( 24.0, 33.1, 43.00) #  5.06m C
+    os_v << OpenStudio::Point3d.new( 29.0, 33.1, 42.26) #  3.80m I
+    os_v << OpenStudio::Point3d.new( 29.0, 36.9, 42.26) #  5.06m H
+    os_v << OpenStudio::Point3d.new( 24.0, 36.9, 43.00) #  3.30m B
+    os_v << OpenStudio::Point3d.new( 24.0, 40.2, 43.00) #  6.77m A
+    os_v << OpenStudio::Point3d.new( 30.7, 40.2, 42.00) # 10.40m E
+    os_v << OpenStudio::Point3d.new( 30.7, 29.8, 42.00) #  6.77m F
     os_p_W2_floor = OpenStudio::Model::Surface.new(os_v, os_model)
     os_p_W2_floor.setName("p_W2_floor")
     os_p_W2_floor.setSpace(os_p)                        #  51.23m2
@@ -548,7 +548,7 @@ require "psi"
     os_s_floor.setSurfaceType("Floor")
     os_s_floor.setOutsideBoundaryCondition("Outdoors")
 
-    #os_model.save("os_model_test.osm", true)
+    os_model.save("os_model_test.osm", true)
 
     # Create the Topolys Model.
     t_model = Topolys::Model.new
@@ -570,11 +570,11 @@ require "psi"
 
       ground   = s.isGroundSurface
       boundary = s.outsideBoundaryCondition
-      if boundary.downcase == "surface"
-        raise "#{id}: adjacent surface?" if s.adjacentSurface.empty?
+      if boundary == "Surface"
+        expect(s.adjacentSurface.empty?).to be(false)
         adjacent = s.adjacentSurface.get.nameString
         test = os_model.getSurfaceByName(adjacent)
-        raise "mismatch #{id} vs #{adjacent}" if test.empty?
+        expect(test.empty?).to be(false)
         boundary = adjacent
       end
 
@@ -833,22 +833,22 @@ require "psi"
     e_E_wall_edges_ids = Set.new(e_E_wall_face.outer.edges.map{|oe| oe.id})
 
     intersection = p_S2_wall_edge_ids & e_p_wall_edges_ids & p_e_wall_edges_ids
-    expect(intersection.size).to eq 1
+    expect(intersection.size).to eq(1)
 
     intersection = p_S2_wall_edge_ids & e_p_wall_edges_ids & p_e_wall_edges_ids & e_E_wall_edges_ids
-    expect(intersection.size).to eq 1
+    expect(intersection.size).to eq(1)
 
     shared_edges = p_S2_wall_face.shared_outer_edges(e_p_wall_face)
-    expect(shared_edges.size).to eq 1
-    expect(shared_edges.first.id).to eq intersection.to_a.first
+    expect(shared_edges.size).to eq(1)
+    expect(shared_edges.first.id).to eq(intersection.to_a.first)
 
     shared_edges = p_S2_wall_face.shared_outer_edges(p_e_wall_face)
-    expect(shared_edges.size).to eq 1
-    expect(shared_edges.first.id).to eq intersection.to_a.first
+    expect(shared_edges.size).to eq(1)
+    expect(shared_edges.first.id).to eq(intersection.to_a.first)
 
     shared_edges = p_S2_wall_face.shared_outer_edges(e_E_wall_face)
-    expect(shared_edges.size).to eq 1
-    expect(shared_edges.first.id).to eq intersection.to_a.first
+    expect(shared_edges.size).to eq(1)
+    expect(shared_edges.first.id).to eq(intersection.to_a.first)
 
     # g_floor and p_top should be connected with all edges shared
     g_floor_face = floors["g_floor"][:face]
@@ -1591,53 +1591,24 @@ require "psi"
     expect(surfaces["s_E_wall"  ][:heatloss]).to be_within(0.01).of( 5.041)
     expect(surfaces["p_E_floor" ][:heatloss]).to be_within(0.01).of(18.650)
     expect(surfaces["s_S_wall"  ][:heatloss]).to be_within(0.01).of( 6.583)
-    expect(surfaces["e_W_wall"  ][:heatloss]).to be_within(0.01).of( 6.023) # 6.365
+    expect(surfaces["e_W_wall"  ][:heatloss]).to be_within(0.01).of( 6.023) # v
     expect(surfaces["p_N_wall"  ][:heatloss]).to be_within(0.01).of(37.250)
     expect(surfaces["p_S2_wall" ][:heatloss]).to be_within(0.01).of(27.268)
     expect(surfaces["p_S1_wall" ][:heatloss]).to be_within(0.01).of( 7.063)
     expect(surfaces["g_S_wall"  ][:heatloss]).to be_within(0.01).of(56.150)
     expect(surfaces["p_floor"   ][:heatloss]).to be_within(0.01).of(10.000)
     expect(surfaces["p_W1_floor"][:heatloss]).to be_within(0.01).of(13.775)
-    expect(surfaces["e_N_wall"  ][:heatloss]).to be_within(0.01).of( 4.727) # 5.639
+    expect(surfaces["e_N_wall"  ][:heatloss]).to be_within(0.01).of( 4.727) # v
     expect(surfaces["s_N_wall"  ][:heatloss]).to be_within(0.01).of( 6.583)
     expect(surfaces["g_E_wall"  ][:heatloss]).to be_within(0.01).of(18.195)
-    expect(surfaces["e_S_wall"  ][:heatloss]).to be_within(0.01).of( 7.703) # 8.615
+    expect(surfaces["e_S_wall"  ][:heatloss]).to be_within(0.01).of( 7.703) # v
     expect(surfaces["e_top"     ][:heatloss]).to be_within(0.01).of( 4.400)
     expect(surfaces["s_W_wall"  ][:heatloss]).to be_within(0.01).of( 5.670)
-    expect(surfaces["e_E_wall"  ][:heatloss]).to be_within(0.01).of( 6.023) # 6.365
-    expect(surfaces["e_floor"   ][:heatloss]).to be_within(0.01).of( 8.007) # 5.500
+    expect(surfaces["e_E_wall"  ][:heatloss]).to be_within(0.01).of( 6.023) # v
+    expect(surfaces["e_floor"   ][:heatloss]).to be_within(0.01).of( 8.007) # v
     expect(surfaces["g_W_wall"  ][:heatloss]).to be_within(0.01).of(18.195)
     expect(surfaces["g_N_wall"  ][:heatloss]).to be_within(0.01).of(54.255)
     expect(surfaces["p_W2_floor"][:heatloss]).to be_within(0.01).of(13.729)
-
-    # if "(non thermal bridging)""
-    # expect(surfaces["s_floor"   ].has_key?(:heatloss)).to be(false)
-    # expect(surfaces["s_E_wall"  ].has_key?(:heatloss)).to be(false)
-    # expect(surfaces["p_E_floor" ].has_key?(:heatloss)).to be(false)
-    # expect(surfaces["s_S_wall"  ].has_key?(:heatloss)).to be(false)
-    # expect(surfaces["e_W_wall"  ].has_key?(:heatloss)).to be(false)
-    # expect(surfaces["p_N_wall"  ].has_key?(:heatloss)).to be(false)
-    # expect(surfaces["p_S2_wall" ].has_key?(:heatloss)).to be(false)
-    # expect(surfaces["p_S1_wall" ].has_key?(:heatloss)).to be(false)
-    # expect(surfaces["g_S_wall"  ].has_key?(:heatloss)).to be(false)
-    # expect(surfaces["p_floor"   ].has_key?(:heatloss)).to be(false)
-    # expect(surfaces["p_W1_floor"].has_key?(:heatloss)).to be(false)
-    # expect(surfaces["e_N_wall"  ].has_key?(:heatloss)).to be(false)
-    # expect(surfaces["s_N_wall"  ].has_key?(:heatloss)).to be(false)
-    # expect(surfaces["g_E_wall"  ].has_key?(:heatloss)).to be(false)
-    # expect(surfaces["e_S_wall"  ].has_key?(:heatloss)).to be(false)
-    # expect(surfaces["e_top"     ].has_key?(:heatloss)).to be(false)
-    # expect(surfaces["s_W_wall"  ].has_key?(:heatloss)).to be(false)
-    # expect(surfaces["e_E_wall"  ].has_key?(:heatloss)).to be(false)
-    # expect(surfaces["e_floor"   ].has_key?(:heatloss)).to be(false)
-    # expect(surfaces["g_W_wall"  ].has_key?(:heatloss)).to be(false)
-    # expect(surfaces["g_N_wall"  ].has_key?(:heatloss)).to be(false)
-    # expect(surfaces["p_W2_floor"].has_key?(:heatloss)).to be(false)
-
-    #ceiling_c   = defaults.roofCeilingConstruction.get.to_Construction.get
-    #wall_c      = defaults.wallConstruction.get.to_Construction.get
-    #floor_c     = defaults.floorConstruction.get.to_Construction.get
-
 
     # Derated (cloned) constructions are unique to each deratable surface.
     # Unique construction names are prefixed with the surface name,
@@ -1729,14 +1700,50 @@ require "psi"
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
-    # rimjoist:     1.000, # *
-    # parapet:      0.800, # *
-    # fenestration: 0.500, # *
-    # concave:      0.850, # *
-    # convex:       0.850, # *
-    # balcony:      1.000, # *
-    # party:        0.850, # *
-    # grade:        0.850  # *
+    # Tracking insulated ceiling surfaces below attic.
+    os_model.getSurfaces.each do |s|
+      next unless s.surfaceType == "RoofCeiling"
+      next unless s.isConstructionDefaulted
+      id = s.construction.get.nameString
+      expect(id).to eq("Typical Wood Joist Attic Floor R-37.04 1")
+      c = s.construction.get.to_Construction.get
+      expect(c.layers.size).to eq(2)
+      expect(c.layers[0].nameString).to eq("5/8 in. Gypsum Board")
+      expect(c.layers[1].nameString).to eq("Typical Insulation R-35.4 1")
+      # "5/8 in. Gypsum Board"        : RSi = 0,0994 m2.K/W
+      # "Typical Insulation R-35.4 1" : RSi = 6,2348 m2.K/W
+    end
+
+    # Tracking outdoor-facing office walls.
+    os_model.getSurfaces.each do |s|
+      next unless s.surfaceType == "Wall"
+      next unless s.outsideBoundaryCondition == "Outdoors"
+      id = s.construction.get.nameString
+      str = "Typical Insulated Wood Framed Exterior Wall R-11.24"
+      expect(id.include?(str)).to be(true)
+      c = s.construction
+      expect(c.empty?).to be(false)
+      c = c.get.to_Construction
+      expect(c.empty?).to be(false)
+      c = c.get
+      expect(c.layers.size).to eq(4)
+      expect(c.layers[0].nameString).to eq("25mm Stucco")
+      expect(c.layers[1].nameString).to eq("5/8 in. Gypsum Board")
+      str2 = "Typical Insulation R-9.06 1"
+      expect(c.layers[2].nameString.include?(str2)).to be(true)
+      expect(c.layers[3].nameString).to eq("5/8 in. Gypsum Board")
+      # "25mm Stucco"                 : RSi = 0,0353 m2.K/W
+      # "5/8 in. Gypsum Board"        : RSi = 0,0994 m2.K/W
+      # "Perimeter_ZN_1_wall_south Typical Insulation R-9.06 1"
+      #                               : RSi = 0,5947 m2.K/W
+      # "Perimeter_ZN_2_wall_east Typical Insulation R-9.06 1"
+      #                               : RSi = 0,6270 m2.K/W
+      # "Perimeter_ZN_3_wall_north Typical Insulation R-9.06 1"
+      #                               : RSi = 0,6346 m2.K/W
+      # "Perimeter_ZN_4_wall_west Typical Insulation R-9.06 1"
+      #                               : RSi = 0,6270 m2.K/W
+    end
+
     psi_set = "poor (BETBG)"
     io_path = ""
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
@@ -1744,41 +1751,122 @@ require "psi"
     io, surfaces = processTBD(os_model, psi_set, io_path, gen_kiva)
     expect(surfaces.size).to eq(43)
 
-    # testing attic surfaces
+    # Testing attic surfaces.
     surfaces.each do |id, surface|
       expect(surface.has_key?(:space)).to be(true)
       next unless surface[:space].nameString == "Attic"
+
+      # Attic is an UNENCLOSED zone - outdoor-facing surfaces are not derated.
       expect(surface.has_key?(:conditioned)).to be(true)
       expect(surface[:conditioned]).to be(false)
+      expect(surface.has_key?(:heatloss)).to be(false)
+      expect(surface.has_key?(:ratio)).to be(false)
+
+      # Attic floor surfaces adjacent to ceiling surfaces below (CONDITIONED
+      # office spaces) share derated constructions (although inverted).
       expect(surface.has_key?(:boundary)).to be(true)
       b = surface[:boundary]
-      if b == "Outdoors"
-        expect(surface.has_key?(:heatloss)).to be(false)
-        expect(surface.has_key?(:ratio)).to be(false)
-      else
+      unless b == "Outdoors"
+        # TBD/Topolys should be tracking the adjacent CONDITIONED surface.
         expect(surfaces.has_key?(b)).to be(true)
         expect(surfaces[b].has_key?(:conditioned)).to be(true)
         expect(surfaces[b][:conditioned]).to be(true)
-        if id == "Attic_floor_core"
-          expect(surface.has_key?(:heatloss)).to be(false)
-          expect(surface.has_key?(:ratio)).to be(false)
-        else
-          expect(surface.has_key?(:heatloss)).to be(false)
-          expect(surface.has_key?(:ratio)).to be(false)
+
+        unless id == "Attic_floor_core"
           expect(surfaces[b].has_key?(:heatloss)).to be(true)
           expect(surfaces[b].has_key?(:ratio)).to be(true)
+          h = surfaces[b][:heatloss]
+          expect(h).to be_within(0.01).of(20.11) if id.include?("north")
+          expect(h).to be_within(0.01).of(20.22) if id.include?("south")
+          expect(h).to be_within(0.01).of(13.42) if id.include?("west")
+          expect(h).to be_within(0.01).of(13.42) if id.include?("east")
 
+          # Derated constructions?
+          s = os_model.getSurfaceByName(id)
+          expect(s.empty?).to be(false)
+          s = s.get
+          expect(s.nameString).to eq(id)
+          expect(s.surfaceType).to eq("Floor")
+
+          # In the small office OSM, attic floor constructions are not set by
+          # the attic default construction set. They are instead set for the
+          # adjacent ceilings below (building default construction set). So
+          # attic floor surfaces automatically inherit derated constructions.
+          expect(s.isConstructionDefaulted).to be(true)
+          c = s.construction.get.to_Construction
+          expect(c.empty?).to be(false)
+          c = c.get
+          expect(c.nameString.include?("c tbd")).to be(true)
+          expect(c.layers.size).to eq(2)
+          expect(c.layers[0].nameString).to eq("5/8 in. Gypsum Board")
+          expect(c.layers[1].nameString.include?("m tbd")).to be(true)
+
+          # Comparing derating ratios of constructions.
+          expect(c.layers[1].to_MasslessOpaqueMaterial.empty?).to be(false)
+          m = c.layers[1].to_MasslessOpaqueMaterial.get
+
+          # Before derating.
+          initial_R = s.filmResistance
+          initial_R += 0.0994
+          initial_R += 6.2348
+
+          # After derating.
+          derated_R = s.filmResistance
+          derated_R += 0.0994
+          derated_R += m.thermalResistance
+
+          ratio = -(initial_R - derated_R) * 100 / initial_R
+          expect(ratio).to be_within(1).of(surfaces[b][:ratio])
+          # "5/8 in. Gypsum Board"        : RSi = 0,0994 m2.K/W
+          # "Typical Insulation R-35.4 1" : RSi = 6,2348 m2.K/W
         end
       end
     end
 
     surfaces.each do |id, surface|
       next unless surface.has_key?(:edges)
-      os_model.getSurfaces.each do |s|
-        next unless id == s.nameString
-        expect(s.isConstructionDefaulted).to be(false)
-        expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
+      expect(surface.has_key?(:heatloss)).to be(true)
+      expect(surface.has_key?(:ratio)).to be(true)
+      h = surface[:heatloss]
+
+      s = os_model.getSurfaceByName(id)
+      expect(s.empty?).to be(false)
+      s = s.get
+      expect(s.nameString).to eq(id)
+      expect(s.isConstructionDefaulted).to be(false)
+      expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
+
+      # Testing outdoor-facing walls.
+      next unless s.surfaceType == "Wall"
+      expect(h).to be_within(0.01).of(51.17) if id.include?("_1_") # South
+      expect(h).to be_within(0.01).of(33.08) if id.include?("_2_") # East
+      expect(h).to be_within(0.01).of(48.32) if id.include?("_3_") # North
+      expect(h).to be_within(0.01).of(33.08) if id.include?("_4_") # West
+
+      c = s.construction
+      expect(c.empty?).to be(false)
+      c = c.get.to_Construction
+      expect(c.empty?).to be(false)
+      c = c.get
+      expect(c.layers.size).to eq(4)
+      expect(c.layers[2].nameString.include?("m tbd")).to be(true)
+
+      next unless id.include?("_1_") # South
+      l_fenestration = 0
+      l_grade        = 0
+      l_parapet      = 0
+      l_corner       = 0
+      surface[:edges].values.each do |edge|
+        l_fenestration += edge[:length] if edge[:type] == :fenestration
+        l_grade        += edge[:length] if edge[:type] == :grade
+        l_parapet      += edge[:length] if edge[:type] == :parapet
+        l_corner       += edge[:length] if edge[:type] == :convex
+        l_corner       += edge[:length] if edge[:type] == :concave
       end
+      expect(l_fenestration).to be_within(0.01).of(46.35)
+      expect(l_grade).to be_within(0.01).of(27.69)
+      expect(l_parapet).to be_within(0.01).of(27.69)
+      expect(l_corner).to be_within(0.01).of(6.1)
     end
   end
 
