@@ -1704,9 +1704,13 @@ require "psi"
     os_model.getSurfaces.each do |s|
       next unless s.surfaceType == "RoofCeiling"
       next unless s.isConstructionDefaulted
-      id = s.construction.get.nameString
+      c = s.construction
+      expect(c.empty?).to be(false)
+      c = c.get.to_Construction
+      expect(c.empty?).to be(false)
+      c = c.get
+      id = c.nameString
       expect(id).to eq("Typical Wood Joist Attic Floor R-37.04 1")
-      c = s.construction.get.to_Construction.get
       expect(c.layers.size).to eq(2)
       expect(c.layers[0].nameString).to eq("5/8 in. Gypsum Board")
       expect(c.layers[1].nameString).to eq("Typical Insulation R-35.4 1")
@@ -2022,6 +2026,29 @@ require "psi"
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
+    os_model.getSurfaces.each do |s|
+      next unless s.outsideBoundaryCondition == "Outdoors"
+      expect(s.space.empty?).to be(false)
+      expect(s.isConstructionDefaulted).to be(true)
+      c = s.construction
+      expect(c.empty?).to be(false)
+      c = c.get.to_Construction
+      expect(c.empty?).to be(false)
+      c = c.get
+      id = c.nameString
+      name = s.nameString
+      expect(c.layers[1].to_MasslessOpaqueMaterial.empty?).to be(false)
+      m = c.layers[1].to_MasslessOpaqueMaterial.get
+      r = m.thermalResistance
+      if name.include?("Bulk")
+        expect(r).to be_within(0.01).of(1.33) if id.include?("Wall")
+        expect(r).to be_within(0.01).of(1.68) if id.include?("Roof")
+      else
+        expect(r).to be_within(0.01).of(1.87) if id.include?("Wall")
+        expect(r).to be_within(0.01).of(3.06) if id.include?("Roof")
+      end
+    end
+
     psi_set = "poor (BETBG)"
     io_path = ""
     schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
@@ -2032,11 +2059,35 @@ require "psi"
     # testing
     surfaces.each do |id, surface|
       next unless surface.has_key?(:edges)
-      os_model.getSurfaces.each do |s|
-        next unless id == s.nameString
-        expect(s.isConstructionDefaulted).to be(false)
-        expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
-      end
+      expect(surface.has_key?(:heatloss)).to be(true)
+      expect(surface.has_key?(:ratio)).to be(true)
+      h = surface[:heatloss]
+
+      s = os_model.getSurfaceByName(id)
+      expect(s.empty?).to be(false)
+      s = s.get
+      expect(s.nameString).to eq(id)
+      expect(s.isConstructionDefaulted).to be(false)
+      expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
+      expect(h).to be_within(0.01).of( 50.20) if id == ("Office Front Wall")
+      expect(h).to be_within(0.01).of( 24.06) if id == ("Office Left Wall")
+      expect(h).to be_within(0.01).of( 87.16) if id == ("Fine Storage Roof")
+      expect(h).to be_within(0.01).of( 22.61) if id == ("Fine Storage Office Front Wall")
+      expect(h).to be_within(0.01).of(  9.15) if id == ("Fine Storage Office Left Wal")
+      expect(h).to be_within(0.01).of( 26.47) if id == ("Fine Storage Front Wall")
+      expect(h).to be_within(0.01).of( 27.19) if id == ("Fine Storage Left Wall")
+      expect(h).to be_within(0.01).of( 41.36) if id == ("Fine Storage Right Wall")
+      expect(h).to be_within(0.01).of(161.02) if id == ("Bulk Storage Roof")
+      expect(h).to be_within(0.01).of( 62.28) if id == ("Bulk Storage Rear Wall")
+      expect(h).to be_within(0.01).of(117.87) if id == ("Bulk Storage Left Wall")
+      expect(h).to be_within(0.01).of( 95.77) if id == ("Bulk Storage Right Wall")
+
+      c = s.construction
+      expect(c.empty?).to be(false)
+      c = c.get.to_Construction
+      expect(c.empty?).to be(false)
+      c = c.get
+      expect(c.layers[1].nameString.include?("m tbd")).to be(true)
     end
 
     surfaces.each do |id, surface|
