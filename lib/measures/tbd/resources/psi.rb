@@ -22,7 +22,8 @@ TOL = 0.01
 # ISO 14683 (Appendix C) www.iso.org/standard/65706.html
 
 # NECB-QC: Québec's energy code for new commercial buildings
-# www2.publicationsduquebec.gouv.qc.ca/dynamicSearch/telecharge.php?type=1&file=72541.pdf
+# www2.publicationsduquebec.gouv.qc.ca/dynamicSearch/
+# telecharge.php?type=1&file=72541.pdf
 
 ##
 # Library of point thermal bridges (e.g. columns). Each key:value entry
@@ -184,8 +185,8 @@ class PSI
   #
   # @param [String] s A PSI set identifier
   #
-  # @return [Boolean] Returns true if stored and has a complete PSI set
-  def complete?(s) # true/false
+  # @return [Bool] Returns true if stored and has a complete PSI set
+  def complete?(s)
     answer = @set.has_key?(s)
     answer = answer && @set[s].has_key?(:rimjoist)
     answer = answer && @set[s].has_key?(:parapet)
@@ -204,23 +205,24 @@ end
 # @param [Hash] e1 First edge
 # @param [Hash] e2 Second edge
 #
-# @return [Boolean] Returns true if edges share vertex pairs
+# @return [Bool] Returns true if edges share vertex pairs
 def matches?(e1, e2)
-  raise "matches? missing edges" unless e1 && e2
-  raise "matches? missing :v0 for e1" unless e1.has_key?(:v0)
-  raise "matches? missing :v1 for e1" unless e1.has_key?(:v1)
-  raise "matches? missing :v0 for e2" unless e2.has_key?(:v0)
-  raise "matches? missing :v1 for e2" unless e2.has_key?(:v1)
-  raise "e1 v0: #{e1[:v0].class}? expected a Topolys point3D" unless e1[:v0].is_a?(Topolys::Point3D)
-  raise "e1 v1: #{e1[:v1].class}? expected a Topolys point3D" unless e1[:v1].is_a?(Topolys::Point3D)
-  raise "e2 v0: #{e1[:v0].class}? expected a Topolys point3D" unless e2[:v0].is_a?(Topolys::Point3D)
-  raise "e2 v1: #{e1[:v1].class}? expected a Topolys point3D" unless e2[:v1].is_a?(Topolys::Point3D)
+  raise "Invalid edges (matches?)" unless e1 && e2
+  raise "Missing :v0 for e1" unless e1.has_key?(:v0)
+  raise "Missing :v1 for e1" unless e1.has_key?(:v1)
+  raise "Missing :v0 for e2" unless e2.has_key?(:v0)
+  raise "Missing :v1 for e2" unless e2.has_key?(:v1)
+  cl = Topolys::Point3D
+  raise "e1 v0: #{e1[:v0].class}? expected #{cl}" unless e1[:v0].is_a?(cl)
+  raise "e1 v1: #{e1[:v1].class}? expected #{cl}" unless e1[:v1].is_a?(cl)
+  raise "e2 v0: #{e1[:v0].class}? expected #{cl}" unless e2[:v0].is_a?(cl)
+  raise "e2 v1: #{e1[:v1].class}? expected #{cl}" unless e2[:v1].is_a?(cl)
 
   answer = false
   e1_vector = e1[:v1] - e1[:v0]
   e2_vector = e2[:v1] - e2[:v0]
-  raise "matches? e1 length <= 10mm" if e1_vector.magnitude < TOL
-  raise "matches? e2 length <= 10mm" if e2_vector.magnitude < TOL
+  raise "e1 length <= 10mm" if e1_vector.magnitude < TOL
+  raise "e2 length <= 10mm" if e2_vector.magnitude < TOL
 
   answer = true if
   (
@@ -260,13 +262,13 @@ end
 # @param [Hash] surfaces Preprocessed collection of TBD surfaces
 # @param [Hash] edges Preprocessed collection TBD edges
 # @param [String] set Default) PSI set identifier, can be "" (empty)
-# @param [String] io_path Path to a user-set TBD JSON input file (optional)
-# @param [String] schema_path Path to a TBD JSON schema file (optional)
+# @param [String] ioP Path to a user-set TBD JSON input file (optional)
+# @param [String] schemaP Path to a TBD JSON schema file (optional)
 #
 # @return [Hash] Returns a JSON-generated collection of user inputs
 # @return [Hash] Returns a new PSI library, enriched with optional sets on file
 # @return [Hash] Returns a new KHI library, enriched with optional pairs on file
-def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
+def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
   # In the near future, the bulk of the "raises" in processTBDinputs will
   # be logged as mild or severe warnings, possibly halting all TBD processes
   # The OpenStudio/EnergyPlus model would remain unaltered (or un-derated).
@@ -278,28 +280,25 @@ def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
   psi = PSI.new                  # PSI hash, initially holding built-in defaults
   khi = KHI.new                  # KHI hash, initially holding built-in defaults
 
-  raise "processTBDinputs: invalid TBD surfaces?" unless surfaces
-  unless surfaces.is_a?(Hash)
-    raise "processTBDinputs: TBD surfaces class #{surfaces.class}?"
-  end
+  raise "Invalid surfaces (TBD inputs)" unless surfaces
+  raise "Invalid edges (TBD inputs)" unless edges
+  cl = surfaces.class
+  raise "#{cl}? expected surfaces Hash (TBD inputs)" unless cl == Hash
+  cl = edges.class
+  raise "#{cl}? expected edges Hash (TBD inputs)" unless cl == Hash
 
-  raise "processTBDinputs: invalid TBD edges?" unless edges
-  unless edges.is_a?(Hash)
-    raise "processTBDinputs: TBD edges class #{edges.class}?"
-  end
+  if ioP && File.size?(ioP) # optional input file exists and is non-zero
+    ioC = File.read(ioP)
+    io = JSON.parse(ioC, symbolize_names: true)
 
-  if io_path && File.size?(io_path) # optional input file exists and is non-zero
-    io_c = File.read(io_path)
-    io = JSON.parse(io_c, symbolize_names: true)
-
-    # schema validation is not yet supported in the OpenStudio Application
-    if schema_path
+    # Schema validation is not yet supported in the OpenStudio Application.
+    if schemaP
       require "json-schema"
 
-      raise "processTBDinputs: TBD schema file?" unless File.exist?(schema_path)
-      raise "processTBDinputs: Empty TBD schema file?" if File.zero?(schema_path)
-      schema_c = File.read(schema_path)
-      schema = JSON.parse(schema_c, symbolize_names: true)
+      raise "Invalid TBD schema file" unless File.exist?(schemaP)
+      raise "Empty TBD schema file" if File.zero?(schemaP)
+      schemaC = File.read(schemaP)
+      schema = JSON.parse(schemaC, symbolize_names: true)
 
       if !JSON::Validator.validate!(schema, io)
         # Log severe warning: enable to parse (invalid) user TBD JSON file
@@ -452,8 +451,12 @@ def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
               end
               e1 = {}
               e2 = {}
-              e1[:v0] = Topolys::Point3D.new(edge[:v0x].to_f, edge[:v0y].to_f, edge[:v0z].to_f)
-              e1[:v1] = Topolys::Point3D.new(edge[:v1x].to_f, edge[:v1y].to_f, edge[:v1z].to_f)
+              e1[:v0] = Topolys::Point3D.new(edge[:v0x].to_f,
+                                             edge[:v0y].to_f,
+                                             edge[:v0z].to_f)
+              e1[:v1] = Topolys::Point3D.new(edge[:v1x].to_f,
+                                             edge[:v1y].to_f,
+                                             edge[:v1z].to_f)
               e2[:v0] = e[:v0].point
               e2[:v1] = e[:v1].point
               match = matches?(e1, e2)
@@ -464,7 +467,7 @@ def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
             n += 1
             if edge.has_key?(:psi)                                    # optional
               p = edge[:psi]
-              raise "PSI mismatch" unless psi.set.has_key?(p)
+              raise "PSI mismatch (TBD inputs)" unless psi.set.has_key?(p)
               raise "#{p} missing PSI #{t}" unless psi.set[p].has_key?(t)
               e[:io_set] = p
             end
@@ -483,183 +486,502 @@ def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
 end
 
 ##
-# Validate if model has zones with valid winter DD temperature setpoints
+# Return min & max values for schedule (ruleset).
 #
-# @param [OpenStudio::Model::Model] model An OS model
+# @param [OpenStudio::Model::ScheduleRuleset] sched An OS schedule (ruleset)
 #
-# @return [Bool] Returns true if valid winter DD temperature setpoints
-def winterDesignDayTemperatureSetpoints?(model)
-  answer = false
-  if model
-    unless model.is_a?(OpenStudio::Model::Model)
-      raise "Expected OpenStudio model - got a #{model.class} (winter DD)"
+# @return [Hash] :min & :max; nilled if invalid.
+def scheduleRulesetMinMax(sched)
+  # Largely inspired from David Goldwasser's
+  # "schedule_ruleset_annual_min_max_value":
+  #
+  # github.com/NREL/openstudio-standards/blob/
+  # 99cf713750661fe7d2082739f251269c2dfd9140/lib/openstudio-standards/
+  # standards/Standards.ScheduleRuleset.rb#L124
+  result = { min: nil, max: nil }
+  raise "Invalid sched (ruleset MinMax)" unless sched
+  cl = OpenStudio::Model::ScheduleRuleset
+  raise "#{sched.class}? expected #{cl} (ruleset)" unless sched.is_a?(cl)
+
+  profiles = []
+  profiles << sched.defaultDaySchedule
+  rules = sched.scheduleRules
+  rules.each do |rule|
+    profiles << rule.daySchedule
+  end
+
+  min = nil
+  max = nil
+  profiles.each do |profile|
+    profile.values.each do |value|
+      next unless value.is_a?(Numeric)
+      if min
+        min = value if min > value
+      else
+        min = value
+      end
+      if max
+        max = value if max < value
+      else
+        max = value
+      end
+    end
+  end
+
+  result[:min] = min
+  result[:max] = max
+  result
+end
+
+##
+# Return min & max values for schedule (constant).
+#
+# @param [OpenStudio::Model::ScheduleConstant] sched An OS schedule (constant)
+#
+# @return [Hash] :min & :max; nilled if invalid.
+def scheduleConstantMinMax(sched)
+  # Largely inspired from David Goldwasser's
+  # "schedule_constant_annual_min_max_value":
+  #
+  # github.com/NREL/openstudio-standards/blob/
+  # 99cf713750661fe7d2082739f251269c2dfd9140/lib/openstudio-standards/
+  # standards/Standards.ScheduleConstant.rb#L21
+  result = { min: nil, max: nil }
+  raise "Invalid sched (constant MinMax)" unless sched
+  cl = OpenStudio::Model::ScheduleConstant
+  raise "#{sched.class}? expected #{cl} (constant)" unless sched.is_a?(cl)
+
+  min = nil
+  min = sched.value if sched.value.is_a?(Numeric)
+  max = min
+
+  result[:min] = min
+  result[:max] = max
+  result
+end
+
+##
+# Return min & max values for schedule (compact).
+#
+# @param [OpenStudio::Model::ScheduleCompact] sched An OS schedule (compact)
+#
+# @return [Hash] :min & :max; nilled if invalid.
+def scheduleCompactMinMax(sched)
+  # Largely inspired from Andrew Parker's
+  # "schedule_compact_annual_min_max_value":
+  #
+  # github.com/NREL/openstudio-standards/blob/
+  # 99cf713750661fe7d2082739f251269c2dfd9140/lib/openstudio-standards/
+  # standards/Standards.ScheduleCompact.rb#L8
+  result = { min: nil, max: nil }
+  raise "Invalid sched (compact MinMax)" unless sched
+  cl = OpenStudio::Model::ScheduleCompact
+  raise "#{sched.class}? expected #{cl} (compact)" unless sched.is_a?(cl)
+
+  min = nil
+  max = nil
+
+  vals = []
+  prev_str = ""
+  sch.extensibleGroups.each do |eg|
+    if prev_str.include?("until")
+      vals << eg.getDouble(0).get unless eg.getDouble(0).empty?
+    end
+    str = eg.getString(0)
+    prev_str = str.get.downcase unless str.empty?
+  end
+
+  unless vals.empty?
+    min = vals.min if vals.min.is_a?(Numeric)
+    max = vals.max if vals.min.is_a?(Numeric)
+  end
+
+  result[:min] = min
+  result[:max] = max
+  result
+end
+
+##
+# Return max zone heating temperature schedule setpoint [°C].
+#
+# @param [OpenStudio::Model::ThermalZone] zone An OS thermal zone
+#
+# @return [Float] Returns max setpoint (nil if invalid)
+# @return [Bool] Returns true if zone has (inactive?) dual setpoint thermostat.
+def maxHeatScheduledSetpoint(zone)
+  # Largely inspired from Parker & Marrec's "thermal_zone_heated?" procedure.
+  # The solution here is a tad more relaxed to encompass SEMI-HEATED zones as
+  # per Canadian NECB criterai (basically any space with at least 10 W/m2 of
+  # installed heating equipement i.e. below freezing in Canada).
+  #
+  # github.com/NREL/openstudio-standards/blob/
+  # 58964222d25783e9da4ae292e375fb0d5c902aa5/lib/openstudio-standards/
+  # standards/Standards.ThermalZone.rb#L910
+  setpoint = nil
+  dual = false
+  raise "Invalid zone (max T)" unless zone
+  cl = OpenStudio::Model::ThermalZone
+  raise "#{zone.class}? expected #{cl} (max T)" unless zone.is_a?(cl)
+
+  # Zone radiant heating? Get schedule from radiant system.
+  zone.equipment.each do |equip|
+    sched = nil
+
+    unless equip.to_ZoneHVACHighTemperatureRadiant.empty?
+      equip = equip.to_ZoneHVACHighTemperatureRadiant.get
+      unless equip.heatingSetpointTemperatureSchedule.empty?
+        sched = equip.heatingSetpointTemperatureSchedule.get
+      end
     end
 
-    model.getThermalZones.each do |zone|
-      next if answer
+    unless equip.to_ZoneHVACLowTemperatureRadiantElectric.empty?
+      equip = equip.to_ZoneHVACLowTemperatureRadiantElectric.get
+      unless equip.heatingSetpointTemperatureSchedule.empty?
+        sched = equip.heatingSetpointTemperatureSchedule.get
+      end
+    end
 
-      next if zone.thermostatSetpointDualSetpoint.empty?
-      dual = zone.thermostatSetpointDualSetpoint.get
+    unless equip.to_ZoneHVACLowTempRadiantConstFlow.empty?
+      equip = equip.to_ZoneHVACLowTempRadiantConstFlow.get
+      coil = equip.heatingCoil
+      unless coil.to_CoilHeatingLowTempRadiantConstFlow.empty?
+        coil = coil.to_CoilHeatingLowTempRadiantConstFlow.get
+        unless coil.heatingHighControlTemperatureSchedule.empty?
+          sched = c.heatingHighControlTemperatureSchedule.get
+        end
+      end
+    end
 
-      next if dual.heatingSetpointTemperatureSchedule.empty?
-      schedule = dual.heatingSetpointTemperatureSchedule.get
+    unless equip.to_ZoneHVACLowTempRadiantVarFlow.empty?
+      equip = equip.to_ZoneHVACLowTempRadiantVarFlow.get
+      coil = equip.heatingCoil
+      unless coil.to_CoilHeatingLowTempRadiantVarFlow.empty?
+        coil = coil.to_CoilHeatingLowTempRadiantVarFlow.get
+        unless coil.heatingControlTemperatureSchedule.empty?
+          sched = coil.heatingControlTemperatureSchedule.get
+        end
+      end
+    end
 
-      dd = nil
-      unless schedule.to_ScheduleRuleset.empty?
-        ruleset = schedule.to_ScheduleRuleset.get
-        dd = ruleset.winterDesignDaySchedule
+    next unless sched
+
+    unless sched.to_ScheduleRuleset.empty?
+      sched = sched.to_ScheduleRuleset.get
+      max = scheduleRulesetMinMax(sched)[:max]
+      if max
+        if setpoint
+          setpoint = max if max > setpoint
+        else
+          setpoint = max
+        end
+      end
+    end
+
+    unless sched.to_ScheduleConstant.empty?
+      sched = sched.to_ScheduleConstant.get
+      max = scheduleConstantMinMax(sched)[:max]
+      if max
+        if setpoint
+          setpoint = max if max > setpoint
+        else
+          setpoint = max
+        end
+      end
+    end
+
+    unless sched.to_ScheduleCompact.empty?
+      sched = sched.to_ScheduleCompact.get
+      max = scheduleCompactMinMax(sched)[:max]
+      if max
+        if setpoint
+          setpoint = max if max > setpoint
+        else
+          setpoint = max
+        end
+      end
+    end
+  end
+
+  return setpoint, dual if setpoint
+  return setpoint, dual if zone.thermostat.empty?
+  tstat = zone.thermostat.get
+
+  unless tstat.to_ThermostatSetpointDualSetpoint.empty? &&
+         tstat.to_ZoneControlThermostatStagedDualSetpoint.empty?
+    dual = true
+    unless tstat.to_ThermostatSetpointDualSetpoint.empty?
+      tstat = tstat.to_ThermostatSetpointDualSetpoint.get
+    else
+      tstat = tstat.to_ZoneControlThermostatStagedDualSetpoint.get
+    end
+
+    unless tstat.heatingSetpointTemperatureSchedule.empty?
+      sched = tstat.heatingSetpointTemperatureSchedule.get
+
+      unless sched.to_ScheduleRuleset.empty?
+        sched = sched.to_ScheduleRuleset.get
+        max = scheduleRulesetMinMax(sched)[:max]
+        if max
+          if setpoint
+            setpoint = max if max > setpoint
+          else
+            setpoint = max
+          end
+        end
+
+        dd = sched.winterDesignDaySchedule
+        unless dd.values.empty?
+          if setpoint
+            setpoint = dd.values.max if dd.values.max > setpoint
+          else
+            setpoint = dd.values.max
+          end
+        end
       end
 
-      unless schedule.to_ScheduleYear.empty?
-        year = schedule.to_ScheduleYear.get
-        year.getScheduleWeeks.each do |week|
-          next if dd
+      unless sched.to_ScheduleConstant.empty?
+        sched = sched.to_ScheduleConstant.get
+        max = scheduleConstantMinMax(sched)[:max]
+        if max
+          if setpoint
+            setpoint = max if max > setpoint
+          else
+            setpoint = max
+          end
+        end
+      end
+
+      unless sched.to_ScheduleCompact.empty?
+        sched = sched.to_ScheduleCompact.get
+        max = scheduleCompactMinMax(sched)[:max]
+        if max
+          if setpoint
+            setpoint = max if max > setpoint
+          else
+            setpoint = max
+          end
+        end
+      end
+
+      unless sched.to_ScheduleYear.empty?
+        sched = sched.to_ScheduleYear.get
+        sched.getScheduleWeeks.each do |week|
           next if week.winterDesignDaySchedule.empty?
           dd = week.winterDesignDaySchedule.get
-        end
-      end
-
-      next unless dd
-      next if dd.values.empty?
-      answer = true if dd.values.max.is_a?(Numeric)
-    end
-  end
-  answer
-end
-
-##
-# Return valid zone winter DD temperature setpoint [°C]
-#
-# @param [OpenStudio::Model::Model] zone An OS thermal zone
-#
-# @return [Bool] Returns zone winter DD temperature setpoint if valid; else, nil
-def winterDesignDayTemperatureSetpoint(zone)
-  setpoint = nil
-
-  if zone
-    unless zone.is_a?(OpenStudio::Model::ThermalZone)
-      raise "Expected OpenStudio Thermal Zone - got a #{zone.class} (winter DD)"
-    end
-
-    unless zone.thermostatSetpointDualSetpoint.empty?
-      dual = zone.thermostatSetpointDualSetpoint.get
-
-      unless dual.heatingSetpointTemperatureSchedule.empty?
-        schedule = dual.heatingSetpointTemperatureSchedule.get
-
-        unless schedule.to_ScheduleRuleset.empty?
-          ruleset = schedule.to_ScheduleRuleset.get
-          dd = ruleset.winterDesignDaySchedule
-          setpoint = dd.values.max unless dd.values.empty?
-        end
-
-        unless schedule.to_ScheduleYear.empty?
-          year = schedule.to_ScheduleYear.get
-          year.getScheduleWeeks.each do |week|
-            next if week.winterDesignDaySchedule.empty?
-            dd = week.winterDesignDaySchedule.get
-            t = dd.values.max unless dd.values.empty?
-            if setpoint
-              setpoint = t unless t < setpoint
-            else
-              setpoint = t
-            end
+          next unless dd.values.empty?
+          if setpoint
+            setpoint = dd.values.max if dd.values.max > setpoint
+          else
+            setpoint = dd.values.max
           end
         end
       end
     end
   end
-  setpoint
+  return setpoint, dual
 end
 
 ##
-# Validate if model has zones with valid summer DD temperature setpoints
+# Validate if model has zones with valid heating temperature setpoints
 #
 # @param [OpenStudio::Model::Model] model An OS model
 #
-# @return [Bool] Returns true if valid summer DD temperature setpoints
-def summerDesignDayTemperatureSetpoints?(model)
+# @return [Bool] Returns true if valid heating temperature setpoints
+def heatingTemperatureSetpoints?(model)
   answer = false
-  if model
-    unless model.is_a?(OpenStudio::Model::Model)
-      raise "Expected OpenStudio model - got a #{model.class} (summer DD)"
-    end
+  raise "Invalid model (heat T?)" unless model
+  cl = OpenStudio::Model::Model
+  raise "#{model.class}? expected #{cl} (heat T?)" unless model.is_a?(cl)
 
-    model.getThermalZones.each do |zone|
-      next if answer
-
-      next if zone.thermostatSetpointDualSetpoint.empty?
-      dual = zone.thermostatSetpointDualSetpoint.get
-
-      next if dual.coolingSetpointTemperatureSchedule.empty?
-      schedule = dual.coolingSetpointTemperatureSchedule.get
-
-      dd = nil
-      unless schedule.to_ScheduleRuleset.empty?
-        ruleset = schedule.to_ScheduleRuleset.get
-        dd = ruleset.summerDesignDaySchedule
-      end
-
-      unless schedule.to_ScheduleYear.empty?
-        year = schedule.to_ScheduleYear.get
-        year.getScheduleWeeks.each do |week|
-          next if dd
-          next if week.summerDesignDaySchedule.empty?
-          dd = week.summerDesignDaySchedule.get
-        end
-      end
-
-      next unless dd
-      next if dd.values.empty?
-      answer = true if dd.values.min.is_a?(Numeric)
-    end
+  model.getThermalZones.each do |zone|
+    next if answer
+    max, _ = maxHeatScheduledSetpoint(zone)
+    answer = true unless max
   end
   answer
 end
 
 ##
-# Return valid zone summer DD temperature setpoint [°C]
+# Return min zone cooling temperature schedule setpoint [°C].
 #
-# @param [OpenStudio::Model::Model] zone An OS thermal zone
+# @param [OpenStudio::Model::ThermalZone] zone An OS thermal zone
 #
-# @return [Bool] Returns zone summer DD temperature setpoint if valid; else, nil
-def summerDesignDayTemperatureSetpoint(zone)
+# @return [Float] Returns min setpoint (nil if invalid)
+# @return [Bool] Returns true if zone has (inactive?) dual setpoint thermostat.
+def minCoolScheduledSetpoint(zone)
+  # Largely inspired from Parker & Marrec's "thermal_zone_cooled?" procedure.
+  #
+  # github.com/NREL/openstudio-standards/blob/
+  # 99cf713750661fe7d2082739f251269c2dfd9140/lib/openstudio-standards/
+  # standards/Standards.ThermalZone.rb#L1058
   setpoint = nil
+  dual = false
+  raise "Invalid zone (minT)" unless zone
+  cl = OpenStudio::Model::ThermalZone
+  raise "#{zone.class}? expected #{cl} (minT)" unless zone.is_a?(cl)
 
-  if zone
-    unless zone.is_a?(OpenStudio::Model::ThermalZone)
-      raise "Expected OpenStudio Thermal Zone - got a #{zone.class} (summer DD)"
+  # Zone radiant cooling? Get schedule from radiant system.
+  zone.equipment.each do |equip|
+    sched = nil
+
+    unless equip.to_ZoneHVACLowTempRadiantConstFlow.empty?
+      equip = equip.to_ZoneHVACLowTempRadiantConstFlow.get
+      coil = equip.coolingCoil
+      unless coil.to_CoilCoolingLowTempRadiantConstFlow.empty?
+        coil = coil.to_CoilCoolingLowTempRadiantConstFlow.get
+        unless coil.coolingLowControlTemperatureSchedule.empty?
+          sched = coil.coolingLowControlTemperatureSchedule.get
+        end
+      end
     end
 
-    unless zone.thermostatSetpointDualSetpoint.empty?
-      dual = zone.thermostatSetpointDualSetpoint.get
+    unless equip.to_ZoneHVACLowTempRadiantVarFlow.empty?
+      equip = equip.to_ZoneHVACLowTempRadiantVarFlow.get
+      coil = equip.coolingCoil
+      unless coil.to_CoilCoolingLowTempRadiantVarFlow.empty?
+        coil = coil.to_CoilCoolingLowTempRadiantVarFlow.get
+        unless coil.coolingControlTemperatureSchedule.empty?
+          sched = coil.coolingControlTemperatureSchedule.get
+        end
+      end
+    end
 
-      unless dual.coolingSetpointTemperatureSchedule.empty?
-        schedule = dual.coolingSetpointTemperatureSchedule.get
+    next unless sched
 
-        unless schedule.to_ScheduleRuleset.empty?
-          ruleset = schedule.to_ScheduleRuleset.get
-          dd = ruleset.summerDesignDaySchedule
-          setpoint = dd.values.max unless dd.values.empty?
+    unless sched.to_ScheduleRuleset.empty?
+      sched = sched.to_ScheduleRuleset.get
+      min = scheduleRulesetMinMax(sched)[:min]
+      if min
+        if setpoint
+          setpoint = min if min < setpoint
+        else
+          setpoint = min
+        end
+      end
+    end
+
+    unless sched.to_ScheduleConstant.empty?
+      sched = sched.to_ScheduleConstant.get
+      min = scheduleConstantMinMax(sched)[:min]
+      if min
+        if setpoint
+          setpoint = min if min < setpoint
+        else
+          setpoint = min
+        end
+      end
+    end
+
+    unless sched.to_ScheduleCompact.empty?
+      sched = sched.to_ScheduleCompact.get
+      min = scheduleCompactMinMax(sched)[:min]
+      if min
+        if setpoint
+          setpoint = min if min < setpoint
+        else
+          setpoint = min
+        end
+      end
+    end
+  end
+
+  return setpoint, dual if setpoint
+  return setpoint, dual if zone.thermostat.empty?
+  tstat = zone.thermostat.get
+
+  unless tstat.to_ThermostatSetpointDualSetpoint.empty? &&
+         tstat.to_ZoneControlThermostatStagedDualSetpoint.empty?
+    dual = true
+    unless tstat.to_ThermostatSetpointDualSetpoint.empty?
+      tstat = tstat.to_ThermostatSetpointDualSetpoint.get
+    else
+      tstat = tstat.to_ZoneControlThermostatStagedDualSetpoint.get
+    end
+
+    unless tstat.coolingSetpointTemperatureSchedule.empty?
+      sched = tstat.coolingSetpointTemperatureSchedule.get
+
+      unless sched.to_ScheduleRuleset.empty?
+        sched = sched.to_ScheduleRuleset.get
+        min = scheduleRulesetMinMax(sched)[:min]
+        if min
+          if setpoint
+            setpoint = min if min < setpoint
+          else
+            setpoint = min
+          end
         end
 
-        unless schedule.to_ScheduleYear.empty?
-          year = schedule.to_ScheduleYear.get
-          year.getScheduleWeeks.each do |week|
-            next if week.coolingDesignDaySchedule.empty?
-            dd = week.summerDesignDaySchedule.get
-            t = dd.values.max unless dd.values.empty?
-            if setpoint
-              setpoint = t unless t < setpoint
-            else
-              setpoint = t
-            end
+        dd = sched.summerDesignDaySchedule
+        unless dd.values.empty?
+          if setpoint
+            setpoint = dd.values.min if dd.values.min < setpoint
+          else
+            setpoint = dd.values.min
+          end
+        end
+      end
+
+      unless sched.to_ScheduleConstant.empty?
+        sched = sched.to_ScheduleConstant.get
+        min = scheduleConstantMinMax(sched)[:min]
+        if min
+          if setpoint
+            setpoint = min if min < setpoint
+          else
+            setpoint = min
+          end
+        end
+      end
+
+      unless sched.to_ScheduleCompact.empty?
+        sched = sched.to_ScheduleCompact.get
+        min = scheduleCompactMinMax(sched)[:min]
+        if min
+          if setpoint
+            setpoint = min if min < setpoint
+          else
+            setpoint = min
+          end
+        end
+      end
+
+      unless sched.to_ScheduleYear.empty?
+        sched = sched.to_ScheduleYear.get
+        sched.getScheduleWeeks.each do |week|
+          next if week.summerDesignDaySchedule.empty?
+          dd = week.summerDesignDaySchedule.get
+          next unless dd.values.empty?
+          if setpoint
+            setpoint = dd.values.min if dd.values.min < setpoint
+          else
+            setpoint = dd.values.min
           end
         end
       end
     end
   end
-  setpoint
+  return setpoint, dual
+end
+
+##
+# Validate if model has zones with valid cooling temperature setpoints
+#
+# @param [OpenStudio::Model::Model] model An OS model
+#
+# @return [Bool] Returns true if valid cooling temperature setpoints
+def coolingTemperatureSetpoints?(model)
+  answer = false
+  raise "Invalid model (cool T?)" unless model
+  cl = OpenStudio::Model::Model
+  raise "#{model.class}? expected #{cl} (cool T?)" unless model.is_a?(cl)
+
+  model.getThermalZones.each do |zone|
+    next if answer
+    min, _ = minCoolScheduledSetpoint(zone)
+    answer = true unless min
+  end
+  answer
 end
 
 ##
@@ -670,19 +992,80 @@ end
 # @return [Bool] Returns true if HVAC air loops
 def airLoopsHVAC?(model)
   answer = false
-  if model
-    unless model.is_a?(OpenStudio::Model::Model)
-      raise "Expected OpenStudio model - got a #{model.class} (HVAC air loops)"
-    end
+  raise "Invalid model (loops?)" unless model
+  cl = OpenStudio::Model::Model
+  raise "#{model.class}? expected #{cl} (loops?)" unless model.is_a?(cl)
 
-    model.getThermalZones.each do |zone|
-      next if answer
-      next if zone.canBePlenum
-      answer = true unless zone.airLoopHVACs.empty?
-      answer = true if zone.isPlenum
-    end
+  model.getThermalZones.each do |zone|
+    next if answer
+    next if zone.canBePlenum
+    answer = true unless zone.airLoopHVACs.empty?
+    answer = true if zone.isPlenum
   end
   answer
+end
+
+##
+# Validate whether space should be processed as a plenum.
+#
+# @param [OpenStudio::Model::Space] space An OS space
+# @param [Bool] loops True if model has airLoopHVAC objects
+# @param [Bool] setpoints True if model has valid temperature setpoints
+#
+# @return [Bool] Returns true if should be tagged as plenum.
+def plenum?(space, loops, setpoints)
+  # Largely inspired from NREL's "space_plenum?" procedure.
+  #
+  # github.com/NREL/openstudio-standards/blob/
+  # 58964222d25783e9da4ae292e375fb0d5c902aa5/lib/openstudio-standards/
+  # standards/Standards.Space.rb#L1384
+
+  # For a fully-developed OSM (complete with HVAC air loops), space tagged as
+  # plenum if zone "isPlenum" (case A).
+  #
+  # In absence of HVAC air loops, 2x other cases trigger a plenum tag:
+  #   case B. space excluded from building's total floor area, yet zone holds an
+  #           "inactive" thermostat (i.e., can't extract valid setpoints); or
+  #   case C. spacetype is "plenum".
+  raise "Invalid space (plenum?)" unless space
+  raise "Invalid loops (plenum?)" unless loops
+  raise "Invalid setpoints (plenum?)" unless setpoints
+  cl = OpenStudio::Model::Space
+  cl2 = space.class
+  raise "#{cl2}? expected #{cl} (plenum?)" unless space.is_a?(cl)
+  a = loops == true || loops == false
+  cl2 = loops.class
+  raise "#{cl2}? expected true/false (loops in plenum?)" unless a
+  a = setpoints == true || setpoints == false
+  cl2 = setpoints.class
+  raise "#{cl2}? expected true/false (setpoints in plenum?)" unless a
+
+  unless space.thermalZone.empty?
+    zone = space.thermalZone.get
+    return zone.isPlenum if loops                                       # case A
+
+    if setpoints
+      heating, dual1 = maxHeatScheduledSetpoint(zone)
+      cooling, dual2 = minCoolScheduledSetpoint(zone)
+      return false if heating || cooling            # directly conditioned space
+
+      unless space.partofTotalFloorArea
+        return true if dual1 || dual2                                   # case B
+      else
+        return false
+      end
+    end
+  end
+
+  unless space.spaceType.empty?                                         # case C
+    type = space.spaceType.get
+    return true if type.nameString.downcase == "plenum"
+    unless type.standardsSpaceType.empty?
+      type = type.standardsSpaceType.get
+      return true if type.downcase == "plenum"
+    end
+  end
+  false
 end
 
 ##
@@ -694,18 +1077,17 @@ end
 # @return [OpenStudio::Transformation] Returns group vs site transformation
 # @return [Float] Returns site + group rotation angle [0,2PI) radians
 def transforms(model, group)
-  if model && group
-    unless model.is_a?(OpenStudio::Model::Model)
-      raise "Expected OpenStudio model - got #{model.class}"
-    end
-    unless group.is_a?(OpenStudio::Model::Space)               ||
-           group.is_a?(OpenStudio::Model::ShadingSurfaceGroup)
-      raise "Expected OpenStudio group - got a #{group.class}"
-    end
-    t = group.siteTransformation
-    r = group.directionofRelativeNorth + model.getBuilding.northAxis
-    return t, r
-  end
+  raise "Invalid model (transforms)" unless model
+  raise "invalid group (transforms)" unless group
+  cl = OpenStudio::Model::Model
+  raise "#{model.class}? expected #{cl} (transforms)" unless model.is_a?(cl)
+  gr = group.is_a?(OpenStudio::Model::Space)
+  gr = group.is_a?(OpenStudio::Model::ShadingSurfaceGroup) || gr
+  raise "#{group.class}? expected OS group (transforms)" unless gr
+
+  t = group.siteTransformation
+  r = group.directionofRelativeNorth + model.getBuilding.northAxis
+  return t, r
 end
 
 ##
@@ -716,17 +1098,17 @@ end
 #
 # @return [OpenStudio::Vector3D] Returns normal vector <x,y,z> of s
 def trueNormal(s, r)
-  if s && r
-    c = OpenStudio::Model::PlanarSurface
-    raise "Expected #{c} - got #{s.class}" unless s.is_a?(c)
-    raise "Expected a numeric - got #{r.class}" unless r.is_a?(Numeric)
+  raise "Invalid surface (normals)" unless s
+  raise "Invalid rotation angle (normals)" unless r
+  cl = OpenStudio::Model::PlanarSurface
+  raise "#{s.class}? expected #{c} (normals)" unless s.is_a?(cl)
+  raise "#{r.class}? expected numeric (normals)" unless r.is_a?(Numeric)
 
-    n = Topolys::Vector3D.new(s.outwardNormal.x * Math.cos(r) -
-                              s.outwardNormal.y * Math.sin(r),               # x
-                              s.outwardNormal.x * Math.sin(r) +
-                              s.outwardNormal.y * Math.cos(r),               # y
-                              s.outwardNormal.z)                             # z
-  end
+  n = Topolys::Vector3D.new(s.outwardNormal.x * Math.cos(r) -
+                            s.outwardNormal.y * Math.sin(r),                 # x
+                            s.outwardNormal.x * Math.sin(r) +
+                            s.outwardNormal.y * Math.cos(r),                 # y
+                            s.outwardNormal.z)                               # z
 end
 
 ##
@@ -734,27 +1116,25 @@ end
 # a side effect, it will - if successful - also populate the Topolys
 # model with the vertices and wire.
 #
-# @param [OpenStudio::Model::Model] model An OS model
+# @param [Topolys::Model] model An OS model
 # @param [Array] points A 1D array of 3D Topolys points (min 2x)
 #
 # @return [Array] Returns a 1D array of 3D Topolys vertices
 # @return [Topolys::Wire] Returns a corresponding Topolys wire
 def topolysObjects(model, points)
-  if model && points
-    unless model.is_a?(Topolys::Model)
-      raise "Expected Topolys model - got #{model.class}"
-    end
-    unless points.is_a?(Array)
-      raise "Expected array of Topolys points - got a #{points.class}"
-    end
-    unless points.size > 2
-      raise "Expected more than 2 points - got #{points.size}"
-    end
+  raise "Invalid model (Topolys obj)" unless model
+  raise "Invalid points (Topolys obj)" unless points
+  cl = Topolys::Model
+  cl2 = model.class
+  raise "#{cl2}? expected #{cl} (Topolys obj)" unless model.is_a?(cl)
+  cl2 = points.class
+  raise "#{cl2}? expected array (Topolys obj)" unless points.is_a?(Array)
+  n = points.size
+  raise "#{n}? expected +2 points (Topolys obj)" unless n > 2
 
-    vertices = model.get_vertices(points)
-    wire = model.get_wire(vertices)
-    return vertices, wire
-  end
+  vertices = model.get_vertices(points)
+  wire = model.get_wire(vertices)
+  return vertices, wire
 end
 
 ##
@@ -762,26 +1142,26 @@ end
 # a side effect, it will - if successful - also populate the Topolys
 # model with Topolys vertices, wires, holes.
 #
-# @param [OpenStudio::Model::Model] model An OS model
+# @param [Topolys::Model] model A Topolys model
 # @param [Hash] kids A collection of TBD subsurfaces
 #
 # @return [Array] Returns a 1D array of 3D Topolys holes, i.e. wires
 def populateTBDkids(model, kids)
   holes = []
-  if model && kids
-    unless model.is_a?(Topolys::Model)
-      raise "Expected Topolys model - got #{model.class}"
-    end
-    unless kids.is_a?(Hash)
-      raise "Expected hash of TBD surfaces - got a #{kids.class}"
-    end
-    kids.each do |id, properties|
-      vtx, hole = topolysObjects(model, properties[:points])
-      hole.attributes[:id] = id
-      hole.attributes[:n] = properties[:n] if properties.has_key?(:n)
-      properties[:hole] = hole
-      holes << hole
-    end
+  raise "Invalid model (TBD kids)" unless model
+  raise "Invalid kids (TBD kids)" unless kids
+  cl = Topolys::Model
+  cl2 = model.class
+  raise "#{cl2}? expected #{cl} (TBD kids)" unless model.is_a?(cl)
+  cl2 = kids.class
+  raise "#{cl2}? expected surface hash (TBD kids)" unless kids.is_a?(Hash)
+
+  kids.each do |id, properties|
+    vtx, hole = topolysObjects(model, properties[:points])
+    hole.attributes[:id] = id
+    hole.attributes[:n] = properties[:n] if properties.has_key?(:n)
+    properties[:hole] = hole
+    holes << hole
   end
   holes
 end
@@ -791,46 +1171,44 @@ end
 # a side effect, it will - if successful - also populate the Topolys
 # model with Topolys vertices, wires, holes & faces.
 #
-# @param [OpenStudio::Model::Model] model An OS model
+# @param [Topolys::Model] model A Topolys model
 # @param [Hash] dads A collection of TBD (parent) surfaces
 #
 # @return [Array] Returns a 1D array of 3D Topolys parent holes, i.e. wires
 def populateTBDdads(model, dads)
   tbd_holes = {}
+  raise "Invalid model (TBD dads)" unless model
+  raise "Invalid kids (TBD dads)" unless dads
+  cl = Topolys::Model
+  cl2 = model.class
+  raise "#{cl2}? expected #{cl} (TBD dads)" unless model.is_a?(cl)
+  cl2 = dads.class
+  raise "#{cl2}? expected surface hash (TBD dads)" unless dads.is_a?(Hash)
 
-  if model && dads
-    unless model.is_a?(Topolys::Model)
-      raise "Expected Topolys model - got #{model.class}"
+  dads.each do |id, properties|
+    vertices, wire = topolysObjects(model, properties[:points])
+
+    # Create surface holes for kids.
+    holes = []
+    if properties.has_key?(:windows)
+      holes += populateTBDkids(model, properties[:windows])
     end
-    unless dads.is_a?(Hash)
-      raise "Expected hash of TBD surfaces - got a #{dads.class}"
+    if properties.has_key?(:doors)
+      holes += populateTBDkids(model, properties[:doors])
+    end
+    if properties.has_key?(:skylights)
+      holes += populateTBDkids(model, properties[:skylights])
     end
 
-    dads.each do |id, properties|
-      vertices, wire = topolysObjects(model, properties[:points])
+    face = model.get_face(wire, holes)
+    raise "Cannot build face for #{id}" if face.nil?
 
-      # Create surface holes for kids.
-      holes = []
-      if properties.has_key?(:windows)
-        holes += populateTBDkids(model, properties[:windows])
-      end
-      if properties.has_key?(:doors)
-        holes += populateTBDkids(model, properties[:doors])
-      end
-      if properties.has_key?(:skylights)
-        holes += populateTBDkids(model, properties[:skylights])
-      end
+    face.attributes[:id] = id
+    face.attributes[:n] = properties[:n] if properties.has_key?(:n)
+    properties[:face] = face
 
-      face = model.get_face(wire, holes)
-      raise "Cannot build face for #{id}" if face.nil?
-
-      face.attributes[:id] = id
-      face.attributes[:n] = properties[:n] if properties.has_key?(:n)
-      properties[:face] = face
-
-      # Populate hash of created holes (to return).
-      holes.each do |h| tbd_holes[h.attributes[:id]] = h; end
-    end
+    # Populate hash of created holes (to return).
+    holes.each do |h| tbd_holes[h.attributes[:id]] = h; end
   end
   tbd_holes
 end
@@ -841,35 +1219,33 @@ end
 # @param [Hash] surfaces A collection of TBD surfaces
 # @param [Hash] edges A collection TBD edges
 def tbdSurfaceEdges(surfaces, edges)
-  if surfaces
-    unless surfaces.is_a?(Hash)
-      raise "Expected hash of TBD surfaces - got a #{surfaces.class}"
-    end
-    unless edges.is_a?(Hash)
-      raise "Expected hash of TBD edges - got a #{edges.class}"
-    end
+  raise "Invalid surfaces (TBD edges)" unless surfaces
+  raise "Invalid edges (TBD edges)" unless edges
+  cl = Hash
+  cl2 = surfaces.class
+  raise "#{cl2}? expected surfaces hash (TBD edges)" unless surfaces.is_a?(cl)
+  cl2 = edges.class
+  raise "#{cl2}? expected edges hash (TBD edges)" unless edges.is_a?(cl)
 
-    surfaces.each do |id, properties|
-      unless properties.has_key?(:face)
-        raise "Missing Topolys face for #{id}"
-      end
-      properties[:face].wires.each do |wire|
-        wire.edges.each do |e|
-          unless edges.has_key?(e.id)
-            edges[e.id] = {length: e.length,
-                           v0: e.v0,
-                           v1: e.v1,
-                           surfaces: {}}
-          end
-          unless edges[e.id][:surfaces].has_key?(id)
-            edges[e.id][:surfaces][id] = {wire: wire.id}
-          end
+  surfaces.each do |id, properties|
+    unless properties.has_key?(:face)
+      raise "Missing Topolys face for #{id} (TBD edges)"
+    end
+    properties[:face].wires.each do |wire|
+      wire.edges.each do |e|
+        unless edges.has_key?(e.id)
+          edges[e.id] = {length: e.length,
+                         v0: e.v0,
+                         v1: e.v1,
+                         surfaces: {}}
+        end
+        unless edges[e.id][:surfaces].has_key?(id)
+          edges[e.id][:surfaces][id] = {wire: wire.id}
         end
       end
     end
   end
 end
-
 
 ##
 # Generate OSM Kiva settings and objects if model surfaces have 'foundation'
@@ -880,15 +1256,29 @@ end
 # @param [Hash] walls TBD-generated walls
 # @param [Hash] edges TBD-generated edges (many linking floors & walls
 #
-# @return [Bool] Returns true if all Kiva foundations are successfully generated.
+# @return [Bool] Returns true if Kiva foundations are successfully generated.
 def generateKiva(os_model, walls, floors, edges)
+  raise "Invalid OS model (gen KIVA)" unless os_model
+  raise "Invalid walls (gen KIVA)" unless walls
+  raise "Invalid floors (gen KIVA)" unless floors
+  raise "Invalid edges (gen KIVA)" unless edges
+  cl = OpenStudio::Model::Model
+  cl2 = os_model.class
+  raise "#{cl2}? expected #{cl} (gen KIVA)" unless os_model.is_a?(cl)
+  cl2 = walls.class
+  raise "#{cl2}? expected walls hash (gen KIVA)" unless walls.is_a?(Hash)
+  cl2 = floors.class
+  raise "#{cl2}? expected floors hash (gen KIVA)" unless floors.is_a?(Hash)
+  cl2 = edges.class
+  raise "#{cl2}? expected edges hash (gen KIVA)" unless edges.is_a?(Hash)
+
   # Strictly rely on Kiva's total exposed perimeter approach.
   arg = "TotalExposedPerimeter"
   kiva = true
 
   # The following is loosely adapted from:
-  # github.com/NREL/OpenStudio-resources/blob/develop/model/simulationtests/foundation_kiva.rb
-  # ... thanks.
+  # github.com/NREL/OpenStudio-resources/blob/develop/model/simulationtests/
+  # foundation_kiva.rb ... thanks.
 
   # Generate template for KIVA settings. This is usually not required (the
   # default KIVA settings are fine), but its explicit inclusion in the OSM
@@ -904,14 +1294,14 @@ def generateKiva(os_model, walls, floors, edges)
   # foundation_kiva_settings.setSoilConductivity(soil_k)
 
   # Generic 1" XPS insulation (for slab-on-grade setup) - unused if basement.
-  xps_25mm = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
-  xps_25mm.setRoughness("Rough")
-  xps_25mm.setThickness(0.0254)
-  xps_25mm.setConductivity(0.029)
-  xps_25mm.setDensity(28)
-  xps_25mm.setSpecificHeat(1450)
-  xps_25mm.setThermalAbsorptance(0.9)
-  xps_25mm.setSolarAbsorptance(0.7)
+  xps25mm = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
+  xps25mm.setRoughness("Rough")
+  xps25mm.setThickness(0.0254)
+  xps25mm.setConductivity(0.029)
+  xps25mm.setDensity(28)
+  xps25mm.setSpecificHeat(1450)
+  xps25mm.setThermalAbsorptance(0.9)
+  xps25mm.setSolarAbsorptance(0.7)
 
   # Tag foundation-facing floors, then walls.
   edges.values.each do |edge|
@@ -971,7 +1361,7 @@ def generateKiva(os_model, walls, floors, edges)
       # constructions. Perimeter insulation for slabs-on-grade.
       # Typical circa-1980 slab-on-grade (perimeter) insulation setup.
       if floors[id][:kiva] == :slab
-        floors[id][:foundation].setInteriorHorizontalInsulationMaterial(xps_25mm)
+        floors[id][:foundation].setInteriorHorizontalInsulationMaterial(xps25mm)
         floors[id][:foundation].setInteriorHorizontalInsulationWidth(0.6)
       end
 
@@ -1033,7 +1423,6 @@ def generateKiva(os_model, walls, floors, edges)
       end
     end
   end
-
   kiva
 end
 
@@ -1046,6 +1435,11 @@ end
 # @return [Symbol] Returns type of insulating material (:standard or :massless)
 # @return [Float] Returns insulating layer thermal resistance [m2.K/W]
 def deratableLayer(construction)
+  raise "Invalid construction (layer)" unless construction
+  cl = OpenStudio::Model::Construction
+  cl2 = construction.class
+  raise "#{cl2}? expected #{cl} (layer)" unless construction.is_a?(cl)
+
   # Identify insulating material (and key attributes) within a construction.
   r                = 0.0         # R-value of insulating material
   index            = nil         # index of insulating material
@@ -1093,6 +1487,19 @@ end
 #
 # @return [OpenStudio::Model::Material] Returns derated (cloned) material
 def derate(os_model, id, surface, c)
+  raise "Invalid OS model (derate)" unless os_model
+  raise "Invalid ID (derate)" unless id
+  raise "Invalid surface (derate)" unless surface
+  raise "Invalid construction (derate)" unless c
+  cl = OpenStudio::Model::Model
+  cl2 = os_model.class
+  raise "#{cl2}? expected #{cl} (derate)" unless os_model.is_a?(cl)
+  cl = Hash
+  cl2 = surface.class
+  raise "#{cl2}? expected #{cl} (derate)" unless surface.is_a?(cl)
+  cl = OpenStudio::Model::Construction
+  raise "#{c.class}? expected #{cl} (derate)" unless c.is_a?(cl)
+
   m = nil
   if surface.has_key?(:heatloss)                                    &&
     surface.has_key?(:net)                                          &&
@@ -1181,17 +1588,18 @@ end
 #
 # @param [OpenStudio::Model::Model] os_model An OS model
 # @param [String] psi_set Default PSI set identifier, can be "" (empty)
-# @param [String] io_path Path to a user-set TBD JSON input file (optional)
-# @param [String] schema_path Path to a TBD JSON schema file (optional)
-# @param [Bool] gen_kiva Have TBD generate Kiva objects
+# @param [String] ioP Path to a user-set TBD JSON input file (optional)
+# @param [String] schemaP Path to a TBD JSON schema file (optional)
+# @param [Bool] g_kiva Have TBD generate Kiva objects
 #
 # @return [Hash] Returns TBD collection of objects for JSON serialization
 # @return [Hash] Returns collection of derated TBD surfaces
-def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
-
-  os_model_class = OpenStudio::Model::Model
-  raise "Empty OpenStudio Model"    unless os_model
-  raise "Invalid OpenStudio Model"  unless os_model.is_a?(os_model_class)
+def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
+  raise "Invalid OS model (process TBD)" unless os_model
+  cl = OpenStudio::Model::Model
+  raise "#{os_model.class}? expected OS model" unless os_model.is_a?(cl)
+  a = g_kiva == true || g_kiva == false
+  raise "#{g_kiva.class}? expected true or false (process TBD)" unless a
 
   os_building = os_model.getBuilding
 
@@ -1269,53 +1677,25 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
   # handle envelope surfaces without a priori knowledge of explicit system
   # sizing choices or access to iterative autosizing processes. As discussed
   # in the following, TBD seeks to rely on zoning info and/or "intended"
-  # design day (DD) setpoint temperatures to determine which surfaces to
-  # process.
+  # temperature setpoints to determine which surfaces to process.
   #
   # For an OSM in an incomplete or preliminary state (e.g., holding fully-formed
-  # ENCLOSED spaces without thermal zoning information or design day (DD)
-  # conditions [early design stage assessments of form/porosity/envelope])
-  # TBD will seek to derate opaque, outdoor-facing surfaces only by positing
-  # that all OSM spaces are CONDITIONED, having DD setpoints of ~21°C (heating)
-  # and ~24°C (cooling), à la BETBG.
+  # ENCLOSED spaces without thermal zoning information or setpoint temperatures
+  # [early design stage assessments of form/porosity/envelope]), TBD will only
+  # seek to derate opaque, outdoor-facing surfaces by positing that all OSM
+  # spaces are CONDITIONED, having setpoints of ~21°C (heating) and ~24°C
+  # (cooling), à la BETBG.
   #
-  # If any valid space/zone-specific DD setpoints are found in the OSM, TBD
-  # will instead seek to tag outdoor-facing opaque surfaces with their parent
-  # space/zone's explicit heating and/or cooling DD setpoints. In such cases,
-  # spaces/zones without valid DD heating or cooling setpoints are either
-  # considered as UNCONDITIONED or UNENCLOSED spaces (like attics), or
-  # INDIRECTLY CONDITIONED spaces (like plenums), as follows:
-  #
-  #   For a fully-developed OSM (complete with HVAC), the OpenStudio API
-  #   offers a very useful method to distinguish between UNCONDITIONED or
-  #   UNENCLOSED vs INDIRECTLY CONDITIONED spaces/zones, "canBePlenum":
-  #
-  #     "true" if zone is UNCONDITIONED and available to be used as a plenum.
-  #     This means the zone is not attached to an AirLoopHVAC structure as a
-  #     CONDITIONED zone and there is no zone equipment.
-  #
-  #   For a partially developed OSM (DD setpoints, yet without HVAC),
-  #   "canBePlenum" is not an option. In absence of any OSM HVAC air loop, the
-  #   following workaround is instead followed:
-  #
-  #     Does thermal zone have a ThermostatSetpointDualSetpoint (TSDS)?
-  #       NO?
-  #         - UNCONDITIONED/UNENCLOSED
-  #       YES?
-  #         Does TSDS hold a heating or cooling setpoint schedule (HCSS)?
-  #           NO?
-  #             - INDIRECTLY CONDITIONED
-  #           YES?
-  #             Does HCSS hold a valid winter or summer (cooling) DD schedule?
-  #               NO?
-  #                 - INDIRECTLY CONDITIONED
-  #               YES?
-  #                 - CONDITIONED
+  # If any valid space/zone-specific temperature setpoints are found in the OSM,
+  # TBD will instead seek to tag outdoor-facing opaque surfaces with their
+  # parent space/zone's explicit heating (max) and/or cooling (min) setpoints.
+  # In such cases, spaces/zones without valid heating or cooling setpoints are
+  # either considered as UNCONDITIONED or UNENCLOSED spaces (like attics), or
+  # INDIRECTLY CONDITIONED spaces (like plenums), see "plenum?" function.
 
-  # "true" if any OSM space/zone holds DD setpoint temperatures.
-  # ... is heating/winter or cooling/summer "northern hemisphere" biased?
-  setpoints = winterDesignDayTemperatureSetpoints?(os_model)
-  setpoints = summerDesignDayTemperatureSetpoints?(os_model) unless setpoints
+  # "true" if any OSM space/zone holds setpoint temperatures.
+  setpoints = heatingTemperatureSetpoints?(os_model)
+  setpoints = coolingTemperatureSetpoints?(os_model) || setpoints
 
   # "true" if any OSM space/zone is part of an HVAC air loop.
   airloops = airLoopsHVAC?(os_model)
@@ -1341,12 +1721,13 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
     if setpoints
       unless space.thermalZone.empty?
         zone = space.thermalZone.get
-        heating = winterDesignDayTemperatureSetpoint(zone)
-        cooling = summerDesignDayTemperatureSetpoint(zone)
-
-        conditioned = false if airloops && zone.canBePlenum
+        heating, _ = maxHeatScheduledSetpoint(zone)
+        cooling, _ = minCoolScheduledSetpoint(zone)
+        unless heating || cooling
+          conditioned = false unless plenum?(space, airloops, setpoints)
+        end
       else
-        conditioned = false
+        conditioned = false unless plenum?(space, airloops, setpoints)
       end
     end
 
@@ -1374,10 +1755,12 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
       minz:         minz,
       n:            n
     }
-    surfaces[id][:heating] = heating if heating    # if valid winter DD setpoint
-    surfaces[id][:cooling] = cooling if cooling    # if valid summer DD setpoint
-    surfaces[id][:stype] = space.spaceType.get unless space.spaceType.empty?
-    surfaces[id][:story] = space.buildingStory.get unless space.buildingStory.empty?
+    surfaces[id][:heating] = heating if heating     # if valid heating setpoints
+    surfaces[id][:cooling] = cooling if cooling     # if valid cooling setpoints
+    a = space.spaceType.empty?
+    surfaces[id][:stype] = space.spaceType.get unless a
+    a = space.buildingStory.empty?
+    surfaces[id][:story] = space.buildingStory.get unless a
 
     unless s.construction.empty?
       construction = s.construction.get.to_Construction.get
@@ -1529,7 +1912,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
 
   # Generate OSM Kiva settings and objects if foundation-facing floors.
   # 'kiva' == false if partial failure (log failure eventually).
-  kiva = generateKiva(os_model, walls, floors, edges) if gen_kiva
+  kiva = generateKiva(os_model, walls, floors, edges) if g_kiva
 
   # Thermal bridging characteristics of edges are determined - in part - by
   # relative polar position of linked surfaces (or wires) around each edge.
@@ -1652,7 +2035,6 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
       end                             # end of edge-linked, surface-to-wire loop
     end                                        # end of edge-linked surface loop
 
-    # sort angles
     edge[:surfaces] = edge[:surfaces].sort_by{ |i, p| p[:angle] }.to_h
   end                                                         # end of edge loop
 
@@ -1667,7 +2049,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
   #   "io" holds valid TBD JSON hash from file
   #   "io_p" holds TBD PSI sets (built-in defaults & those on file)
   #   "io_k" holds TBD KHI points (built-in defaults & those on file)
-  io, io_p, io_k = processTBDinputs(surfaces, edges, psi_set, io_path, schema_path)
+  io, io_p, io_k = processTBDinputs(surfaces, edges, psi_set, ioP, schemaP)
 
   edges.values.each do |edge|
     next unless edge.has_key?(:surfaces)

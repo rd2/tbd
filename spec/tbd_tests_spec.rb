@@ -554,9 +554,8 @@ require "psi"
     t_model = Topolys::Model.new
 
     # "true" if any OSM space/zone holds DD setpoint temperatures.
-    # ... is heating/winter or cooling/summer "northern hemisphere" biased?
-    setpoints = winterDesignDayTemperatureSetpoints?(os_model)
-    setpoints = summerDesignDayTemperatureSetpoints?(os_model) unless setpoints
+    setpoints = heatingTemperatureSetpoints?(os_model)
+    setpoints = coolingTemperatureSetpoints?(os_model) unless setpoints
 
     # "true" if any OSM space/zone is part of an HVAC air loop.
     airloops = airLoopsHVAC?(os_model)
@@ -582,12 +581,13 @@ require "psi"
       if setpoints
         unless space.thermalZone.empty?
           zone = space.thermalZone.get
-          heating = winterDesignDayTemperatureSetpoint(zone)
-          cooling = summerDesignDayTemperatureSetpoint(zone)
-
-          conditioned = false if airloops && zone.canBePlenum
+          heating, _ = maxHeatScheduledSetpoint(zone)
+          cooling, _ = minCoolScheduledSetpoint(zone)
+          unless heating || cooling
+            conditioned = false unless plenum?(space, airloops, setpoints)
+          end
         else
-          conditioned = false
+          conditioned = false unless plenum?(space, airloops, setpoints)
         end
       end
 
@@ -614,10 +614,12 @@ require "psi"
         minz:         minz,
         n:            n
       }
-      surfaces[id][:heating] = heating if heating  # if valid winter DD setpoint
-      surfaces[id][:cooling] = cooling if cooling  # if valid summer DD setpoint
-      surfaces[id][:stype] = space.spaceType.get unless space.spaceType.empty?
-      surfaces[id][:story] = space.buildingStory.get unless space.buildingStory.empty?
+      surfaces[id][:heating] = heating if heating   # if valid heating setpoints
+      surfaces[id][:cooling] = cooling if cooling   # if valid cooling setpoints
+      a = space.spaceType.empty?
+      surfaces[id][:stype] = space.spaceType.get unless a
+      a = space.buildingStory.empty?
+      surfaces[id][:story] = space.buildingStory.get unless a
 
       unless s.construction.empty?
         construction = s.construction.get.to_Construction.get
@@ -835,7 +837,8 @@ require "psi"
     intersection = p_S2_wall_edge_ids & e_p_wall_edges_ids & p_e_wall_edges_ids
     expect(intersection.size).to eq(1)
 
-    intersection = p_S2_wall_edge_ids & e_p_wall_edges_ids & p_e_wall_edges_ids & e_E_wall_edges_ids
+    intersection = p_S2_wall_edge_ids & e_p_wall_edges_ids &
+                   p_e_wall_edges_ids & e_E_wall_edges_ids
     expect(intersection.size).to eq(1)
 
     shared_edges = p_S2_wall_face.shared_outer_edges(e_p_wall_face)
@@ -872,21 +875,6 @@ require "psi"
     expect(walls.size).to eq(17)
     expect(shades.size).to eq(6)
 
-    # Thermal bridging characteristics of edges are determined - in part - by
-    # relative polar position of linked surfaces (or wires) around each edge.
-    # This characterization is key in distinguishing concave from convex edges.
-
-    # For each linked surface (or rather surface wires), set polar position
-    # around edge with respect to a reference vector (perpendicular to the
-    # edge), +clockwise as one is looking in the opposite position of the edge
-    # vector. For instance, a vertical edge has a reference vector pointing
-    # North - surfaces eastward of the edge are (0°,180°], while surfaces
-    # westward of the edge are (180°,360°].
-
-    # Much of the following code is of a topological nature, and should ideally
-    # (or eventually) become available functionality offered by Topolys. Topolys
-    # "wrappers" like TBD are good test beds to identify desired functionality
-    # for future Topolys enhancements.
     zenith      = Topolys::Vector3D.new(0, 0, 1).freeze
     north       = Topolys::Vector3D.new(0, 1, 0).freeze
     east        = Topolys::Vector3D.new(1, 0, 0).freeze
@@ -908,22 +896,20 @@ require "psi"
         reference_V = north.dup
       elsif horizontal
         reference_V = zenith.dup
-      else # project zenith vector unto edge plane
+      else
         reference = edge_plane.project(origin + zenith)
         reference_V = reference - origin
       end
 
       edge[:surfaces].each do |id, surface|
-        # loop through each linked wire and determine farthest point from
-        # edge while ensuring candidate point is not aligned with edge
         t_model.wires.each do |wire|
-          if surface[:wire] == wire.id # there should be a unique match
+          if surface[:wire] == wire.id
             normal = surfaces[id][:n]         if surfaces.has_key?(id)
             normal = holes[id].attributes[:n] if holes.has_key?(id)
             normal = shades[id][:n]           if shades.has_key?(id)
 
             farthest = Topolys::Point3D.new(origin.x, origin.y, origin.z)
-            farthest_V = farthest - origin # zero magnitude, initially
+            farthest_V = farthest - origin
 
             inverted = false
 
@@ -947,8 +933,6 @@ require "psi"
               point_V_magnitude = origin_point_V.magnitude
               next unless point_V_magnitude > 0.01
 
-              # Generate a plane between origin, terminal & point. Only consider
-              # planes that share the same normal as wire.
               if inverted
                 plane = Topolys::Plane3D.from_points(terminal, origin, point)
               else
@@ -966,11 +950,9 @@ require "psi"
             end
 
             angle = edge_V.angle(farthest_V)
-            expect(angle).to be_within(0.01).of(Math::PI / 2) # for testing
+            expect(angle).to be_within(0.01).of(Math::PI / 2)
 
             angle = reference_V.angle(farthest_V)
-
-            # Adjust angle [180°, 360°] if necessary.
             adjust = false
 
             if vertical
@@ -987,40 +969,23 @@ require "psi"
             angle = 2 * Math::PI - angle if adjust
             angle -= 2 * Math::PI if (angle - 2 * Math::PI).abs < 0.01
 
-            # store angle
             surface[:angle] = angle
             farthest_V.normalize!
             surface[:polar] = farthest_V
             surface[:normal] = normal
-          end # not sure if it's worth checking matching id's ...
-        end # end of edge-linked, surface-to-wire loop
-      end # end of edge-linked surface loop
+          end
+        end                           # end of edge-linked, surface-to-wire loop
+      end                                      # end of edge-linked surface loop
 
-      # sort angles
+      # Sort angles.
       edge[:surfaces] = edge[:surfaces].sort_by{ |i, p| p[:angle] }.to_h
-    end # end of edge loop
+    end                                                       # end of edge loop
 
     expect(edges.size).to eq(89)
     expect(t_model.edges.size).to eq(89)
 
-    # Topolys edges may constitute thermal bridges (and therefore thermally
-    # derate linked OpenStudio surfaces), depending on a number of factors such
-    # as surface types, space conditioning and boundary conditions. Thermal
-    # bridging attributes (type & PSI-value pairs) are grouped into PSI sets,
-    # normally accessed through the 'set' user-argument (in the OpenStudio
-    # Measure interface).
-
     psi_set = "poor (BETBG)"
-    # psi_set = "(non thermal bridging)"
-    # psi_set = "code (Quebec)" # thermal bridging effect less critical
-
-    # Process user-defined TBD JSON file inputs if file exists & valid:
-    #   "io" holds valid TBD JSON hash from file
-    #   "io_p" holds TBD PSI sets (built-in defaults & those on file)
-    #   "io_k" holds TBD KHI points (built-in defaults & those on file)
-    io_path = ""
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, io_p, io_k = processTBDinputs(surfaces, edges, psi_set, io_path, schema_path)
+    io, io_p, io_k = processTBDinputs(surfaces, edges, psi_set)
 
     # psi = PSI.new
 
@@ -1056,12 +1021,6 @@ require "psi"
         next unless surfaces.has_key?(id)
         next unless surfaces[id].has_key?(:conditioned)
         next unless surfaces[id][:conditioned]
-
-        # Skipping the :party wall label for now. Criteria determining party
-        # wall edges from TBD edges is to be determined. Most likely scenario
-        # seems to be an edge linking only 1x surface facings outdoors (or
-        # unconditioned space) with only 1x adiabatic surface. Warrants separate
-        # tests. TO DO.
 
         # Label edge as :grade if linked to:
         #   1x surface (e.g. slab or wall) facing ground
@@ -1233,7 +1192,7 @@ require "psi"
               next unless walls[i][:boundary].downcase == "outdoors"
             end
 
-            if surfaces.has_key?(walls[id][:boundary])         # adjacent surface
+            if surfaces.has_key?(walls[id][:boundary])        # adjacent surface
               adjacent = walls[id][:boundary]
               next unless surfaces[adjacent].has_key?(:conditioned)
               next if surfaces[adjacent][:conditioned]
@@ -1261,19 +1220,6 @@ require "psi"
       edge[:set] = p unless psi.empty?
     end                                                              # edge loop
 
-    # A priori, TBD applies (default) :building PSI types and values to individual
-    # edges. If a TBD JSON input file holds custom:
-    #   :stories
-    #   :spacetypes
-    #   :surfaces
-    #   :edges
-    # ... PSI sets that may apply to individual edges, then the default :building
-    # PSI types and/or values are overridden, as follows:
-    #   custom :stories    PSI sets trump :building PSI sets
-    #   custom :spacetypes PSI sets trump the aforementioned PSI sets
-    #   custom :spaces     PSI sets trump the aforementioned PSI sets
-    #   custom :surfaces   PSI sets trump the aforementioned PSI sets
-    #   custom :edges      PSI sets trump the aforementioned PSI sets
     if io
       if io.has_key?(:stories)
         io[:stories].each do |story|
@@ -1285,23 +1231,16 @@ require "psi"
 
           edges.values.each do |edge|
             next unless edge.has_key?(:psi)
-            next if edge.has_key?(:io_set)       # customized edge WITH custom PSI
+            next if edge.has_key?(:io_set)     # customized edge WITH custom PSI
             next unless edge.has_key?(:surfaces)
 
-            # TBD/Topolys edges will generally be linked to more than one surface
-            # and hence to more than one space. It is possible for a TBD JSON file
-            # to hold 2x space PSI sets that affect one or more edges common to
-            # both spaces. As with Ruby and JSON hashes, the last processed TBD
-            # JSON space PSI set will supersede preceding ones. Caution ...
-            # Future revisons to TBD JSON I/O validation, e.g. log warning?
-            # Maybe revise e.g., retain most stringent PSI value?
             edge[:surfaces].keys.each do |id|
               next unless surfaces.has_key?(id)
               next unless surfaces[id].has_key?(:story)
               st = surfaces[id][:story]
               next unless i == st.nameString
 
-              if edge.has_key?(:io_type)          # custom edge w/o custom PSI set
+              if edge.has_key?(:io_type)        # custom edge w/o custom PSI set
                 t = edge[:io_type]
                 next unless io_p.set[p].has_key?(t)
                 psi = {}
@@ -1328,23 +1267,16 @@ require "psi"
 
           edges.values.each do |edge|
             next unless edge.has_key?(:psi)
-            next if edge.has_key?(:io_set)       # customized edge WITH custom PSI
+            next if edge.has_key?(:io_set)     # customized edge WITH custom PSI
             next unless edge.has_key?(:surfaces)
 
-            # TBD/Topolys edges will generally be linked to more than one surface
-            # and hence to more than one space. It is possible for a TBD JSON file
-            # to hold 2x space PSI sets that affect one or more edges common to
-            # both spaces. As with Ruby and JSON hashes, the last processed TBD
-            # JSON space PSI set will supersede preceding ones. Caution ...
-            # Future revisons to TBD JSON I/O validation, e.g. log warning?
-            # Maybe revise e.g., retain most stringent PSI value?
             edge[:surfaces].keys.each do |id|
               next unless surfaces.has_key?(id)
               next unless surfaces[id].has_key?(:stype)
               st = surfaces[id][:stype]
               next unless i == st.nameString
 
-              if edge.has_key?(:io_type)          # custom edge w/o custom PSI set
+              if edge.has_key?(:io_type)        # custom edge w/o custom PSI set
                 t = edge[:io_type]
                 next unless io_p.set[p].has_key?(t)
                 psi = {}
@@ -1371,23 +1303,16 @@ require "psi"
 
           edges.values.each do |edge|
             next unless edge.has_key?(:psi)
-            next if edge.has_key?(:io_set)       # customized edge WITH custom PSI
+            next if edge.has_key?(:io_set)     # customized edge WITH custom PSI
             next unless edge.has_key?(:surfaces)
 
-            # TBD/Topolys edges will generally be linked to more than one surface
-            # and hence to more than one space. It is possible for a TBD JSON file
-            # to hold 2x space PSI sets that affect one or more edges common to
-            # both spaces. As with Ruby and JSON hashes, the last processed TBD
-            # JSON space PSI set will supersede preceding ones. Caution ...
-            # Future revisons to TBD JSON I/O validation, e.g. log warning?
-            # Maybe revise e.g., retain most stringent PSI value?
             edge[:surfaces].keys.each do |id|
               next unless surfaces.has_key?(id)
               next unless surfaces[id].has_key?(:space)
               sp = surfaces[id][:space]
               next unless i == sp.nameString
 
-              if edge.has_key?(:io_type)          # custom edge w/o custom PSI set
+              if edge.has_key?(:io_type)        # custom edge w/o custom PSI set
                 t = edge[:io_type]
                 next unless io_p.set[p].has_key?(t)
                 psi = {}
@@ -1414,20 +1339,13 @@ require "psi"
 
           edges.values.each do |edge|
             next unless edge.has_key?(:psi)
-            next if edge.has_key?(:io_set)       # customized edge WITH custom PSI
+            next if edge.has_key?(:io_set)     # customized edge WITH custom PSI
             next unless edge.has_key?(:surfaces)
 
-            # TBD/Topolys edges will generally be linked to more than one
-            # surface. It is possible for a TBD JSON file to hold 2x surface PSI
-            # sets that affect one or more edges common to both surfaces. As
-            # with Ruby and JSON hashes, the last processed TBD JSON surface PSI
-            # set will supersede preceding ones. Caution ...
-            # Future revisons to TBD JSON I/O validation, e.g. log warning?
-            # Maybe revise e.g., retain most stringent PSI value?
             edge[:surfaces].keys.each do |s|
               next unless surfaces.has_key?(s)
               next unless i == s
-              if edge.has_key?(:io_type)          # custom edge w/o custom PSI set
+              if edge.has_key?(:io_type)        # custom edge w/o custom PSI set
                 t = edge[:io_type]
                 next unless io_p.set[p].has_key?(t)
                 psi = {}
@@ -1610,12 +1528,6 @@ require "psi"
     expect(surfaces["g_N_wall"  ][:heatloss]).to be_within(0.01).of(54.255)
     expect(surfaces["p_W2_floor"][:heatloss]).to be_within(0.01).of(13.729)
 
-    # Derated (cloned) constructions are unique to each deratable surface.
-    # Unique construction names are prefixed with the surface name,
-    # and suffixed with " tbd", indicating that the construction is
-    # henceforth thermally derated. The " tbd" expression is also key in
-    # avoiding inadvertent derating - TBD will not derate constructions
-    # (or rather materials) having " tbd" in its OpenStudio name.
     surfaces.each do |id, surface|
       next unless surface.has_key?(:construction)
       next unless surface.has_key?(:index)
@@ -1633,17 +1545,11 @@ require "psi"
         m = nil
         m = derate(os_model, id, surface, c) unless index.nil?
 
-        # m may be nilled simply because the targeted construction has already
-        # been derated, i.e. holds " tbd" in its name. Names of cloned/derated
-        # constructions (due to TBD) include the surface name (since derated
-        # constructions are unique to each surface) and the suffix " c tbd".
         unless m.nil?
           c.setLayer(index, m)
           c.setName("#{id} c tbd")
           s.setConstruction(c)
 
-          # If derated surface construction separates 2x spaces, then derate
-          # adjacent surface construction as well.
           if s.outsideBoundaryCondition.downcase == "space"
             expect(s.adjacentSurface.empty?).to be(false)
             adjacent = s.adjacentSurface.get
@@ -1695,7 +1601,8 @@ require "psi"
 
   it "can process TB & D : DOE Prototype test_smalloffice.osm" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_smalloffice.osm")
+    file = "/files/test_smalloffice.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -1749,10 +1656,7 @@ require "psi"
     end
 
     psi_set = "poor (BETBG)"
-    io_path = ""
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    gen_kiva = false
-    io, surfaces = processTBD(os_model, psi_set, io_path, gen_kiva)
+    io, surfaces = processTBD(os_model, psi_set)
     expect(surfaces.size).to eq(43)
 
     # Testing attic surfaces.
@@ -1872,9 +1776,10 @@ require "psi"
     end
   end
 
-  it "can process TB & D : DOE prototype test_smalloffice.osm (hardset variant)" do
+  it "can process TB & D : DOE prototype test_smalloffice.osm (hardset)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_smalloffice.osm")
+    file = "/files/test_smalloffice.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -1908,10 +1813,7 @@ require "psi"
     end
 
     psi_set = "poor (BETBG)"
-    io_path = ""
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    gen_kiva = false
-    io, surfaces = processTBD(os_model, psi_set, io_path, gen_kiva)
+    io, surfaces = processTBD(os_model, psi_set)
     expect(surfaces.size).to eq(43)
 
     # Testing attic surfaces.
@@ -2021,7 +1923,8 @@ require "psi"
 
   it "can process TB & D : DOE Prototype test_warehouse.osm" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_warehouse.osm")
+    file = "/files/test_warehouse.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -2050,15 +1953,31 @@ require "psi"
     end
 
     psi_set = "poor (BETBG)"
-    io_path = ""
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    gen_kiva = false
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    io, surfaces = processTBD(os_model, psi_set)
     expect(surfaces.size).to eq(23)
 
-    # testing
+    ids = { a: "Office Front Wall",
+            b: "Office Left Wall",
+            c: "Fine Storage Roof",
+            d: "Fine Storage Office Front Wall",
+            e: "Fine Storage Office Left Wall",
+            f: "Fine Storage Front Wall",
+            g: "Fine Storage Left Wall",
+            h: "Fine Storage Right Wall",
+            i: "Bulk Storage Roof",
+            j: "Bulk Storage Rear Wall",
+            k: "Bulk Storage Left Wall",
+            l: "Bulk Storage Right Wall" }.freeze
+
+    # Testing.
+    surfaces.each do |id, surface|
+      next if surface.has_key?(:edges)
+      expect(ids.has_value?(id)).to be(false)
+    end
+
     surfaces.each do |id, surface|
       next unless surface.has_key?(:edges)
+      expect(ids.has_value?(id)).to be(true)
       expect(surface.has_key?(:heatloss)).to be(true)
       expect(surface.has_key?(:ratio)).to be(true)
       h = surface[:heatloss]
@@ -2069,18 +1988,18 @@ require "psi"
       expect(s.nameString).to eq(id)
       expect(s.isConstructionDefaulted).to be(false)
       expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
-      expect(h).to be_within(0.01).of( 50.20) if id == ("Office Front Wall")
-      expect(h).to be_within(0.01).of( 24.06) if id == ("Office Left Wall")
-      expect(h).to be_within(0.01).of( 87.16) if id == ("Fine Storage Roof")
-      expect(h).to be_within(0.01).of( 22.61) if id == ("Fine Storage Office Front Wall")
-      expect(h).to be_within(0.01).of(  9.15) if id == ("Fine Storage Office Left Wal")
-      expect(h).to be_within(0.01).of( 26.47) if id == ("Fine Storage Front Wall")
-      expect(h).to be_within(0.01).of( 27.19) if id == ("Fine Storage Left Wall")
-      expect(h).to be_within(0.01).of( 41.36) if id == ("Fine Storage Right Wall")
-      expect(h).to be_within(0.01).of(161.02) if id == ("Bulk Storage Roof")
-      expect(h).to be_within(0.01).of( 62.28) if id == ("Bulk Storage Rear Wall")
-      expect(h).to be_within(0.01).of(117.87) if id == ("Bulk Storage Left Wall")
-      expect(h).to be_within(0.01).of( 95.77) if id == ("Bulk Storage Right Wall")
+      expect(h).to be_within(0.01).of( 50.20) if id == ids[:a]
+      expect(h).to be_within(0.01).of( 24.06) if id == ids[:b]
+      expect(h).to be_within(0.01).of( 87.16) if id == ids[:c]
+      expect(h).to be_within(0.01).of( 22.61) if id == ids[:d]
+      expect(h).to be_within(0.01).of(  9.15) if id == ids[:e]
+      expect(h).to be_within(0.01).of( 26.47) if id == ids[:f]
+      expect(h).to be_within(0.01).of( 27.19) if id == ids[:g]
+      expect(h).to be_within(0.01).of( 41.36) if id == ids[:h]
+      expect(h).to be_within(0.01).of(161.02) if id == ids[:i]
+      expect(h).to be_within(0.01).of( 62.28) if id == ids[:j]
+      expect(h).to be_within(0.01).of(117.87) if id == ids[:k]
+      expect(h).to be_within(0.01).of( 95.77) if id == ids[:l]
 
       c = s.construction
       expect(c.empty?).to be(false)
@@ -2092,9 +2011,10 @@ require "psi"
 
     surfaces.each do |id, surface|
       if surface.has_key?(:ratio)
-        ratio  = format "%3.1f", surface[:ratio]
-        name   = id.rjust(15, " ")
+        # ratio  = format "%3.1f", surface[:ratio]
+        # name   = id.rjust(15, " ")
         # puts "#{name} RSi derated by #{ratio}%"
+        expect(surface[:ratio]).to be_within(0.2).of(-53.0) if id == ids[:b] # v
       else
         expect(surface[:boundary].downcase).to_not eq("outdoors")
       end
@@ -2103,7 +2023,8 @@ require "psi"
 
   it "can process TB & D : DOE Prototype test_warehouse.osm + JSON I/O" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_warehouse.osm")
+    file = "/files/test_warehouse.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -2128,28 +2049,70 @@ require "psi"
     # Despite defining the psi_set as having no thermal bridges, the "compliant"
     # PSI set on file will be considered as the building-wide default set.
     psi_set = "(non thermal bridging)"
-    io_path = File.dirname(__FILE__) + "/../json/tbd_warehouse.json"
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    gen_kiva = false
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse.json"
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(surfaces.size).to eq(23)
+
+    ids = { a: "Office Front Wall",
+            b: "Office Left Wall",
+            c: "Fine Storage Roof",
+            d: "Fine Storage Office Front Wall",
+            e: "Fine Storage Office Left Wall",
+            f: "Fine Storage Front Wall",
+            g: "Fine Storage Left Wall",
+            h: "Fine Storage Right Wall",
+            i: "Bulk Storage Roof",
+            j: "Bulk Storage Rear Wall",
+            k: "Bulk Storage Left Wall",
+            l: "Bulk Storage Right Wall" }.freeze
+
+    # Testing.
+    surfaces.each do |id, surface|
+      next if surface.has_key?(:edges)
+      expect(ids.has_value?(id)).to be(false)
+    end
 
     surfaces.each do |id, surface|
       next unless surface.has_key?(:edges)
-      os_model.getSurfaces.each do |s|
-        next unless id == s.nameString
-        expect(s.isConstructionDefaulted).to be(false)
-        expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
-      end
+      expect(ids.has_value?(id)).to be(true)
+      expect(surface.has_key?(:heatloss)).to be(true)
+      expect(surface.has_key?(:ratio)).to be(true)
+      h = surface[:heatloss]
+
+      s = os_model.getSurfaceByName(id)
+      expect(s.empty?).to be(false)
+      s = s.get
+      expect(s.nameString).to eq(id)
+      expect(s.isConstructionDefaulted).to be(false)
+      expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
+      expect(h).to be_within(0.01).of( 25.90) if id == ids[:a]
+      expect(h).to be_within(0.01).of( 17.41) if id == ids[:b] # 13.38 compliant
+      expect(h).to be_within(0.01).of( 45.44) if id == ids[:c]
+      expect(h).to be_within(0.01).of(  8.04) if id == ids[:d]
+      expect(h).to be_within(0.01).of(  3.46) if id == ids[:e]
+      expect(h).to be_within(0.01).of( 13.27) if id == ids[:f]
+      expect(h).to be_within(0.01).of( 14.04) if id == ids[:g]
+      expect(h).to be_within(0.01).of( 21.20) if id == ids[:h]
+      expect(h).to be_within(0.01).of( 88.34) if id == ids[:i]
+      expect(h).to be_within(0.01).of( 30.98) if id == ids[:j]
+      expect(h).to be_within(0.01).of( 64.44) if id == ids[:k]
+      expect(h).to be_within(0.01).of( 48.97) if id == ids[:l]
+
+      c = s.construction
+      expect(c.empty?).to be(false)
+      c = c.get.to_Construction
+      expect(c.empty?).to be(false)
+      c = c.get
+      expect(c.layers[1].nameString.include?("m tbd")).to be(true)
     end
 
     surfaces.each do |id, surface|
       if surface.has_key?(:ratio)
-        ratio  = format "%3.1f", surface[:ratio]
-        name   = id.rjust(15, " ")
-
-        next unless name == "Office Left Wall"
-        expect(surface[:ratio]).to be_within(0.2).of(-45.9) # validate ...
+        # ratio  = format "%3.1f", surface[:ratio]
+        # name   = id.rjust(15, " ")
+        # puts "#{name} RSi derated by #{ratio}%"
+        expect(surface[:ratio]).to be_within(0.2).of(-46.0) if id == ids[:b] # v
       else
         expect(surface[:boundary].downcase).to_not eq("outdoors")
       end
@@ -2157,9 +2120,9 @@ require "psi"
 
     # Now mimic the export functionality of the measure
     out = JSON.pretty_generate(io)
-    out_path = File.dirname(__FILE__) + "/../json/tbd_warehouse.out.json"
-    File.open(out_path, "w") do |out_path|
-      out_path.puts out
+    outP = File.dirname(__FILE__) + "/../json/tbd_warehouse.out.json"
+    File.open(outP, "w") do |outP|
+      outP.puts out
     end
 
     # 2. Re-use the exported file as input for another warehouse
@@ -2167,27 +2130,50 @@ require "psi"
     expect(os_model2.empty?).to be(false)
     os_model2 = os_model2.get
 
-    io_path2 = File.dirname(__FILE__) + "/../json/tbd_warehouse.out.json"
-    gen_kiva = false
-    io2, surfaces = processTBD(os_model2, psi_set, io_path2, schema_path, gen_kiva)
+    ioP2 = File.dirname(__FILE__) + "/../json/tbd_warehouse.out.json"
+    io2, surfaces = processTBD(os_model2, psi_set, ioP2, schemaP)
     expect(surfaces.size).to eq(23)
 
+    # Testing (again).
     surfaces.each do |id, surface|
       next unless surface.has_key?(:edges)
-      os_model.getSurfaces.each do |s|
-        next unless id == s.nameString
-        expect(s.isConstructionDefaulted).to be(false)
-        expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
-      end
+      expect(surface.has_key?(:heatloss)).to be(true)
+      expect(surface.has_key?(:ratio)).to be(true)
+      h = surface[:heatloss]
+
+      s = os_model.getSurfaceByName(id)
+      expect(s.empty?).to be(false)
+      s = s.get
+      expect(s.nameString).to eq(id)
+      expect(s.isConstructionDefaulted).to be(false)
+      expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
+      expect(h).to be_within(0.01).of( 25.90) if id == ids[:a]
+      expect(h).to be_within(0.01).of( 17.41) if id == ids[:b]
+      expect(h).to be_within(0.01).of( 45.44) if id == ids[:c]
+      expect(h).to be_within(0.01).of(  8.04) if id == ids[:d]
+      expect(h).to be_within(0.01).of(  3.46) if id == ids[:e]
+      expect(h).to be_within(0.01).of( 13.27) if id == ids[:f]
+      expect(h).to be_within(0.01).of( 14.04) if id == ids[:g]
+      expect(h).to be_within(0.01).of( 21.20) if id == ids[:h]
+      expect(h).to be_within(0.01).of( 88.34) if id == ids[:i]
+      expect(h).to be_within(0.01).of( 30.98) if id == ids[:j]
+      expect(h).to be_within(0.01).of( 64.44) if id == ids[:k]
+      expect(h).to be_within(0.01).of( 48.97) if id == ids[:l]
+
+      c = s.construction
+      expect(c.empty?).to be(false)
+      c = c.get.to_Construction
+      expect(c.empty?).to be(false)
+      c = c.get
+      expect(c.layers[1].nameString.include?("m tbd")).to be(true)
     end
 
     surfaces.each do |id, surface|
       if surface.has_key?(:ratio)
-        ratio  = format "%3.1f", surface[:ratio]
-        name   = id.rjust(15, " ")
-
-        next unless name == "Office Left Wall"
-        expect(surface[:ratio]).to be_within(0.2).of(-45.9) # validate ...
+        # ratio  = format "%3.1f", surface[:ratio]
+        # name   = id.rjust(15, " ")
+        # puts "#{name} RSi derated by #{ratio}%"
+        expect(surface[:ratio]).to be_within(0.2).of(-46.0) if id == ids[:b] # v
       else
         expect(surface[:boundary].downcase).to_not eq("outdoors")
       end
@@ -2195,21 +2181,22 @@ require "psi"
 
     # Now mimic (again) the export functionality of the measure
     out2 = JSON.pretty_generate(io2)
-    out_path2 = File.dirname(__FILE__) + "/../json/tbd_warehouse2.out.json"
-    File.open(out_path2, "w") do |out_path2|
-      out_path2.puts out2
+    outP2 = File.dirname(__FILE__) + "/../json/tbd_warehouse2.out.json"
+    File.open(outP2, "w") do |outP2|
+      outP2.puts out2
     end
 
     # Both output files should be the same ...
-    # cmd = "diff #{out_path} #{out_path2}"
+    # cmd = "diff #{outP} #{outP2}"
     # expect(system( cmd )).to be(true)
-    # expect(FileUtils).to be_identical(out_path, out_path2)
-    expect(FileUtils.identical?(out_path, out_path2)).to be(true)
+    # expect(FileUtils).to be_identical(outP, outP2)
+    expect(FileUtils.identical?(outP, outP2)).to be(true)
   end
 
   it "can process TB & D : DOE Prototype test_warehouse.osm + JSON I/O (2)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_warehouse.osm")
+    file = "/files/test_warehouse.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -2241,28 +2228,70 @@ require "psi"
     # Despite defining the psi_set as having no thermal bridges, the "compliant"
     # PSI set on file will be considered as the building-wide default set.
     psi_set = "(non thermal bridging)"
-    io_path = File.dirname(__FILE__) + "/../json/tbd_warehouse1.json"
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    gen_kiva = false
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse1.json"
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(surfaces.size).to eq(23)
+
+    ids = { a: "Office Front Wall",
+            b: "Office Left Wall",
+            c: "Fine Storage Roof",
+            d: "Fine Storage Office Front Wall",
+            e: "Fine Storage Office Left Wall",
+            f: "Fine Storage Front Wall",
+            g: "Fine Storage Left Wall",
+            h: "Fine Storage Right Wall",
+            i: "Bulk Storage Roof",
+            j: "Bulk Storage Rear Wall",
+            k: "Bulk Storage Left Wall",
+            l: "Bulk Storage Right Wall" }.freeze
+
+    # Testing.
+    surfaces.each do |id, surface|
+      next if surface.has_key?(:edges)
+      expect(ids.has_value?(id)).to be(false)
+    end
 
     surfaces.each do |id, surface|
       next unless surface.has_key?(:edges)
-      os_model.getSurfaces.each do |s|
-        next unless id == s.nameString
-        expect(s.isConstructionDefaulted).to be(false)
-        expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
-      end
+      expect(ids.has_value?(id)).to be(true)
+      expect(surface.has_key?(:heatloss)).to be(true)
+      expect(surface.has_key?(:ratio)).to be(true)
+      h = surface[:heatloss]
+
+      s = os_model.getSurfaceByName(id)
+      expect(s.empty?).to be(false)
+      s = s.get
+      expect(s.nameString).to eq(id)
+      expect(s.isConstructionDefaulted).to be(false)
+      expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
+      expect(h).to be_within(0.01).of( 25.90) if id == ids[:a]
+      expect(h).to be_within(0.01).of( 14.55) if id == ids[:b] # 13.38 compliant
+      expect(h).to be_within(0.01).of( 45.44) if id == ids[:c]
+      expect(h).to be_within(0.01).of(  8.04) if id == ids[:d]
+      expect(h).to be_within(0.01).of(  3.46) if id == ids[:e]
+      expect(h).to be_within(0.01).of( 13.27) if id == ids[:f]
+      expect(h).to be_within(0.01).of( 14.04) if id == ids[:g]
+      expect(h).to be_within(0.01).of( 21.20) if id == ids[:h]
+      expect(h).to be_within(0.01).of( 88.34) if id == ids[:i]
+      expect(h).to be_within(0.01).of( 30.98) if id == ids[:j]
+      expect(h).to be_within(0.01).of( 64.44) if id == ids[:k]
+      expect(h).to be_within(0.01).of( 48.97) if id == ids[:l]
+
+      c = s.construction
+      expect(c.empty?).to be(false)
+      c = c.get.to_Construction
+      expect(c.empty?).to be(false)
+      c = c.get
+      expect(c.layers[1].nameString.include?("m tbd")).to be(true)
     end
 
     surfaces.each do |id, surface|
       if surface.has_key?(:ratio)
-        ratio  = format "%3.1f", surface[:ratio]
-        name   = id.rjust(15, " ")
-
-        next unless name == "Office Left Wall"
-        expect(surface[:ratio]).to be_within(0.2).of(-41.9) # validate ...
+        # ratio  = format "%3.1f", surface[:ratio]
+        # name   = id.rjust(15, " ")
+        # puts "#{name} RSi derated by #{ratio}%"
+        expect(surface[:ratio]).to be_within(0.2).of(-41.9) if id == ids[:b] # v
       else
         expect(surface[:boundary].downcase).to_not eq("outdoors")
       end
@@ -2270,9 +2299,9 @@ require "psi"
 
     # Now mimic the export functionality of the measure
     out = JSON.pretty_generate(io)
-    out_path = File.dirname(__FILE__) + "/../json/tbd_warehouse1.out.json"
-    File.open(out_path, "w") do |out_path|
-      out_path.puts out
+    outP = File.dirname(__FILE__) + "/../json/tbd_warehouse1.out.json"
+    File.open(outP, "w") do |outP|
+      outP.puts out
     end
 
     # 2. Re-use the exported file as input for another warehouse
@@ -2280,27 +2309,16 @@ require "psi"
     expect(os_model2.empty?).to be(false)
     os_model2 = os_model2.get
 
-    io_path2 = File.dirname(__FILE__) + "/../json/tbd_warehouse1.out.json"
-    gen_kiva = false
-    io2, surfaces = processTBD(os_model2, psi_set, io_path2, schema_path, gen_kiva)
+    ioP2 = File.dirname(__FILE__) + "/../json/tbd_warehouse1.out.json"
+    io2, surfaces = processTBD(os_model2, psi_set, ioP2, schemaP)
     expect(surfaces.size).to eq(23)
 
     surfaces.each do |id, surface|
-      next unless surface.has_key?(:edges)
-      os_model.getSurfaces.each do |s|
-        next unless id == s.nameString
-        expect(s.isConstructionDefaulted).to be(false)
-        expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
-      end
-    end
-
-    surfaces.each do |id, surface|
       if surface.has_key?(:ratio)
-        ratio  = format "%3.1f", surface[:ratio]
-        name   = id.rjust(15, " ")
-        next unless name == "Office Left Wall"
-        expect(surface[:ratio]).to be_within(0.2).of(-41.9) # validate ...
-
+        # ratio  = format "%3.1f", surface[:ratio]
+        # name   = id.rjust(15, " ")
+        # puts "#{name} RSi derated by #{ratio}%"
+        expect(surface[:ratio]).to be_within(0.2).of(-41.9) if id == ids[:b] # v
       else
         expect(surface[:boundary].downcase).to_not eq("outdoors")
       end
@@ -2308,16 +2326,16 @@ require "psi"
 
     # Now mimic (again) the export functionality of the measure
     out2 = JSON.pretty_generate(io2)
-    out_path2 = File.dirname(__FILE__) + "/../json/tbd_warehouse3.out.json"
-    File.open(out_path2, "w") do |out_path2|
-      out_path2.puts out2
+    outP2 = File.dirname(__FILE__) + "/../json/tbd_warehouse3.out.json"
+    File.open(outP2, "w") do |outP2|
+      outP2.puts out2
     end
 
     # Both output files should be the same ...
-    # cmd = "diff #{out_path} #{out_path2}"
+    # cmd = "diff #{outP} #{outP2}"
     # expect(system( cmd )).to be(true)
-    # expect(FileUtils).to be_identical(out_path, out_path2)
-    expect(FileUtils.identical?(out_path, out_path2)).to be(true)
+    # expect(FileUtils).to be_identical(outP, outP2)
+    expect(FileUtils.identical?(outP, outP2)).to be(true)
   end
 
   it "can process TB & D : test_seb.osm" do
@@ -2327,18 +2345,179 @@ require "psi"
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
+    os_model.getSurfaces.each do |s|
+      expect(s.space.empty?).to be(false)
+      expect(s.isConstructionDefaulted).to be(false)
+      c = s.construction
+      expect(c.empty?).to be(false)
+      c = c.get.to_Construction
+      expect(c.empty?).to be(false)
+      c = c.get
+      id = c.nameString
+      name = s.nameString
+      if s.outsideBoundaryCondition == "Outdoors"
+        expect(c.layers.size).to be(4)
+        expect(c.layers[2].to_StandardOpaqueMaterial.empty?).to be(false)
+        m = c.layers[2].to_StandardOpaqueMaterial.get
+        r = m.thickness / m.thermalConductivity
+        expect(r).to be_within(0.01).of(1.47) if s.surfaceType == "Wall"
+        expect(r).to be_within(0.01).of(5.08) if s.surfaceType == "RoofCeiling"
+      elsif s.outsideBoundaryCondition == "Surface"
+        next unless s.surfaceType == "RoofCeiling"
+        expect(c.layers.size).to be(1)
+        expect(c.layers[0].to_StandardOpaqueMaterial.empty?).to be(false)
+        m = c.layers[0].to_StandardOpaqueMaterial.get
+        r = m.thickness / m.thermalConductivity
+        expect(r).to be_within(0.01).of(0.12)
+      end
+
+      expect(s.space.empty?).to be(false)
+      space = s.space.get
+      nom = space.nameString
+      expect(space.thermalZone.empty?).to be(false)
+      zone = space.thermalZone.get
+      t, dual = maxHeatScheduledSetpoint(zone)
+      expect(t).to be_within(0.1).of(22.1) unless nom.include?("Plenum")
+      next unless nom.include?("Plenum")
+      expect(t).to be(nil)
+      expect(zone.isPlenum).to be(false)
+      expect(zone.canBePlenum).to be(true)
+      expect(s.surfaceType).to_not eq("Floor")                     # no floors !
+      expect(s.surfaceType).to eq("Wall").or eq("RoofCeiling")
+    end
+
     psi_set = "poor (BETBG)"
-    io_path = ""
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    gen_kiva = false
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    io, surfaces = processTBD(os_model, psi_set)
     expect(surfaces.size).to eq(56)
+
+    ids = { a: "Entryway  Wall 4",
+            b: "Entryway  Wall 5",
+            c: "Entryway  Wall 6",
+            d: "Entry way  DroppedCeiling",
+            e: "Utility1 Wall 1",
+            f: "Utility1 Wall 5",
+            g: "Utility 1 DroppedCeiling",
+            h: "Smalloffice 1 Wall 1",
+            i: "Smalloffice 1 Wall 2",
+            j: "Smalloffice 1 Wall 6",
+            k: "Small office 1 DroppedCeiling",
+            l: "Openarea 1 Wall 3",
+            m: "Openarea 1 Wall 4",
+            n: "Openarea 1 Wall 5",
+            o: "Openarea 1 Wall 6",
+            p: "Openarea 1 Wall 7",
+            q: "Open area 1 DroppedCeiling" }.freeze
+
+    # If one simulates the test_seb.osm, EnergyPlus reports the plenum as an
+    # UNCONDITIONED zone, so it's more akin (at least initially) to an attic:
+    # it's vented (infiltration) and there's necessarily heat conduction with
+    # the outdoors and with the zone below. But otherwise, it's a dead zone
+    # (no heating/cooling, no setpoints, not detailed in the eplusout.bnd
+    # file). The zone is linked to a "Plenum" zonelist (in the IDF), relied on
+    # only to set infiltration. What leads to some confusion is that the
+    # outdoor-facing surfaces (roof & walls) of the "plenum" are insulated,
+    # while the dropped ceiling separating the occupied zone below is simply
+    # that, lightweight uninsulated ceiling tiles (a situation more evocative
+    # of a true plenum). It may be indeed OK to model the plenum this way -
+    # there will be plenty of heat transfer between the plenum and the zone
+    # below due to the poor thermal resistance of the dceiling tiles. And if the
+    # infiltration rates are low (unlike an attic), then simulation results may
+    # be quite consistent with a true plenum. Yet in the end, TBD will end up
+    # tagging the SEB plenum as an UNCONDITIONED space, and as a consequence it
+    # will (parially) derate the uninsulated ceiling tiles as well as the walls
+    # below. Fortunately, TBD relies on a proportionate derating solution
+    # whereby the insulated wall will be the main focus of the derating step.
+    surfaces.each do |id, surface|
+      next if surface.has_key?(:edges)
+      expect(ids.has_value?(id)).to be(false)
+    end
+
+    surfaces.each do |id, surface|
+      next unless surface.has_key?(:edges)
+      expect(ids.has_value?(id)).to be(true)
+      expect(surface.has_key?(:heatloss)).to be(true)
+      expect(surface.has_key?(:ratio)).to be(true)
+      h = surface[:heatloss]
+
+      s = os_model.getSurfaceByName(id)
+      expect(s.empty?).to be(false)
+      s = s.get
+      expect(s.nameString).to eq(id)
+      expect(s.isConstructionDefaulted).to be(false)
+      expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
+      expect(h).to be_within(0.01).of( 6.43) if id == ids[:a]
+      expect(h).to be_within(0.01).of(11.18) if id == ids[:b]
+      expect(h).to be_within(0.01).of( 4.56) if id == ids[:c]
+      expect(h).to be_within(0.01).of( 0.42) if id == ids[:d]
+      expect(h).to be_within(0.01).of(12.66) if id == ids[:e]
+      expect(h).to be_within(0.01).of(12.59) if id == ids[:f]
+      expect(h).to be_within(0.01).of( 0.50) if id == ids[:g]
+      expect(h).to be_within(0.01).of(14.06) if id == ids[:h]
+      expect(h).to be_within(0.01).of( 9.04) if id == ids[:i]
+      expect(h).to be_within(0.01).of( 8.75) if id == ids[:j]
+      expect(h).to be_within(0.01).of( 0.53) if id == ids[:k]
+      expect(h).to be_within(0.01).of( 5.06) if id == ids[:l]
+      expect(h).to be_within(0.01).of( 6.25) if id == ids[:m]
+      expect(h).to be_within(0.01).of( 9.04) if id == ids[:n]
+      expect(h).to be_within(0.01).of( 6.74) if id == ids[:o]
+      expect(h).to be_within(0.01).of( 4.32) if id == ids[:p]
+      expect(h).to be_within(0.01).of( 0.76) if id == ids[:q]
+
+      c = s.construction
+      expect(c.empty?).to be(false)
+      c = c.get.to_Construction
+      expect(c.empty?).to be(false)
+      c = c.get
+      i = 0
+      i = 2 if s.outsideBoundaryCondition == "Outdoors"
+      expect(c.layers[i].nameString.include?("m tbd")).to be(true)
+    end
 
     surfaces.each do |id, surface|
       if surface.has_key?(:ratio)
-        ratio  = format "%3.1f", surface[:ratio]
-        name   = id.rjust(15, " ")
-        #puts "#{name} RSi derated by #{ratio}%"
+        # ratio  = format "%3.1f", surface[:ratio]
+        # name   = id.rjust(15, " ")
+        # puts "#{name} RSi derated by #{ratio}%"
+        expect(surface[:ratio]).to be_within(0.1).of(-36.74) if id == ids[:a]
+        expect(surface[:ratio]).to be_within(0.1).of(-34.61) if id == ids[:b]
+        expect(surface[:ratio]).to be_within(0.1).of(-33.57) if id == ids[:c]
+        expect(surface[:ratio]).to be_within(0.1).of( -0.14) if id == ids[:d]
+        expect(surface[:ratio]).to be_within(0.1).of(-35.09) if id == ids[:e]
+        expect(surface[:ratio]).to be_within(0.1).of(-35.12) if id == ids[:f]
+        expect(surface[:ratio]).to be_within(0.1).of( -0.13) if id == ids[:g]
+        expect(surface[:ratio]).to be_within(0.1).of(-39.75) if id == ids[:h]
+        expect(surface[:ratio]).to be_within(0.1).of(-39.74) if id == ids[:i]
+        expect(surface[:ratio]).to be_within(0.1).of(-39.90) if id == ids[:j]
+        expect(surface[:ratio]).to be_within(0.1).of( -0.13) if id == ids[:k]
+        expect(surface[:ratio]).to be_within(0.1).of(-27.78) if id == ids[:l]
+        expect(surface[:ratio]).to be_within(0.1).of(-31.66) if id == ids[:m]
+        expect(surface[:ratio]).to be_within(0.1).of(-28.44) if id == ids[:n]
+        expect(surface[:ratio]).to be_within(0.1).of(-30.85) if id == ids[:o]
+        expect(surface[:ratio]).to be_within(0.1).of(-28.78) if id == ids[:p]
+        expect(surface[:ratio]).to be_within(0.1).of( -0.09) if id == ids[:q]
+
+        next unless id == ids[:a]
+        s = os_model.getSurfaceByName(id)
+        expect(s.empty?).to be(false)
+        s = s.get
+        expect(s.nameString).to eq(id)
+        expect(s.surfaceType).to eq("Wall")
+        expect(s.isConstructionDefaulted).to be(false)
+        c = s.construction.get.to_Construction
+        expect(c.empty?).to be(false)
+        c = c.get
+        expect(c.nameString.include?("c tbd")).to be(true)
+        expect(c.layers.size).to eq(4)
+        expect(c.layers[2].nameString.include?("m tbd")).to be(true)
+        expect(c.layers[2].to_StandardOpaqueMaterial.empty?).to be(false)
+        m = c.layers[2].to_StandardOpaqueMaterial.get
+
+        initial_R = s.filmResistance + 2.4674
+        derated_R = s.filmResistance + 0.9931
+        derated_R += m.thickness / m.thermalConductivity
+
+        ratio = -(initial_R - derated_R) * 100 / initial_R
+        expect(ratio).to be_within(1).of(surfaces[id][:ratio])
       else
         if surface[:boundary].downcase == "outdoors"
           expect(surface[:conditioned]).to be(false)
@@ -2355,10 +2534,7 @@ require "psi"
     os_model = os_model.get
 
     psi_set = "(non thermal bridging)"
-    io_path = ""
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    gen_kiva = false
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    io, surfaces = processTBD(os_model, psi_set)
     expect(surfaces.size).to eq(56)
 
     # Since all PSI values = 0, we're not expecting any derated surfaces
@@ -2375,14 +2551,13 @@ require "psi"
     os_model = os_model.get
 
     psi_set = "(non thermal bridging)"
-    io_path = File.dirname(__FILE__) + "/../json/tbd_seb.json"
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    gen_kiva = false
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    ioP = File.dirname(__FILE__) + "/../json/tbd_seb.json"
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(surfaces.size).to eq(56)
 
-    # As the :building PSI set on file remains "(non thermal bridging)", one should
-    # not expect differences in results, i.e. derating shouldn't occur.
+    # As the :building PSI set on file remains "(non thermal bridging)", one
+    # should not expect differences in results, i.e. derating shouldn't occur.
     surfaces.values.each do |surface|
       expect(surface.has_key?(:ratio)).to be(false)
     end
@@ -2396,11 +2571,28 @@ require "psi"
     os_model = os_model.get
 
     psi_set = "(non thermal bridging)"
-    io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n0.json"
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    gen_kiva = false
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n0.json"
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(surfaces.size).to eq(56)
+
+    ids = { a: "Entryway  Wall 4",
+            b: "Entryway  Wall 5",
+            c: "Entryway  Wall 6",
+            d: "Entry way  DroppedCeiling",
+            e: "Utility1 Wall 1",
+            f: "Utility1 Wall 5",
+            g: "Utility 1 DroppedCeiling",
+            h: "Smalloffice 1 Wall 1",
+            i: "Smalloffice 1 Wall 2",
+            j: "Smalloffice 1 Wall 6",
+            k: "Small office 1 DroppedCeiling",
+            l: "Openarea 1 Wall 3",
+            m: "Openarea 1 Wall 4",
+            n: "Openarea 1 Wall 5",
+            o: "Openarea 1 Wall 6",
+            p: "Openarea 1 Wall 7",
+            q: "Open area 1 DroppedCeiling" }.freeze
 
     # The :building PSI set on file "compliant" supersedes the psi_set
     # "(non thermal bridging)", so one should expect differences in results,
@@ -2409,28 +2601,96 @@ require "psi"
     #   2. setting psi_set to "compliant" while removing the :building from file
     # ... all 3x cases should yield the same results.
     surfaces.each do |id, surface|
+      next if surface.has_key?(:edges)
+      expect(ids.has_value?(id)).to be(false)
+    end
+
+    surfaces.each do |id, surface|
+      next unless surface.has_key?(:edges)
+      expect(ids.has_value?(id)).to be(true)
+      expect(surface.has_key?(:heatloss)).to be(true)
+      expect(surface.has_key?(:ratio)).to be(true)
+      h = surface[:heatloss]
+
+      s = os_model.getSurfaceByName(id)
+      expect(s.empty?).to be(false)
+      s = s.get
+      expect(s.nameString).to eq(id)
+      expect(s.isConstructionDefaulted).to be(false)
+      expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
+      expect(h).to be_within(0.01).of( 3.62) if id == ids[:a]
+      expect(h).to be_within(0.01).of( 6.28) if id == ids[:b]
+      expect(h).to be_within(0.01).of( 2.62) if id == ids[:c]
+      expect(h).to be_within(0.01).of( 0.17) if id == ids[:d]
+      expect(h).to be_within(0.01).of( 7.13) if id == ids[:e]
+      expect(h).to be_within(0.01).of( 7.09) if id == ids[:f]
+      expect(h).to be_within(0.01).of( 0.20) if id == ids[:g]
+      expect(h).to be_within(0.01).of( 7.94) if id == ids[:h]
+      expect(h).to be_within(0.01).of( 5.17) if id == ids[:i]
+      expect(h).to be_within(0.01).of( 5.01) if id == ids[:j]
+      expect(h).to be_within(0.01).of( 0.22) if id == ids[:k]
+      expect(h).to be_within(0.01).of( 2.47) if id == ids[:l]
+      expect(h).to be_within(0.01).of( 3.11) if id == ids[:m]
+      expect(h).to be_within(0.01).of( 4.43) if id == ids[:n]
+      expect(h).to be_within(0.01).of( 3.35) if id == ids[:o]
+      expect(h).to be_within(0.01).of( 2.12) if id == ids[:p]
+      expect(h).to be_within(0.01).of( 0.31) if id == ids[:q]
+
+      c = s.construction
+      expect(c.empty?).to be(false)
+      c = c.get.to_Construction
+      expect(c.empty?).to be(false)
+      c = c.get
+      i = 0
+      i = 2 if s.outsideBoundaryCondition == "Outdoors"
+      expect(c.layers[i].nameString.include?("m tbd")).to be(true)
+    end
+
+    surfaces.each do |id, surface|
       if surface.has_key?(:ratio)
-        ratio  = format "%3.1f", surface[:ratio]
-        name   = id.rjust(15, " ")
-        #puts "#{name} RSi derated by #{ratio}%"
-        if id == "Level0 Utility 1 Ceiling Plenum AbvClgPlnmWall 5"
-          expect(surface[:ratio]).to be_within(0.1).of(-18.1)
-        end
-        if id == "Utility1 Wall 5"
-          expect(surface[:ratio]).to be_within(0.1).of(-27.2) # validate ...
-        end
-        if id == "Openarea 1 Wall 7"
-          expect(surface[:ratio]).to be_within(0.1).of(-19.1) # validate ...
-        end
-        if id == "Level 0 Entry way  Ceiling Plenum RoofCeiling"
-          expect(surface[:ratio]).to be_within(0.1).of(-28.5)
-        end
-        if id == "Level0 Entry way  Ceiling Plenum AbvClgPlnmWall 4"
-          expect(surface[:ratio]).to be_within(0.1).of(-20.7)
-        end
-        if id == "Level 0 Open area 1 Ceiling Plenum RoofCeiling"
-          expect(surface[:ratio]).to be_within(0.1).of(-20.4)
-        end
+        # ratio  = format "%3.1f", surface[:ratio]
+        # name   = id.rjust(15, " ")
+        # puts "#{name} RSi derated by #{ratio}%"
+        expect(surface[:ratio]).to be_within(0.1).of(-28.93) if id == ids[:a]
+        expect(surface[:ratio]).to be_within(0.1).of(-26.61) if id == ids[:b]
+        expect(surface[:ratio]).to be_within(0.1).of(-25.82) if id == ids[:c]
+        expect(surface[:ratio]).to be_within(0.1).of( -0.06) if id == ids[:d]
+        expect(surface[:ratio]).to be_within(0.1).of(-27.14) if id == ids[:e]
+        expect(surface[:ratio]).to be_within(0.1).of(-27.18) if id == ids[:f]
+        expect(surface[:ratio]).to be_within(0.1).of( -0.05) if id == ids[:g]
+        expect(surface[:ratio]).to be_within(0.1).of(-32.40) if id == ids[:h]
+        expect(surface[:ratio]).to be_within(0.1).of(-32.58) if id == ids[:i]
+        expect(surface[:ratio]).to be_within(0.1).of(-32.77) if id == ids[:j]
+        expect(surface[:ratio]).to be_within(0.1).of( -0.05) if id == ids[:k]
+        expect(surface[:ratio]).to be_within(0.1).of(-18.14) if id == ids[:l]
+        expect(surface[:ratio]).to be_within(0.1).of(-21.97) if id == ids[:m]
+        expect(surface[:ratio]).to be_within(0.1).of(-18.77) if id == ids[:n]
+        expect(surface[:ratio]).to be_within(0.1).of(-21.14) if id == ids[:o]
+        expect(surface[:ratio]).to be_within(0.1).of(-19.10) if id == ids[:p]
+        expect(surface[:ratio]).to be_within(0.1).of( -0.04) if id == ids[:q]
+
+        next unless id == ids[:a]
+        s = os_model.getSurfaceByName(id)
+        expect(s.empty?).to be(false)
+        s = s.get
+        expect(s.nameString).to eq(id)
+        expect(s.surfaceType).to eq("Wall")
+        expect(s.isConstructionDefaulted).to be(false)
+        c = s.construction.get.to_Construction
+        expect(c.empty?).to be(false)
+        c = c.get
+        expect(c.nameString.include?("c tbd")).to be(true)
+        expect(c.layers.size).to eq(4)
+        expect(c.layers[2].nameString.include?("m tbd")).to be(true)
+        expect(c.layers[2].to_StandardOpaqueMaterial.empty?).to be(false)
+        m = c.layers[2].to_StandardOpaqueMaterial.get
+
+        initial_R = s.filmResistance + 2.4674
+        derated_R = s.filmResistance + 0.9931
+        derated_R += m.thickness / m.thermalConductivity
+
+        ratio = -(initial_R - derated_R) * 100 / initial_R
+        expect(ratio).to be_within(1).of(surfaces[id][:ratio])
       else
         if surface[:boundary].downcase == "outdoors"
           expect(surface[:conditioned]).to be(false)
@@ -2448,35 +2708,120 @@ require "psi"
 
     #   1. setting both psi_set & file :building to "compliant"
     psi_set = "compliant" # instead of "(non thermal bridging)"
-    io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n0.json"
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    gen_kiva = false
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n0.json"
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(surfaces.size).to eq(56)
+
+    ids = { a: "Entryway  Wall 4",
+            b: "Entryway  Wall 5",
+            c: "Entryway  Wall 6",
+            d: "Entry way  DroppedCeiling",
+            e: "Utility1 Wall 1",
+            f: "Utility1 Wall 5",
+            g: "Utility 1 DroppedCeiling",
+            h: "Smalloffice 1 Wall 1",
+            i: "Smalloffice 1 Wall 2",
+            j: "Smalloffice 1 Wall 6",
+            k: "Small office 1 DroppedCeiling",
+            l: "Openarea 1 Wall 3",
+            m: "Openarea 1 Wall 4",
+            n: "Openarea 1 Wall 5",
+            o: "Openarea 1 Wall 6",
+            p: "Openarea 1 Wall 7",
+            q: "Open area 1 DroppedCeiling" }.freeze
+
+    surfaces.each do |id, surface|
+      next if surface.has_key?(:edges)
+      expect(ids.has_value?(id)).to be(false)
+    end
+
+    surfaces.each do |id, surface|
+      next unless surface.has_key?(:edges)
+      expect(ids.has_value?(id)).to be(true)
+      expect(surface.has_key?(:heatloss)).to be(true)
+      expect(surface.has_key?(:ratio)).to be(true)
+      h = surface[:heatloss]
+
+      s = os_model.getSurfaceByName(id)
+      expect(s.empty?).to be(false)
+      s = s.get
+      expect(s.nameString).to eq(id)
+      expect(s.isConstructionDefaulted).to be(false)
+      expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
+      expect(h).to be_within(0.01).of( 3.62) if id == ids[:a]
+      expect(h).to be_within(0.01).of( 6.28) if id == ids[:b]
+      expect(h).to be_within(0.01).of( 2.62) if id == ids[:c]
+      expect(h).to be_within(0.01).of( 0.17) if id == ids[:d]
+      expect(h).to be_within(0.01).of( 7.13) if id == ids[:e]
+      expect(h).to be_within(0.01).of( 7.09) if id == ids[:f]
+      expect(h).to be_within(0.01).of( 0.20) if id == ids[:g]
+      expect(h).to be_within(0.01).of( 7.94) if id == ids[:h]
+      expect(h).to be_within(0.01).of( 5.17) if id == ids[:i]
+      expect(h).to be_within(0.01).of( 5.01) if id == ids[:j]
+      expect(h).to be_within(0.01).of( 0.22) if id == ids[:k]
+      expect(h).to be_within(0.01).of( 2.47) if id == ids[:l]
+      expect(h).to be_within(0.01).of( 3.11) if id == ids[:m]
+      expect(h).to be_within(0.01).of( 4.43) if id == ids[:n]
+      expect(h).to be_within(0.01).of( 3.35) if id == ids[:o]
+      expect(h).to be_within(0.01).of( 2.12) if id == ids[:p]
+      expect(h).to be_within(0.01).of( 0.31) if id == ids[:q]
+
+      c = s.construction
+      expect(c.empty?).to be(false)
+      c = c.get.to_Construction
+      expect(c.empty?).to be(false)
+      c = c.get
+      i = 0
+      i = 2 if s.outsideBoundaryCondition == "Outdoors"
+      expect(c.layers[i].nameString.include?("m tbd")).to be(true)
+    end
 
     surfaces.each do |id, surface|
       if surface.has_key?(:ratio)
-        #ratio  = format "%3.1f", surface[:ratio]
-        #name   = id.rjust(15, " ")
-        #puts "#{name} RSi derated by #{ratio}%"
-        if id == "Level0 Utility 1 Ceiling Plenum AbvClgPlnmWall 5"
-          expect(surface[:ratio]).to be_within(0.1).of(-18.1)
-        end
-        if id == "Utility1 Wall 5"
-          expect(surface[:ratio]).to be_within(0.1).of(-27.2) # validate ...
-        end
-        if id == "Openarea 1 Wall 7"
-          expect(surface[:ratio]).to be_within(0.1).of(-19.1) # validate ...
-        end
-        if id == "Level 0 Entry way  Ceiling Plenum RoofCeiling"
-          expect(surface[:ratio]).to be_within(0.1).of(-28.5)
-        end
-        if id == "Level0 Entry way  Ceiling Plenum AbvClgPlnmWall 4"
-          expect(surface[:ratio]).to be_within(0.1).of(-20.7)
-        end
-        if id == "Level 0 Open area 1 Ceiling Plenum RoofCeiling"
-          expect(surface[:ratio]).to be_within(0.1).of(-20.4)
-        end
+        # ratio  = format "%3.1f", surface[:ratio]
+        # name   = id.rjust(15, " ")
+        # puts "#{name} RSi derated by #{ratio}%"
+        expect(surface[:ratio]).to be_within(0.1).of(-28.93) if id == ids[:a]
+        expect(surface[:ratio]).to be_within(0.1).of(-26.61) if id == ids[:b]
+        expect(surface[:ratio]).to be_within(0.1).of(-25.82) if id == ids[:c]
+        expect(surface[:ratio]).to be_within(0.1).of( -0.06) if id == ids[:d]
+        expect(surface[:ratio]).to be_within(0.1).of(-27.14) if id == ids[:e]
+        expect(surface[:ratio]).to be_within(0.1).of(-27.18) if id == ids[:f]
+        expect(surface[:ratio]).to be_within(0.1).of( -0.05) if id == ids[:g]
+        expect(surface[:ratio]).to be_within(0.1).of(-32.40) if id == ids[:h]
+        expect(surface[:ratio]).to be_within(0.1).of(-32.58) if id == ids[:i]
+        expect(surface[:ratio]).to be_within(0.1).of(-32.77) if id == ids[:j]
+        expect(surface[:ratio]).to be_within(0.1).of( -0.05) if id == ids[:k]
+        expect(surface[:ratio]).to be_within(0.1).of(-18.14) if id == ids[:l]
+        expect(surface[:ratio]).to be_within(0.1).of(-21.97) if id == ids[:m]
+        expect(surface[:ratio]).to be_within(0.1).of(-18.77) if id == ids[:n]
+        expect(surface[:ratio]).to be_within(0.1).of(-21.14) if id == ids[:o]
+        expect(surface[:ratio]).to be_within(0.1).of(-19.10) if id == ids[:p]
+        expect(surface[:ratio]).to be_within(0.1).of( -0.04) if id == ids[:q]
+
+        next unless id == ids[:a]
+        s = os_model.getSurfaceByName(id)
+        expect(s.empty?).to be(false)
+        s = s.get
+        expect(s.nameString).to eq(id)
+        expect(s.surfaceType).to eq("Wall")
+        expect(s.isConstructionDefaulted).to be(false)
+        c = s.construction.get.to_Construction
+        expect(c.empty?).to be(false)
+        c = c.get
+        expect(c.nameString.include?("c tbd")).to be(true)
+        expect(c.layers.size).to eq(4)
+        expect(c.layers[2].nameString.include?("m tbd")).to be(true)
+        expect(c.layers[2].to_StandardOpaqueMaterial.empty?).to be(false)
+        m = c.layers[2].to_StandardOpaqueMaterial.get
+
+        initial_R = s.filmResistance + 2.4674
+        derated_R = s.filmResistance + 0.9931
+        derated_R += m.thickness / m.thermalConductivity
+
+        ratio = -(initial_R - derated_R) * 100 / initial_R
+        expect(ratio).to be_within(1).of(surfaces[id][:ratio])
       else
         if surface[:boundary].downcase == "outdoors"
           expect(surface[:conditioned]).to be(false)
@@ -2494,35 +2839,120 @@ require "psi"
 
     #   2. setting psi_set to "compliant" while removing the :building from file
     psi_set = "compliant" # instead of "(non thermal bridging)"
-    io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n1.json" # no :building
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    gen_kiva = false
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n1.json" # no :building
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(surfaces.size).to eq(56)
+
+    ids = { a: "Entryway  Wall 4",
+            b: "Entryway  Wall 5",
+            c: "Entryway  Wall 6",
+            d: "Entry way  DroppedCeiling",
+            e: "Utility1 Wall 1",
+            f: "Utility1 Wall 5",
+            g: "Utility 1 DroppedCeiling",
+            h: "Smalloffice 1 Wall 1",
+            i: "Smalloffice 1 Wall 2",
+            j: "Smalloffice 1 Wall 6",
+            k: "Small office 1 DroppedCeiling",
+            l: "Openarea 1 Wall 3",
+            m: "Openarea 1 Wall 4",
+            n: "Openarea 1 Wall 5",
+            o: "Openarea 1 Wall 6",
+            p: "Openarea 1 Wall 7",
+            q: "Open area 1 DroppedCeiling" }.freeze
+
+    surfaces.each do |id, surface|
+      next if surface.has_key?(:edges)
+      expect(ids.has_value?(id)).to be(false)
+    end
+
+    surfaces.each do |id, surface|
+      next unless surface.has_key?(:edges)
+      expect(ids.has_value?(id)).to be(true)
+      expect(surface.has_key?(:heatloss)).to be(true)
+      expect(surface.has_key?(:ratio)).to be(true)
+      h = surface[:heatloss]
+
+      s = os_model.getSurfaceByName(id)
+      expect(s.empty?).to be(false)
+      s = s.get
+      expect(s.nameString).to eq(id)
+      expect(s.isConstructionDefaulted).to be(false)
+      expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
+      expect(h).to be_within(0.01).of( 3.62) if id == ids[:a]
+      expect(h).to be_within(0.01).of( 6.28) if id == ids[:b]
+      expect(h).to be_within(0.01).of( 2.62) if id == ids[:c]
+      expect(h).to be_within(0.01).of( 0.17) if id == ids[:d]
+      expect(h).to be_within(0.01).of( 7.13) if id == ids[:e]
+      expect(h).to be_within(0.01).of( 7.09) if id == ids[:f]
+      expect(h).to be_within(0.01).of( 0.20) if id == ids[:g]
+      expect(h).to be_within(0.01).of( 7.94) if id == ids[:h]
+      expect(h).to be_within(0.01).of( 5.17) if id == ids[:i]
+      expect(h).to be_within(0.01).of( 5.01) if id == ids[:j]
+      expect(h).to be_within(0.01).of( 0.22) if id == ids[:k]
+      expect(h).to be_within(0.01).of( 2.47) if id == ids[:l]
+      expect(h).to be_within(0.01).of( 3.11) if id == ids[:m]
+      expect(h).to be_within(0.01).of( 4.43) if id == ids[:n]
+      expect(h).to be_within(0.01).of( 3.35) if id == ids[:o]
+      expect(h).to be_within(0.01).of( 2.12) if id == ids[:p]
+      expect(h).to be_within(0.01).of( 0.31) if id == ids[:q]
+
+      c = s.construction
+      expect(c.empty?).to be(false)
+      c = c.get.to_Construction
+      expect(c.empty?).to be(false)
+      c = c.get
+      i = 0
+      i = 2 if s.outsideBoundaryCondition == "Outdoors"
+      expect(c.layers[i].nameString.include?("m tbd")).to be(true)
+    end
 
     surfaces.each do |id, surface|
       if surface.has_key?(:ratio)
-        #ratio  = format "%3.1f", surface[:ratio]
-        #name   = id.rjust(15, " ")
-        #puts "#{name} RSi derated by #{ratio}%"
-        if id == "Level0 Utility 1 Ceiling Plenum AbvClgPlnmWall 5"
-          expect(surface[:ratio]).to be_within(0.1).of(-18.1)
-        end
-        if id == "Utility1 Wall 5"
-          expect(surface[:ratio]).to be_within(0.1).of(-27.2) # validate ...
-        end
-        if id == "Openarea 1 Wall 7"
-          expect(surface[:ratio]).to be_within(0.1).of(-19.1) # validate ...
-        end
-        if id == "Level 0 Entry way  Ceiling Plenum RoofCeiling"
-          expect(surface[:ratio]).to be_within(0.1).of(-28.5)
-        end
-        if id == "Level0 Entry way  Ceiling Plenum AbvClgPlnmWall 4"
-          expect(surface[:ratio]).to be_within(0.1).of(-20.7)
-        end
-        if id == "Level 0 Open area 1 Ceiling Plenum RoofCeiling"
-          expect(surface[:ratio]).to be_within(0.1).of(-20.4)
-        end
+        # ratio  = format "%3.1f", surface[:ratio]
+        # name   = id.rjust(15, " ")
+        # puts "#{name} RSi derated by #{ratio}%"
+        expect(surface[:ratio]).to be_within(0.1).of(-28.93) if id == ids[:a]
+        expect(surface[:ratio]).to be_within(0.1).of(-26.61) if id == ids[:b]
+        expect(surface[:ratio]).to be_within(0.1).of(-25.82) if id == ids[:c]
+        expect(surface[:ratio]).to be_within(0.1).of( -0.06) if id == ids[:d]
+        expect(surface[:ratio]).to be_within(0.1).of(-27.14) if id == ids[:e]
+        expect(surface[:ratio]).to be_within(0.1).of(-27.18) if id == ids[:f]
+        expect(surface[:ratio]).to be_within(0.1).of( -0.05) if id == ids[:g]
+        expect(surface[:ratio]).to be_within(0.1).of(-32.40) if id == ids[:h]
+        expect(surface[:ratio]).to be_within(0.1).of(-32.58) if id == ids[:i]
+        expect(surface[:ratio]).to be_within(0.1).of(-32.77) if id == ids[:j]
+        expect(surface[:ratio]).to be_within(0.1).of( -0.05) if id == ids[:k]
+        expect(surface[:ratio]).to be_within(0.1).of(-18.14) if id == ids[:l]
+        expect(surface[:ratio]).to be_within(0.1).of(-21.97) if id == ids[:m]
+        expect(surface[:ratio]).to be_within(0.1).of(-18.77) if id == ids[:n]
+        expect(surface[:ratio]).to be_within(0.1).of(-21.14) if id == ids[:o]
+        expect(surface[:ratio]).to be_within(0.1).of(-19.10) if id == ids[:p]
+        expect(surface[:ratio]).to be_within(0.1).of( -0.04) if id == ids[:q]
+
+        next unless id == ids[:a]
+        s = os_model.getSurfaceByName(id)
+        expect(s.empty?).to be(false)
+        s = s.get
+        expect(s.nameString).to eq(id)
+        expect(s.surfaceType).to eq("Wall")
+        expect(s.isConstructionDefaulted).to be(false)
+        c = s.construction.get.to_Construction
+        expect(c.empty?).to be(false)
+        c = c.get
+        expect(c.nameString.include?("c tbd")).to be(true)
+        expect(c.layers.size).to eq(4)
+        expect(c.layers[2].nameString.include?("m tbd")).to be(true)
+        expect(c.layers[2].to_StandardOpaqueMaterial.empty?).to be(false)
+        m = c.layers[2].to_StandardOpaqueMaterial.get
+
+        initial_R = s.filmResistance + 2.4674
+        derated_R = s.filmResistance + 0.9931
+        derated_R += m.thickness / m.thermalConductivity
+
+        ratio = -(initial_R - derated_R) * 100 / initial_R
+        expect(ratio).to be_within(1).of(surfaces[id][:ratio])
       else
         if surface[:boundary].downcase == "outdoors"
           expect(surface[:conditioned]).to be(false)
@@ -2539,15 +2969,14 @@ require "psi"
     os_model = os_model.get
 
     psi_set = "(non thermal bridging)"
-    io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n2.json"
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    gen_kiva = false
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n2.json"
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(surfaces.size).to eq(56)
 
-    # As the :building PSI set on file remains "(non thermal bridging)", one should
-    # not expect differences in results, i.e. derating shouldn't occur. However,
-    # the JSON file holds KHI entries for "Entryway  Wall 2" :
+    # As the :building PSI set on file remains "(non thermal bridging)", one
+    # should not expect differences in results, i.e. derating shouldn't occur.
+    # However, the JSON file holds KHI entries for "Entryway  Wall 2" :
     # 3x "columns" @0.5 W/K + 4x supports @0.5W/K = 3.5 W/K
     surfaces.values.each do |surface|
       next unless surface.has_key?(:ratio)
@@ -2563,27 +2992,27 @@ require "psi"
     os_model = os_model.get
 
     psi_set = "(non thermal bridging)" # no :building PSI set on file
-    io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n3.json"
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    gen_kiva = false
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n3.json"
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(surfaces.size).to eq(56)
     expect(io.has_key?(:building)).to be(true) # despite no being on file - good
     expect(io[:building].first.has_key?(:psi)).to be(true)
     expect(io[:building].first[:psi]).to eq("(non thermal bridging)")
 
-    # As the :building PSI set on file remains "(non thermal bridging)", one should
-    # not expect differences in results, i.e. derating shouldn't occur for most
-    # surfaces. However, the JSON file holds KHI entries for "Entryway  Wall 5":
+    # As the :building PSI set on file remains "(non thermal bridging)", one
+    # should not expect differences in results, i.e. derating shouldn't occur
+    # for most surfaces. However, the JSON file holds KHI entries for
+    # "Entryway  Wall 5":
     # 3x "columns" @0.5 W/K + 4x supports @0.5W/K = 3.5 W/K (as in case above),
     # and a "good" PSI set (:parapet, of 0.5 W/K per m).
     surfaces.each do |id, surface|
       next unless surface.has_key?(:ratio)
       expect(id).to eq("Entryway  Wall 5").or eq("Entry way  DroppedCeiling")
       if id == "Entryway  Wall 5"
-        expect(surface[:heatloss]).to be_within(0.01).of(5.17) # validate ...
+        expect(surface[:heatloss]).to be_within(0.01).of(5.17)
       else
-        expect(surface[:heatloss]).to be_within(0.01).of(0.13) # validate ...
+        expect(surface[:heatloss]).to be_within(0.01).of(0.13)
       end
     end
 
@@ -2606,9 +3035,9 @@ require "psi"
     end
 
     out = JSON.pretty_generate(io)
-    out_path = File.dirname(__FILE__) + "/../json/tbd_seb_n3.out.json"
-    File.open(out_path, "w") do |out_path|
-      out_path.puts out
+    outP = File.dirname(__FILE__) + "/../json/tbd_seb_n3.out.json"
+    File.open(outP, "w") do |outP|
+      outP.puts out
     end
   end
 
@@ -2620,10 +3049,9 @@ require "psi"
     os_model = os_model.get
 
     psi_set = "(non thermal bridging)"
-    io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n4.json"
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    gen_kiva = false
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n4.json"
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(surfaces.size).to eq(56)
 
     # As the :building PSI set on file == "(non thermal bridgin)", derating
@@ -2632,13 +3060,14 @@ require "psi"
     # only derates the host wall itself
     surfaces.each do |id, surface|
       next unless surface[:boundary].downcase == "outdoors"
-      expect(surface.has_key?(:ratio)).to be(false) unless id == "Entryway  Wall 5"
+      name = "Entryway  Wall 5"
+      expect(surface.has_key?(:ratio)).to be(false) unless id == name
       next unless id == "Entryway  Wall 5"
       expect(surface[:heatloss]).to be_within(0.01).of(8.89)
     end
   end
 
-  it "can process TB & D : JSON surface KHI & PSI entries + building & edge (2)" do
+  it "can process TB & D : JSON surface KHI & PSI + building & edge (2)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -2646,22 +3075,22 @@ require "psi"
     os_model = os_model.get
 
     psi_set = "(non thermal bridging)"
-    io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n5.json"
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    gen_kiva = false
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n5.json"
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(surfaces.size).to eq(56)
 
     # As above, yet the KHI points are now set @0.5 W/K per m (instead of 0)
     surfaces.each do |id, surface|
       next unless surface[:boundary].downcase == "outdoors"
-      expect(surface.has_key?(:ratio)).to be(false) unless id == "Entryway  Wall 5"
+      name = "Entryway  Wall 5"
+      expect(surface.has_key?(:ratio)).to be(false) unless id == name
       next unless id == "Entryway  Wall 5"
       expect(surface[:heatloss]).to be_within(0.01).of(12.39)
     end
   end
 
-  it "can process TB & D : JSON surface KHI & PSI entries + building & edge (3)" do
+  it "can process TB & D : JSON surface KHI & PSI + building & edge (3)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -2669,24 +3098,22 @@ require "psi"
     os_model = os_model.get
 
     psi_set = "(non thermal bridging)"
-    io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n6.json"
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    gen_kiva = false
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n6.json"
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(surfaces.size).to eq(56)
 
     # As above, with a "good" surface PSI set
     surfaces.each do |id, surface|
       next unless surface[:boundary].downcase == "outdoors"
-      expect(surface.has_key?(:ratio)).to be(false) unless id == "Entryway  Wall 5"
+      name = "Entryway  Wall 5"
+      expect(surface.has_key?(:ratio)).to be(false) unless id == name
       next unless id == "Entryway  Wall 5"
-      expect(surface[:heatloss]).to be_within(0.01).of(14.05) # validate ...
+      expect(surface[:heatloss]).to be_within(0.01).of(14.05)
     end
-
-    # test dropped ceiling
   end
 
-  it "can process TB & D : JSON surface KHI & PSI entries + building & edge (4)" do
+  it "can process TB & D : JSON surface KHI & PSI + building & edge (4)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -2694,10 +3121,9 @@ require "psi"
     os_model = os_model.get
 
     psi_set = "compliant" # ignored - superseded by :building PSI set on file
-    io_path = File.dirname(__FILE__) + "/../json/tbd_seb_n7.json"
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    gen_kiva = false
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n7.json"
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(surfaces.size).to eq(56)
 
     # In the JSON file, the "Entry way 1" space "compliant" PSI set supersedes
@@ -2720,29 +3146,42 @@ require "psi"
         expect(surface.has_key?(:ratio)).to be(false)
       end
       next unless id == "Entryway  Wall 5"
-      expect(surface[:heatloss]).to be_within(0.01).of(15.62) # validate ...
+      expect(surface[:heatloss]).to be_within(0.01).of(15.62)
     end
 
     out = JSON.pretty_generate(io)
-    out_path = File.dirname(__FILE__) + "/../json/tbd_seb_n7.out.json"
-    File.open(out_path, "w") do |out_path|
-      out_path.puts out
+    outP = File.dirname(__FILE__) + "/../json/tbd_seb_n7.out.json"
+    File.open(outP, "w") do |outP|
+      outP.puts out
     end
   end
 
   it "can factor in negative PSI values (JSON input)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_warehouse.osm")
+    file = "/files/test_warehouse.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
     psi_set = "compliant" # ignored - superseded by :building PSI set on file
-    io_path = File.dirname(__FILE__) + "/../json/tbd_warehouse4.json"
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    gen_kiva = false
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse4.json"
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(surfaces.size).to eq(23)
+
+    ids = { a: "Office Front Wall",
+            b: "Office Left Wall",
+            c: "Fine Storage Roof",
+            d: "Fine Storage Office Front Wall",
+            e: "Fine Storage Office Left Wall",
+            f: "Fine Storage Front Wall",
+            g: "Fine Storage Left Wall",
+            h: "Fine Storage Right Wall",
+            i: "Bulk Storage Roof",
+            j: "Bulk Storage Rear Wall",
+            k: "Bulk Storage Left Wall",
+            l: "Bulk Storage Right Wall" }.freeze
 
     surfaces.each do |id, surface|
       next unless surface[:boundary].downcase == "outdoors"
@@ -2754,46 +3193,44 @@ require "psi"
       # (and thus increasing linked surface RSi values). This happens when
       # estimating PSI values for convex corners while relying on an interior
       # dimensioning convention e.g., BETBG Detail 7.6.2, ISO 14683.
-      expect(surface[:ratio]).to be_within(0.01).of(0.15) if id == "Fine Storage Office Front Wall"
-      expect(surface[:ratio]).to be_within(0.01).of(0.55) if id == "Office Left Wall"
-      expect(surface[:ratio]).to be_within(0.01).of(0.43) if id == "Fine Storage Office Left Wall"
-      expect(surface[:ratio]).to be_within(0.01).of(0.18) if id == "Office Front Wall"
-      expect(surface[:ratio]).to be_within(0.01).of(0.13) if id == "Fine Storage Right Wall"
-      expect(surface[:ratio]).to be_within(0.01).of(0.04) if id == "Bulk Storage Right Wall"
-      expect(surface[:ratio]).to be_within(0.01).of(0.12) if id == "Bulk Storage Rear Wall"
-      expect(surface[:ratio]).to be_within(0.01).of(0.20) if id == "Fine Storage Front Wall"
-      expect(surface[:ratio]).to be_within(0.01).of(0.04) if id == "Bulk Storage Left Wall"
+      expect(surface[:ratio]).to be_within(0.01).of(0.18) if id == ids[:a]
+      expect(surface[:ratio]).to be_within(0.01).of(0.55) if id == ids[:b]
+      expect(surface[:ratio]).to be_within(0.01).of(0.15) if id == ids[:d]
+      expect(surface[:ratio]).to be_within(0.01).of(0.43) if id == ids[:e]
+      expect(surface[:ratio]).to be_within(0.01).of(0.20) if id == ids[:f]
+      expect(surface[:ratio]).to be_within(0.01).of(0.13) if id == ids[:h]
+      expect(surface[:ratio]).to be_within(0.01).of(0.12) if id == ids[:j]
+      expect(surface[:ratio]).to be_within(0.01).of(0.04) if id == ids[:k]
+      expect(surface[:ratio]).to be_within(0.01).of(0.04) if id == ids[:l]
 
       # In such cases, negative heatloss means heat gained.
-      expect(surface[:heatloss]).to be_within(0.01).of(-0.10) if id == "Fine Storage Office Front Wall"
-      expect(surface[:heatloss]).to be_within(0.01).of(-0.10) if id == "Office Left Wall"
-      expect(surface[:heatloss]).to be_within(0.01).of(-0.10) if id == "Fine Storage Office Left Wall"
-      expect(surface[:heatloss]).to be_within(0.01).of(-0.10) if id == "Office Front Wall"
-      expect(surface[:heatloss]).to be_within(0.01).of(-0.20) if id == "Fine Storage Right Wall"
-      expect(surface[:heatloss]).to be_within(0.01).of(-0.20) if id == "Bulk Storage Right Wall"
-      expect(surface[:heatloss]).to be_within(0.01).of(-0.40) if id == "Bulk Storage Rear Wall"
-      expect(surface[:heatloss]).to be_within(0.01).of(-0.20) if id == "Fine Storage Front Wall"
-      expect(surface[:heatloss]).to be_within(0.01).of(-0.20) if id == "Bulk Storage Left Wall"
-
-      # The results above have been validated.
+      expect(surface[:heatloss]).to be_within(0.01).of(-0.10) if id == ids[:a]
+      expect(surface[:heatloss]).to be_within(0.01).of(-0.10) if id == ids[:b]
+      expect(surface[:heatloss]).to be_within(0.01).of(-0.10) if id == ids[:d]
+      expect(surface[:heatloss]).to be_within(0.01).of(-0.10) if id == ids[:e]
+      expect(surface[:heatloss]).to be_within(0.01).of(-0.20) if id == ids[:f]
+      expect(surface[:heatloss]).to be_within(0.01).of(-0.20) if id == ids[:h]
+      expect(surface[:heatloss]).to be_within(0.01).of(-0.40) if id == ids[:j]
+      expect(surface[:heatloss]).to be_within(0.01).of(-0.20) if id == ids[:k]
+      expect(surface[:heatloss]).to be_within(0.01).of(-0.20) if id == ids[:l]
     end
 
     out = JSON.pretty_generate(io)
-    out_path = File.dirname(__FILE__) + "/../json/tbd_warehouse4.out.json"
-    File.open(out_path, "w") do |out_path|
-      out_path.puts out
+    outP = File.dirname(__FILE__) + "/../json/tbd_warehouse4.out.json"
+    File.open(outP, "w") do |outP|
+      outP.puts out
     end
   end
 
   it "can process TB & D : JSON file read/validate" do
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    expect(File.exist?(schema_path)).to be(true)
-    schema_c = File.read(schema_path)
-    schema = JSON.parse(schema_c, symbolize_names: true)
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    expect(File.exist?(schemaP)).to be(true)
+    schemaC = File.read(schemaP)
+    schema = JSON.parse(schemaC, symbolize_names: true)
 
-    io_path = File.dirname(__FILE__) + "/../json/tbd_json_test.json"
-    io_c = File.read(io_path)
-    io = JSON.parse(io_c, symbolize_names: true)
+    ioP = File.dirname(__FILE__) + "/../json/tbd_json_test.json"
+    ioC = File.read(ioP)
+    io = JSON.parse(ioC, symbolize_names: true)
 
     expect(JSON::Validator.validate(schema, io)).to be(true)
     expect(io.has_key?(:description)).to be(true)
@@ -2870,14 +3307,14 @@ require "psi"
       end
     end
 
-    # a reminder that built-in KHIs are not frozen ...
+    # A reminder that built-in KHIs are not frozen ...
     khi.point["code (Quebec)"] = 2.0
     expect(khi.point["code (Quebec)"]).to eq(2.0)
 
-    # Load PSI combo JSON example - likely the most expected or common use
-    io_path = File.dirname(__FILE__) + "/../json/tbd_PSI_combo.json"
-    io_c = File.read(io_path)
-    io = JSON.parse(io_c, symbolize_names: true)
+    # Load PSI combo JSON example - likely the most expected or common use.
+    ioP = File.dirname(__FILE__) + "/../json/tbd_PSI_combo.json"
+    ioC = File.read(ioP)
+    io = JSON.parse(ioC, symbolize_names: true)
     expect(JSON::Validator.validate(schema, io)).to be(true)
     expect(io.has_key?(:description)).to be(true)
     expect(io.has_key?(:schema)).to be(true)
@@ -2891,7 +3328,7 @@ require "psi"
     expect(io[:spaces].size).to eq(1)
     expect(io[:building].size).to eq(1)
 
-    # Loop through input psis to ensure uniqueness vs PSI defaults
+    # Loop through input psis to ensure uniqueness vs PSI defaults.
     psi = PSI.new
     expect(io.has_key?(:psis)).to be(true)
     io[:psis].each do |p| psi.append(p); end
@@ -2920,10 +3357,10 @@ require "psi"
 
     # Load PSI combo2 JSON example - a more elaborate example, yet common.
     # Post-JSON validation required to handle case sensitive keys & value
-    # strings (e.g. "ok" vs "OK" in the file)
-    io_path = File.dirname(__FILE__) + "/../json/tbd_PSI_combo2.json"
-    io_c = File.read(io_path)
-    io = JSON.parse(io_c, symbolize_names: true)
+    # strings (e.g. "ok" vs "OK" in the file).
+    ioP = File.dirname(__FILE__) + "/../json/tbd_PSI_combo2.json"
+    ioC = File.read(ioP)
+    io = JSON.parse(ioC, symbolize_names: true)
     expect(JSON::Validator.validate(schema, io)).to be(true)
     expect(io.has_key?(:description)).to be(true)
     expect(io.has_key?(:schema)).to be(true)
@@ -2989,9 +3426,9 @@ require "psi"
     # Ruby hash keys - will have the second entry ("party": 0.8) override the
     # first ("party": 0.7). Another reminder of post-JSON validation.
     # * https://jsonschemalint.com/#!/version/draft-04/markup/json
-    io_path = File.dirname(__FILE__) + "/../json/tbd_full_PSI.json"
-    io_c = File.read(io_path)
-    io = JSON.parse(io_c, symbolize_names: true)
+    ioP = File.dirname(__FILE__) + "/../json/tbd_full_PSI.json"
+    ioC = File.read(ioP)
+    io = JSON.parse(ioC, symbolize_names: true)
     expect(JSON::Validator.validate(schema, io)).to be(true)
     expect(io.has_key?(:description)).to be(true)
     expect(io.has_key?(:schema)).to be(true)
@@ -3017,31 +3454,31 @@ require "psi"
     expect(psi.set["OK"][:party]).to eq(0.8)
 
     # Load minimal PSI JSON example
-    io_path = File.dirname(__FILE__) + "/../json/tbd_minimal_PSI.json"
-    io_c = File.read(io_path)
-    io = JSON.parse(io_c, symbolize_names: true)
+    ioP = File.dirname(__FILE__) + "/../json/tbd_minimal_PSI.json"
+    ioC = File.read(ioP)
+    io = JSON.parse(ioC, symbolize_names: true)
     expect(JSON::Validator.validate(schema, io)).to be(true)
 
     # Load minimal KHI JSON example
-    io_path = File.dirname(__FILE__) + "/../json/tbd_minimal_KHI.json"
-    io_c = File.read(io_path)
-    io = JSON.parse(io_c, symbolize_names: true)
+    ioP = File.dirname(__FILE__) + "/../json/tbd_minimal_KHI.json"
+    ioC = File.read(ioP)
+    io = JSON.parse(ioC, symbolize_names: true)
     expect(JSON::Validator.validate(schema, io)).to be(true)
-    expect(JSON::Validator.validate(schema_path, io_path, uri: true)).to be(true)
+    expect(JSON::Validator.validate(schemaP, ioP, uri: true)).to be(true)
   end
 
   it "can factor in spacetype-specific PSI sets (JSON input)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_warehouse.osm")
+    file = "/files/test_warehouse.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
     psi_set = "compliant" # ignored - superseded by :building PSI set on file
-    io_path = File.dirname(__FILE__) + "/../json/tbd_warehouse5.json"
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    gen_kiva = false
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse5.json"
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(surfaces.size).to eq(23)
 
     expect(io.has_key?(:spacetypes)).to be(true)
@@ -3060,24 +3497,25 @@ require "psi"
       expect(surface.has_key?(:space)).to be(true)
       next unless surface[:space].nameString == "Zone1 Office"
 
-      expect(heatloss).to be_within(0.01).of(10.70) if id == "Office Left Wall" # 8.23
-      expect(heatloss).to be_within(0.01).of(20.35) if id == "Office Front Wall" # 13.12
+      name = "Office Left Wall"
+      expect(heatloss).to be_within(0.01).of(10.70) if id == name
+      name = "Office Front Wall"
+      expect(heatloss).to be_within(0.01).of(20.35) if id == name
     end
   end
 
   it "can factor in story-specific PSI sets (JSON input)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_smalloffice.osm")
+    file = "/files/test_smalloffice.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
     psi_set = "compliant" # ignored - superseded by :building PSI set on file
-    io_path = File.dirname(__FILE__) + "/../json/tbd_smalloffice.json"
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    gen_kiva = false
-
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    ioP = File.dirname(__FILE__) + "/../json/tbd_smalloffice.json"
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(surfaces.size).to eq(43)
 
     expect(io.has_key?(:stories)).to be(true)
@@ -3094,31 +3532,25 @@ require "psi"
       expect(heatloss.abs).to be > 0
       next unless surface.has_key?(:story)
       expect(surface[:story].nameString).to eq("Building Story 1")
-
-      #expect(heatloss).to be_within(0.01).of(31.41) if id == "Perimeter_ZN_1_wall_south"
-      #expect(heatloss).to be_within(0.01).of(20.05) if id == "Perimeter_ZN_2_wall_east"
-      #expect(heatloss).to be_within(0.01).of(29.61) if id == "Perimeter_ZN_3_wall_north"
-      #expect(heatloss).to be_within(0.01).of(20.05) if id == "Perimeter_ZN_4_wall_west"
     end
   end
 
   it "can factor in unenclosed space such as attics" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_smalloffice.osm")
+    file = "/files/test_smalloffice.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
     expect(airLoopsHVAC?(os_model)).to be(true)
-    expect(winterDesignDayTemperatureSetpoints?(os_model)).to be(true)
-    expect(summerDesignDayTemperatureSetpoints?(os_model)).to be(true)
+    expect(heatingTemperatureSetpoints?(os_model)).to be(true)
+    expect(coolingTemperatureSetpoints?(os_model)).to be(true)
 
     psi_set = "compliant" # ignored - superseded by :building PSI set on file
-    io_path = File.dirname(__FILE__) + "/../json/tbd_smalloffice.json"
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    gen_kiva = false
-
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    ioP = File.dirname(__FILE__) + "/../json/tbd_smalloffice.json"
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(surfaces.size).to eq(43)
 
     # Check derating of attic floor (5x surfaces)
@@ -3140,51 +3572,28 @@ require "psi"
         expect(surfaces.has_key?(adjacent)).to be(true)
         expect(surfaces[id][:boundary]).to eq(adjacent)
         expect(surfaces[adjacent][:conditioned]).to be(true)
-        #puts surfaces[adjacent].keys if adjacent == "Perimeter_ZN_2_ceiling"
-        # expect(surfaces[adjacent].has_key?(:heatloss)).to be(true)
-        #if surfaces[id][:boundary].include?("Core")
-        #  puts "core #{id} : adjacent = #{adjacent}"
-        #else
-        #  puts "not core #{id} : adjacent = #{adjacent}"
-          #expect(surfaces[id].has_key?(:heatloss)).to be(true)
-        #end
       end
     end
 
-    # CHeck derating of outdoor-facing walls
+    # Check derating of ceilings (below attic).
     surfaces.each do |id, surface|
       next unless surface.has_key?(:ratio)
       next if surface[:boundary].downcase == "outdoors"
-      # puts id if surface.has_key?(:heatloss)
-      #heatloss = surface[:heatloss]
-      #expect(heatloss.abs).to be > 0
+      expect(surface.has_key?(:heatloss)).to be(true)
+      heatloss = surface[:heatloss]
+      expect(heatloss.abs).to be > 0
+      expect(id.include?("Perimeter_ZN_")).to be(true)
+      expect(id.include?("_ceiling")).to be(true)
     end
 
-    # CHeck derating of outdoor-facing walls
+    # Check derating of outdoor-facing walls
     surfaces.each do |id, surface|
       next unless surface.has_key?(:ratio)
       next unless surface[:boundary].downcase == "outdoors"
-      #puts id if surface.has_key?(:heatloss)
       expect(surface.has_key?(:heatloss)).to be(true)
       heatloss = surface[:heatloss]
       expect(heatloss.abs).to be > 0
     end
-  end
-
-  it "can factor in temperature setpoints" do
-    translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_smalloffice.osm")
-    os_model = translator.loadModel(path)
-    expect(os_model.empty?).to be(false)
-    os_model = os_model.get
-
-    psi_set = "regular (BETBG)"
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, "", schema_path, false)
-    expect(surfaces.size).to eq(43)
-
-    expect(winterDesignDayTemperatureSetpoints?(os_model)).to be(true)
-    expect(summerDesignDayTemperatureSetpoints?(os_model)).to be(true)
   end
 
   it "has a PSI class" do
@@ -3303,7 +3712,8 @@ require "psi"
     os_model.save("os_model_KIVA.osm", true)
 
     # Now re-open for testing.
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/../os_model_KIVA.osm")
+    file = "/../os_model_KIVA.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
     os_model2 = translator.loadModel(path)
     expect(os_model2.empty?).to be(false)
     os_model2 = os_model2.get
@@ -3327,16 +3737,12 @@ require "psi"
     kfs = os_model2.getFoundationKivas
     expect(kfs.empty?).to be(false)
     expect(kfs.size).to eq(4)
-    # puts os_model2.public_methods.grep(/Kiva/)
 
     settings = os_model2.getFoundationKivaSettings
     expect(settings.soilConductivity).to be_within(0.01).of(1.73)
 
     psi_set = "poor (BETBG)"
-    io_path = ""
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    gen_kiva = true
-    io, surfaces = processTBD(os_model2, psi_set, io_path, schema_path, gen_kiva)
+    io, surfaces = processTBD(os_model2, psi_set, nil, nil, true)
     expect(surfaces.size).to eq(56)
 
     surfaces.each do |id, surface|
@@ -3350,16 +3756,14 @@ require "psi"
 
   it "can generate and access KIVA inputs (midrise apts - variant)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/midrise_KIVA.osm")
+    file = "/files/midrise_KIVA.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
     psi_set = "poor (BETBG)"
-    io_path = ""
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    gen_kiva = true
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    io, surfaces = processTBD(os_model, psi_set, nil, nil, true)
     expect(surfaces.size).to eq(180)
 
     # Validate.
@@ -3384,7 +3788,8 @@ require "psi"
 
   it "can generate multiple KIVA exposed perimeters (midrise apts - variant)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/midrise_KIVA.osm")
+    file = "/files/midrise_KIVA.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -3398,10 +3803,7 @@ require "psi"
     end
 
     psi_set = "poor (BETBG)"
-    io_path = ""
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    gen_kiva = true
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    io, surfaces = processTBD(os_model, psi_set, nil, nil, true)
     expect(surfaces.size).to eq(180)
 
     # Validate.
@@ -3426,7 +3828,7 @@ require "psi"
         expect(exp).to be_within(0.01).of(11.58) if id == "g GFloor S2A"
         expect(exp).to be_within(0.01).of(11.58) if id == "g GFloor N1A"
         expect(exp).to be_within(0.01).of(11.58) if id == "g GFloor N2A"
-        expect(exp).to be_within(0.01).of(3.36) if id == "g Floor C"
+        expect(exp).to be_within(0.01).of( 3.36) if id == "g Floor C"
       end
       expect(found).to be(true)
     end
@@ -3434,7 +3836,8 @@ require "psi"
 
   it "can generate KIVA exposed perimeters (warehouse)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_warehouse.osm")
+    file = "/files/test_warehouse.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -3449,10 +3852,7 @@ require "psi"
 
     #psi_set = "poor (BETBG)"
     psi_set = "(non thermal bridging)"
-    io_path = ""
-    schema_path = File.dirname(__FILE__) + "/../tbd.schema.json"
-    gen_kiva = true
-    io, surfaces = processTBD(os_model, psi_set, io_path, schema_path, gen_kiva)
+    io, surfaces = processTBD(os_model, psi_set, nil, nil, true)
     expect(surfaces.size).to eq(23)
 
     # Validate.
@@ -3469,8 +3869,8 @@ require "psi"
         next unless s.outsideBoundaryCondition.downcase == "foundation"
         found = true
 
-        expect(exp).to be_within(0.01).of(71.62) if id == "Fine Storage"
-        expect(exp).to be_within(0.01).of(35.05) if id == "Office Floor"
+        expect(exp).to be_within(0.01).of( 71.62) if id == "Fine Storage"
+        expect(exp).to be_within(0.01).of( 35.05) if id == "Office Floor"
         expect(exp).to be_within(0.01).of(185.92) if id == "Bulk Storage"
       end
       expect(found).to be(true)
@@ -3479,14 +3879,15 @@ require "psi"
     os_model.save("warehouse_KIVA.osm", true)
 
     # Now re-open for testing.
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/../warehouse_KIVA.osm")
+    file = "/../warehouse_KIVA.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
     os_model2 = translator.loadModel(path)
     expect(os_model2.empty?).to be(false)
     os_model2 = os_model2.get
 
     os_model2.getSurfaces.each do |s|
       next unless s.isGroundSurface
-      next unless s.nameString == "Fine Storage" ||
+      next unless s.nameString == "Fine Storage"   ||
                   s.nameString == "Office Storage" ||
                   s.nameString == "Bulk Storage"
       expect(s.outsideBoundaryCondition).to eq("Foundation")
