@@ -1509,21 +1509,21 @@ require "psi"
     expect(surfaces["s_E_wall"  ][:heatloss]).to be_within(0.01).of( 5.041)
     expect(surfaces["p_E_floor" ][:heatloss]).to be_within(0.01).of(18.650)
     expect(surfaces["s_S_wall"  ][:heatloss]).to be_within(0.01).of( 6.583)
-    expect(surfaces["e_W_wall"  ][:heatloss]).to be_within(0.01).of( 6.023) # v
+    expect(surfaces["e_W_wall"  ][:heatloss]).to be_within(0.01).of( 6.023)
     expect(surfaces["p_N_wall"  ][:heatloss]).to be_within(0.01).of(37.250)
     expect(surfaces["p_S2_wall" ][:heatloss]).to be_within(0.01).of(27.268)
     expect(surfaces["p_S1_wall" ][:heatloss]).to be_within(0.01).of( 7.063)
     expect(surfaces["g_S_wall"  ][:heatloss]).to be_within(0.01).of(56.150)
     expect(surfaces["p_floor"   ][:heatloss]).to be_within(0.01).of(10.000)
     expect(surfaces["p_W1_floor"][:heatloss]).to be_within(0.01).of(13.775)
-    expect(surfaces["e_N_wall"  ][:heatloss]).to be_within(0.01).of( 4.727) # v
+    expect(surfaces["e_N_wall"  ][:heatloss]).to be_within(0.01).of( 4.727)
     expect(surfaces["s_N_wall"  ][:heatloss]).to be_within(0.01).of( 6.583)
     expect(surfaces["g_E_wall"  ][:heatloss]).to be_within(0.01).of(18.195)
-    expect(surfaces["e_S_wall"  ][:heatloss]).to be_within(0.01).of( 7.703) # v
+    expect(surfaces["e_S_wall"  ][:heatloss]).to be_within(0.01).of( 7.703)
     expect(surfaces["e_top"     ][:heatloss]).to be_within(0.01).of( 4.400)
     expect(surfaces["s_W_wall"  ][:heatloss]).to be_within(0.01).of( 5.670)
-    expect(surfaces["e_E_wall"  ][:heatloss]).to be_within(0.01).of( 6.023) # v
-    expect(surfaces["e_floor"   ][:heatloss]).to be_within(0.01).of( 8.007) # v
+    expect(surfaces["e_E_wall"  ][:heatloss]).to be_within(0.01).of( 6.023)
+    expect(surfaces["e_floor"   ][:heatloss]).to be_within(0.01).of( 8.007)
     expect(surfaces["g_W_wall"  ][:heatloss]).to be_within(0.01).of(18.195)
     expect(surfaces["g_N_wall"  ][:heatloss]).to be_within(0.01).of(54.255)
     expect(surfaces["p_W2_floor"][:heatloss]).to be_within(0.01).of(13.729)
@@ -2014,7 +2014,7 @@ require "psi"
         # ratio  = format "%3.1f", surface[:ratio]
         # name   = id.rjust(15, " ")
         # puts "#{name} RSi derated by #{ratio}%"
-        expect(surface[:ratio]).to be_within(0.2).of(-53.0) if id == ids[:b] # v
+        expect(surface[:ratio]).to be_within(0.2).of(-53.0) if id == ids[:b]
       else
         expect(surface[:boundary].downcase).to_not eq("outdoors")
       end
@@ -2112,7 +2112,7 @@ require "psi"
         # ratio  = format "%3.1f", surface[:ratio]
         # name   = id.rjust(15, " ")
         # puts "#{name} RSi derated by #{ratio}%"
-        expect(surface[:ratio]).to be_within(0.2).of(-46.0) if id == ids[:b] # v
+        expect(surface[:ratio]).to be_within(0.2).of(-46.0) if id == ids[:b]
       else
         expect(surface[:boundary].downcase).to_not eq("outdoors")
       end
@@ -2173,7 +2173,7 @@ require "psi"
         # ratio  = format "%3.1f", surface[:ratio]
         # name   = id.rjust(15, " ")
         # puts "#{name} RSi derated by #{ratio}%"
-        expect(surface[:ratio]).to be_within(0.2).of(-46.0) if id == ids[:b] # v
+        expect(surface[:ratio]).to be_within(0.2).of(-46.0) if id == ids[:b]
       else
         expect(surface[:boundary].downcase).to_not eq("outdoors")
       end
@@ -2291,7 +2291,7 @@ require "psi"
         # ratio  = format "%3.1f", surface[:ratio]
         # name   = id.rjust(15, " ")
         # puts "#{name} RSi derated by #{ratio}%"
-        expect(surface[:ratio]).to be_within(0.2).of(-41.9) if id == ids[:b] # v
+        expect(surface[:ratio]).to be_within(0.2).of(-41.9) if id == ids[:b]
       else
         expect(surface[:boundary].downcase).to_not eq("outdoors")
       end
@@ -2318,7 +2318,7 @@ require "psi"
         # ratio  = format "%3.1f", surface[:ratio]
         # name   = id.rjust(15, " ")
         # puts "#{name} RSi derated by #{ratio}%"
-        expect(surface[:ratio]).to be_within(0.2).of(-41.9) if id == ids[:b] # v
+        expect(surface[:ratio]).to be_within(0.2).of(-41.9) if id == ids[:b]
       else
         expect(surface[:boundary].downcase).to_not eq("outdoors")
       end
@@ -3184,8 +3184,14 @@ require "psi"
             l: "Bulk Storage Right Wall" }.freeze
 
     surfaces.each do |id, surface|
+      next if surface.has_key?(:edges)
+      expect(ids.has_value?(id)).to be(false)
+    end
+
+    surfaces.each do |id, surface|
       next unless surface[:boundary].downcase == "outdoors"
       next unless surface.has_key?(:ratio)
+      expect(ids.has_value?(id)).to be(true)
       expect surface.has_key?(:heatloss)
 
       # Ratios are typically negative e.g., a steel corner column decreasing
