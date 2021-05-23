@@ -1675,6 +1675,7 @@ require "psi"
       expect(surface.has_key?(:boundary)).to be(true)
       b = surface[:boundary]
       next if b == "Outdoors"
+
       # TBD/Topolys should be tracking the adjacent CONDITIONED surface.
       expect(surfaces.has_key?(b)).to be(true)
       expect(surfaces[b].has_key?(:conditioned)).to be(true)
@@ -3651,7 +3652,7 @@ require "psi"
 
     # Set one of the ground-facing surfaces to (Kiva) "Foundation".
     os_model.getSurfaces.each do |s|
-      next unless s.nameString == "Entry way  Floor"
+      next unless s.nameString == "Open area 1 Floor"
       construction = s.construction.get
       s.setOutsideBoundaryCondition("Foundation")
       s.setConstruction(construction)
@@ -3709,10 +3710,10 @@ require "psi"
 
     # Attach (1) slab-on-grade Kiva foundation object to floor surface.
     os_model.getSurfaces.each do |s|
-      next unless s.nameString == "Entry way  Floor"
+      next unless s.nameString == "Open area 1 Floor"
       s.setAdjacentFoundation(kiva_slab_2020s)
       arg = "TotalExposedPerimeter"
-      s.createSurfacePropertyExposedFoundationPerimeter(arg, 6.95)
+      s.createSurfacePropertyExposedFoundationPerimeter(arg, 12.59)
     end
 
     os_model.save("os_model_KIVA.osm", true)
@@ -3726,7 +3727,7 @@ require "psi"
 
     os_model2.getSurfaces.each do |s|
       next unless s.isGroundSurface
-      next unless s.nameString == "Entry way  Floor"
+      next unless s.nameString == "Open area 1 Floor"
       construction = s.construction.get
       s.setOutsideBoundaryCondition("Foundation")
       s.setConstruction(construction)
@@ -3734,7 +3735,7 @@ require "psi"
 
     # Set one of the linked outside-facing walls to (Kiva) "Foundation"
     os_model2.getSurfaces.each do |s|
-      next unless s.nameString == "Entryway  Wall 4"
+      next unless s.nameString == "Openarea 1 Wall 5"
       construction = s.construction.get
       s.setOutsideBoundaryCondition("Foundation")
       s.setConstruction(construction)
@@ -3752,11 +3753,16 @@ require "psi"
     expect(surfaces.size).to eq(56)
 
     surfaces.each do |id, surface|
-      next unless surface.has_key?(:foundation) # ... only floors
-      next unless surface.has_key?(:kiva) # ... only one here.
-      expect(surface[:kiva]).to eq(:basement)
-      expect(surface.has_key?(:exposed)).to be (true)
-      expect(surface[:exposed]).to be_within(0.01).of(6.95)
+      next unless surface.has_key?(:foundation)
+      next unless surface.has_key?(:kiva)
+      expect(id).to eq("Open area 1 Floor").or eq("Openarea 1 Wall 5")
+      if id == "Open area 1 Floor"
+        expect(surface[:kiva]).to eq(:basement)
+        expect(surface.has_key?(:exposed)).to be (true)
+        expect(surface[:exposed]).to be_within(0.01).of(8.70)     # 12.59 - 3.89
+      else
+        expect(surface[:kiva]).to eq("Open area 1 Floor")
+      end
     end
   end
 
@@ -3774,7 +3780,7 @@ require "psi"
 
     # Validate.
     surfaces.each do |id, surface|
-      next unless surface.has_key?(:foundation) # ... only floors
+      next unless surface.has_key?(:foundation)                # ... only floors
       next unless surface.has_key?(:kiva)
       expect(surface[:kiva]).to eq(:slab)
       expect(surface.has_key?(:exposed)).to be(true)
@@ -3814,7 +3820,7 @@ require "psi"
 
     # Validate.
     surfaces.each do |id, surface|
-      next unless surface.has_key?(:foundation) # only floors
+      next unless surface.has_key?(:foundation)                    # only floors
       next unless surface.has_key?(:kiva)
       expect(surface[:kiva]).to eq(:slab)
       expect(surface.has_key?(:exposed)).to be(true)
@@ -3848,6 +3854,10 @@ require "psi"
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
+    fl1 = "Fine Storage Floor"
+    fl2 = "Office Floor"
+    fl3 = "Bulk Storage Floor"
+
     # Reset all ground-facing floor surfaces as "foundations".
     os_model.getSurfaces.each do |s|
       next unless s.outsideBoundaryCondition.downcase == "ground"
@@ -3863,7 +3873,7 @@ require "psi"
 
     # Validate.
     surfaces.each do |id, surface|
-      next unless surface.has_key?(:foundation) # only floors
+      next unless surface.has_key?(:foundation)                    # only floors
       next unless surface.has_key?(:kiva)
       expect(surface[:kiva]).to eq(:slab)
       expect(surface.has_key?(:exposed)).to be(true)
@@ -3875,9 +3885,9 @@ require "psi"
         next unless s.outsideBoundaryCondition.downcase == "foundation"
         found = true
 
-        expect(exp).to be_within(0.01).of( 71.62) if id == "Fine Storage"
-        expect(exp).to be_within(0.01).of( 35.05) if id == "Office Floor"
-        expect(exp).to be_within(0.01).of(185.92) if id == "Bulk Storage"
+        expect(exp).to be_within(0.01).of( 71.62) if id == "fl1"
+        expect(exp).to be_within(0.01).of( 35.05) if id == "fl2"
+        expect(exp).to be_within(0.01).of(185.92) if id == "fl3"
       end
       expect(found).to be(true)
     end
@@ -3893,9 +3903,7 @@ require "psi"
 
     os_model2.getSurfaces.each do |s|
       next unless s.isGroundSurface
-      next unless s.nameString == "Fine Storage"   ||
-                  s.nameString == "Office Storage" ||
-                  s.nameString == "Bulk Storage"
+      expect(s.nameString).to eq(fl1).or eq(fl2).or eq(fl3)
       expect(s.outsideBoundaryCondition).to eq("Foundation")
     end
 
