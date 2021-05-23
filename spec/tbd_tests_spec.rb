@@ -217,7 +217,6 @@ require "psi"
     os_S_balcony.setName("S_balcony") # 19.3m as thermal bridge
     os_S_balcony.setShadingSurfaceGroup(os_s)
 
-
     # 1st space: gallery (g) with elevator (e) surfaces
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 17.4, 40.2, 49.5) #  5.5m
@@ -3539,6 +3538,112 @@ require "psi"
       expect(heatloss.abs).to be > 0
       next unless surface.has_key?(:story)
       expect(surface[:story].nameString).to eq("Building Story 1")
+    end
+  end
+
+  it "can handle parties" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    # Reset boundary conditions for open area wall 5 (and plenum wall above).
+    id1 = "Openarea 1 Wall 5"
+    s1 = os_model.getSurfaceByName(id1)
+    expect(s1.empty?).to be(false)
+    s1 = s1.get
+    s1.setOutsideBoundaryCondition("Adiabatic")
+    expect(s1.nameString).to eq(id1)
+    expect(s1.outsideBoundaryCondition).to eq("Adiabatic")
+
+    id2 = "Level0 Open area 1 Ceiling Plenum AbvClgPlnmWall 5"
+    s2 = os_model.getSurfaceByName(id2)
+    expect(s2.empty?).to be(false)
+    s2 = s2.get
+    s2.setOutsideBoundaryCondition("Adiabatic")
+    expect(s2.nameString).to eq(id2)
+    expect(s2.outsideBoundaryCondition).to eq("Adiabatic")
+
+    psi_set = "compliant"
+    ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n8.json"
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(surfaces.size).to eq(56)
+
+    ids = { a: "Entryway  Wall 4",
+            b: "Entryway  Wall 5",
+            c: "Entryway  Wall 6",
+            d: "Entry way  DroppedCeiling",
+            e: "Utility1 Wall 1",
+            f: "Utility1 Wall 5",
+            g: "Utility 1 DroppedCeiling",
+            h: "Smalloffice 1 Wall 1",
+            i: "Smalloffice 1 Wall 2",
+            j: "Smalloffice 1 Wall 6",
+            k: "Small office 1 DroppedCeiling",
+            l: "Openarea 1 Wall 3",
+            m: "Openarea 1 Wall 4",             # removed n: "Openarea 1 Wall 5"
+            o: "Openarea 1 Wall 6",
+            p: "Openarea 1 Wall 7",
+            q: "Open area 1 DroppedCeiling" }.freeze
+
+    surfaces.each do |id, surface|
+      next if surface.has_key?(:edges)
+      expect(ids.has_value?(id)).to be(false)
+    end
+
+    surfaces.each do |id, surface|
+      next unless surface.has_key?(:edges)
+      expect(ids.has_value?(id)).to be(true)
+      expect(surface.has_key?(:heatloss)).to be(true)
+      expect(surface.has_key?(:ratio)).to be(true)
+      h = surface[:heatloss]
+
+      s = os_model.getSurfaceByName(id)
+      expect(s.empty?).to be(false)
+      s = s.get
+      expect(s.nameString).to eq(id)
+      expect(s.isConstructionDefaulted).to be(false)
+      expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
+      expect(h).to be_within(0.01).of( 3.62) if id == ids[:a]
+      expect(h).to be_within(0.01).of( 6.28) if id == ids[:b]
+      expect(h).to be_within(0.01).of( 2.62) if id == ids[:c]
+      expect(h).to be_within(0.01).of( 0.17) if id == ids[:d]
+      expect(h).to be_within(0.01).of( 7.13) if id == ids[:e]
+      expect(h).to be_within(0.01).of( 7.09) if id == ids[:f]
+      expect(h).to be_within(0.01).of( 0.20) if id == ids[:g]
+      expect(h).to be_within(0.01).of( 7.94) if id == ids[:h]
+      expect(h).to be_within(0.01).of( 5.17) if id == ids[:i]
+      expect(h).to be_within(0.01).of( 5.01) if id == ids[:j]
+      expect(h).to be_within(0.01).of( 0.22) if id == ids[:k]
+      expect(h).to be_within(0.01).of( 2.47) if id == ids[:l]
+      expect(h).to be_within(0.01).of( 4.03) if id == ids[:m] # 3.11
+      expect(h).to be_within(0.01).of( 4.43) if id == ids[:n]
+      expect(h).to be_within(0.01).of( 4.27) if id == ids[:o] # 3.35
+      expect(h).to be_within(0.01).of( 2.12) if id == ids[:p]
+      expect(h).to be_within(0.01).of( 2.16) if id == ids[:q] # 0.31
+
+      # The 2x side walls linked to the new party wall "Openarea 1 Wall 5":
+      #   - "Openarea 1 Wall 4"
+      #   - "Openarea 1 Wall 6"
+      # ... have 1x half-corner replaced by 100% of a party wall edge, hence
+      # the increase in extra heat loss.
+      #
+      # The "Open area 1 DroppedCeiling" has almost a 7x increase in extra heat
+      # loss. It used to take ~7.6% of the parapet PSI it shared with "Wall 5".
+      # As the latter is no longer a deratable surface (i.e., a party wall), the
+      # dropped ceiling hence takes on 100% of the party wall edge it still
+      # shares with "Wall 5".
+
+      c = s.construction
+      expect(c.empty?).to be(false)
+      c = c.get.to_Construction
+      expect(c.empty?).to be(false)
+      c = c.get
+      i = 0
+      i = 2 if s.outsideBoundaryCondition == "Outdoors"
+      expect(c.layers[i].nameString.include?("m tbd")).to be(true)
     end
   end
 

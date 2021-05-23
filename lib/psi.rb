@@ -2101,6 +2101,24 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       #   1x adiabatic surface
       #   1x (only) deratable surface
       unless psi.has_key?(:party)
+        count = 0
+        edge[:surfaces].keys.each do |i|
+          next if i == id
+          next unless surfaces.has_key?(i)
+          next unless surfaces[i].has_key?(:deratable)
+          next unless surfaces[i][:deratable]
+          count += 1
+        end
+        edge[:surfaces].keys.each do |i|
+          next if count == 1
+          next unless surfaces[id].has_key?(:deratable)
+          next unless surfaces[id][:deratable]
+          next unless surfaces.has_key?(i)
+          next unless surfaces[i].has_key?(:deratable)
+          next if surfaces[i][:deratable]
+          next unless surfaces[i][:boundary].downcase == "adiabatic"
+          psi[:party] = io_p.set[p][:party]
+        end
       end
 
       # Label edge as :grade if linked to:
