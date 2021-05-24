@@ -2257,7 +2257,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
   end                                                                # edge loop
 
   # Tracking (mild) transitions between deratable surfaces around edges that
-  # have not been previoulsy tagged.
+  # have not been previously tagged.
   edges.each do |tag, edge|
     next if edge.has_key?(:psi)
     next unless edge.has_key?(:surfaces)
@@ -2292,7 +2292,6 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       count += 1
     end
     next unless count > 0
-    psi = {}
     psi[:transition] = 0.000
     edge[:psi] = psi
     edge[:set] = p
