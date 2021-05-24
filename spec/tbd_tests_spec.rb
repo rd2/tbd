@@ -644,6 +644,22 @@ require "psi"
       expect(surface.has_key?(:cooling)).to be(false)
     end
 
+    surfaces.each do |id, surface|
+      surface[:deratable] = false
+      next unless surface.has_key?(:conditioned)
+      next unless surface[:conditioned]
+      next if surface[:ground]
+      b = surface[:boundary]
+      if b.downcase == "outdoors"
+        surface[:deratable] = true
+      else
+        next unless surfaces.has_key?(b)
+        next unless surfaces[b].has_key?(:conditioned)
+        next if surfaces[b][:conditioned]
+        surface[:deratable] = true
+      end
+    end
+
     # Fetch OpenStudio subsurfaces & key attributes.
     os_model.getSubSurfaces.each do |s|
       next if s.space.empty?
@@ -990,16 +1006,13 @@ require "psi"
 
     edges.values.each do |edge|
       next unless edge.has_key?(:surfaces)
-      next unless edge[:surfaces].size > 1        # no longer required if :party
 
-      # Skip unless one (at least) linked surface is deratable i.e.,
-      # floor, ceiling or wall facing outdoors or UNCONDITIONED space.
       deratable = false
-      edge[:surfaces].keys.each do |id|
+      edge[:surfaces].each do |id, surface|
         next if deratable
-        deratable = true if floors.has_key?(id)
-        deratable = true if ceilings.has_key?(id)
-        deratable = true if walls.has_key?(id)
+        next unless surfaces.has_key?(id)
+        next unless surfaces[id].has_key?(:deratable)
+        deratable = true if surfaces[id][:deratable]
       end
       next unless deratable
 
@@ -1021,9 +1034,33 @@ require "psi"
         next unless surfaces[id].has_key?(:conditioned)
         next unless surfaces[id][:conditioned]
 
+        # Label edge as :party if linked to:
+        #   1x adiabatic surface
+        #   1x (only) deratable surface
+        unless psi.has_key?(:party)
+          count = 0
+          edge[:surfaces].keys.each do |i|
+            next if i == id
+            next unless surfaces.has_key?(i)
+            next unless surfaces[i].has_key?(:deratable)
+            next unless surfaces[i][:deratable]
+            count += 1
+          end
+          edge[:surfaces].keys.each do |i|
+            next if count == 1
+            next unless surfaces[id].has_key?(:deratable)
+            next unless surfaces[id][:deratable]
+            next unless surfaces.has_key?(i)
+            next unless surfaces[i].has_key?(:deratable)
+            next if surfaces[i][:deratable]
+            next unless surfaces[i][:boundary].downcase == "adiabatic"
+            psi[:party] = io_p.set[p][:party]
+          end
+        end
+
         # Label edge as :grade if linked to:
         #   1x surface (e.g. slab or wall) facing ground
-        #   1x surface (i.e. wall) facing outdoors OR facing UNCONDITIONED space
+        #   1x surface (i.e. wall) facing outdoors
         unless psi.has_key?(:grade)
           edge[:surfaces].keys.each do |i|
             next unless surfaces[id].has_key?(:ground)
@@ -1031,15 +1068,7 @@ require "psi"
             next unless surfaces.has_key?(i)
             next unless surfaces[i].has_key?(:conditioned)
             next unless surfaces[i][:conditioned]
-
-            if surfaces.has_key?(surfaces[i][:boundary])      # adjacent surface
-              adjacent = surfaces[i][:boundary]
-              next unless surfaces[adjacent].has_key?(:conditioned)
-              next if surfaces[adjacent][:conditioned]
-            else
-              next unless surfaces[i][:boundary].downcase == "outdoors"
-            end
-
+            next unless surfaces[i][:boundary].downcase == "outdoors"
             psi[:grade] = io_p.set[p][:grade]
           end
         end
@@ -1056,31 +1085,16 @@ require "psi"
         end
 
         # Label edge as :parapet if linked to:
-        #   1x wall facing outdoors OR facing UNCONDITIONED space &
-        #   1x ceiling facing outdoors OR facing UNCONDITIONED space
+        #   1x deratable wall
+        #   1x deratable ceiling
         unless psi.has_key?(:parapet)
           edge[:surfaces].keys.each do |i|
             next unless ceilings.has_key?(id)
+            next unless ceilings[id].has_key?(:deratable)
+            next unless ceilings[id][:deratable]
             next unless walls.has_key?(i)
-            next unless walls[i].has_key?(:conditioned)
-            next unless walls[i][:conditioned]
-
-            if surfaces.has_key?(walls[i][:boundary])         # adjacent surface
-              adjacent = walls[i][:boundary]
-              next unless surfaces[adjacent].has_key?(:conditioned)
-              next if surfaces[adjacent][:conditioned]
-            else
-              next unless walls[i][:boundary].downcase == "outdoors"
-            end
-
-            if surfaces.has_key?(ceilings[id][:boundary])     # adjacent surface
-              adjacent = ceilings[id][:boundary]
-              next unless surfaces[adjacent].has_key?(:conditioned)
-              next if surfaces[adjacent][:conditioned]
-            else
-              next unless ceilings[id][:boundary].downcase == "outdoors"
-            end
-
+            next unless walls[i].has_key?(:deratable)
+            next unless walls[i][:deratable]
             psi[:parapet] = io_p.set[p][:parapet]
           end
         end
@@ -1090,26 +1104,11 @@ require "psi"
         unless psi.has_key?(:parapet)
           edge[:surfaces].keys.each do |i|
             next unless floors.has_key?(id)
+            next unless floors[id].has_key?(:deratable)
+            next unless floors[id][:deratable]
             next unless walls.has_key?(i)
-            next unless walls[i].has_key?(:conditioned)
-            next unless walls[i][:conditioned]
-
-            if surfaces.has_key?(walls[i][:boundary])         # adjacent surface
-              adjacent = walls[i][:boundary]
-              next unless surfaces[adjacent].has_key?(:conditioned)
-              next if surfaces[adjacent][:conditioned]
-            else
-              next unless walls[i][:boundary].downcase == "outdoors"
-            end
-
-            if surfaces.has_key?(floors[id][:boundary])       # adjacent surface
-              adjacent = floors[id][:boundary]
-              next unless surfaces[adjacent].has_key?(:conditioned)
-              next if surfaces[adjacent][:conditioned]
-            else
-              next unless floors[id][:boundary].downcase == "outdoors"
-            end
-
+            next unless walls[i].has_key?(:deratable)
+            next unless walls[i][:deratable]
             psi[:parapet] = io_p.set[p][:parapet]
           end
         end
@@ -1119,46 +1118,27 @@ require "psi"
         unless psi.has_key?(:parapet)
           edge[:surfaces].keys.each do |i|
             next unless floors.has_key?(id)
+            next unless floors[id].has_key?(:deratable)
+            next unless floors[id][:deratable]
             next unless ceilings.has_key?(i)
-            next unless ceilings[i].has_key?(:conditioned)
-            next unless ceilings[i][:conditioned]
-
-            if surfaces.has_key?(ceilings[i][:boundary])      # adjacent surface
-              adjacent = ceilings[i][:boundary]
-              next unless surfaces[adjacent].has_key?(:conditioned)
-              next if surfaces[adjacent][:conditioned]
-            else
-              next unless ceilings[i][:boundary].downcase == "outdoors"
-            end
-
-            if surfaces.has_key?(floors[id][:boundary])       # adjacent surface
-              adjacent = floors[id][:boundary]
-              next unless surfaces[adjacent].has_key?(:conditioned)
-              next if surfaces[adjacent][:conditioned]
-            else
-              next unless floors[id][:boundary].downcase == "outdoors"
-            end
-
+            next unless ceilings[i].has_key?(:deratable)
+            next unless ceilings[i][:deratable]
             psi[:parapet] = io_p.set[p][:parapet]
           end
         end
 
         # Label edge as :rimjoist if linked to:
-        #   1x wall facing outdoors OR facing UNCONDITIONED space &
+        #   1x deratable wall
         #   1x CONDITIONED floor
         unless psi.has_key?(:rimjoist)
           edge[:surfaces].keys.each do |i|
             next unless floors.has_key?(i)
+            next unless floors[i].has_key?(:conditioned)
+            next unless floors[i][:conditioned]
+            next if floors[i][:ground]
             next unless walls.has_key?(id)
-
-            if surfaces.has_key?(walls[id][:boundary])        # adjacent surface
-              adjacent = walls[id][:boundary]
-              next unless surfaces[adjacent].has_key?(:conditioned)
-              next if surfaces[adjacent][:conditioned]
-            else
-              next unless walls[id][:boundary].downcase == "outdoors"
-            end
-
+            next unless walls[id].has_key?(:deratable)
+            next unless walls[id][:deratable]
             psi[:rimjoist] = io_p.set[p][:rimjoist]
           end
         end
@@ -1173,37 +1153,21 @@ require "psi"
         end
 
         # Label edge as :concave or :convex (corner) if linked to:
-        #   2x walls facing outdoors OR facing UNCONDITIONED space &
-        #            f(relative polar positions of walls)
+        #   2x deratable walls & f(relative polar positions of walls)
         unless psi.has_key?(:concave) || psi.has_key?(:convex)
           edge[:surfaces].keys.each do |i|
             next if i == id
             next unless walls.has_key?(id)
+            next unless walls[id].has_key?(:deratable)
+            next unless walls[id][:deratable]
             next unless walls.has_key?(i)
-            next unless walls[i].has_key?(:conditioned)
-            next unless walls[i][:conditioned]
-
-            if surfaces.has_key?(walls[i][:boundary])         # adjacent surface
-              adjacent = walls[i][:boundary]
-              next unless surfaces[adjacent].has_key?(:conditioned)
-              next if surfaces[adjacent][:conditioned]
-            else
-              next unless walls[i][:boundary].downcase == "outdoors"
-            end
-
-            if surfaces.has_key?(walls[id][:boundary])        # adjacent surface
-              adjacent = walls[id][:boundary]
-              next unless surfaces[adjacent].has_key?(:conditioned)
-              next if surfaces[adjacent][:conditioned]
-            else
-              next unless walls[id][:boundary].downcase == "outdoors"
-            end
+            next unless walls[i].has_key?(:deratable)
+            next unless walls[i][:deratable]
 
             s1 = edge[:surfaces][id]
             s2 = edge[:surfaces][i]
 
-            angle = s2[:angle] - s1[:angle]
-            next unless angle > 0
+            angle = (s2[:angle] - s1[:angle]).abs
             next unless (2 * Math::PI - angle).abs > 0
             next if angle > 3 * Math::PI / 4 && angle < 5 * Math::PI / 4
 
@@ -1218,6 +1182,77 @@ require "psi"
       edge[:psi] = psi unless psi.empty?
       edge[:set] = p unless psi.empty?
     end                                                              # edge loop
+
+    # Tracking (mild) transitions between deratable surfaces around edges that
+    # have not been previoulsy tagged.
+    transitions = {}
+    edges.each do |tag, edge|
+      next if edge.has_key?(:psi)
+      next unless edge.has_key?(:surfaces)
+
+      deratable = false
+      edge[:surfaces].each do |id, surface|
+        next if deratable
+        next unless surfaces.has_key?(id)
+        next unless surfaces[id].has_key?(:deratable)
+        deratable = true if surfaces[id][:deratable]
+      end
+      next unless deratable
+
+      psi = {}
+      p = io[:building].first[:psi]
+
+      match = false
+      if edge.has_key?(:io_type)
+        match = true
+        t = edge[:io_type]
+        p = edge[:io_set]       if edge.has_key?(:io_set)
+        edge[:set] = p          if io_p.set.has_key?(p)
+        psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+      end
+
+      count = 0
+      edge[:surfaces].keys.each do |id|
+        next if match
+        next unless surfaces.has_key?(id)
+        next unless surfaces[id].has_key?(:deratable)
+        next unless surfaces[id][:deratable]
+        count += 1
+      end
+      next unless count > 0
+      psi = {}
+      psi[:transition] = 0.000
+      edge[:psi] = psi
+      edge[:set] = p
+
+      tr = []
+      edge[:surfaces].keys.each do |id|
+        next unless surfaces.has_key?(id)
+        next unless surfaces[id].has_key?(:deratable)
+        next unless surfaces[id][:deratable]
+        tr << id
+      end
+      transitions[tag] = tr unless tr.empty?
+    end
+
+    # Lo Scrigno: such transitions occur between plenum floor plates.
+    expect(transitions.empty?).to be(false)
+    expect(transitions.size).to eq(4)
+    w1_count = 0
+    transitions.each do |tag, tr|
+      expect(tr.size).to eq(2)
+      if tr.include?("p_W1_floor")
+        w1_count += 1
+        expect(tr.include?("p_W2_floor")).to be(true)
+      else
+        expect(tr.include?("p_floor")).to be(true)
+        valid1 = tr.include?("p_W2_floor")
+        valid2 = tr.include?("p_E_floor")
+        valid = valid1 || valid2
+        expect(valid).to be(true)
+      end
+    end
+    expect(w1_count).to eq(2)
 
     if io
       if io.has_key?(:stories)
@@ -1388,6 +1423,7 @@ require "psi"
     n_edges_as_fenestrations = 0
     n_edges_as_concave_corners = 0
     n_edges_as_convex_corners = 0
+    n_edges_as_transitions = 0
 
     edges.values.each do |edge|
       next unless edge.has_key?(:psi)
@@ -1399,8 +1435,9 @@ require "psi"
       n_edges_as_fenestrations    += 1 if edge[:psi].has_key?(:fenestration)
       n_edges_as_concave_corners  += 1 if edge[:psi].has_key?(:concave)
       n_edges_as_convex_corners   += 1 if edge[:psi].has_key?(:convex)
+      n_edges_as_transitions      += 1 if edge[:psi].has_key?(:transition)
     end
-    expect(n_deratables).to eq(62)
+    expect(n_deratables).to eq(66)
     expect(n_edges_at_grade).to eq(0)
     expect(n_edges_as_balconies).to eq(4)
     expect(n_edges_as_parapets).to eq(31)
@@ -1408,6 +1445,7 @@ require "psi"
     expect(n_edges_as_fenestrations).to eq(12)
     expect(n_edges_as_concave_corners).to eq(4)
     expect(n_edges_as_convex_corners).to eq(12)
+    expect(n_edges_as_transitions).to eq(4)
 
     # loop through each edge and assign heat loss to linked surfaces.
     edges.each do |identifier, edge|
@@ -1422,17 +1460,7 @@ require "psi"
       deratables = {}
       edge[:surfaces].each do |id, surface|
         next unless surfaces.has_key?(id)
-        deratable = false
-        if surfaces[id][:boundary].downcase == "outdoors"
-          deratable = true if surfaces[id][:conditioned] == true
-        elsif surfaces[id][:boundary].downcase == "space"
-          expect(surfaces[id].adjacentSurface.empty?).to be(false)
-          adjacent = surfaces[id].adjacentSurface.get
-          i = adjacent.nameString
-          expect(surfaces.has_key?(i)).to be(true)
-          deratable = true if surfaces[i][:conditioned] == false
-        end
-        next unless deratable
+        next unless surfaces[id][:deratable]
         deratables[id] = surface
       end
 
@@ -1482,10 +1510,9 @@ require "psi"
       # insulating layer thermal resistance
       deratables.each do |id, deratable|
         surfaces[id][:edges] = {} unless surfaces[id].has_key?(:edges)
-        loss = bridge[:psi] * surfaces[id][:r] / rsi
-
+        loss = 0
+        loss = bridge[:psi] * surfaces[id][:r] / rsi if rsi > 0.001
         b = { psi: loss, type: bridge[:type], length: bridge[:length] }
-
         surfaces[id][:edges][identifier] = b
       end
     end
@@ -1549,17 +1576,19 @@ require "psi"
           c.setName("#{id} c tbd")
           s.setConstruction(c)
 
-          if s.outsideBoundaryCondition.downcase == "space"
-            expect(s.adjacentSurface.empty?).to be(false)
-            adjacent = s.adjacentSurface.get
-            i = adjacent.nameString
-            if surfaces.has_key?(i)
-              indx = surfaces[i][:index]
-              c_c = surface[:construction]
-              cc = c_c.clone(os_model).to_Construction.get
-              cc.setLayer(indx, m)
-              cc.setName("#{i} c tbd")
-              adjacent.setConstruction(cc)
+          if s.outsideBoundaryCondition.downcase == "surface"
+            unless s.adjacentSurface.empty?
+              adjacent = s.adjacentSurface.get
+              i = adjacent.nameString
+              if surfaces.has_key?(i) && adjacent.isConstructionDefaulted == false
+                indx = surfaces[i][:index]
+                current_cc = surfaces[i][:construction]
+                cc = current_cc.clone(os_model).to_Construction.get
+
+                cc.setLayer(indx, m)
+                cc.setName("#{i} c tbd")
+                adjacent.setConstruction(cc)
+              end
             end
           end
         end
@@ -1732,6 +1761,11 @@ require "psi"
     surfaces.each do |id, surface|
       next unless surface.has_key?(:edges)
       expect(surface.has_key?(:heatloss)).to be(true)
+      if id == "Core_ZN_ceiling"
+        expect(surface[:heatloss]).to be_within(0.001).of(0)
+        expect(surface.has_key?(:ratio)).to be(false)
+        next
+      end
       expect(surface.has_key?(:ratio)).to be(true)
       h = surface[:heatloss]
 
@@ -3006,18 +3040,43 @@ require "psi"
     # "Entryway  Wall 5":
     # 3x "columns" @0.5 W/K + 4x supports @0.5W/K = 3.5 W/K (as in case above),
     # and a "good" PSI set (:parapet, of 0.5 W/K per m).
+    nom1 = "Entryway  Wall 5"
+    nom2 = "Entry way  DroppedCeiling"
     surfaces.each do |id, surface|
       next unless surface.has_key?(:ratio)
-      expect(id).to eq("Entryway  Wall 5").or eq("Entry way  DroppedCeiling")
-      if id == "Entryway  Wall 5"
-        expect(surface[:heatloss]).to be_within(0.01).of(5.17)
-      else
-        expect(surface[:heatloss]).to be_within(0.01).of(0.13)
-      end
+      expect(id).to eq(nom1).or eq(nom2)
+      expect(surface[:heatloss]).to be_within(0.01).of(5.17) if id == nom1
+      expect(surface[:heatloss]).to be_within(0.01).of(0.13) if id == nom2
+      expect(surface.has_key?(:edges)).to be(true)
+      expect(surface[:edges].size).to eq(10) if id == nom1
+      expect(surface[:edges].size).to eq(6) if id == nom2
     end
 
     expect(io.has_key?(:edges)).to be(true)
-    expect(io[:edges].size).to eq(1)
+    expect(io[:edges].size).to eq(80)
+
+    # The JSON input file (tbd_seb_n3.json) holds 2x PSI sets:
+    #   - "good" for "Entryway  Wall 5"
+    #   - "compliant" (ignored)
+    #
+    # The PSI set "good" only holds non-zero PSI values for:
+    #   - :rimjoist (there are none for "Entryway  Wall 5")
+    #   - :parapet (a single edge shared with "Entry way  DroppedCeiling")
+    #
+    # As such, only those 2x surfaces will be derated. The following counters
+    # track the total number of edges delineating both derated surfaces THAT
+    # DO NOT contribute in derating their insulation materials i.e. not found
+    # in the "good" PSI set.
+    nb_rimjoist_edges     = 0
+    nb_parapet_edges      = 0
+    nb_fenestration_edges = 0
+    nb_concave_edges      = 0
+    nb_convex_edges       = 0
+    nb_balcony_edges      = 0
+    nb_party_edges        = 0
+    nb_grade_edges        = 0
+    nb_transition_edges   = 0
+
     io[:edges].each do |edge|
       expect(edge.has_key?(:psi)).to be(true)
       expect(edge.has_key?(:type)).to be(true)
@@ -3028,11 +3087,36 @@ require "psi"
       t = edge[:type]
       s = {}
       io[:psis].each do |set| s = set if set[:id] == p; end
-      expect(s[t]).to be_within(0.01).of(0.5)
+      next if s.empty?
+      expect(s.is_a?(Hash)).to be(true)
+      expect(p).to eq("good")
+      unless s.has_key?(t)
+        nb_rimjoist_edges     += 1 if t == :rimjoist
+        nb_parapet_edges      += 1 if t == :parapet
+        nb_fenestration_edges += 1 if t == :fenestration
+        nb_concave_edges      += 1 if t == :concave
+        nb_convex_edges       += 1 if t == :convex
+        nb_balcony_edges      += 1 if t == :balcony
+        nb_party_edges        += 1 if t == :party
+        nb_grade_edges        += 1 if t == :grade
+        nb_transition_edges   += 1 if t == :transition
+      end
+
+      next unless s.has_key?(t)
       expect(t).to eq(:parapet)
+      expect(s[t]).to be_within(0.01).of(0.5)
       expect(edge[:length]).to be_within(0.01).of(3.6)
-      expect(edge[:surfaces].class).to eq(Array)
     end
+
+    expect(nb_rimjoist_edges).to     eq(0)
+    expect(nb_parapet_edges).to      eq(0)   # parapet is part of "good" PSI set
+    expect(nb_fenestration_edges).to eq(4)
+    expect(nb_concave_edges).to      eq(0)
+    expect(nb_convex_edges).to       eq(2)
+    expect(nb_balcony_edges).to      eq(0)
+    expect(nb_party_edges).to        eq(0)
+    expect(nb_grade_edges).to        eq(1)
+    expect(nb_transition_edges).to   eq(2)
 
     out = JSON.pretty_generate(io)
     outP = File.dirname(__FILE__) + "/../json/tbd_seb_n3.out.json"

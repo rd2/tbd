@@ -104,7 +104,8 @@ class PSI
       convex:       0.850, # *
       balcony:      1.000, # *
       party:        0.850, # *
-      grade:        0.850  # *
+      grade:        0.850, # *
+      transition:   0.000
     }.freeze               # based on INTERIOR dimensions (p.15 BETBG)
 
     @set[ "regular (BETBG)" ] =
@@ -116,7 +117,8 @@ class PSI
       convex:       0.450, # *
       balcony:      0.500, # *
       party:        0.450, # *
-      grade:        0.450  # *
+      grade:        0.450, # *
+      transition:   0.000
     }.freeze               # based on INTERIOR dimensions (p.15 BETBG)
 
     @set[ "efficient (BETBG)" ] =
@@ -128,7 +130,8 @@ class PSI
       convex:       0.200, # *
       balcony:      0.200, # *
       party:        0.200, # *
-      grade:        0.200  # *
+      grade:        0.200, # *
+      transition:   0.000
     }.freeze               # based on INTERIOR dimensions (p.15 BETBG)
 
     @set[ "code (Quebec)" ] = # NECB-QC (code-compliant) defaults:
@@ -140,7 +143,8 @@ class PSI
       convex:       0.300, # ** "regular (BETBG)", adjusted for ext. dimension
       balcony:      0.500, # *
       party:        0.450, # ** "regular (BETBG)"
-      grade:        0.450  # *
+      grade:        0.450, # *
+      transition:   0.000
     }.freeze               # based on EXTERIOR dimensions (art. 3.1.1.6)
 
     @set[ "(non thermal bridging)" ] = # ... would not derate surfaces:
@@ -152,7 +156,8 @@ class PSI
       convex:       0.000, #
       balcony:      0.000, #
       party:        0.000, #
-      grade:        0.000  #
+      grade:        0.000, #
+      transition:   0.000
     }.freeze
   end
 
@@ -175,6 +180,9 @@ class PSI
         @set[id][:balcony]      = p[:balcony]      if p.has_key?(:balcony)
         @set[id][:party]        = p[:party]        if p.has_key?(:party)
         @set[id][:grade]        = p[:grade]        if p.has_key?(:grade)
+        @set[id][:transition]   = p[:transition]   if p.has_key?(:transition)
+
+        @set[id][:transition]   = 0.000 unless p.has_key?(:transition)
       end
     end
     # should log if else message
@@ -1499,19 +1507,21 @@ def derate(os_model, id, surface, c)
 
   m = nil
   if surface.has_key?(:heatloss)                                    &&
-    surface.has_key?(:net)                                          &&
     surface[:heatloss].is_a?(Numeric)                               &&
+    surface[:heatloss].abs > 0.01                                   &&
+    surface.has_key?(:net)                                          &&
     surface[:net].is_a?(Numeric)                                    &&
+    surface[:net] > 0.01                                            &&
     surface.has_key?(:construction)                                 &&
     surface.has_key?(:index)                                        &&
-    surface.has_key?(:ltype)                                        &&
-    surface.has_key?(:r)                                            &&
     surface[:index] != nil                                          &&
     surface[:index].is_a?(Integer)                                  &&
     surface[:index] >= 0                                            &&
+    surface.has_key?(:ltype)                                        &&
+    (surface[:ltype] == :massless || surface[:ltype] == :standard)  &&
+    surface.has_key?(:r)                                            &&
     surface[:r].is_a?(Numeric)                                      &&
     surface[:r] >= 0.001                                            &&
-    (surface[:ltype] == :massless || surface[:ltype] == :standard)  &&
     / tbd/i.match(c.nameString) == nil                 # skip if already derated
 
     index          = surface[:index]
@@ -2041,7 +2051,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
           angle = 2 * Math::PI - angle if adjust
           angle -= 2 * Math::PI if (angle - 2 * Math::PI).abs < 0.01
 
-          # store angle
+          # Store angle.
           surface[:angle] = angle
           farthest_V.normalize!
           surface[:polar] = farthest_V
@@ -2230,8 +2240,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
           s1 = edge[:surfaces][id]
           s2 = edge[:surfaces][i]
 
-          angle = s2[:angle] - s1[:angle]
-          next unless angle > 0
+          angle = (s2[:angle] - s1[:angle]).abs
           next unless (2 * Math::PI - angle).abs > 0
           next if angle > 3 * Math::PI / 4 && angle < 5 * Math::PI / 4
 
@@ -2246,6 +2255,48 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     edge[:psi] = psi unless psi.empty?
     edge[:set] = p unless psi.empty?
   end                                                                # edge loop
+
+  # Tracking (mild) transitions between deratable surfaces around edges that
+  # have not been previoulsy tagged.
+  edges.each do |tag, edge|
+    next if edge.has_key?(:psi)
+    next unless edge.has_key?(:surfaces)
+
+    deratable = false
+    edge[:surfaces].each do |id, surface|
+      next if deratable
+      next unless surfaces.has_key?(id)
+      next unless surfaces[id].has_key?(:deratable)
+      deratable = true if surfaces[id][:deratable]
+    end
+    next unless deratable
+
+    psi = {}
+    p = io[:building].first[:psi]
+
+    match = false
+    if edge.has_key?(:io_type)
+      match = true
+      t = edge[:io_type]
+      p = edge[:io_set]       if edge.has_key?(:io_set)
+      edge[:set] = p          if io_p.set.has_key?(p)
+      psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+    end
+
+    count = 0
+    edge[:surfaces].keys.each do |id|
+      next if match
+      next unless surfaces.has_key?(id)
+      next unless surfaces[id].has_key?(:deratable)
+      next unless surfaces[id][:deratable]
+      count += 1
+    end
+    next unless count > 0
+    psi = {}
+    psi[:transition] = 0.000
+    edge[:psi] = psi
+    edge[:set] = p
+  end
 
   # A priori, TBD applies (default) :building PSI types and values to individual
   # edges. If a TBD JSON input file holds custom:
@@ -2461,7 +2512,6 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     # Retrieve valid linked surfaces as deratables.
     deratables = {}
     edge[:surfaces].each do |id, surface|
-      #deratable = false
       next unless surfaces.has_key?(id)
       next unless surfaces[id][:deratable]
       deratables[id] = surface
@@ -2505,7 +2555,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     # Sum RSI of targeted insulating layer from each deratable surface.
     rsi = 0
     deratables.each do |id, deratable|
-      expect(surfaces[id].has_key?(:r)).to be(true)
+      next unless surfaces[id].has_key?(:r)
       rsi += surfaces[id][:r]
     end
 
@@ -2513,16 +2563,15 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     # insulating layer thermal resistance
     deratables.each do |id, deratable|
       surfaces[id][:edges] = {} unless surfaces[id].has_key?(:edges)
-      loss = bridge[:psi] * surfaces[id][:r] / rsi
-
+      loss = 0
+      loss = bridge[:psi] * surfaces[id][:r] / rsi if rsi > 0.001
       b = { psi: loss, type: bridge[:type], length: bridge[:length] }
-
       surfaces[id][:edges][identifier] = b
     end
   end
 
   # Assign thermal bridging heat loss [in W/K] to each deratable surface.
-  surfaces.each do |id, surface|
+  surfaces.values.each do |surface|
     next unless surface.has_key?(:edges)
     surface[:heatloss] = 0
     surface[:edges].values.each do |edge|
@@ -2544,7 +2593,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
         next unless k.has_key?(:id)
         next unless k.has_key?(:count)
         next unless io_k.point.has_key?(k[:id])
-        next unless io_k.point[k[:id]] > 0.000
+        next unless io_k.point[k[:id]] > 0.001
         surface[:heatloss] = 0 unless surface.has_key?(:heatloss)
         surface[:heatloss] += io_k.point[k[:id]] * k[:count]
       end
@@ -2656,7 +2705,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
         end
 
         ratio  = -(current_R - updated_R) * 100 / current_R
-        surface[:ratio] = ratio
+        surface[:ratio] = ratio if ratio.abs > 0.01
       end
     end
   end
@@ -2674,7 +2723,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     next unless e.has_key?(:set)
     v = e[:psi].values.max
     p = e[:set]
-    next unless v > 0.000
+    # next unless v > 0.000
     t = e[:psi].key(v)
     l = e[:length]
     edge = { psi: p, type: t, length: l, surfaces: e[:surfaces].keys }

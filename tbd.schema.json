@@ -115,6 +115,10 @@
         "grade": {
           "title": "Floor/foundation edge PSI",
           "type": "number"
+        },
+        "transition": {
+          "title": "(Mild) transitions between surfaces",
+          "type": "number"
         }
       },
       "additionalProperties": false,
@@ -161,7 +165,8 @@
             "convex",
             "balcony",
             "party",
-            "grade"
+            "grade",
+            "transition"
           ]
         },
         "length": {
