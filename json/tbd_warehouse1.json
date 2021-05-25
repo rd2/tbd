@@ -1,6 +1,6 @@
 {
   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
-  "description": "testing TBD JSON for test_warehouse.osm",
+  "description": "testing custom edges for test_warehouse.osm",
   "psis": [
     {
       "id": "bad",

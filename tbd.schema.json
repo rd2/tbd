@@ -116,8 +116,12 @@
           "title": "Floor/foundation edge PSI",
           "type": "number"
         },
+        "joint": {
+          "title": "Joints PSI",
+          "type": "number"
+        },
         "transition": {
-          "title": "(Mild) transitions between surfaces",
+          "title": "(Mild) transition PSI",
           "type": "number"
         }
       },
@@ -166,6 +170,7 @@
             "balcony",
             "party",
             "grade",
+            "joint",
             "transition"
           ]
         },

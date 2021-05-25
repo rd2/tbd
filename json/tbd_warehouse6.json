@@ -1,0 +1,28 @@
+{
+  "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
+  "description": "testing expansion joints for test_warehouse.osm",
+  "psis": [
+    {
+      "id": "ok",
+      "joint": 0.9
+    }
+  ],
+  "edges": [
+    {
+      "psi": "ok",
+      "type": "joint",
+      "surfaces": [
+        "Fine Storage Front Wall",
+        "Fine Storage Office Front Wall"
+      ]
+    },
+    {
+      "psi": "ok",
+      "type": "joint",
+      "surfaces": [
+        "Fine Storage Left Wall",
+        "Fine Storage Office Left Wall"
+      ]
+    }
+  ]
+}

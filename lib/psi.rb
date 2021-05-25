@@ -105,6 +105,7 @@ class PSI
       balcony:      1.000, # *
       party:        0.850, # *
       grade:        0.850, # *
+      joint:        0.300, # *
       transition:   0.000
     }.freeze               # based on INTERIOR dimensions (p.15 BETBG)
 
@@ -118,6 +119,7 @@ class PSI
       balcony:      0.500, # *
       party:        0.450, # *
       grade:        0.450, # *
+      joint:        0.200, # *
       transition:   0.000
     }.freeze               # based on INTERIOR dimensions (p.15 BETBG)
 
@@ -131,6 +133,7 @@ class PSI
       balcony:      0.200, # *
       party:        0.200, # *
       grade:        0.200, # *
+      joint:        0.100, # *
       transition:   0.000
     }.freeze               # based on INTERIOR dimensions (p.15 BETBG)
 
@@ -144,19 +147,21 @@ class PSI
       balcony:      0.500, # *
       party:        0.450, # ** "regular (BETBG)"
       grade:        0.450, # *
+      joint:        0.200, # ** "regular (BETBG)"
       transition:   0.000
     }.freeze               # based on EXTERIOR dimensions (art. 3.1.1.6)
 
     @set[ "(non thermal bridging)" ] = # ... would not derate surfaces:
     {
-      rimjoist:     0.000, #
-      parapet:      0.000, #
-      fenestration: 0.000, #
-      concave:      0.000, #
-      convex:       0.000, #
-      balcony:      0.000, #
-      party:        0.000, #
-      grade:        0.000, #
+      rimjoist:     0.000,
+      parapet:      0.000,
+      fenestration: 0.000,
+      concave:      0.000,
+      convex:       0.000,
+      balcony:      0.000,
+      party:        0.000,
+      grade:        0.000,
+      joint:        0.000,
       transition:   0.000
     }.freeze
   end
@@ -180,8 +185,10 @@ class PSI
         @set[id][:balcony]      = p[:balcony]      if p.has_key?(:balcony)
         @set[id][:party]        = p[:party]        if p.has_key?(:party)
         @set[id][:grade]        = p[:grade]        if p.has_key?(:grade)
+        @set[id][:joint]        = p[:joint]        if p.has_key?(:joint)
         @set[id][:transition]   = p[:transition]   if p.has_key?(:transition)
 
+        @set[id][:joint]        = 0.000 unless p.has_key?(:joint)
         @set[id][:transition]   = 0.000 unless p.has_key?(:transition)
       end
     end
@@ -2722,7 +2729,6 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     next unless e.has_key?(:set)
     v = e[:psi].values.max
     p = e[:set]
-    # next unless v > 0.000
     t = e[:psi].key(v)
     l = e[:length]
     edge = { psi: p, type: t, length: l, surfaces: e[:surfaces].keys }

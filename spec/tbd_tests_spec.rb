@@ -1,6 +1,6 @@
 require "psi"
 
-  RSpec.describe TBD do
+RSpec.describe TBD do
   it "can process thermal bridging and derating : LoScrigno" do
     # The following populates both OpenStudio and Topolys models of "Lo scrigno"
     # (or Jewel Box), by Renzo Piano (Lingotto Factory, Turin); a cantilevered,
@@ -2556,6 +2556,143 @@ require "psi"
         if surface[:boundary].downcase == "outdoors"
           expect(surface[:conditioned]).to be(false)
         end
+      end
+    end
+  end
+
+  it "can take in custom (expansion) joints as thermal bridges" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    file = "/files/test_warehouse.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    # TBD will automatically tag as a (mild) "transition" any shared edge
+    # between 2x linked walls that more or less share the same 3D plane. An
+    # edge shared between 2x roof surfaces will equally be tagged as a
+    # "transition" edge. By default, transition edges are set @0 W/K.m i.e., no
+    # derating occurs. Although structural expansion joints or roof curbs are
+    # not as commonly encountered as mild transitions, they do constitute
+    # significant thermal bridges (to consider). As such "joints" remain
+    # undistinguishable from transition edges when parsing OSM geometry, the
+    # solution tested here illustrates how users can override default
+    # "transition" tags via JSON input files.
+    #
+    # The "tbd_warehouse6.json" file identifies 2x edges in the US DOE
+    # warehouse prototype building that TBD tags as (mild) transitions by
+    # default. Both edges concern the "Fine Storage" space (likely as a means
+    # to ensure surface convexity in the EnergyPlus model). The "ok" PSI set
+    # holds a single "joint" PSI value of 0.9 W/K per meter (let's assume both
+    # edges are significant expansion joints, rather than modelling artifacts).
+    # Each "expansion joint" here represents 4.27 m x 0.9 W/K per m = 3.84 W/K.
+    # As wall constructions are the same for all 4x walls concerned, each wall
+    # inherits 1/2 of the extra heat loss from each joint i.e., 1.92 W/K.
+    #
+    #   "psis": [
+    #     {
+    #       "id": "ok",
+    #       "joint": 0.9
+    #     }
+    #   ],
+    #   "edges": [
+    #     {
+    #       "psi": "ok",
+    #       "type": "joint",
+    #       "surfaces": [
+    #         "Fine Storage Front Wall",
+    #         "Fine Storage Office Front Wall"
+    #       ]
+    #     },
+    #     {
+    #       "psi": "ok",
+    #       "type": "joint",
+    #       "surfaces": [
+    #         "Fine Storage Left Wall",
+    #         "Fine Storage Office Left Wall"
+    #       ]
+    #     }
+    #   ]
+    # }
+
+    psi_set = "poor (BETBG)"
+    ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse6.json"
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(surfaces.size).to eq(23)
+
+    ids = { a: "Office Front Wall",
+            b: "Office Left Wall",
+            c: "Fine Storage Roof",
+            d: "Fine Storage Office Front Wall",
+            e: "Fine Storage Office Left Wall",
+            f: "Fine Storage Front Wall",
+            g: "Fine Storage Left Wall",
+            h: "Fine Storage Right Wall",
+            i: "Bulk Storage Roof",
+            j: "Bulk Storage Rear Wall",
+            k: "Bulk Storage Left Wall",
+            l: "Bulk Storage Right Wall" }.freeze
+
+    # Testing.
+    surfaces.each do |id, surface|
+      next if surface.has_key?(:edges)
+      expect(ids.has_value?(id)).to be(false)
+    end
+
+    surfaces.each do |id, surface|
+      next unless surface.has_key?(:edges)
+      expect(ids.has_value?(id)).to be(true)
+      expect(surface.has_key?(:heatloss)).to be(true)
+      expect(surface.has_key?(:ratio)).to be(true)
+      h = surface[:heatloss]
+
+      s = os_model.getSurfaceByName(id)
+      expect(s.empty?).to be(false)
+      s = s.get
+      expect(s.nameString).to eq(id)
+      expect(s.isConstructionDefaulted).to be(false)
+      expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
+      expect(h).to be_within(0.01).of( 50.20) if id == ids[:a]
+      expect(h).to be_within(0.01).of( 24.06) if id == ids[:b]
+      expect(h).to be_within(0.01).of( 87.16) if id == ids[:c]
+      expect(h).to be_within(0.01).of( 24.53) if id == ids[:d] # 22.61 + 1.92
+      expect(h).to be_within(0.01).of( 11.07) if id == ids[:e] #  9.15 + 1.92
+      expect(h).to be_within(0.01).of( 28.39) if id == ids[:f] # 26.47 + 1.92
+      expect(h).to be_within(0.01).of( 29.11) if id == ids[:g] # 27.19 + 1.92
+      expect(h).to be_within(0.01).of( 41.36) if id == ids[:h]
+      expect(h).to be_within(0.01).of(161.02) if id == ids[:i]
+      expect(h).to be_within(0.01).of( 62.28) if id == ids[:j]
+      expect(h).to be_within(0.01).of(117.87) if id == ids[:k]
+      expect(h).to be_within(0.01).of( 95.77) if id == ids[:l]
+
+      c = s.construction
+      expect(c.empty?).to be(false)
+      c = c.get.to_Construction
+      expect(c.empty?).to be(false)
+      c = c.get
+      expect(c.layers[1].nameString.include?("m tbd")).to be(true)
+    end
+
+    surfaces.each do |id, surface|
+      if surface.has_key?(:ratio)
+        # ratio  = format "%3.1f", surface[:ratio]
+        # name   = id.rjust(15, " ")
+        # puts "#{name} RSi derated by #{ratio}%"
+        expect(surface[:ratio]).to be_within(0.2).of(-44.13) if id == ids[:a]
+        expect(surface[:ratio]).to be_within(0.2).of(-53.02) if id == ids[:b]
+        expect(surface[:ratio]).to be_within(0.2).of(-15.60) if id == ids[:c]
+        expect(surface[:ratio]).to be_within(0.2).of(-26.10) if id == ids[:d] # -24.62
+        expect(surface[:ratio]).to be_within(0.2).of(-30.86) if id == ids[:e] # -27.14
+        expect(surface[:ratio]).to be_within(0.2).of(-21.26) if id == ids[:f] # -20.15
+        expect(surface[:ratio]).to be_within(0.2).of(-20.65) if id == ids[:g] # -19.59
+        expect(surface[:ratio]).to be_within(0.2).of(-20.51) if id == ids[:h]
+        expect(surface[:ratio]).to be_within(0.2).of( -7.29) if id == ids[:i]
+        expect(surface[:ratio]).to be_within(0.2).of(-14.93) if id == ids[:j]
+        expect(surface[:ratio]).to be_within(0.2).of(-19.02) if id == ids[:k]
+        expect(surface[:ratio]).to be_within(0.2).of(-15.09) if id == ids[:l]
+      else
+        expect(surface[:boundary].downcase).to_not eq("outdoors")
       end
     end
   end
