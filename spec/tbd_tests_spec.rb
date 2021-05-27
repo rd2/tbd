@@ -3708,10 +3708,13 @@ RSpec.describe TBD do
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(surfaces.size).to eq(23)
 
+    sTyp1 = "Warehouse Office"
+    sTyp2 = "Warehouse Fine"
+
     expect(io.has_key?(:spacetypes)).to be(true)
     io[:spacetypes].each do |spacetype|
       expect(spacetype.has_key?(:id)).to be(true)
-      expect(spacetype[:id]).to eq("Warehouse Office")
+      expect(spacetype[:id]).to eq(sTyp1).or eq(sTyp2)
       expect(spacetype.has_key?(:psi)).to be(true)
     end
 
@@ -3724,10 +3727,15 @@ RSpec.describe TBD do
       expect(surface.has_key?(:space)).to be(true)
       next unless surface[:space].nameString == "Zone1 Office"
 
+      # All applicable thermal bridges/edges derating the office walls inherit
+      # the "Warehouse Office" spacetype PSI values (JSON file), except for the
+      # shared :rimjoist with the Fine Storage space above. The "Warehouse Fine"
+      # spacetype set has a higher :rimjoist PSI value of 0.5 W/K per meter,
+      # which overrides the "Warehouse Office" value of 0.3 W/K per meter.
       name = "Office Left Wall"
-      expect(heatloss).to be_within(0.01).of(10.70) if id == name
+      expect(heatloss).to be_within(0.01).of(11.61) if id == name
       name = "Office Front Wall"
-      expect(heatloss).to be_within(0.01).of(20.35) if id == name
+      expect(heatloss).to be_within(0.01).of(22.94) if id == name
     end
   end
 
@@ -3762,7 +3770,7 @@ RSpec.describe TBD do
     end
   end
 
-  it "can sort multiple story-specific PSi sets (JSON input)" do
+  it "can sort multiple story-specific PSI sets (JSON input)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/midrise_KIVA.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)

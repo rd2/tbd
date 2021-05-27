@@ -3,7 +3,7 @@
   "description": "test_warehouse.osm with spacetype PSI values",
   "psis": [
     {
-      "id": "office PSI set",
+      "id": "Warehouse Office",
       "rimjoist": 0.300,
       "parapet": 0.300,
       "fenestration": 0.300,
@@ -12,6 +12,17 @@
       "balcony": 0.300,
       "party": 0.300,
       "grade": 0.300
+    },
+    {
+      "id": "Warehouse Fine",
+      "rimjoist": 0.500,
+      "parapet": 0.500,
+      "fenestration": 0.500,
+      "concave": 0.500,
+      "convex": 0.500,
+      "balcony": 0.500,
+      "party": 0.500,
+      "grade": 0.500
     }
   ],
   "building": [
@@ -22,7 +33,11 @@
   "spacetypes": [
     {
       "id": "Warehouse Office",
-      "psi": "office PSI set"
+      "psi": "Warehouse Office"
+    },
+    {
+      "id": "Warehouse Fine",
+      "psi": "Warehouse Fine"
     }
   ]
 }
