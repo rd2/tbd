@@ -3822,9 +3822,9 @@ RSpec.describe TBD do
         expect(edge[:psi]).to be_within(0.01).of(0.133) # 42.7% of 0.311
       end
 
-      # The shared :rimjoist between middle story and ground floor units can
+      # The shared :rimjoist between middle story and ground floor units could
       # either inherit the "Building Story 1" or "Building Story 2" :rimjoist
-      # PSI values (may be quite random).
+      # PSI values. TBD retains the most conductive PSI values in such cases.
       surface[:edges].values.each do |edge|
         next unless id.include?("m ")
         next unless id.include?("Wall ")
