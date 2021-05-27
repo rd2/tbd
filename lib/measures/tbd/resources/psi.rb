@@ -2324,39 +2324,49 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
         next unless story.has_key?(:psi)
         i = story[:id]
         p = story[:psi]
-        next unless io_p.set.has_key?(p)
+        next unless io_p.set.has_key?(p)               # raise warning in future
 
         edges.values.each do |edge|
           next unless edge.has_key?(:psi)
           next if edge.has_key?(:io_set)       # customized edge WITH custom PSI
           next unless edge.has_key?(:surfaces)
-
-          # TBD/Topolys edges will generally be linked to more than one surface
-          # and hence to more than one space. It is possible for a TBD JSON file
-          # to hold 2x space PSI sets that affect one or more edges common to
-          # both spaces. As with Ruby and JSON hashes, the last processed TBD
-          # JSON space PSI set will supersede preceding ones. Caution ...
-          # Future revisons to TBD JSON I/O validation, e.g. log warning?
-          # Maybe revise e.g., retain most stringent PSI value?
           edge[:surfaces].keys.each do |id|
             next unless surfaces.has_key?(id)
             next unless surfaces[id].has_key?(:story)
             st = surfaces[id][:story]
             next unless i == st.nameString
+            edge[:stories] = {} unless edge.has_key?(:stories)
+            edge[:stories][p] = {}
 
+            psi = {}
             if edge.has_key?(:io_type)          # custom edge w/o custom PSI set
               t = edge[:io_type]
-              next unless io_p.set[p].has_key?(t)
-              psi = {}
-              psi[t] = io_p.set[p][t]
-              edge[:psi] = psi
+              psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
             else
               edge[:psi].keys.each do |t|
-                edge[:psi][t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
               end
             end
-            edge[:set] = p
+            edge[:stories][p] = psi
           end
+        end
+      end
+
+      # TBD/Topolys edges will generally be linked to more than one surface and
+      # hence to more than one story. It is possible for a TBD JSON file to hold
+      # 2x story PSI sets that end up targetting one or more edges common to
+      # both stories. In such cases, TBD will retain the most conductive PSI
+      # type/value from both story PSI sets.
+      edges.values.each do |edge|
+        next unless edge.has_key?(:psi)
+        next unless edge.has_key?(:stories)
+        edge[:psi].keys.each do |type|
+          values = []
+          edge[:stories].values.each do |psi|
+            values << psi[type] if psi.has_key?(type)
+          end
+          next if values.empty?
+          edge[:psi][type] = values.max
         end
       end
     end
@@ -2367,39 +2377,49 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
         next unless stype.has_key?(:psi)
         i = stype[:id]
         p = stype[:psi]
-        next unless io_p.set.has_key?(p)
+        next unless io_p.set.has_key?(p)               # raise warning in future
 
         edges.values.each do |edge|
           next unless edge.has_key?(:psi)
           next if edge.has_key?(:io_set)       # customized edge WITH custom PSI
           next unless edge.has_key?(:surfaces)
-
-          # TBD/Topolys edges will generally be linked to more than one surface
-          # and hence to more than one space. It is possible for a TBD JSON file
-          # to hold 2x space PSI sets that affect one or more edges common to
-          # both spaces. As with Ruby and JSON hashes, the last processed TBD
-          # JSON space PSI set will supersede preceding ones. Caution ...
-          # Future revisons to TBD JSON I/O validation, e.g. log warning?
-          # Maybe revise e.g., retain most stringent PSI value?
           edge[:surfaces].keys.each do |id|
             next unless surfaces.has_key?(id)
             next unless surfaces[id].has_key?(:stype)
             st = surfaces[id][:stype]
             next unless i == st.nameString
+            edge[:spacetypes] = {} unless edge.has_key?(:spacetypes)
+            edge[:spacetypes][p] = {}
 
+            psi = {}
             if edge.has_key?(:io_type)          # custom edge w/o custom PSI set
               t = edge[:io_type]
-              next unless io_p.set[p].has_key?(t)
-              psi = {}
-              psi[t] = io_p.set[p][t]
-              edge[:psi] = psi
+              psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
             else
               edge[:psi].keys.each do |t|
-                edge[:psi][t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
               end
             end
-            edge[:set] = p
+            edge[:spacetypes][p] = psi
           end
+        end
+      end
+
+      # TBD/Topolys edges will generally be linked to more than one surface and
+      # hence to more than one spacetype. It is possible for a TBD JSON file to
+      # hold 2x spacetype PSI sets that end up targetting one or more edges
+      # common to both spacetypes. In such cases, TBD will retain the most
+      # conductive PSI type/value from both spacetype PSI sets.
+      edges.values.each do |edge|
+        next unless edge.has_key?(:psi)
+        next unless edge.has_key?(:spacetypes)
+        edge[:psi].keys.each do |type|
+          values = []
+          edge[:spacetypes].values.each do |psi|
+            values << psi[type] if psi.has_key?(type)
+          end
+          next if values.empty?
+          edge[:psi][type] = values.max
         end
       end
     end
@@ -2410,39 +2430,49 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
         next unless space.has_key?(:psi)
         i = space[:id]
         p = space[:psi]
-        next unless io_p.set.has_key?(p)
+        next unless io_p.set.has_key?(p)               # raise warning in future
 
         edges.values.each do |edge|
           next unless edge.has_key?(:psi)
           next if edge.has_key?(:io_set)       # customized edge WITH custom PSI
           next unless edge.has_key?(:surfaces)
-
-          # TBD/Topolys edges will generally be linked to more than one surface
-          # and hence to more than one space. It is possible for a TBD JSON file
-          # to hold 2x space PSI sets that affect one or more edges common to
-          # both spaces. As with Ruby and JSON hashes, the last processed TBD
-          # JSON space PSI set will supersede preceding ones. Caution ...
-          # Future revisons to TBD JSON I/O validation, e.g. log warning?
-          # Maybe revise e.g., retain most stringent PSI value?
           edge[:surfaces].keys.each do |id|
             next unless surfaces.has_key?(id)
             next unless surfaces[id].has_key?(:space)
             sp = surfaces[id][:space]
             next unless i == sp.nameString
+            edge[:spaces] = {} unless edge.has_key?(:spaces)
+            edge[:spaces][p] = {}
 
+            psi = {}
             if edge.has_key?(:io_type)          # custom edge w/o custom PSI set
               t = edge[:io_type]
-              next unless io_p.set[p].has_key?(t)
-              psi = {}
-              psi[t] = io_p.set[p][t]
-              edge[:psi] = psi
+              psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
             else
               edge[:psi].keys.each do |t|
-                edge[:psi][t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
               end
             end
-            edge[:set] = p
+            edge[:spaces][p] = psi
           end
+        end
+      end
+
+      # TBD/Topolys edges will generally be linked to more than one surface and
+      # hence to more than one space. It is possible for a TBD JSON file to hold
+      # 2x space PSI sets that end up targetting one or more edges common to
+      # both spaces. In such cases, TBD will retain the most conductive PSI
+      # type/value from both space PSI sets.
+      edges.values.each do |edge|
+        next unless edge.has_key?(:psi)
+        next unless edge.has_key?(:spaces)
+        edge[:psi].keys.each do |type|
+          values = []
+          edge[:spaces].values.each do |psi|
+            values << psi[type] if psi.has_key?(type)
+          end
+          next if values.empty?
+          edge[:psi][type] = values.max
         end
       end
     end

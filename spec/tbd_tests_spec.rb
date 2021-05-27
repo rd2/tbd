@@ -2682,10 +2682,10 @@ RSpec.describe TBD do
         expect(surface[:ratio]).to be_within(0.2).of(-44.13) if id == ids[:a]
         expect(surface[:ratio]).to be_within(0.2).of(-53.02) if id == ids[:b]
         expect(surface[:ratio]).to be_within(0.2).of(-15.60) if id == ids[:c]
-        expect(surface[:ratio]).to be_within(0.2).of(-26.10) if id == ids[:d] # -24.62
-        expect(surface[:ratio]).to be_within(0.2).of(-30.86) if id == ids[:e] # -27.14
-        expect(surface[:ratio]).to be_within(0.2).of(-21.26) if id == ids[:f] # -20.15
-        expect(surface[:ratio]).to be_within(0.2).of(-20.65) if id == ids[:g] # -19.59
+        expect(surface[:ratio]).to be_within(0.2).of(-26.10) if id == ids[:d]
+        expect(surface[:ratio]).to be_within(0.2).of(-30.86) if id == ids[:e]
+        expect(surface[:ratio]).to be_within(0.2).of(-21.26) if id == ids[:f]
+        expect(surface[:ratio]).to be_within(0.2).of(-20.65) if id == ids[:g]
         expect(surface[:ratio]).to be_within(0.2).of(-20.51) if id == ids[:h]
         expect(surface[:ratio]).to be_within(0.2).of( -7.29) if id == ids[:i]
         expect(surface[:ratio]).to be_within(0.2).of(-14.93) if id == ids[:j]
@@ -3760,6 +3760,93 @@ RSpec.describe TBD do
       next unless surface.has_key?(:story)
       expect(surface[:story].nameString).to eq("Building Story 1")
     end
+  end
+
+  it "can sort multiple story-specific PSi sets (JSON input)" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    file = "/files/midrise_KIVA.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    psi_set = "(non thermal bridging)"                              # overridden
+    ioP = File.dirname(__FILE__) + "/../json/midrise.json"
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(surfaces.size).to eq(180)
+
+    st1 = "Building Story 1"
+    st2 = "Building Story 2"
+    st3 = "Building Story 3"
+
+    expect(io.has_key?(:stories)).to be(true)
+    expect(io[:stories].size).to eq(3)
+    io[:stories].each do |story|
+      expect(story.has_key?(:id)).to be(true)
+      expect(story[:id]).to eq(st1).or eq(st2).or eq(st3)
+      expect(story.has_key?(:psi)).to be(true)
+    end
+
+    counter = 0
+    surfaces.each do |id, surface|
+      next unless surface.has_key?(:ratio)
+      expect(surface.has_key?(:boundary)).to be(true)
+      expect(surface[:boundary]).to eq("Outdoors")
+      expect(surface.has_key?(:story)).to be(true)
+      nom = surface[:story].nameString
+      expect(nom).to eq(st1).or eq(st2).or eq(st3)
+      expect(nom).to eq(st1) if id.include?("g ")
+      expect(nom).to eq(st2) if id.include?("m ")
+      expect(nom).to eq(st3) if id.include?("t ")
+      expect(surface.has_key?(:edges)).to be(true)
+      counter += 1
+
+      # Illustrating that story-specific PSI set is used when only 1x story.
+      surface[:edges].values.each do |edge|
+        expect(edge.has_key?(:type)).to be(true)
+        expect(edge.has_key?(:psi)).to be(true)
+        next unless id.include?("Roof")
+        expect(edge[:type]).to eq(:parapet).or eq(:transition)
+        next unless edge[:type] == :parapet
+        next if id == "t Roof C"
+        expect(edge[:psi]).to be_within(0.01).of(0.178) # 57.3% of 0.311
+      end
+
+      # Illustrating that story-specific PSI set is used when only 1x story.
+      surface[:edges].values.each do |edge|
+        next unless id.include?("t ")
+        next unless id.include?("Wall ")
+        next unless edge[:type] == :parapet
+        next if id.include?(" C")
+        expect(edge[:psi]).to be_within(0.01).of(0.133) # 42.7% of 0.311
+      end
+
+      # The shared :rimjoist between middle story and ground floor units can
+      # either inherit the "Building Story 1" or "Building Story 2" :rimjoist
+      # PSI values (may be quite random).
+      surface[:edges].values.each do |edge|
+        next unless id.include?("m ")
+        next unless id.include?("Wall ")
+        next if id.include?(" C")
+        next unless edge[:type] == :rimjoist
+
+        # Inheriting "Building Story 1" :rimjoist PSI of 0.501 W/K per meter.
+        # The SEA unit is above an office space below, which has curtain wall.
+        # RSi of insulation layers (to derate):
+        #   - office walls   : 0.740 m2.K/W (26.1%)
+        #   - SEA walls      : 2.100 m2.K/W (73.9%)
+        #
+        #   - SEA walls      : 26.1% of 0.501 = 0.3702 W/K per meter
+        #   - other walls    : 50.0% of 0.501 = 0.2505 W/K per meter
+        if id == "m SWall SEA" || id == "m EWall SEA"
+          expect(edge[:psi]).to be_within(0.002).of(0.3702)
+        else
+          expect(edge[:psi]).to be_within(0.002).of(0.2505)
+        end
+      end
+    end
+    expect(counter).to eq(51)
   end
 
   it "can handle parties" do
