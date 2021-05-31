@@ -2145,6 +2145,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       unless psi.has_key?(:party)
         count = 0
         edge[:surfaces].keys.each do |i|
+          next if psi.has_key?(:party)
           next if i == id
           next unless surfaces.has_key?(i)
           next unless surfaces[i].has_key?(:deratable)
@@ -2152,6 +2153,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
           count += 1
         end
         edge[:surfaces].keys.each do |i|
+          next if psi.has_key?(:party)
           next if count == 1
           next unless surfaces[id].has_key?(:deratable)
           next unless surfaces[id][:deratable]
@@ -2168,6 +2170,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       #   1x surface (i.e. wall) facing outdoors
       unless psi.has_key?(:grade)
         edge[:surfaces].keys.each do |i|
+          next if psi.has_key?(:grade)
           next unless surfaces[id].has_key?(:ground)
           next unless surfaces[id][:ground]
           next unless surfaces.has_key?(i)
@@ -2183,6 +2186,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       #   1x shade
       unless psi.has_key?(:balcony)
         edge[:surfaces].keys.each do |i|
+          next if psi.has_key?(:balcony)
           next unless shades.has_key?(i)
           next unless floors.has_key?(id)
           psi[:balcony] = io_p.set[p][:balcony]
@@ -2194,6 +2198,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       #   1x deratable ceiling
       unless psi.has_key?(:parapet)
         edge[:surfaces].keys.each do |i|
+          next if psi.has_key?(:parapet)
           next unless ceilings.has_key?(id)
           next unless ceilings[id].has_key?(:deratable)
           next unless ceilings[id][:deratable]
@@ -2209,6 +2214,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       # :bandjoist could be favoured for such cases.
       unless psi.has_key?(:parapet)
         edge[:surfaces].keys.each do |i|
+          next if psi.has_key?(:parapet)
           next unless floors.has_key?(id)
           next unless floors[id].has_key?(:deratable)
           next unless floors[id][:deratable]
@@ -2224,6 +2230,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       # :bandjoist could be favoured for such cases.
       unless psi.has_key?(:parapet)
         edge[:surfaces].keys.each do |i|
+          next if psi.has_key?(:parapet)
           next unless floors.has_key?(id)
           next unless floors[id].has_key?(:deratable)
           next unless floors[id][:deratable]
@@ -2239,6 +2246,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       #   1x CONDITIONED floor
       unless psi.has_key?(:rimjoist)
         edge[:surfaces].keys.each do |i|
+          next if psi.has_key?(:rimjoist)
           next unless floors.has_key?(i)
           next unless floors[i].has_key?(:conditioned)
           next unless floors[i][:conditioned]
@@ -2272,7 +2280,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
           # :fenestration, then its (single) PSI value is systematically
           # attributed to subsurface :head, :sill & :jamb edges.
           #
-          # TBD tags a subsurface edge as :sill if the subsurface is "flat". If
+          # TBD tags a subsurface edge as :jamb if the subsurface is "flat". If
           # not flat, TBD tags a horizontal edge as either :head or :sill based
           # on the polar angle of the subsurface around the edge vs sky zenith.
           # Otherwise, all other subsurface edges are tagged as :jamb.
@@ -2302,6 +2310,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       #   2x deratable walls & f(relative polar positions of walls)
       unless psi.has_key?(:concave) || psi.has_key?(:convex)
         edge[:surfaces].keys.each do |i|
+          next if psi.has_key?(:concave) || psi.has_key?(:convex)
           next if i == id
           next unless walls.has_key?(id)
           next unless walls[id].has_key?(:deratable)
@@ -2694,7 +2703,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
         elsif t == :head || t == :sill || t == :jamb
           psi[t] = io_p.set[p][tt] if io_p.set[p].has_key?(tt)
         else
-          # raise "WTF?"
+          # Test to ensure this never happens ...
         end
       end
       next if psi.empty?
@@ -2713,7 +2722,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     bridge = { psi: psi, type: type, length: edge[:length] }
 
     if edge.has_key?(:sets) && edge[:sets].has_key?(type)
-      edge[:set] = edge[:sets][type]
+      edge[:set] = edge[:sets][type] unless edge.has_key?(:io_set)
     end
 
     # Retrieve valid linked surfaces as deratables.
