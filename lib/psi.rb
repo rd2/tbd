@@ -180,6 +180,9 @@ class PSI
         @set[id][:rimjoist]     = p[:rimjoist]     if p.has_key?(:rimjoist)
         @set[id][:parapet]      = p[:parapet]      if p.has_key?(:parapet)
         @set[id][:fenestration] = p[:fenestration] if p.has_key?(:fenestration)
+        @set[id][:head]         = p[:head]         if p.has_key?(:head)
+        @set[id][:sill]         = p[:sill]         if p.has_key?(:sill)
+        @set[id][:jamb]         = p[:jamb]         if p.has_key?(:jamb)
         @set[id][:concave]      = p[:concave]      if p.has_key?(:concave)
         @set[id][:convex]       = p[:convex]       if p.has_key?(:convex)
         @set[id][:balcony]      = p[:balcony]      if p.has_key?(:balcony)
@@ -202,15 +205,22 @@ class PSI
   #
   # @return [Bool] Returns true if stored and has a complete PSI set
   def complete?(s)
-    answer = @set.has_key?(s)
-    answer = answer && @set[s].has_key?(:rimjoist)
-    answer = answer && @set[s].has_key?(:parapet)
-    answer = answer && @set[s].has_key?(:fenestration)
-    answer = answer && @set[s].has_key?(:concave)
-    answer = answer && @set[s].has_key?(:convex)
-    answer = answer && @set[s].has_key?(:balcony)
-    answer = answer && @set[s].has_key?(:party)
-    answer = answer && @set[s].has_key?(:grade)
+    answer    = @set.has_key?(s)
+
+    partial   = answer && @set[s].has_key?(:fenestration)
+    complete  = answer &&
+                @set[s].has_key?(:head) &&
+                @set[s].has_key?(:sill) &&
+                @set[s].has_key?(:jamb)
+
+    answer    = answer && (partial || complete)
+    answer    = answer && @set[s].has_key?(:rimjoist)
+    answer    = answer && @set[s].has_key?(:parapet)
+    answer    = answer && @set[s].has_key?(:concave)
+    answer    = answer && @set[s].has_key?(:convex)
+    answer    = answer && @set[s].has_key?(:balcony)
+    answer    = answer && @set[s].has_key?(:party)
+    answer    = answer && @set[s].has_key?(:grade)
     answer
   end
 end
@@ -291,6 +301,7 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
   # JSON validation relies on case-senitive string comparisons (e.g. OpenStudio
   # space or surface names, vs corresponding TBD JSON identifiers). So "Space-1"
   # would not match "SPACE-1". A head's up ...
+  tt = :fenestration
   io = {}
   psi = PSI.new                  # PSI hash, initially holding built-in defaults
   khi = KHI.new                  # KHI hash, initially holding built-in defaults
@@ -483,7 +494,13 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
             if edge.has_key?(:psi)                                    # optional
               p = edge[:psi]
               raise "PSI mismatch (TBD inputs)" unless psi.set.has_key?(p)
-              raise "#{p} missing PSI #{t}" unless psi.set[p].has_key?(t)
+              unless psi.set[p].has_key?(t)
+                if t == :head || t == :sill || t == :jamb
+                  raise "#{p} missing PSI #{t}" unless psi.set[p].has_key?(tt)
+                else
+                  raise "#{p} missing PSI #{t}" unless psi.set[p].has_key?(t)
+                end
+              end
               e[:io_set] = p
             end
           end
@@ -1249,13 +1266,13 @@ def tbdSurfaceEdges(surfaces, edges)
     properties[:face].wires.each do |wire|
       wire.edges.each do |e|
         unless edges.has_key?(e.id)
-          edges[e.id] = {length: e.length,
-                         v0: e.v0,
-                         v1: e.v1,
-                         surfaces: {}}
+          edges[e.id] = { length: e.length,
+                          v0: e.v0,
+                          v1: e.v1,
+                          surfaces: {} }
         end
         unless edges[e.id][:surfaces].has_key?(id)
-          edges[e.id][:surfaces][id] = {wire: wire.id}
+          edges[e.id][:surfaces][id] = { wire: wire.id }
         end
       end
     end
@@ -2067,6 +2084,8 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       end                             # end of edge-linked, surface-to-wire loop
     end                                        # end of edge-linked surface loop
 
+    edge[:horizontal] = horizontal
+    edge[:vertical] = vertical
     edge[:surfaces] = edge[:surfaces].sort_by{ |i, p| p[:angle] }.to_h
   end                                                         # end of edge loop
 
@@ -2101,11 +2120,17 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
 
     match = false
     if edge.has_key?(:io_type)                # customized edge in TBD JSON file
-      match = true
-      t = edge[:io_type]
       p = edge[:io_set]       if edge.has_key?(:io_set)
       edge[:set] = p          if io_p.set.has_key?(p)
-      psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+
+      unless edge[:io_type] == :fenestration ||
+             edge[:io_type] == :head         ||
+             edge[:io_type] == :sill         ||
+             edge[:io_type] == :jamb
+        match = true
+        t = edge[:io_type]
+        psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+      end
     end
 
     edge[:surfaces].keys.each do |id|
@@ -2180,7 +2205,8 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       end
 
       # Repeat for exposed floors vs walls, as :parapet is currently a
-      # proxy for intersections between exposed floors & walls
+      # proxy for intersections between exposed floors & walls. Optional
+      # :bandjoist could be favoured for such cases.
       unless psi.has_key?(:parapet)
         edge[:surfaces].keys.each do |i|
           next unless floors.has_key?(id)
@@ -2194,7 +2220,8 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       end
 
       # Repeat for exposed floors vs roofs, as :parapet is currently a
-      # proxy for intersections between exposed floors & roofs
+      # proxy for intersections between exposed floors & roofs. Optional
+      # :bandjoist could be favoured for such cases.
       unless psi.has_key?(:parapet)
         edge[:surfaces].keys.each do |i|
           next unless floors.has_key?(id)
@@ -2223,12 +2250,51 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
         end
       end
 
-      # Label edge as :fenestration if linked to:
+      # Label edge as :head, :sill or :jamb if linked to:
       #   1x subsurface
-      unless psi.has_key?(:fenestration)
+      unless psi.has_key?(:head) || psi.has_key?(:sill) || psi.has_key?(:jamb)
         edge[:surfaces].keys.each do |i|
-          next unless holes.has_key?(i)
-          psi[:fenestration] = io_p.set[p][:fenestration]
+          next if psi.has_key?(:head) ||
+                  psi.has_key?(:sill) ||
+                  psi.has_key?(:jamb)
+          answer   = holes.has_key?(i)
+          overall  = answer && io_p.set[p].has_key?(:fenestration)
+          complete = answer &&
+                     io_p.set[p].has_key?(:head) &&
+                     io_p.set[p].has_key?(:sill) &&
+                     io_p.set[p].has_key?(:jamb)
+          answer   = answer && (overall || complete)
+          next unless answer
+          s = edge[:surfaces][i]
+
+          # Subsurface edges are tagged as :head, :sill or :jamb, regardless
+          # of building PSI set subsurface tags. If the latter is simply
+          # :fenestration, then its (single) PSI value is systematically
+          # attributed to subsurface :head, :sill & :jamb edges.
+          #
+          # TBD tags a subsurface edge as :sill if the subsurface is "flat". If
+          # not flat, TBD tags a horizontal edge as either :head or :sill based
+          # on the polar angle of the subsurface around the edge vs sky zenith.
+          # Otherwise, all other subsurface edges are tagged as :jamb.
+          if ((s[:normal].dot(zenith)).abs - 1).abs < 0.01                # flat
+            psi[:jamb] = io_p.set[p][:jamb]             if complete
+            psi[:jamb] = io_p.set[p][:fenestration]     if overall
+          else
+            if edge[:horizontal]                                # :head or :sill
+              if s[:polar].dot(zenith) < 0
+                psi[:head] = io_p.set[p][:head]         if complete
+                psi[:head] = io_p.set[p][:fenestration] if overall
+              else
+                psi[:sill] = io_p.set[p][:sill]         if complete
+                psi[:sill] = io_p.set[p][:fenestration] if overall
+              end
+            else
+              psi[:jamb] = io_p.set[p][:jamb]           if complete
+              psi[:jamb] = io_p.set[p][:fenestration]   if overall
+            end
+          end
+          edge[:complete] = complete
+          edge[:overall]  = overall
         end
       end
 
@@ -2282,12 +2348,18 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     p = io[:building].first[:psi]
 
     match = false
-    if edge.has_key?(:io_type)
-      match = true
-      t = edge[:io_type]
+    if edge.has_key?(:io_type)                # customized edge in TBD JSON file
       p = edge[:io_set]       if edge.has_key?(:io_set)
       edge[:set] = p          if io_p.set.has_key?(p)
-      psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+
+      unless edge[:io_type] == :fenestration ||
+             edge[:io_type] == :head         ||
+             edge[:io_type] == :sill         ||
+             edge[:io_type] == :jamb
+        match = true
+        t = edge[:io_type]
+        psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+      end
     end
 
     count = 0
@@ -2318,6 +2390,8 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
   #   custom :surfaces   PSI sets trump the aforementioned PSI sets
   #   custom :edges      PSI sets trump the aforementioned PSI sets
   if io
+    tt = :fenestration
+
     if io.has_key?(:stories)
       io[:stories].each do |story|
         next unless story.has_key?(:id)
@@ -2325,6 +2399,11 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
         i = story[:id]
         p = story[:psi]
         next unless io_p.set.has_key?(p)               # raise warning in future
+
+        complet = false
+        complet = true if io_p.set[p].has_key?(:head) &&
+                          io_p.set[p].has_key?(:sill) &&
+                          io_p.set[p].has_key?(:jamb)
 
         edges.values.each do |edge|
           next unless edge.has_key?(:psi)
@@ -2344,7 +2423,15 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
               psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
             else
               edge[:psi].keys.each do |t|
-                psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                if t == :head || t == :sill || t == :jamb
+                  if complet
+                    psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                  else
+                    psi[t] = io_p.set[p][tt] if io_p.set[p].has_key?(tt)
+                  end
+                else                                          # not fenestration
+                  psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                end
               end
             end
             edge[:stories][p] = psi
@@ -2355,18 +2442,20 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       # TBD/Topolys edges will generally be linked to more than one surface and
       # hence to more than one story. It is possible for a TBD JSON file to hold
       # 2x story PSI sets that end up targetting one or more edges common to
-      # both stories. In such cases, TBD will retain the most conductive PSI
+      # both stories. In such cases, TBD retains the most conductive PSI
       # type/value from both story PSI sets.
       edges.values.each do |edge|
         next unless edge.has_key?(:psi)
         next unless edge.has_key?(:stories)
         edge[:psi].keys.each do |type|
-          values = []
-          edge[:stories].values.each do |psi|
-            values << psi[type] if psi.has_key?(type)
+          vals = {}
+          edge[:stories].each do |p, psi|
+            vals[p] = psi[type] if psi.has_key?(type)
           end
-          next if values.empty?
-          edge[:psi][type] = values.max
+          next if vals.empty?
+          edge[:psi][type] = vals.values.max
+          edge[:sets] = {} unless edge.has_key?(:sets)
+          edge[:sets][type] = vals.key(vals.values.max)
         end
       end
     end
@@ -2378,6 +2467,11 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
         i = stype[:id]
         p = stype[:psi]
         next unless io_p.set.has_key?(p)               # raise warning in future
+
+        complet = false
+        complet = true if io_p.set[p].has_key?(:head) &&
+                          io_p.set[p].has_key?(:sill) &&
+                          io_p.set[p].has_key?(:jamb)
 
         edges.values.each do |edge|
           next unless edge.has_key?(:psi)
@@ -2397,7 +2491,15 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
               psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
             else
               edge[:psi].keys.each do |t|
-                psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                if t == :head || t == :sill || t == :jamb
+                  if complet
+                    psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                  else
+                    psi[t] = io_p.set[p][tt] if io_p.set[p].has_key?(tt)
+                  end
+                else                                          # not fenestration
+                  psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                end
               end
             end
             edge[:spacetypes][p] = psi
@@ -2408,18 +2510,20 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       # TBD/Topolys edges will generally be linked to more than one surface and
       # hence to more than one spacetype. It is possible for a TBD JSON file to
       # hold 2x spacetype PSI sets that end up targetting one or more edges
-      # common to both spacetypes. In such cases, TBD will retain the most
+      # common to both spacetypes. In such cases, TBD retains the most
       # conductive PSI type/value from both spacetype PSI sets.
       edges.values.each do |edge|
         next unless edge.has_key?(:psi)
         next unless edge.has_key?(:spacetypes)
         edge[:psi].keys.each do |type|
-          values = []
-          edge[:spacetypes].values.each do |psi|
-            values << psi[type] if psi.has_key?(type)
+          vals = {}
+          edge[:spacetypes].each do |p, psi|
+            vals[p] = psi[type] if psi.has_key?(type)
           end
-          next if values.empty?
-          edge[:psi][type] = values.max
+          next if vals.empty?
+          edge[:psi][type] = vals.values.max
+          edge[:sets] = {} unless edge.has_key?(:sets)
+          edge[:sets][type] = vals.key(vals.values.max)
         end
       end
     end
@@ -2431,6 +2535,11 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
         i = space[:id]
         p = space[:psi]
         next unless io_p.set.has_key?(p)               # raise warning in future
+
+        complet = false
+        complet = true if io_p.set[p].has_key?(:head) &&
+                          io_p.set[p].has_key?(:sill) &&
+                          io_p.set[p].has_key?(:jamb)
 
         edges.values.each do |edge|
           next unless edge.has_key?(:psi)
@@ -2450,7 +2559,15 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
               psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
             else
               edge[:psi].keys.each do |t|
-                psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                if t == :head || t == :sill || t == :jamb
+                  if complet
+                    psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                  else
+                    psi[t] = io_p.set[p][tt] if io_p.set[p].has_key?(tt)
+                  end
+                else                                          # not fenestration
+                  psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                end
               end
             end
             edge[:spaces][p] = psi
@@ -2461,18 +2578,20 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       # TBD/Topolys edges will generally be linked to more than one surface and
       # hence to more than one space. It is possible for a TBD JSON file to hold
       # 2x space PSI sets that end up targetting one or more edges common to
-      # both spaces. In such cases, TBD will retain the most conductive PSI
+      # both spaces. In such cases, TBD retains the most conductive PSI
       # type/value from both space PSI sets.
       edges.values.each do |edge|
         next unless edge.has_key?(:psi)
         next unless edge.has_key?(:spaces)
         edge[:psi].keys.each do |type|
-          values = []
-          edge[:spaces].values.each do |psi|
-            values << psi[type] if psi.has_key?(type)
+          vals = {}
+          edge[:spaces].each do |p, psi|
+            vals[p] = psi[type] if psi.has_key?(type)
           end
-          next if values.empty?
-          edge[:psi][type] = values.max
+          next if vals.empty?
+          edge[:psi][type] = vals.values.max
+          edge[:sets] = {} unless edge.has_key?(:sets)
+          edge[:sets][type] = vals.key(vals.values.max)
         end
       end
     end
@@ -2483,37 +2602,71 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
         next unless surface.has_key?(:psi)
         i = surface[:id]
         p = surface[:psi]
-        next unless io_p.set.has_key?(p)
+        next unless io_p.set.has_key?(p)               # raise warning in future
+
+        complet = false
+        complet = true if io_p.set[p].has_key?(:head) &&
+                          io_p.set[p].has_key?(:sill) &&
+                          io_p.set[p].has_key?(:jamb)
 
         edges.values.each do |edge|
           next unless edge.has_key?(:psi)
           next if edge.has_key?(:io_set)       # customized edge WITH custom PSI
           next unless edge.has_key?(:surfaces)
+          edge[:surfaces].each do |id, s|
+            next unless surfaces.has_key?(id)
+            next unless i == id
 
-          # TBD/Topolys edges will generally be linked to more than one
-          # surface. It is possible for a TBD JSON file to hold 2x surface PSI
-          # sets that affect one or more edges common to both surfaces. As
-          # with Ruby and JSON hashes, the last processed TBD JSON surface PSI
-          # set will supersede preceding ones. Caution ...
-          # Future revisons to TBD JSON I/O validation, e.g. log warning?
-          # Maybe revise e.g., retain most stringent PSI value?
-          edge[:surfaces].keys.each do |s|
-            next unless surfaces.has_key?(s)
-            next unless i == s
+            psi = {}
             if edge.has_key?(:io_type)          # custom edge w/o custom PSI set
-              t = edge[:io_type]
-              next unless io_p.set[p].has_key?(t)
-              psi = {}
-              psi[t] = io_p.set[p][t]
-              edge[:psi] = psi
+              if edge[:io_type] == tt
+                t = :head if edge.has_key?(:head)
+                t = :sill if edge.has_key?(:sill)
+                t = :jamb if edge.has_key?(:jamb)
+              else
+                t = edge[:io_type]
+              end
+              psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
             else
-              edge[:psi] = {} unless edge.has_key?(:psi)
               edge[:psi].keys.each do |t|
-                edge[:psi][t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                if t == :head || t == :sill || t == :jamb
+                  if complet
+                    psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                  else
+                    psi[t] = io_p.set[p][tt] if io_p.set[p].has_key?(tt)
+                  end
+                else                                          # not fenestration
+                  psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                end
               end
             end
-            edge[:set] = p
+            s[:psi] = psi
+            s[:set] = p
           end
+        end
+      end
+
+      # TBD/Topolys edges will generally be linked to more than one surface. It
+      # is possible for a TBD JSON file to hold 2x surface PSI sets that end up
+      # targetting one or more edges shared by both surfaces. In such cases, TBD
+      # retains the most conductive PSI type/value from both surface PSI sets.
+      edges.values.each do |edge|
+        next unless edge.has_key?(:psi)
+        next unless edge.has_key?(:surfaces)
+        edge[:psi].keys.each do |type|
+          vals = {}
+          edge[:surfaces].each do |id, s|
+            next unless s.has_key?(:psi)
+            next unless s.has_key?(:set)
+            psi = s[:psi]
+            next if psi.empty?
+            p = s[:set]
+            vals[p] = psi[type] if psi.has_key?(type)
+          end
+          next if vals.empty?
+          edge[:psi][type] = vals.values.max
+          edge[:sets] = {} unless edge.has_key?(:sets)
+          edge[:sets][type] = vals.key(vals.values.max)
         end
       end
     end
@@ -2525,12 +2678,27 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       next unless edge.has_key?(:io_type)
       next unless edge.has_key?(:surfaces)
 
-      t = edge[:io_type]
       p = edge[:io_set]
       next unless io_p.set.has_key?(p)
-      next unless io_p.set[p].has_key?(t)
       psi = {}
-      psi[t] = io_p.set[p][t]
+
+      if edge[:io_type] == tt
+        t = :head if edge[:psi].has_key?(:head)
+        t = :sill if edge[:psi].has_key?(:sill)
+        t = :jamb if edge[:psi].has_key?(:jamb)
+        psi[t] = io_p.set[p][tt]
+      else
+        t = edge[:io_type]
+        if io_p.set[p].has_key?(t)
+          psi[t] = io_p.set[p][t]
+        elsif t == :head || t == :sill || t == :jamb
+          psi[t] = io_p.set[p][tt] if io_p.set[p].has_key?(tt)
+        else
+          # raise "WTF?"
+        end
+      end
+      next if psi.empty?
+
       edge[:psi] = psi
       edge[:set] = p
     end
@@ -2540,10 +2708,13 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
   edges.each do |identifier, edge|
     next unless edge.has_key?(:psi)
     psi = edge[:psi].values.max
+    type = edge[:psi].key(psi)
 
-    bridge = { psi: psi,
-               type: edge[:psi].key(psi),
-               length: edge[:length] }
+    bridge = { psi: psi, type: type, length: edge[:length] }
+
+    if edge.has_key?(:sets) && edge[:sets].has_key?(type)
+      edge[:set] = edge[:sets][type]
+    end
 
     # Retrieve valid linked surfaces as deratables.
     deratables = {}
@@ -2555,7 +2726,9 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
 
     # Retrieve linked openings.
     openings = {}
-    if edge[:psi].has_key?(:fenestration)
+    if edge[:psi].has_key?(:head) ||
+       edge[:psi].has_key?(:sill) ||
+       edge[:psi].has_key?(:jamb)
       edge[:surfaces].each do |id, surface|
         next unless holes.has_key?(id)
         openings[id] = surface
@@ -2761,6 +2934,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     p = e[:set]
     t = e[:psi].key(v)
     l = e[:length]
+
     edge = { psi: p, type: t, length: l, surfaces: e[:surfaces].keys }
     edge[:v0x] = e[:v0].point.x
     edge[:v0y] = e[:v0].point.y

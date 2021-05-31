@@ -96,6 +96,18 @@
           "title": "Window, door, skylight perimeter PSI",
           "type": "number"
         },
+        "head": {
+          "title": "Aperture head/lintel PSI",
+          "type": "number"
+        },
+        "sill": {
+          "title": "Aperture sill/base PSI",
+          "type": "number"
+        },
+        "jamb": {
+          "title": "Aperture jamb/side PSI",
+          "type": "number"
+        },
         "concave": {
           "title": "Wall corner [0°,135°) PSI",
           "type": "number"
@@ -159,12 +171,15 @@
           "type": "string"
         },
         "type": {
-          "title": "PSI-set type, e.g. 'parapet'",
+          "title": "PSI-set type e.g., 'parapet'",
           "type": "string",
           "enum": [
             "rimjoist",
             "parapet",
             "fenestration",
+            "head",
+            "sill",
+            "jamb",
             "concave",
             "convex",
             "balcony",

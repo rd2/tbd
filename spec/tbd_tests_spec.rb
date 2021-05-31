@@ -992,7 +992,8 @@ RSpec.describe TBD do
         end                           # end of edge-linked, surface-to-wire loop
       end                                      # end of edge-linked surface loop
 
-      # Sort angles.
+      edge[:horizontal] = horizontal
+      edge[:vertical] = vertical
       edge[:surfaces] = edge[:surfaces].sort_by{ |i, p| p[:angle] }.to_h
     end                                                       # end of edge loop
 
@@ -1143,12 +1144,42 @@ RSpec.describe TBD do
           end
         end
 
-        # Label edge as :fenestration if linked to:
+        # Label edge as :head, :sill or :jamb if linked to:
         #   1x subsurface
-        unless psi.has_key?(:fenestration)
+        unless psi.has_key?(:head) || psi.has_key?(:sill) || psi.has_key?(:jamb)
           edge[:surfaces].keys.each do |i|
-            next unless holes.has_key?(i)
-            psi[:fenestration] = io_p.set[p][:fenestration]
+            next if psi.has_key?(:head) ||
+                    psi.has_key?(:sill) ||
+                    psi.has_key?(:jamb)
+            answer   = holes.has_key?(i)
+            overall  = answer && io_p.set[p].has_key?(:fenestration)
+            complete = answer &&
+                       io_p.set[p].has_key?(:head) &&
+                       io_p.set[p].has_key?(:sill) &&
+                       io_p.set[p].has_key?(:jamb)
+            answer   = answer && (overall || complete)
+            next unless answer
+            s = edge[:surfaces][i]
+
+            if ((s[:normal].dot(zenith)).abs - 1).abs < 0.01
+              psi[:jamb] = io_p.set[p][:jamb]             if complete
+              psi[:jamb] = io_p.set[p][:fenestration]     if overall
+            else
+              if edge[:horizontal]
+                if s[:polar].dot(zenith) < 0
+                  psi[:head] = io_p.set[p][:head]         if complete
+                  psi[:head] = io_p.set[p][:fenestration] if overall
+                else
+                  psi[:sill] = io_p.set[p][:sill]         if complete
+                  psi[:sill] = io_p.set[p][:fenestration] if overall
+                end
+              else
+                psi[:jamb] = io_p.set[p][:jamb]           if complete
+                psi[:jamb] = io_p.set[p][:fenestration]   if overall
+              end
+            end
+            edge[:complete] = complete
+            edge[:overall]  = overall
           end
         end
 
@@ -1265,28 +1296,42 @@ RSpec.describe TBD do
 
           edges.values.each do |edge|
             next unless edge.has_key?(:psi)
-            next if edge.has_key?(:io_set)     # customized edge WITH custom PSI
+            next if edge.has_key?(:io_set)
             next unless edge.has_key?(:surfaces)
-
             edge[:surfaces].keys.each do |id|
               next unless surfaces.has_key?(id)
               next unless surfaces[id].has_key?(:story)
               st = surfaces[id][:story]
               next unless i == st.nameString
+              edge[:stories] = {} unless edge.has_key?(:stories)
+              edge[:stories][p] = {}
 
-              if edge.has_key?(:io_type)        # custom edge w/o custom PSI set
+              psi = {}
+              if edge.has_key?(:io_type)
                 t = edge[:io_type]
-                next unless io_p.set[p].has_key?(t)
-                psi = {}
-                psi[t] = io_p.set[p][t]
-                edge[:psi] = psi
+                psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
               else
                 edge[:psi].keys.each do |t|
-                  edge[:psi][t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                  psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
                 end
               end
-              edge[:set] = p
+              edge[:stories][p] = psi
             end
+          end
+        end
+
+        edges.values.each do |edge|
+          next unless edge.has_key?(:psi)
+          next unless edge.has_key?(:stories)
+          edge[:psi].keys.each do |type|
+            vals = {}
+            edge[:stories].each do |p, psi|
+              vals[p] = psi[type] if psi.has_key?(type)
+            end
+            next if vals.empty?
+            edge[:psi][type] = vals.values.max
+            edge[:sets] = {} unless edge.has_key?(:sets)
+            edge[:sets][type] = vals.key(vals.values.max)
           end
         end
       end
@@ -1301,28 +1346,42 @@ RSpec.describe TBD do
 
           edges.values.each do |edge|
             next unless edge.has_key?(:psi)
-            next if edge.has_key?(:io_set)     # customized edge WITH custom PSI
+            next if edge.has_key?(:io_set)
             next unless edge.has_key?(:surfaces)
-
             edge[:surfaces].keys.each do |id|
               next unless surfaces.has_key?(id)
               next unless surfaces[id].has_key?(:stype)
               st = surfaces[id][:stype]
               next unless i == st.nameString
+              edge[:spacetypes] = {} unless edge.has_key?(:spacetypes)
+              edge[:spacetypes][p] = {}
 
-              if edge.has_key?(:io_type)        # custom edge w/o custom PSI set
+              psi = {}
+              if edge.has_key?(:io_type)
                 t = edge[:io_type]
-                next unless io_p.set[p].has_key?(t)
-                psi = {}
-                psi[t] = io_p.set[p][t]
-                edge[:psi] = psi
+                psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
               else
                 edge[:psi].keys.each do |t|
-                  edge[:psi][t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                  psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
                 end
               end
-              edge[:set] = p
+              edge[:spacetypes][p] = psi
             end
+          end
+        end
+
+        edges.values.each do |edge|
+          next unless edge.has_key?(:psi)
+          next unless edge.has_key?(:spacetypes)
+          edge[:psi].keys.each do |type|
+            vals = {}
+            edge[:spacetypes].each do |p, psi|
+              vals[p] = psi[type] if psi.has_key?(type)
+            end
+            next if vals.empty?
+            edge[:psi][type] = vals.values.max
+            edge[:sets] = {} unless edge.has_key?(:sets)
+            edge[:sets][type] = vals.key(vals.values.max)
           end
         end
       end
@@ -1337,28 +1396,42 @@ RSpec.describe TBD do
 
           edges.values.each do |edge|
             next unless edge.has_key?(:psi)
-            next if edge.has_key?(:io_set)     # customized edge WITH custom PSI
+            next if edge.has_key?(:io_set)
             next unless edge.has_key?(:surfaces)
-
             edge[:surfaces].keys.each do |id|
               next unless surfaces.has_key?(id)
               next unless surfaces[id].has_key?(:space)
               sp = surfaces[id][:space]
               next unless i == sp.nameString
+              edge[:spaces] = {} unless edge.has_key?(:spaces)
+              edge[:spaces][p] = {}
 
-              if edge.has_key?(:io_type)        # custom edge w/o custom PSI set
+              psi = {}
+              if edge.has_key?(:io_type)
                 t = edge[:io_type]
-                next unless io_p.set[p].has_key?(t)
-                psi = {}
-                psi[t] = io_p.set[p][t]
-                edge[:psi] = psi
+                psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
               else
                 edge[:psi].keys.each do |t|
-                  edge[:psi][t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                  psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
                 end
               end
-              edge[:set] = p
+              edge[:spaces][p] = psi
             end
+          end
+        end
+
+        edges.values.each do |edge|
+          next unless edge.has_key?(:psi)
+          next unless edge.has_key?(:spaces)
+          edge[:psi].keys.each do |type|
+            vals = {}
+            edge[:spaces].each do |p, psi|
+              vals[p] = psi[type] if psi.has_key?(type)
+            end
+            next if vals.empty?
+            edge[:psi][type] = vals.values.max
+            edge[:sets] = {} unless edge.has_key?(:sets)
+            edge[:sets][type] = vals.key(vals.values.max)
           end
         end
       end
@@ -1370,29 +1443,60 @@ RSpec.describe TBD do
           i = surface[:id]
           p = surface[:psi]
           next unless io_p.set.has_key?(p)
+          tt = :fenestration
+          complet = false
+          complet = true if io_p.set[p].has_key?(:head) &&
+                            io_p.set[p].has_key?(:sill) &&
+                            io_p.set[p].has_key?(:jamb)
 
           edges.values.each do |edge|
             next unless edge.has_key?(:psi)
-            next if edge.has_key?(:io_set)     # customized edge WITH custom PSI
+            next if edge.has_key?(:io_set)
             next unless edge.has_key?(:surfaces)
+            edge[:surfaces].each do |id, s|
+              next unless surfaces.has_key?(id)
+              next unless i == id
 
-            edge[:surfaces].keys.each do |s|
-              next unless surfaces.has_key?(s)
-              next unless i == s
-              if edge.has_key?(:io_type)        # custom edge w/o custom PSI set
+              psi = {}
+              if edge.has_key?(:io_type)
                 t = edge[:io_type]
-                next unless io_p.set[p].has_key?(t)
-                psi = {}
-                psi[t] = io_p.set[p][t]
-                edge[:psi] = psi
+                psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
               else
-                edge[:psi] = {} unless edge.has_key?(:psi)
                 edge[:psi].keys.each do |t|
-                  edge[:psi][t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                  if t == :head || t == :sill || t == :jamb
+                    if complet
+                      psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                    else
+                      psi[t] = io_p.set[p][tt] if io_p.set[p].has_key?(tt)
+                    end
+                  else
+                    psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                  end
                 end
               end
-              edge[:set] = p
+              s[:psi] = psi
+              s[:set] = p
             end
+          end
+        end
+
+        edges.values.each do |edge|
+          next unless edge.has_key?(:psi)
+          next unless edge.has_key?(:surfaces)
+          edge[:psi].keys.each do |type|
+            vals = {}
+            edge[:surfaces].each do |id, s|
+              next unless s.has_key?(:psi)
+              next unless s.has_key?(:set)
+              psi = s[:psi]
+              next if psi.empty?
+              p = s[:set]
+              vals[p] = psi[type] if psi.has_key?(type)
+            end
+            next if vals.empty?
+            edge[:psi][type] = vals.values.max
+            edge[:sets] = {} unless edge.has_key?(:sets)
+            edge[:sets][type] = vals.key(vals.values.max)
           end
         end
       end
@@ -1415,15 +1519,18 @@ RSpec.describe TBD do
       end
     end
 
-    n_deratables = 0
-    n_edges_at_grade = 0
-    n_edges_as_balconies = 0
-    n_edges_as_parapets = 0
-    n_edges_as_rimjoists = 0
-    n_edges_as_fenestrations = 0
+    n_deratables               = 0
+    n_edges_at_grade           = 0
+    n_edges_as_balconies       = 0
+    n_edges_as_parapets        = 0
+    n_edges_as_rimjoists       = 0
+    n_edges_as_fenestrations   = 0
+    n_edges_as_heads           = 0
+    n_edges_as_sills           = 0
+    n_edges_as_jambs           = 0
     n_edges_as_concave_corners = 0
-    n_edges_as_convex_corners = 0
-    n_edges_as_transitions = 0
+    n_edges_as_convex_corners  = 0
+    n_edges_as_transitions     = 0
 
     edges.values.each do |edge|
       next unless edge.has_key?(:psi)
@@ -1433,28 +1540,37 @@ RSpec.describe TBD do
       n_edges_as_parapets         += 1 if edge[:psi].has_key?(:parapet)
       n_edges_as_rimjoists        += 1 if edge[:psi].has_key?(:rimjoist)
       n_edges_as_fenestrations    += 1 if edge[:psi].has_key?(:fenestration)
+      n_edges_as_heads            += 1 if edge[:psi].has_key?(:head)
+      n_edges_as_sills            += 1 if edge[:psi].has_key?(:sill)
+      n_edges_as_jambs            += 1 if edge[:psi].has_key?(:jamb)
       n_edges_as_concave_corners  += 1 if edge[:psi].has_key?(:concave)
       n_edges_as_convex_corners   += 1 if edge[:psi].has_key?(:convex)
       n_edges_as_transitions      += 1 if edge[:psi].has_key?(:transition)
     end
-    expect(n_deratables).to eq(66)
-    expect(n_edges_at_grade).to eq(0)
-    expect(n_edges_as_balconies).to eq(4)
-    expect(n_edges_as_parapets).to eq(31)
-    expect(n_edges_as_rimjoists).to eq(32)
-    expect(n_edges_as_fenestrations).to eq(12)
-    expect(n_edges_as_concave_corners).to eq(4)
-    expect(n_edges_as_convex_corners).to eq(12)
-    expect(n_edges_as_transitions).to eq(4)
+    expect(n_deratables).to               eq(66)
+    expect(n_edges_at_grade).to           eq( 0)
+    expect(n_edges_as_balconies).to       eq( 4)
+    expect(n_edges_as_parapets).to        eq(31)
+    expect(n_edges_as_rimjoists).to       eq(32)
+    expect(n_edges_as_fenestrations).to   eq( 0)
+    expect(n_edges_as_heads).to           eq( 2)
+    expect(n_edges_as_sills).to           eq( 2)
+    expect(n_edges_as_jambs).to           eq( 8)
+    expect(n_edges_as_concave_corners).to eq( 4)
+    expect(n_edges_as_convex_corners).to  eq(12)
+    expect(n_edges_as_transitions).to     eq( 4)
 
     # loop through each edge and assign heat loss to linked surfaces.
     edges.each do |identifier, edge|
       next unless edge.has_key?(:psi)
       psi = edge[:psi].values.max
+      type = edge[:psi].key(psi)
 
-      bridge = { psi: psi,
-                 type: edge[:psi].key(psi),
-                 length: edge[:length] }
+      bridge = { psi: psi, type: type, length: edge[:length] }
+
+      if edge.has_key?(:sets) && edge[:sets].has_key?(type)
+        edge[:set] = edge[:sets][type]
+      end
 
       # Retrieve valid linked surfaces as deratables.
       deratables = {}
@@ -1466,7 +1582,10 @@ RSpec.describe TBD do
 
       # Retrieve linked openings.
       openings = {}
-      if edge[:psi].has_key?(:fenestration)
+      # if edge[:psi].has_key?(:fenestration)
+      if edge[:psi].has_key?(:head) ||
+         edge[:psi].has_key?(:sill) ||
+         edge[:psi].has_key?(:jamb)
         edge[:surfaces].each do |id, surface|
           next unless holes.has_key?(id)
           openings[id] = surface
@@ -1793,17 +1912,26 @@ RSpec.describe TBD do
 
       next unless id.include?("_1_") # South
       l_fenestration = 0
+      l_head         = 0
+      l_sill         = 0
+      l_jamb         = 0
       l_grade        = 0
       l_parapet      = 0
       l_corner       = 0
       surface[:edges].values.each do |edge|
         l_fenestration += edge[:length] if edge[:type] == :fenestration
+        l_head         += edge[:length] if edge[:type] == :head
+        l_sill         += edge[:length] if edge[:type] == :sill
+        l_jamb         += edge[:length] if edge[:type] == :jamb
         l_grade        += edge[:length] if edge[:type] == :grade
         l_parapet      += edge[:length] if edge[:type] == :parapet
         l_corner       += edge[:length] if edge[:type] == :convex
         l_corner       += edge[:length] if edge[:type] == :concave
       end
-      expect(l_fenestration).to be_within(0.01).of(46.35)
+      expect(l_fenestration).to be_within(0.01).of(0)
+      #expect(l_head).to         be_within(0.01).of(46.35)
+      #expect(l_sill).to         be_within(0.01).of(46.35)
+      #expect(l_jamb).to         be_within(0.01).of(46.35)
       expect(l_grade).to        be_within(0.01).of(27.69)
       expect(l_parapet).to      be_within(0.01).of(27.69)
       expect(l_corner).to       be_within(0.01).of(6.1)
@@ -1937,17 +2065,26 @@ RSpec.describe TBD do
 
         next unless id.include?("_1_") # South
         l_fenestration = 0
+        l_head         = 0
+        l_sill         = 0
+        l_jamb         = 0
         l_grade        = 0
         l_parapet      = 0
         l_corner       = 0
         surface[:edges].values.each do |edge|
           l_fenestration += edge[:length] if edge[:type] == :fenestration
+          l_head         += edge[:length] if edge[:type] == :head
+          l_sill         += edge[:length] if edge[:type] == :sill
+          l_jamb         += edge[:length] if edge[:type] == :jamb
           l_grade        += edge[:length] if edge[:type] == :grade
           l_parapet      += edge[:length] if edge[:type] == :parapet
           l_corner       += edge[:length] if edge[:type] == :convex
           l_corner       += edge[:length] if edge[:type] == :concave
         end
-        expect(l_fenestration).to be_within(0.01).of(46.35)
+        expect(l_fenestration).to be_within(0.01).of(0)
+        #expect(l_head).to         be_within(0.01).of(46.35)
+        #expect(l_sill).to         be_within(0.01).of(46.35)
+        #expect(l_jamb).to         be_within(0.01).of(46.35)
         expect(l_grade).to        be_within(0.01).of(27.69)
         expect(l_parapet).to      be_within(0.01).of(27.69)
         expect(l_corner).to       be_within(0.01).of(6.1)
@@ -3200,13 +3337,15 @@ RSpec.describe TBD do
     #   - :rimjoist (there are none for "Entryway  Wall 5")
     #   - :parapet (a single edge shared with "Entry way  DroppedCeiling")
     #
-    # As such, only those 2x surfaces will be derated. The following counters
-    # track the total number of edges delineating both derated surfaces THAT
-    # DO NOT contribute in derating their insulation materials i.e. not found
-    # in the "good" PSI set.
+    # Only those 2x surfaces will be derated. The following counters track the
+    # total number of edges delineating either derated surfaces that contribute
+    # in derating their insulation materials i.e. found in the "good" PSI set.
     nb_rimjoist_edges     = 0
     nb_parapet_edges      = 0
     nb_fenestration_edges = 0
+    nb_head_edges         = 0
+    nb_sill_edges         = 0
+    nb_jamb_edges         = 0
     nb_concave_edges      = 0
     nb_convex_edges       = 0
     nb_balcony_edges      = 0
@@ -3219,41 +3358,154 @@ RSpec.describe TBD do
       expect(edge.has_key?(:type)).to be(true)
       expect(edge.has_key?(:length)).to be(true)
       expect(edge.has_key?(:surfaces)).to be(true)
+      valid = edge[:surfaces].include?(nom1) || edge[:surfaces].include?(nom2)
+      next unless valid
 
-      p = edge[:psi]
       t = edge[:type]
       s = {}
-      io[:psis].each do |set| s = set if set[:id] == p; end
+      io[:psis].each do |set| s = set if set[:id] == edge[:psi]; end
       next if s.empty?
       expect(s.is_a?(Hash)).to be(true)
-      expect(p).to eq("good")
-      unless s.has_key?(t)
-        nb_rimjoist_edges     += 1 if t == :rimjoist
-        nb_parapet_edges      += 1 if t == :parapet
-        nb_fenestration_edges += 1 if t == :fenestration
-        nb_concave_edges      += 1 if t == :concave
-        nb_convex_edges       += 1 if t == :convex
-        nb_balcony_edges      += 1 if t == :balcony
-        nb_party_edges        += 1 if t == :party
-        nb_grade_edges        += 1 if t == :grade
-        nb_transition_edges   += 1 if t == :transition
-      end
-
       next unless s.has_key?(t)
-      expect(t).to eq(:parapet)
+
+      nb_rimjoist_edges     += 1 if t == :rimjoist
+      nb_parapet_edges      += 1 if t == :parapet
+      nb_fenestration_edges += 1 if t == :fenestration
+      nb_head_edges         += 1 if t == :head
+      nb_sill_edges         += 1 if t == :sill
+      nb_jamb_edges         += 1 if t == :jamb
+      nb_concave_edges      += 1 if t == :concave
+      nb_convex_edges       += 1 if t == :convex
+      nb_balcony_edges      += 1 if t == :balcony
+      nb_party_edges        += 1 if t == :party
+      nb_grade_edges        += 1 if t == :grade
+      nb_transition_edges   += 1 if t == :transition
+
+      expect(t).to eq(:parapet).or eq(:transition)
+      next unless t == :parapet
       expect(s[t]).to be_within(0.01).of(0.5)
       expect(edge[:length]).to be_within(0.01).of(3.6)
     end
 
     expect(nb_rimjoist_edges).to     eq(0)
-    expect(nb_parapet_edges).to      eq(0)   # parapet is part of "good" PSI set
-    expect(nb_fenestration_edges).to eq(4)
+    expect(nb_parapet_edges).to      eq(1)    # parapet linked to "good" PSI set
+    expect(nb_fenestration_edges).to eq(0)
+    expect(nb_head_edges).to         eq(0)
+    expect(nb_sill_edges).to         eq(0)
+    expect(nb_jamb_edges).to         eq(0)
     expect(nb_concave_edges).to      eq(0)
-    expect(nb_convex_edges).to       eq(2)
+    expect(nb_convex_edges).to       eq(0)
+    expect(nb_balcony_edges).to      eq(0)
+    expect(nb_party_edges).to        eq(0)
+    expect(nb_grade_edges).to        eq(0)
+    expect(nb_transition_edges).to   eq(0)
+
+    # Reset counters to track the total number of edges delineating either
+    # derated surfaces that DO NOT contribute in derating their insulation
+    # materials i.e. not found in the "good" PSI set.
+    nb_rimjoist_edges     = 0
+    nb_parapet_edges      = 0
+    nb_fenestration_edges = 0
+    nb_head_edges         = 0
+    nb_sill_edges         = 0
+    nb_jamb_edges         = 0
+    nb_concave_edges      = 0
+    nb_convex_edges       = 0
+    nb_balcony_edges      = 0
+    nb_party_edges        = 0
+    nb_grade_edges        = 0
+    nb_transition_edges   = 0
+
+    io[:edges].each do |edge|
+      valid = edge[:surfaces].include?(nom1) || edge[:surfaces].include?(nom2)
+      next unless valid
+
+      t = edge[:type]
+      s = {}
+      io[:psis].each do |set| s = set if set[:id] == edge[:psi]; end
+      next unless s.empty?
+      expect edge[:psi] == psi_set
+
+      nb_rimjoist_edges     += 1 if t == :rimjoist
+      nb_parapet_edges      += 1 if t == :parapet
+      nb_fenestration_edges += 1 if t == :fenestration
+      nb_head_edges         += 1 if t == :head
+      nb_sill_edges         += 1 if t == :sill
+      nb_jamb_edges         += 1 if t == :jamb
+      nb_concave_edges      += 1 if t == :concave
+      nb_convex_edges       += 1 if t == :convex
+      nb_balcony_edges      += 1 if t == :balcony
+      nb_party_edges        += 1 if t == :party
+      nb_grade_edges        += 1 if t == :grade
+      nb_transition_edges   += 1 if t == :transition
+    end
+
+    expect(nb_rimjoist_edges).to     eq(0)
+    expect(nb_parapet_edges).to      eq(2)        # not linked to "good" PSI set
+    expect(nb_fenestration_edges).to eq(0)
+    expect(nb_head_edges).to         eq(1)
+    expect(nb_sill_edges).to         eq(1)
+    expect(nb_jamb_edges).to         eq(2)
+    expect(nb_concave_edges).to      eq(0)
+    expect(nb_convex_edges).to       eq(2)           # edges between walls 5 & 4
     expect(nb_balcony_edges).to      eq(0)
     expect(nb_party_edges).to        eq(0)
     expect(nb_grade_edges).to        eq(1)
-    expect(nb_transition_edges).to   eq(2)
+    expect(nb_transition_edges).to   eq(3)                   # shared roof edges
+
+    # Reset counters again to track the total number of edges delineating either
+    # derated surfaces that DO NOT contribute in derating their insulation
+    # materials i.e., automatically set as :transitions in "good" PSI set.
+    nb_rimjoist_edges     = 0
+    nb_parapet_edges      = 0
+    nb_fenestration_edges = 0
+    nb_head_edges         = 0
+    nb_sill_edges         = 0
+    nb_jamb_edges         = 0
+    nb_concave_edges      = 0
+    nb_convex_edges       = 0
+    nb_balcony_edges      = 0
+    nb_party_edges        = 0
+    nb_grade_edges        = 0
+    nb_transition_edges   = 0
+
+    io[:edges].each do |edge|
+      valid = edge[:surfaces].include?(nom1) || edge[:surfaces].include?(nom2)
+      next unless valid
+
+      t = edge[:type]
+      s = {}
+      io[:psis].each do |set| s = set if set[:id] == edge[:psi]; end
+      next if s.empty?
+      expect(s.is_a?(Hash)).to be(true)
+      next if s.has_key?(t)
+
+      nb_rimjoist_edges     += 1 if t == :rimjoist
+      nb_parapet_edges      += 1 if t == :parapet
+      nb_fenestration_edges += 1 if t == :fenestration
+      nb_head_edges         += 1 if t == :head
+      nb_sill_edges         += 1 if t == :sill
+      nb_jamb_edges         += 1 if t == :jamb
+      nb_concave_edges      += 1 if t == :concave
+      nb_convex_edges       += 1 if t == :convex
+      nb_balcony_edges      += 1 if t == :balcony
+      nb_party_edges        += 1 if t == :party
+      nb_grade_edges        += 1 if t == :grade
+      nb_transition_edges   += 1 if t == :transition
+    end
+
+    expect(nb_rimjoist_edges).to     eq(0)
+    expect(nb_parapet_edges).to      eq(0)
+    expect(nb_fenestration_edges).to eq(0)
+    expect(nb_head_edges).to         eq(0)
+    expect(nb_jamb_edges).to         eq(0)
+    expect(nb_sill_edges).to         eq(0)
+    expect(nb_concave_edges).to      eq(0)
+    expect(nb_convex_edges).to       eq(0)
+    expect(nb_balcony_edges).to      eq(0)
+    expect(nb_party_edges).to        eq(0)
+    expect(nb_grade_edges).to        eq(0)
+    expect(nb_transition_edges).to   eq(2)           # edges between walls 5 & 6
 
     out = JSON.pretty_generate(io)
     outP = File.dirname(__FILE__) + "/../json/tbd_seb_n3.out.json"
@@ -4022,6 +4274,66 @@ RSpec.describe TBD do
       heatloss = surface[:heatloss]
       expect(heatloss.abs).to be > 0
     end
+  end
+
+  it "can factor in heads, sills and jambs" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    file = "/files/test_warehouse.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    psi_set = "compliant" # ignored - superseded by :building PSI set on file
+    ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse7.json"
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(surfaces.size).to eq(23)
+
+    nom = "Bulk Storage Roof"
+    n_transitions  = 0
+    n_parapets     = 0
+    n_fen_edges    = 0
+    n_heads        = 0
+    n_sills        = 0
+    n_jambs        = 0
+
+    t1 = :transition
+    t2 = :parapet
+    t3 = :fenestration
+    t4 = :head
+    t5 = :sill
+    t6 = :jamb
+
+    surfaces.each do |id, surface|
+      next unless surface[:boundary].downcase == "outdoors"
+      next unless surface.has_key?(:ratio)
+      expect(surface.has_key?(:heatloss)).to be(true)
+      heatloss = surface[:heatloss]
+      expect(heatloss.abs).to be > 0
+      next unless id == nom
+      expect(surfaces[id].has_key?(:edges)).to be(true)
+      expect(surfaces[id][:edges].size).to eq(132)
+      surfaces[id][:edges].values.each do |edge|
+        expect(edge.has_key?(:type)).to be(true)
+        t = edge[:type]
+        expect(t).to eq(t1).or eq(t2).or eq(t3).or eq(t4).or eq(t5).or eq(t6)
+        n_transitions += 1 if edge[:type] == t1
+        n_parapets    += 1 if edge[:type] == t2
+        n_fen_edges   += 1 if edge[:type] == t3
+        n_heads       += 1 if edge[:type] == t4
+        n_sills       += 1 if edge[:type] == t5
+        n_jambs       += 1 if edge[:type] == t6
+      end
+    end
+    expect(n_transitions).to eq(1)
+    expect(n_parapets).to eq(3)
+    expect(n_fen_edges).to eq(0)
+    expect(n_heads).to eq(0)
+    expect(n_sills).to eq(0)
+    expect(n_jambs).to eq(128)
+
+    # More testing ...
   end
 
   it "has a PSI class" do
