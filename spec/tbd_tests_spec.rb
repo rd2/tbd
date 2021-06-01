@@ -1148,45 +1148,54 @@ RSpec.describe TBD do
         #   1x subsurface
         unless psi.has_key?(:head) || psi.has_key?(:sill) || psi.has_key?(:jamb)
           edge[:surfaces].keys.each do |i|
-            next if psi.has_key?(:head) ||
-                    psi.has_key?(:sill) ||
-                    psi.has_key?(:jamb)
-            answer   = holes.has_key?(i)
-            overall  = answer && io_p.set[p].has_key?(:fenestration)
-            complete = answer &&
-                       io_p.set[p].has_key?(:head) &&
-                       io_p.set[p].has_key?(:sill) &&
-                       io_p.set[p].has_key?(:jamb)
-            answer   = answer && (overall || complete)
-            next unless answer
+            next if psi.has_key?(:head)
+            next if psi.has_key?(:sill)
+            next if psi.has_key?(:jamb)
+            next unless holes.has_key?(i)
             s = edge[:surfaces][i]
 
-            if ((s[:normal].dot(zenith)).abs - 1).abs < 0.01
-              psi[:jamb] = io_p.set[p][:jamb]             if complete
-              psi[:jamb] = io_p.set[p][:fenestration]     if overall
+            head = io_p.set[p].has_key?(:head)
+            sill = io_p.set[p].has_key?(:sill)
+            jamb = io_p.set[p].has_key?(:jamb)
+            openings = head && sill && jamb
+            next unless io_p.set[p].has_key?(:fenestration) || openings
+
+            # Subsurface edges are tagged as :head, :sill or :jamb, regardless of
+            # building PSI set subsurface tags. If the latter is simply
+            # :fenestration, then its (single) PSI value is systematically
+            # attributed to subsurface :head, :sill & :jamb edges.
+            #
+            # TBD tags a subsurface edge as :jamb if the subsurface is "flat". If
+            # not flat, TBD tags a horizontal edge as either :head or :sill based
+            # on the polar angle of the subsurface around the edge vs sky zenith.
+            # Otherwise, all other subsurface edges are tagged as :jamb.
+            if ((s[:normal].dot(zenith)).abs - 1).abs < TOL                 # flat
+              psi[:jamb] = io_p.set[p][:jamb]             if openings
+              psi[:jamb] = io_p.set[p][:fenestration]     unless openings
             else
-              if edge[:horizontal]
+              if edge[:horizontal]                                # :head or :sill
                 if s[:polar].dot(zenith) < 0
-                  psi[:head] = io_p.set[p][:head]         if complete
-                  psi[:head] = io_p.set[p][:fenestration] if overall
+                  psi[:head] = io_p.set[p][:head]         if openings
+                  psi[:head] = io_p.set[p][:fenestration] unless openings
                 else
-                  psi[:sill] = io_p.set[p][:sill]         if complete
-                  psi[:sill] = io_p.set[p][:fenestration] if overall
+                  psi[:sill] = io_p.set[p][:sill]         if openings
+                  psi[:sill] = io_p.set[p][:fenestration] unless openings
                 end
               else
-                psi[:jamb] = io_p.set[p][:jamb]           if complete
-                psi[:jamb] = io_p.set[p][:fenestration]   if overall
+                psi[:jamb] = io_p.set[p][:jamb]           if openings
+                psi[:jamb] = io_p.set[p][:fenestration]   unless openings
               end
             end
-            edge[:complete] = complete
-            edge[:overall]  = overall
+            edge[:openings] = openings
           end
         end
 
-        # Label edge as :concave or :convex (corner) if linked to:
-        #   2x deratable walls & f(relative polar positions of walls)
-        unless psi.has_key?(:concave) || psi.has_key?(:convex)
+        # Label edge as :cornerconcave or :cornerconvex if linked to:
+        #   2x deratable walls & f(relative polar wall vectors around edge)
+        unless psi.has_key?(:cornerconcave) || psi.has_key?(:cornerconvex)
           edge[:surfaces].keys.each do |i|
+            next if psi.has_key?(:cornerconcave)
+            next if psi.has_key?(:cornerconvex)
             next if i == id
             next unless walls.has_key?(id)
             next unless walls[id].has_key?(:deratable)
@@ -1194,6 +1203,11 @@ RSpec.describe TBD do
             next unless walls.has_key?(i)
             next unless walls[i].has_key?(:deratable)
             next unless walls[i][:deratable]
+
+            concave = io_p.set[p].has_key?(:cornerconcave)
+            convex  = io_p.set[p].has_key?(:cornerconvex)
+            corners = concave && convex
+            next unless io_p.set[p].has_key?(:corner) || corners
 
             s1 = edge[:surfaces][id]
             s2 = edge[:surfaces][i]
@@ -1204,8 +1218,14 @@ RSpec.describe TBD do
 
             n1_d_p2 = s1[:normal].dot(s2[:polar])
             p1_d_n2 = s1[:polar].dot(s2[:normal])
-            psi[:concave] = io_p.set[p][:concave] if n1_d_p2 > 0 && p1_d_n2 > 0
-            psi[:convex]  = io_p.set[p][:convex]  if n1_d_p2 < 0 && p1_d_n2 < 0
+            c1 = :cornerconcave
+            c2 = :cornerconvex
+            c3 = :corner
+            psi[c1] = io_p.set[p][c1] if n1_d_p2 > 0 && p1_d_n2 > 0 if corners
+            psi[c2] = io_p.set[p][c2] if n1_d_p2 < 0 && p1_d_n2 < 0 if corners
+            psi[c1] = io_p.set[p][c3] if n1_d_p2 > 0 && p1_d_n2 > 0 unless corners
+            psi[c2] = io_p.set[p][c3] if n1_d_p2 < 0 && p1_d_n2 < 0 unless corners
+            edge[:corners] = corners
           end
         end
       end                                                 # edge's surfaces loop
@@ -1294,6 +1314,14 @@ RSpec.describe TBD do
           p = story[:psi]
           next unless io_p.set.has_key?(p)
 
+          heads    = io_p.set[p].has_key?(:head)
+          sills    = io_p.set[p].has_key?(:sill)
+          jambs    = io_p.set[p].has_key?(:jamb)
+          openings = heads && sills && jambs
+          concave  = io_p.set.has_key?(:cornerconcave)
+          convex   = io_p.set.has_key?(:cornerconvex)
+          corners  = concave && convex
+
           edges.values.each do |edge|
             next unless edge.has_key?(:psi)
             next if edge.has_key?(:io_set)
@@ -1309,10 +1337,21 @@ RSpec.describe TBD do
               psi = {}
               if edge.has_key?(:io_type)
                 t = edge[:io_type]
-                psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                ok = io_p.set[p].has_key?(t)
+                psi[t] = io_p.set[p][t] if ok
               else
                 edge[:psi].keys.each do |t|
-                  psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                  tt = t
+                  ok = io_p.set[p].has_key?(tt)
+                  unless ok
+                    if t == :head || t == :sill || t == :jamb
+                      tt = :fenestration unless openings
+                    elsif t == :cornerconcave || t == :cornerconvex
+                      tt = :corner unless corners
+                    end
+                    ok = io_p.set[p].has_key?(tt)
+                  end
+                  psi[tt] = io_p.set[p][tt] if ok
                 end
               end
               edge[:stories][p] = psi
@@ -1344,6 +1383,14 @@ RSpec.describe TBD do
           p = stype[:psi]
           next unless io_p.set.has_key?(p)
 
+          heads    = io_p.set[p].has_key?(:head)
+          sills    = io_p.set[p].has_key?(:sill)
+          jambs    = io_p.set[p].has_key?(:jamb)
+          openings = heads && sills && jambs
+          concave  = io_p.set.has_key?(:cornerconcave)
+          convex   = io_p.set.has_key?(:cornerconvex)
+          corners  = concave && convex
+
           edges.values.each do |edge|
             next unless edge.has_key?(:psi)
             next if edge.has_key?(:io_set)
@@ -1359,10 +1406,21 @@ RSpec.describe TBD do
               psi = {}
               if edge.has_key?(:io_type)
                 t = edge[:io_type]
-                psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                ok = io_p.set[p].has_key?(t)
+                psi[t] = io_p.set[p][t] if ok
               else
                 edge[:psi].keys.each do |t|
-                  psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                  tt = t
+                  ok = io_p.set[p].has_key?(tt)
+                  unless ok
+                    if t == :head || t == :sill || t == :jamb
+                      tt = :fenestration unless openings
+                    elsif t == :cornerconcave || t == :cornerconvex
+                      tt = :corner unless corners
+                    end
+                    ok = io_p.set[p].has_key?(tt)
+                  end
+                  psi[tt] = io_p.set[p][tt] if ok
                 end
               end
               edge[:spacetypes][p] = psi
@@ -1394,6 +1452,14 @@ RSpec.describe TBD do
           p = space[:psi]
           next unless io_p.set.has_key?(p)
 
+          heads    = io_p.set[p].has_key?(:head)
+          sills    = io_p.set[p].has_key?(:sill)
+          jambs    = io_p.set[p].has_key?(:jamb)
+          openings = heads && sills && jambs
+          concave  = io_p.set.has_key?(:cornerconcave)
+          convex   = io_p.set.has_key?(:cornerconvex)
+          corners  = concave && convex
+
           edges.values.each do |edge|
             next unless edge.has_key?(:psi)
             next if edge.has_key?(:io_set)
@@ -1409,10 +1475,21 @@ RSpec.describe TBD do
               psi = {}
               if edge.has_key?(:io_type)
                 t = edge[:io_type]
-                psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                ok = io_p.set[p].has_key?(t)
+                psi[t] = io_p.set[p][t] if ok
               else
                 edge[:psi].keys.each do |t|
-                  psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                  tt = t
+                  ok = io_p.set[p].has_key?(tt)
+                  unless ok
+                    if t == :head || t == :sill || t == :jamb
+                      tt = :fenestration unless openings
+                    elsif t == :cornerconcave || t == :cornerconvex
+                      tt = :corner unless corners
+                    end
+                    ok = io_p.set[p].has_key?(tt)
+                  end
+                  psi[tt] = io_p.set[p][tt] if ok
                 end
               end
               edge[:spaces][p] = psi
@@ -1443,11 +1520,14 @@ RSpec.describe TBD do
           i = surface[:id]
           p = surface[:psi]
           next unless io_p.set.has_key?(p)
-          tt = :fenestration
-          complet = false
-          complet = true if io_p.set[p].has_key?(:head) &&
-                            io_p.set[p].has_key?(:sill) &&
-                            io_p.set[p].has_key?(:jamb)
+
+          heads    = io_p.set[p].has_key?(:head)
+          sills    = io_p.set[p].has_key?(:sill)
+          jambs    = io_p.set[p].has_key?(:jamb)
+          openings = heads && sills && jambs
+          concave  = io_p.set.has_key?(:cornerconcave)
+          convex   = io_p.set.has_key?(:cornerconvex)
+          corners  = concave && convex
 
           edges.values.each do |edge|
             next unless edge.has_key?(:psi)
@@ -1460,18 +1540,21 @@ RSpec.describe TBD do
               psi = {}
               if edge.has_key?(:io_type)
                 t = edge[:io_type]
-                psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                ok = io_p.set[p].has_key?(t)
+                psi[t] = io_p.set[p][t] if ok
               else
                 edge[:psi].keys.each do |t|
-                  if t == :head || t == :sill || t == :jamb
-                    if complet
-                      psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
-                    else
-                      psi[t] = io_p.set[p][tt] if io_p.set[p].has_key?(tt)
+                  tt = t
+                  ok = io_p.set[p].has_key?(tt)
+                  unless ok
+                    if t == :head || t == :sill || t == :jamb
+                      tt = :fenestration unless openings
+                    elsif t == :cornerconcave || t == :cornerconvex
+                      tt = :corner unless corners
                     end
-                  else
-                    psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                    ok = io_p.set[p].has_key?(tt)
                   end
+                  psi[tt] = io_p.set[p][tt] if ok
                 end
               end
               s[:psi] = psi
@@ -1483,6 +1566,7 @@ RSpec.describe TBD do
         edges.values.each do |edge|
           next unless edge.has_key?(:psi)
           next unless edge.has_key?(:surfaces)
+
           edge[:psi].keys.each do |type|
             vals = {}
             edge[:surfaces].each do |id, s|
@@ -1508,12 +1592,43 @@ RSpec.describe TBD do
         next unless edge.has_key?(:io_type)
         next unless edge.has_key?(:surfaces)
 
-        t = edge[:io_type]
         p = edge[:io_set]
         next unless io_p.set.has_key?(p)
-        next unless io_p.set[p].has_key?(t)
+
+        heads    = io_p.set[p].has_key?(:head)
+        sills    = io_p.set[p].has_key?(:sill)
+        jambs    = io_p.set[p].has_key?(:jamb)
+        openings = heads && sills && jambs
+        concave  = io_p.set.has_key?(:cornerconcave)
+        convex   = io_p.set.has_key?(:cornerconvex)
+        corners  = concave && convex
+
         psi = {}
-        psi[t] = io_p.set[p][t]
+
+        if edge[:io_type] == :fenestration
+          t = :head if edge[:psi].has_key?(:head)
+          t = :sill if edge[:psi].has_key?(:sill)
+          t = :jamb if edge[:psi].has_key?(:jamb)
+          psi[t] = io_p.set[p][:fenestration]
+        elsif edge[:io_type] == :corner
+          t = :cornerconcave if edge[:psi].has_key?(:cornerconcave)
+          t = :cornerconvex  if edge[:psi].has_key?(:cornerconvex)
+          psi[t] = io_p.set[p][:corner]
+        else
+          t = edge[:io_type]
+          ok = io_p.set[p].has_key?(t)
+          unless ok
+            if t == :head || t == :sill || t == :jamb
+              t = :fenestration unless openings
+            elsif t == :cornerconcave || t == :cornerconvex
+              t = :corner unless corners
+            end
+            ok = io_p.set[p].has_key?(t)
+          end
+          psi[t] = io_p.set[p][t] if ok
+        end
+        next if psi.empty?
+
         edge[:psi] = psi
         edge[:set] = p
       end
@@ -1528,6 +1643,7 @@ RSpec.describe TBD do
     n_edges_as_heads           = 0
     n_edges_as_sills           = 0
     n_edges_as_jambs           = 0
+    n_edges_as_corners         = 0
     n_edges_as_concave_corners = 0
     n_edges_as_convex_corners  = 0
     n_edges_as_transitions     = 0
@@ -1543,8 +1659,9 @@ RSpec.describe TBD do
       n_edges_as_heads            += 1 if edge[:psi].has_key?(:head)
       n_edges_as_sills            += 1 if edge[:psi].has_key?(:sill)
       n_edges_as_jambs            += 1 if edge[:psi].has_key?(:jamb)
-      n_edges_as_concave_corners  += 1 if edge[:psi].has_key?(:concave)
-      n_edges_as_convex_corners   += 1 if edge[:psi].has_key?(:convex)
+      n_edges_as_corners          += 1 if edge[:psi].has_key?(:corner)
+      n_edges_as_concave_corners  += 1 if edge[:psi].has_key?(:cornerconcave)
+      n_edges_as_convex_corners   += 1 if edge[:psi].has_key?(:cornerconvex)
       n_edges_as_transitions      += 1 if edge[:psi].has_key?(:transition)
     end
     expect(n_deratables).to               eq(66)
@@ -1556,11 +1673,12 @@ RSpec.describe TBD do
     expect(n_edges_as_heads).to           eq( 2)
     expect(n_edges_as_sills).to           eq( 2)
     expect(n_edges_as_jambs).to           eq( 8)
+    expect(n_edges_as_corners).to         eq( 0)
     expect(n_edges_as_concave_corners).to eq( 4)
     expect(n_edges_as_convex_corners).to  eq(12)
     expect(n_edges_as_transitions).to     eq( 4)
 
-    # loop through each edge and assign heat loss to linked surfaces.
+    # Loop through each edge and assign heat loss to linked surfaces.
     edges.each do |identifier, edge|
       next unless edge.has_key?(:psi)
       psi = edge[:psi].values.max
@@ -1925,8 +2043,8 @@ RSpec.describe TBD do
         l_jamb         += edge[:length] if edge[:type] == :jamb
         l_grade        += edge[:length] if edge[:type] == :grade
         l_parapet      += edge[:length] if edge[:type] == :parapet
-        l_corner       += edge[:length] if edge[:type] == :convex
-        l_corner       += edge[:length] if edge[:type] == :concave
+        l_corner       += edge[:length] if edge[:type] == :cornerconcave
+        l_corner       += edge[:length] if edge[:type] == :cornerconvex
       end
       expect(l_fenestration).to be_within(0.01).of(0)
       #expect(l_head).to         be_within(0.01).of(46.35)
@@ -2078,8 +2196,8 @@ RSpec.describe TBD do
           l_jamb         += edge[:length] if edge[:type] == :jamb
           l_grade        += edge[:length] if edge[:type] == :grade
           l_parapet      += edge[:length] if edge[:type] == :parapet
-          l_corner       += edge[:length] if edge[:type] == :convex
-          l_corner       += edge[:length] if edge[:type] == :concave
+          l_corner       += edge[:length] if edge[:type] == :cornerconcave
+          l_corner       += edge[:length] if edge[:type] == :cornerconvex
         end
         expect(l_fenestration).to be_within(0.01).of(0)
         #expect(l_head).to         be_within(0.01).of(46.35)
@@ -3346,6 +3464,7 @@ RSpec.describe TBD do
     nb_head_edges         = 0
     nb_sill_edges         = 0
     nb_jamb_edges         = 0
+    nb_corners            = 0
     nb_concave_edges      = 0
     nb_convex_edges       = 0
     nb_balcony_edges      = 0
@@ -3374,8 +3493,9 @@ RSpec.describe TBD do
       nb_head_edges         += 1 if t == :head
       nb_sill_edges         += 1 if t == :sill
       nb_jamb_edges         += 1 if t == :jamb
-      nb_concave_edges      += 1 if t == :concave
-      nb_convex_edges       += 1 if t == :convex
+      nb_corners            += 1 if t == :corner
+      nb_concave_edges      += 1 if t == :cornerconcave
+      nb_convex_edges       += 1 if t == :cornerconvex
       nb_balcony_edges      += 1 if t == :balcony
       nb_party_edges        += 1 if t == :party
       nb_grade_edges        += 1 if t == :grade
@@ -3393,6 +3513,7 @@ RSpec.describe TBD do
     expect(nb_head_edges).to         eq(0)
     expect(nb_sill_edges).to         eq(0)
     expect(nb_jamb_edges).to         eq(0)
+    expect(nb_corners).to            eq(0)
     expect(nb_concave_edges).to      eq(0)
     expect(nb_convex_edges).to       eq(0)
     expect(nb_balcony_edges).to      eq(0)
@@ -3409,6 +3530,7 @@ RSpec.describe TBD do
     nb_head_edges         = 0
     nb_sill_edges         = 0
     nb_jamb_edges         = 0
+    nb_corners            = 0
     nb_concave_edges      = 0
     nb_convex_edges       = 0
     nb_balcony_edges      = 0
@@ -3432,8 +3554,9 @@ RSpec.describe TBD do
       nb_head_edges         += 1 if t == :head
       nb_sill_edges         += 1 if t == :sill
       nb_jamb_edges         += 1 if t == :jamb
-      nb_concave_edges      += 1 if t == :concave
-      nb_convex_edges       += 1 if t == :convex
+      nb_corners            += 1 if t == :corner
+      nb_concave_edges      += 1 if t == :cornerconcave
+      nb_convex_edges       += 1 if t == :cornerconvex
       nb_balcony_edges      += 1 if t == :balcony
       nb_party_edges        += 1 if t == :party
       nb_grade_edges        += 1 if t == :grade
@@ -3446,6 +3569,7 @@ RSpec.describe TBD do
     expect(nb_head_edges).to         eq(1)
     expect(nb_sill_edges).to         eq(1)
     expect(nb_jamb_edges).to         eq(2)
+    expect(nb_corners).to            eq(0)
     expect(nb_concave_edges).to      eq(0)
     expect(nb_convex_edges).to       eq(2)           # edges between walls 5 & 4
     expect(nb_balcony_edges).to      eq(0)
@@ -3462,6 +3586,7 @@ RSpec.describe TBD do
     nb_head_edges         = 0
     nb_sill_edges         = 0
     nb_jamb_edges         = 0
+    nb_corners            = 0
     nb_concave_edges      = 0
     nb_convex_edges       = 0
     nb_balcony_edges      = 0
@@ -3486,8 +3611,9 @@ RSpec.describe TBD do
       nb_head_edges         += 1 if t == :head
       nb_sill_edges         += 1 if t == :sill
       nb_jamb_edges         += 1 if t == :jamb
-      nb_concave_edges      += 1 if t == :concave
-      nb_convex_edges       += 1 if t == :convex
+      nb-corners            += 1 if t == :corner
+      nb_concave_edges      += 1 if t == :cornerconcave
+      nb_convex_edges       += 1 if t == :cornerconvex
       nb_balcony_edges      += 1 if t == :balcony
       nb_party_edges        += 1 if t == :party
       nb_grade_edges        += 1 if t == :grade
@@ -3500,6 +3626,7 @@ RSpec.describe TBD do
     expect(nb_head_edges).to         eq(0)
     expect(nb_jamb_edges).to         eq(0)
     expect(nb_sill_edges).to         eq(0)
+    expect(nb_corners).to            eq(0)
     expect(nb_concave_edges).to      eq(0)
     expect(nb_convex_edges).to       eq(0)
     expect(nb_balcony_edges).to      eq(0)
@@ -3668,7 +3795,7 @@ RSpec.describe TBD do
       expect surface.has_key?(:heatloss)
 
       # Ratios are typically negative e.g., a steel corner column decreasing
-      # linked surface RSi values. In some cases, a corner PSI can be negative
+      # linked surface RSi values. In some cases, a corner PSI can be positive
       # (and thus increasing linked surface RSi values). This happens when
       # estimating PSI values for convex corners while relying on an interior
       # dimensioning convention e.g., BETBG Detail 7.6.2, ISO 14683.
@@ -3988,6 +4115,12 @@ RSpec.describe TBD do
       expect(heatloss).to be_within(0.01).of(11.61) if id == name
       name = "Office Front Wall"
       expect(heatloss).to be_within(0.01).of(22.94) if id == name
+    end
+
+    out = JSON.pretty_generate(io)
+    outP = File.dirname(__FILE__) + "/../json/tbd_warehouse5.out.json"
+    File.open(outP, "w") do |outP|
+      outP.puts out
     end
   end
 
@@ -4345,15 +4478,15 @@ RSpec.describe TBD do
     expect(psi.complete?("new set")).to be(false)
     new_set =
     {
-      id:           "new set",
-      rimjoist:     0.000, #
-      parapet:      0.000, #
-      fenestration: 0.000, #
-      concave:      0.000, #
-      convex:       0.000, #
-      balcony:      0.000, #
-      party:        0.000, #
-      grade:        0.000  #
+      id:            "new set",
+      rimjoist:      0.000, #
+      parapet:       0.000, #
+      fenestration:  0.000, #
+      cornerconcave: 0.000, #
+      cornerconvex:  0.000, #
+      balcony:       0.000, #
+      party:         0.000, #
+      grade:         0.000  #
     }
     psi.append(new_set)
     expect(psi.set.has_key?("new set")).to be(true)

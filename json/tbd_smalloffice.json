@@ -7,8 +7,8 @@
       "rimjoist": 0.300,
       "parapet": 0.310,
       "fenestration": 0.320,
-      "concave": 0.330,
-      "convex": 0.340,
+      "cornerconcave": 0.330,
+      "cornerconvex": 0.340,
       "balcony": 0.350,
       "party": 0.360,
       "grade": 0.370

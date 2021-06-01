@@ -108,12 +108,16 @@
           "title": "Aperture jamb/side PSI",
           "type": "number"
         },
-        "concave": {
-          "title": "Wall corner [0°,135°) PSI",
+        "corner": {
+          "title": "Any wall corner [0°,135°) or (225°,360°] PSI",
           "type": "number"
         },
-        "convex": {
-          "title": "Wall corner (225°,360°] PSI",
+        "cornerconcave": {
+          "title": "Concave wall corner [0°,135°) PSI",
+          "type": "number"
+        },
+        "cornerconvex": {
+          "title": "Convex wall corner (225°,360°] PSI",
           "type": "number"
         },
         "balcony": {
@@ -180,8 +184,9 @@
             "head",
             "sill",
             "jamb",
-            "concave",
-            "convex",
+            "corner",
+            "cornerconcave",
+            "cornerconvex",
             "balcony",
             "party",
             "grade",
