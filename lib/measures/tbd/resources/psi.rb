@@ -79,11 +79,11 @@ class PSI
     # may edit these sets, add new sets here, or read-in custom sets from a TBD
     # JSON input file. PSI units are in W/K per linear meter.
 
-    # Convex or concave corner PSI adjustments may be warranted if there is a
-    # mismatch between dimensioning conventions (interior vs exterior) used for
-    # the OSM vs published PSI data. For instance, the BETBG data reflects an
-    # interior dimensioning convention, while ISO 14683 reports PSI values for
-    # both conventions. The following may be used to adjust BETBG PSI values for
+    # Convex vs concave PSI adjustments may be warranted if there is a mismatch
+    # between dimensioning conventions (interior vs exterior) used for the OSM
+    # vs published PSI data. For instance, the BETBG data reflects an interior
+    # dimensioning convention, while ISO 14683 reports PSI values for both
+    # conventions. The following may be used to adjust BETBG PSI values for
     # convex corners when using outside dimensions for an OSM.
     #
     # PSIe = PSIi + U * 2(Li-Le), where:
@@ -100,8 +100,7 @@ class PSI
       rimjoist:      1.000, # *
       parapet:       0.800, # *
       fenestration:  0.500, # *
-      cornerconcave: 0.850, # *
-      cornerconvex:  0.850, # *
+      corner:        0.850, # *
       balcony:       1.000, # *
       party:         0.850, # *
       grade:         0.850, # *
@@ -114,8 +113,7 @@ class PSI
       rimjoist:      0.500, # *
       parapet:       0.450, # *
       fenestration:  0.350, # *
-      cornerconcave: 0.450, # *
-      cornerconvex:  0.450, # *
+      corner:        0.450, # *
       balcony:       0.500, # *
       party:         0.450, # *
       grade:         0.450, # *
@@ -128,8 +126,7 @@ class PSI
       rimjoist:      0.200, # *
       parapet:       0.200, # *
       fenestration:  0.200, # *
-      cornerconcave: 0.200, # *
-      cornerconvex:  0.200, # *
+      corner:        0.200, # *
       balcony:       0.200, # *
       party:         0.200, # *
       grade:         0.200, # *
@@ -142,8 +139,7 @@ class PSI
       rimjoist:      0.300, # *
       parapet:       0.325, # *
       fenestration:  0.350, # ** "regular (BETBG)"
-      cornerconcave: 0.300, # ** (see convex)
-      cornerconvex:  0.300, # ** "regular (BETBG)", adjusted for ext. dimension
+      corner:        0.300, # ** "regular (BETBG)", adjusted for ext. dimension
       balcony:       0.500, # *
       party:         0.450, # ** "regular (BETBG)"
       grade:         0.450, # *
@@ -156,8 +152,7 @@ class PSI
       rimjoist:      0.000,
       parapet:       0.000,
       fenestration:  0.000,
-      cornerconcave: 0.000,
-      cornerconvex:  0.000,
+      corner:        0.000,
       balcony:       0.000,
       party:         0.000,
       grade:         0.000,
@@ -176,20 +171,45 @@ class PSI
     raise "Append PSI set: missing identifier" unless p.has_key?(:id)
     id = p[:id]
     s = {}
-    s[:rimjoist]      = p[:rimjoist]      if p.has_key?(:rimjoist)
-    s[:parapet]       = p[:parapet]       if p.has_key?(:parapet)
-    s[:fenestration]  = p[:fenestration]  if p.has_key?(:fenestration)
-    s[:head]          = p[:head]          if p.has_key?(:head)
-    s[:sill]          = p[:sill]          if p.has_key?(:sill)
-    s[:jamb]          = p[:jamb]          if p.has_key?(:jamb)
-    s[:corner]        = p[:corner]        if p.has_key?(:corner)
-    s[:cornerconcave] = p[:cornerconcave] if p.has_key?(:cornerconcave)
-    s[:cornerconvex]  = p[:cornerconvex]  if p.has_key?(:cornerconvex)
-    s[:balcony]       = p[:balcony]       if p.has_key?(:balcony)
-    s[:party]         = p[:party]         if p.has_key?(:party)
-    s[:grade]         = p[:grade]         if p.has_key?(:grade)
-    s[:joint]         = p[:joint]         if p.has_key?(:joint)
-    s[:transition]    = p[:transition]    if p.has_key?(:transition)
+
+    # Most PSI types have concave and convex variants, depending on the polar
+    # position of deratable surfaces around an edge-as-thermal-bridge. One
+    # exception is :fenestration, which TBD later breaks down into :head, :sill
+    # or :jamb edge types. Another exception is a :joint edge, a PSI type that
+    # is not autoassigned to an edge (i.e., only via a TBD JSON input file).
+    # Finally, transitions are autoassigned by TBD precively when an edge is
+    # "flat" i.e., no noticeable polar angle difference between surfaces.
+    s[:rimjoist]        = p[:rimjoist]        if p.has_key?(:rimjoist)
+    s[:rimjoistconcave] = p[:rimjoistconcave] if p.has_key?(:rimjoistconcave)
+    s[:rimjoistconvex]  = p[:rimjoistconvex]  if p.has_key?(:rimjoistconvex)
+    s[:parapet]         = p[:parapet]         if p.has_key?(:parapet)
+    s[:parapetconcave]  = p[:parapetconcave]  if p.has_key?(:parapetconcave)
+    s[:parapetconvex]   = p[:parapetconvex]   if p.has_key?(:parapetconvex)
+    s[:head]            = p[:head]            if p.has_key?(:head)
+    s[:headconcave]     = p[:headconcave]     if p.has_key?(:headconcave)
+    s[:headconvex]      = p[:headconvex]      if p.has_key?(:headconvex)
+    s[:sill]            = p[:sill]            if p.has_key?(:sill)
+    s[:sillconcave]     = p[:sillconcave]     if p.has_key?(:sillconcave)
+    s[:sillconvex]      = p[:sillconvex]      if p.has_key?(:sillconvex)
+    s[:jamb]            = p[:jamb]            if p.has_key?(:jamb)
+    s[:jambconcave]     = p[:jambconcave]     if p.has_key?(:jambconcave)
+    s[:jambconvex]      = p[:jambconvex]      if p.has_key?(:jambconcave)
+    s[:corner]          = p[:corner]          if p.has_key?(:corner)
+    s[:cornerconcave]   = p[:cornerconcave]   if p.has_key?(:cornerconcave)
+    s[:cornerconvex]    = p[:cornerconvex]    if p.has_key?(:cornerconvex)
+    s[:balcony]         = p[:balcony]         if p.has_key?(:balcony)
+    s[:balconyconcave]  = p[:balconyconcave]  if p.has_key?(:balconyconcave)
+    s[:balconyconvex]   = p[:balconyconvex]   if p.has_key?(:balconyconvex)
+    s[:party]           = p[:party]           if p.has_key?(:party)
+    s[:partyconcave]    = p[:partyconcave]    if p.has_key?(:partyconcave)
+    s[:partyconvex]     = p[:partyconvex]     if p.has_key?(:partyconvex)
+    s[:grade]           = p[:grade]           if p.has_key?(:grade)
+    s[:gradeconcave]    = p[:gradeconcave]    if p.has_key?(:gradeconcave)
+    s[:gradeconvex]     = p[:gradeconvex]     if p.has_key?(:gradeconvex)
+
+    s[:fenestration]    = p[:fenestration]    if p.has_key?(:fenestration)
+    s[:joint]           = p[:joint]           if p.has_key?(:joint)
+    s[:transition]      = p[:transition]      if p.has_key?(:transition)
 
     s[:joint]          = 0.000 unless p.has_key?(:joint)
     s[:transition]     = 0.000 unless p.has_key?(:transition)
@@ -213,12 +233,18 @@ class PSI
     cvexes  = ok &&  @set[s].has_key?(:cornerconvex)
     corners = ok && ccaves && cvexes
     corners = ok && (@set[s].has_key?(:corner) || corners)
+    pcaves  = ok &&  @set[s].has_key?(:partyconcave)
+    pvexes  = ok &&  @set[s].has_key?(:partyconvex)
+    parties = ok && pcaves && pvexes
+    parties = ok && (@set[s].has_key?(:party) || parties)
+    gcaves  = ok &&  @set[s].has_key?(:gradeconcave)
+    gvexes  = ok &&  @set[s].has_key?(:gradeconvex)
+    grades = ok && gcaves && gvexes
+    grades = ok && (@set[s].has_key?(:grade) || grades)
     ok      = ok &&  @set[s].has_key?(:rimjoist)
     ok      = ok &&  @set[s].has_key?(:parapet)
     ok      = ok &&  @set[s].has_key?(:balcony)
-    ok      = ok &&  @set[s].has_key?(:party)
-    ok      = ok &&  @set[s].has_key?(:grade)
-    ok      = ok &&  holes && corners
+    ok      = ok &&  holes && corners && parties && grades
     ok
   end
 end
@@ -497,6 +523,12 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
                   raise "#{p} missing PSI #{t}" unless psi.set[p].has_key?(tt)
                 elsif t == :cornerconcave || t == :cornerconvex
                   tt = :corner
+                  raise "#{p} missing PSI #{t}" unless psi.set[p].has_key?(tt)
+                elsif t == :partyconcave || t == :partyconvex
+                  tt = :party
+                  raise "#{p} missing PSI #{t}" unless psi.set[p].has_key?(tt)
+                elsif t == :gradeconcave || t == :gradeconvex
+                  tt = :grade
                   raise "#{p} missing PSI #{t}" unless psi.set[p].has_key?(tt)
                 else
                   raise "#{p} missing PSI #{t}" unless psi.set[p].has_key?(t)
@@ -1134,7 +1166,7 @@ def trueNormal(s, r)
   raise "Invalid surface (normals)" unless s
   raise "Invalid rotation angle (normals)" unless r
   cl = OpenStudio::Model::PlanarSurface
-  raise "#{s.class}? expected #{c} (normals)" unless s.is_a?(cl)
+  raise "#{s.class}? expected #{cl} (normals)" unless s.is_a?(cl)
   raise "#{r.class}? expected numeric (normals)" unless r.is_a?(Numeric)
 
   n = Topolys::Vector3D.new(s.outwardNormal.x * Math.cos(r) -
@@ -1142,6 +1174,62 @@ def trueNormal(s, r)
                             s.outwardNormal.x * Math.sin(r) +
                             s.outwardNormal.y * Math.cos(r),                 # y
                             s.outwardNormal.z)                               # z
+end
+
+##
+# Validate whether edge surfaces form a concave angle, as seen from outside.
+#
+# @param [Surface] s1 A first TBD surface
+# @param [Surface] s2 A second TBD surface
+#
+# @return [Bool] Returns true if angle between surfaces is concave
+def concave?(s1, s2)
+  concave = false
+  raise "#{s1.class}? expected Hash (concave?)" unless s1.is_a?(Hash)
+  raise "#{s2.class}? expected Hash (concave?)" unless s2.is_a?(Hash)
+  raise "Missing angle from s1 (concave?)" unless s1.has_key?(:angle)
+  raise "Missing angle from s2 (concave?)" unless s2.has_key?(:angle)
+  raise "Missing normal from s1 (concave?)" unless s1.has_key?(:normal)
+  raise "Missing normal from s2 (concave?)" unless s2.has_key?(:normal)
+  raise "Missing polar angle from s1 (concave?)" unless s1.has_key?(:polar)
+  raise "Missing polar angle from s2 (concave?)" unless s2.has_key?(:polar)
+
+  angle = (s2[:angle] - s1[:angle]).abs
+  return false unless 2 * Math::PI - angle > TOL
+  return false if angle > 3 * Math::PI / 4 && angle < 5 * Math::PI / 4
+
+  n1_d_p2 = s1[:normal].dot(s2[:polar])
+  p1_d_n2 = s1[:polar].dot(s2[:normal])
+  concave = true if n1_d_p2 > 0 && p1_d_n2 > 0
+  concave
+end
+
+##
+# Validate whether edge surfaces form a convex angle, as seen from outside.
+#
+# @param [Surface] s1 A first TBD surface
+# @param [Surface] s2 A second TBD surface
+#
+# @return [Bool] Returns true if angle between surfaces is convex
+def convex?(s1, s2)
+  convex = false
+  raise "#{s1.class}? expected Hash (convex?)" unless s1.is_a?(Hash)
+  raise "#{s2.class}? expected Hash (convex?)" unless s2.is_a?(Hash)
+  raise "Missing angle from s1 (convex?)" unless s1.has_key?(:angle)
+  raise "Missing angle from s2 (convex?)" unless s2.has_key?(:angle)
+  raise "Missing normal from s1 (convex?)" unless s1.has_key?(:normal)
+  raise "Missing normal from s2 (convex?)" unless s2.has_key?(:normal)
+  raise "Missing polar angle from s1 (convex?)" unless s1.has_key?(:polar)
+  raise "Missing polar angle from s2 (convex?)" unless s2.has_key?(:polar)
+
+  angle = (s2[:angle] - s1[:angle]).abs
+  return false unless 2 * Math::PI - angle > TOL
+  return false if angle > 3 * Math::PI / 4 && angle < 5 * Math::PI / 4
+
+  n1_d_p2 = s1[:normal].dot(s2[:polar])
+  p1_d_n2 = s1[:polar].dot(s2[:normal])
+  convex = true if n1_d_p2 < 0 && p1_d_n2 < 0
+  convex
 end
 
 ##
@@ -2130,7 +2218,15 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
              edge[:io_type] == :jamb          ||
              edge[:io_type] == :corner        ||
              edge[:io_type] == :cornerconcave ||
-             edge[:io_type] == :cornerconvex
+             edge[:io_type] == :cornerconvex  ||
+             edge[:io_type] == :party         ||
+             edge[:io_type] == :partyconcave  ||
+             edge[:io_type] == :partyconvex   ||
+             edge[:io_type] == :grade         ||
+             edge[:io_type] == :gradeconcave  ||
+             edge[:io_type] == :gradeconvex   ||
+             edge[:io_type] == :joint   ||
+             edge[:io_type] == :transition
         match = true
         t = edge[:io_type]
         psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
@@ -2150,6 +2246,8 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
         count = 0
         edge[:surfaces].keys.each do |i|
           next if psi.has_key?(:party)
+          next if psi.has_key?(:partyconcave)
+          next if psi.has_key?(:partyconvex)
           next if i == id
           next unless surfaces.has_key?(i)
           next unless surfaces[i].has_key?(:deratable)
@@ -2158,6 +2256,8 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
         end
         edge[:surfaces].keys.each do |i|
           next if psi.has_key?(:party)
+          next if psi.has_key?(:partyconcave)
+          next if psi.has_key?(:partyconvex)
           next if count == 1
           next unless surfaces[id].has_key?(:deratable)
           next unless surfaces[id][:deratable]
@@ -2165,7 +2265,28 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
           next unless surfaces[i].has_key?(:deratable)
           next if surfaces[i][:deratable]
           next unless surfaces[i][:boundary].downcase == "adiabatic"
-          psi[:party] = io_p.set[p][:party]
+
+          party   = io_p.set[p].has_key?(:party)
+          concave = io_p.set[p].has_key?(:partyconcave)
+          convex  = io_p.set[p].has_key?(:partyconvex)
+          next unless party || concave || convex
+
+          vals               = { party: 0, concave: 0, convex: 0}
+          vals[:party]       = io_p.set[p][:party]                if party
+          vals[:concave]     = io_p.set[p][:partyconcave]         if concave
+          vals[:convex]      = io_p.set[p][:partyconvex]          if convex
+          max                = vals.values.max
+          vals[:party]       = max unless vals[:party].abs        > TOL
+          vals[:concave]     = max unless vals[:concave].abs      > TOL
+          vals[:convex]      = max unless vals[:convex].abs       > TOL
+          s1 = edge[:surfaces][id]
+          s2 = edge[:surfaces][i]
+          econcave           = concave?(s1, s2)
+          econvex            = convex?(s1, s2)
+          flat               = !econcave && !econvex
+          psi[:party]        = vals[:party]                       if flat
+          psi[:partyconcave] = vals[:concave]                     if econcave
+          psi[:partyconvex]  = vals[:convex]                      if econvex
         end
       end
 
@@ -2175,13 +2296,36 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       unless psi.has_key?(:grade)
         edge[:surfaces].keys.each do |i|
           next if psi.has_key?(:grade)
+          next if psi.has_key?(:gradeconcave)
+          next if psi.has_key?(:gradeconvex)
           next unless surfaces[id].has_key?(:ground)
           next unless surfaces[id][:ground]
           next unless surfaces.has_key?(i)
           next unless surfaces[i].has_key?(:conditioned)
           next unless surfaces[i][:conditioned]
           next unless surfaces[i][:boundary].downcase == "outdoors"
-          psi[:grade] = io_p.set[p][:grade]
+
+          grade   = io_p.set[p].has_key?(:grade)
+          concave = io_p.set[p].has_key?(:gradeconcave)
+          convex  = io_p.set[p].has_key?(:gradeconvex)
+          next unless grade || concave || convex
+
+          vals               = { grade: 0, concave: 0, convex: 0}
+          vals[:grade]       = io_p.set[p][:grade]                if grade
+          vals[:concave]     = io_p.set[p][:gradeconcave]         if concave
+          vals[:convex]      = io_p.set[p][:gradeconvex]          if convex
+          max                = vals.values.max
+          vals[:grade]       = max unless vals[:grade].abs        > TOL
+          vals[:concave]     = max unless vals[:concave].abs      > TOL
+          vals[:convex]      = max unless vals[:convex].abs       > TOL
+          s1                 = edge[:surfaces][id]
+          s2                 = edge[:surfaces][i]
+          econcave           = concave?(s1, s2)
+          econvex            = convex?(s1, s2)
+          flat               = !econcave && !econvex
+          psi[:grade]        = vals[:grade]                       if flat
+          psi[:gradeconcave] = vals[:concave]                     if econcave
+          psi[:gradeconvex]  = vals[:convex]                      if econvex
         end
       end
 
@@ -2329,20 +2473,13 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
 
           s1 = edge[:surfaces][id]
           s2 = edge[:surfaces][i]
+          next unless concave?(s1, s2) || convex?(s1, s2)
 
-          angle = (s2[:angle] - s1[:angle]).abs
-          next unless (2 * Math::PI - angle).abs > 0
-          next if angle > 3 * Math::PI / 4 && angle < 5 * Math::PI / 4
-
-          n1_d_p2 = s1[:normal].dot(s2[:polar])
-          p1_d_n2 = s1[:polar].dot(s2[:normal])
-          c1 = :cornerconcave
-          c2 = :cornerconvex
-          c3 = :corner
-          psi[c1] = io_p.set[p][c1] if n1_d_p2 > 0 && p1_d_n2 > 0 if corners
-          psi[c2] = io_p.set[p][c2] if n1_d_p2 < 0 && p1_d_n2 < 0 if corners
-          psi[c1] = io_p.set[p][c3] if n1_d_p2 > 0 && p1_d_n2 > 0 unless corners
-          psi[c2] = io_p.set[p][c3] if n1_d_p2 < 0 && p1_d_n2 < 0 unless corners
+          val = io_p.set[p][:corner]        unless corners
+          val = io_p.set[p][:cornerconcave] if concave?(s1, s2) && corners
+          val = io_p.set[p][:cornerconvex]  if convex?(s1,  s2) && corners
+          psi[:cornerconcave] = val         if concave?(s1, s2)
+          psi[:cornerconvex]  = val         if convex?(s1,  s2)
           edge[:corners] = corners
         end
       end
@@ -2381,7 +2518,18 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
              edge[:io_type] == :jamb          ||
              edge[:io_type] == :corner        ||
              edge[:io_type] == :cornerconcave ||
-             edge[:io_type] == :cornerconvex
+             edge[:io_type] == :cornerconvex  ||
+             edge[:io_type] == :party         ||
+             edge[:io_type] == :partyconcave  ||
+             edge[:io_type] == :partyconvex   ||
+             edge[:io_type] == :grade         ||
+             edge[:io_type] == :gradeconcave  ||
+             edge[:io_type] == :gradeconvex   ||
+             edge[:io_type] == :parapet       ||
+             edge[:io_type] == :rimjoist      ||
+             edge[:io_type] == :balcony       ||
+             edge[:io_type] == :joint         ||
+             edge[:io_type] == :transition
         match = true
         t = edge[:io_type]
         psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
@@ -2428,9 +2576,15 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
         sills    = io_p.set[p].has_key?(:sill)
         jambs    = io_p.set[p].has_key?(:jamb)
         openings = heads && sills && jambs
-        concave  = io_p.set.has_key?(:cornerconcave)
-        convex   = io_p.set.has_key?(:cornerconvex)
-        corners  = concave && convex
+        cconcave = io_p.set.has_key?(:cornerconcave)
+        cconvex  = io_p.set.has_key?(:cornerconvex)
+        corners  = cconcave && cconvex
+        pconcave = io_p.set.has_key?(:partyconcave)
+        pconvex  = io_p.set.has_key?(:partyconvex)
+        parties  = pconcave && pconvex
+        gconcave = io_p.set.has_key?(:gradeconcave)
+        gconvex  = io_p.set.has_key?(:gradeconvex)
+        grades   = gconcave && gconvex
 
         edges.values.each do |edge|
           next unless edge.has_key?(:psi)
@@ -2458,6 +2612,10 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
                     tt = :fenestration unless openings
                   elsif t == :cornerconcave || t == :cornerconvex
                     tt = :corner unless corners
+                  elsif t == :partyconcave || t == :partyconvex
+                    tt = :party unless parties
+                  elsif t == :gradeconcave || t == :gradeconvex
+                    tt = :grade unless grades
                   end
                   ok = io_p.set[p].has_key?(tt)
                 end
@@ -2502,9 +2660,15 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
         sills    = io_p.set[p].has_key?(:sill)
         jambs    = io_p.set[p].has_key?(:jamb)
         openings = heads && sills && jambs
-        concave  = io_p.set.has_key?(:cornerconcave)
-        convex   = io_p.set.has_key?(:cornerconvex)
-        corners  = concave && convex
+        cconcave = io_p.set.has_key?(:cornerconcave)
+        cconvex  = io_p.set.has_key?(:cornerconvex)
+        corners  = cconcave && cconvex
+        pconcave = io_p.set.has_key?(:partyconcave)
+        pconvex  = io_p.set.has_key?(:partyconvex)
+        parties  = pconcave && pconvex
+        gconcave = io_p.set.has_key?(:gradeconcave)
+        gconvex  = io_p.set.has_key?(:gradeconvex)
+        grades   = gconcave && gconvex
 
         edges.values.each do |edge|
           next unless edge.has_key?(:psi)
@@ -2532,6 +2696,10 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
                     tt = :fenestration unless openings
                   elsif t == :cornerconcave || t == :cornerconvex
                     tt = :corner unless corners
+                  elsif t == :partyconcave || t == :partyconvex
+                    tt = :party unless parties
+                  elsif t == :gradeconcave || t == :gradeconvex
+                    tt = :grade unless grades
                   end
                   ok = io_p.set[p].has_key?(tt)
                 end
@@ -2576,9 +2744,15 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
         sills    = io_p.set[p].has_key?(:sill)
         jambs    = io_p.set[p].has_key?(:jamb)
         openings = heads && sills && jambs
-        concave  = io_p.set.has_key?(:cornerconcave)
-        convex   = io_p.set.has_key?(:cornerconvex)
-        corners  = concave && convex
+        cconcave = io_p.set.has_key?(:cornerconcave)
+        cconvex  = io_p.set.has_key?(:cornerconvex)
+        corners  = cconcave && cconvex
+        pconcave = io_p.set.has_key?(:partyconcave)
+        pconvex  = io_p.set.has_key?(:partyconvex)
+        parties  = pconcave && pconvex
+        gconcave = io_p.set.has_key?(:gradeconcave)
+        gconvex  = io_p.set.has_key?(:gradeconvex)
+        grades   = gconcave && gconvex
 
         edges.values.each do |edge|
           next unless edge.has_key?(:psi)
@@ -2606,6 +2780,10 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
                     tt = :fenestration unless openings
                   elsif t == :cornerconcave || t == :cornerconvex
                     tt = :corner unless corners
+                  elsif t == :partyconcave || t == :partyconvex
+                    tt = :party unless parties
+                  elsif t == :gradeconcave || t == :gradeconvex
+                    tt = :grade unless grades
                   end
                   ok = io_p.set[p].has_key?(tt)
                 end
@@ -2650,9 +2828,15 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
         sills    = io_p.set[p].has_key?(:sill)
         jambs    = io_p.set[p].has_key?(:jamb)
         openings = heads && sills && jambs
-        concave  = io_p.set.has_key?(:cornerconcave)
-        convex   = io_p.set.has_key?(:cornerconvex)
-        corners  = concave && convex
+        cconcave = io_p.set.has_key?(:cornerconcave)
+        cconvex  = io_p.set.has_key?(:cornerconvex)
+        corners  = cconcave && cconvex
+        pconcave = io_p.set.has_key?(:partyconcave)
+        pconvex  = io_p.set.has_key?(:partyconvex)
+        parties  = pconcave && pconvex
+        gconcave = io_p.set.has_key?(:gradeconcave)
+        gconvex  = io_p.set.has_key?(:gradeconvex)
+        grades   = gconcave && gconvex
 
         edges.values.each do |edge|
           next unless edge.has_key?(:psi)
@@ -2676,6 +2860,10 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
                     tt = :fenestration unless openings
                   elsif t == :cornerconcave || t == :cornerconvex
                     tt = :corner unless corners
+                  elsif t == :partyconcave || t == :partyconvex
+                    tt = :party unless parties
+                  elsif t == :gradeconcave || t == :gradeconvex
+                    tt = :grade unless grades
                   end
                   ok = io_p.set[p].has_key?(tt)
                 end
@@ -2728,12 +2916,17 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       sills    = io_p.set[p].has_key?(:sill)
       jambs    = io_p.set[p].has_key?(:jamb)
       openings = heads && sills && jambs
-      concave  = io_p.set.has_key?(:cornerconcave)
-      convex   = io_p.set.has_key?(:cornerconvex)
-      corners  = concave && convex
+      cconcave = io_p.set.has_key?(:cornerconcave)
+      cconvex  = io_p.set.has_key?(:cornerconvex)
+      corners  = cconcave && cconvex
+      pconcave = io_p.set.has_key?(:partyconcave)
+      pconvex  = io_p.set.has_key?(:partyconvex)
+      parties  = pconcave && pconvex
+      gconcave = io_p.set.has_key?(:gradeconcave)
+      gconvex  = io_p.set.has_key?(:gradeconvex)
+      grades   = gconcave && gconvex
 
       psi = {}
-
       if edge[:io_type] == :fenestration
         t = :head if edge[:psi].has_key?(:head)
         t = :sill if edge[:psi].has_key?(:sill)
@@ -2743,15 +2936,30 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
         t = :cornerconcave if edge[:psi].has_key?(:cornerconcave)
         t = :cornerconvex  if edge[:psi].has_key?(:cornerconvex)
         psi[t] = io_p.set[p][:corner]
+      elsif edge[:io_type] == :party
+        t = :partyconcave if edge[:psi].has_key?(:partyconcave)
+        t = :partyconvex  if edge[:psi].has_key?(:partyconvex)
+        psi[t] = io_p.set[p][:party]
+      elsif edge[:io_type] == :grade
+        t = :gradeconcave if edge[:psi].has_key?(:gradeconcave)
+        t = :gradeconvex  if edge[:psi].has_key?(:gradeconvex)
+        psi[t] = io_p.set[p][:grade]
       else
         t = edge[:io_type]
         tt = t
         ok = io_p.set[p].has_key?(tt)
+        #puts "parapet !" if tt == :parapet
         unless ok
-          if t == :head || t == :sill || t == :jamb
+          if t == :head || t == :sill || t == :jamb ||
+             t == :headconcave || t == :sillconcave || t == :jambconcave ||
+             t == :headconvex || t == :sillconvex || t == :jambconvex
             tt = :fenestration unless openings
           elsif t == :cornerconcave || t == :cornerconvex
             tt = :corner unless corners
+          elsif t == :partyconcave || t == :partyconvex
+            tt = :party unless parties
+          elsif t == :gradeconcave || t == :gradeconvex
+            tt = :grade unless grades
           end
           ok = io_p.set[p].has_key?(tt)
         end

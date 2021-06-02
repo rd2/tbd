@@ -128,8 +128,24 @@
           "title": "Party wall edge PSI",
           "type": "number"
         },
+        "partyconcave": {
+          "title": "Concave party wall edge PSI",
+          "type": "number"
+        },
+        "partyconvex": {
+          "title": "Convex party wall edge PSI",
+          "type": "number"
+        },
         "grade": {
           "title": "Floor/foundation edge PSI",
+          "type": "number"
+        },
+        "gradeconcave": {
+          "title": "Concave floor/foundation edge PSI",
+          "type": "number"
+        },
+        "gradecovex": {
+          "title": "Convex floor/foundation edge PSI",
           "type": "number"
         },
         "joint": {
@@ -189,7 +205,11 @@
             "cornerconvex",
             "balcony",
             "party",
+            "partyconcave",
+            "partyconvex",
             "grade",
+            "gradeconcave",
+            "gradeconvex",
             "joint",
             "transition"
           ]
