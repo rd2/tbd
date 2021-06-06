@@ -897,12 +897,11 @@ RSpec.describe TBD do
     edges.values.each do |edge|
       origin      = edge[:v0].point
       terminal    = edge[:v1].point
-
-      horizontal  = false
-      horizontal  = true if (origin.z - terminal.z).abs < 0.01
-      vertical    = false
-      vertical    = true if (origin.x - terminal.x).abs < 0.01 &&
-                            (origin.y - terminal.y).abs < 0.01
+      dx = (origin.x - terminal.x).abs
+      dy = (origin.y - terminal.y).abs
+      dz = (origin.z - terminal.z).abs
+      horizontal  = dz.abs < TOL
+      vertical    = dx < TOL && dy < TOL
 
       edge_V = terminal - origin
       edge_plane = Topolys::Plane3D.new(origin, edge_V)
@@ -1002,246 +1001,251 @@ RSpec.describe TBD do
 
     psi_set = "poor (BETBG)"
     io, io_p, io_k = processTBDinputs(surfaces, edges, psi_set)
-
-    # psi = PSI.new
+    p = io[:building].first[:psi]
+    has, val = io_p.shorthands(p)
 
     edges.values.each do |edge|
       next unless edge.has_key?(:surfaces)
-
-      deratable = false
+      deratables = []
       edge[:surfaces].each do |id, surface|
-        next if deratable
         next unless surfaces.has_key?(id)
         next unless surfaces[id].has_key?(:deratable)
-        deratable = true if surfaces[id][:deratable]
+        deratables << id if surfaces[id][:deratable]
       end
-      next unless deratable
-
-      psi = {}                                         # edge-specific PSI types
-      p = io[:building].first[:psi]                       # default building PSI
-
-      match = false
-      if edge.has_key?(:io_type)              # customized edge in TBD JSON file
-        match = true
-        t = edge[:io_type]
-        p = edge[:io_set]       if edge.has_key?(:io_set)
-        edge[:set] = p          if io_p.set.has_key?(p)
-        psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
-      end
+      next if deratables.empty?
+      psi = {}
 
       edge[:surfaces].keys.each do |id|
-        next if match                                       # skip if customized
-        next unless surfaces.has_key?(id)
+        next unless deratables.include?(id)
         next unless surfaces[id].has_key?(:conditioned)
         next unless surfaces[id][:conditioned]
 
-        # Label edge as :party if linked to:
-        #   1x adiabatic surface
-        #   1x (only) deratable surface
-        unless psi.has_key?(:party)
-          count = 0
+        # Evaluate PSI content before processing a new linked surface.
+        is = {}
+        is[:head]     = psi.keys.to_s.include?("head")
+        is[:sill]     = psi.keys.to_s.include?("sill")
+        is[:jamb]     = psi.keys.to_s.include?("jamb")
+        is[:corner]   = psi.keys.to_s.include?("corner")
+        is[:parapet]  = psi.keys.to_s.include?("parapet")
+        is[:party]    = psi.keys.to_s.include?("party")
+        is[:grade]    = psi.keys.to_s.include?("grade")
+        is[:balcony]  = psi.keys.to_s.include?("balcony")
+        is[:rimjoist] = psi.keys.to_s.include?("rimjoist")
+
+        # Label edge as :head, :sill or :jamb if linked to:
+        #   1x subsurface
+        unless is[:head] || is[:sill] || is[:jamb]
           edge[:surfaces].keys.each do |i|
-            next if psi.has_key?(:party)
-            next if psi.has_key?(:partyconcave)
-            next if psi.has_key?(:partyconvex)
+            next if is[:head] || is[:sill] || is[:jamb]
             next if i == id
-            next unless surfaces.has_key?(i)
-            next unless surfaces[i].has_key?(:deratable)
-            next unless surfaces[i][:deratable]
-            count += 1
-          end
-          edge[:surfaces].keys.each do |i|
-            next if psi.has_key?(:party)
-            next if psi.has_key?(:partyconcave)
-            next if psi.has_key?(:partyconvex)
-            next if count == 1
-            next unless surfaces[id].has_key?(:deratable)
-            next unless surfaces[id][:deratable]
-            next unless surfaces.has_key?(i)
-            next unless surfaces[i].has_key?(:deratable)
-            next if surfaces[i][:deratable]
-            next unless surfaces[i][:boundary].downcase == "adiabatic"
+            next if deratables.include?(i)
+            next unless holes.has_key?(i)
 
-            concave = io_p.set[p].has_key?(:partyconcave)
-            convex  = io_p.set[p].has_key?(:partyconvex)
-            parties = concave && convex
-            s1 = edge[:surfaces][id]
-            s2 = edge[:surfaces][i]
-            val = io_p.set[p][:party]        unless parties
-            val = io_p.set[p][:partyconcave] if concave?(s1, s2) && parties
-            val = io_p.set[p][:partyconvex]  if convex?(s1,  s2) && parties
-            psi[:partyconcave] = val         if concave?(s1, s2)
-            psi[:partyconvex]  = val         if convex?(s1,  s2)
-            edge[:parties] = parties
+            ii = ""
+            ii = id if deratables.size == 1                           # just dad
+            if ii.empty?                                            # seek uncle
+              jj = deratables.first unless deratables.first == id
+              jj = deratables.last  unless deratables.last  == id
+              id_has = {}
+              id_has[:windows]   = true if surfaces[id].has_key?(:windows)
+              id_has[:doors]     = true if surfaces[id].has_key?(:doors)
+              id_has[:skylights] = true if surfaces[id].has_key?(:skylights)
+              ido = []
+              ido = ido + surfaces[id][:windows].keys   if id_has[:windows]
+              ido = ido + surfaces[id][:doors].keys     if id_has[:doors]
+              ido = ido + surfaces[id][:skylights].keys if id_has[:skylights]
+              jj_has = {}
+              jj_has[:windows]   = true if surfaces[jj].has_key?(:windows)
+              jj_has[:doors]     = true if surfaces[jj].has_key?(:doors)
+              jj_has[:skylights] = true if surfaces[jj].has_key?(:skylights)
+              jjo = []
+              jjo = jjo + surfaces[jj][:windows].keys   if jj_has[:windows]
+              jjo = jjo + surfaces[jj][:doors].keys     if jj_has[:doors]
+              jjo = jjo + surfaces[jj][:skylights].keys if jj_has[:skylights]
+              ii = jj if ido.include?(i)
+              ii = id if jjo.include?(i)
+            end
+            next if ii.empty?
+
+            s1      = edge[:surfaces][ii]
+            s2      = edge[:surfaces][i]
+            concave = concave?(s1, s2)
+            convex  = convex?(s1, s2)
+            flat    = !concave && !convex
+
+            if ((s2[:normal].dot(zenith)).abs - 1).abs < TOL
+              psi[:jamb]        = val[:jamb]        if flat
+              psi[:jambconcave] = val[:jambconcave] if concave
+              psi[:jambconvex]  = val[:jambconvex]  if convex
+               is[:jamb]        = true
+            else
+              if edge[:horizontal]
+                if s2[:polar].dot(zenith) < 0
+                  psi[:head]        = val[:head]        if flat
+                  psi[:headconcave] = val[:headconcave] if concave
+                  psi[:headconvex]  = val[:headconvex]  if convex
+                   is[:head]        = true
+                else
+                  psi[:sill]        = val[:sill]        if flat
+                  psi[:sillconcave] = val[:sillconcave] if concave
+                  psi[:sillconvex]  = val[:sillconvex]  if convex
+                   is[:sill]        = true
+                end
+              else
+                psi[:jamb]        = val[:jamb]        if flat
+                psi[:jambconcave] = val[:jambconcave] if concave
+                psi[:jambconvex]  = val[:jambconvex]  if convex
+                 is[:jamb]        = true
+              end
+            end
           end
         end
 
-        # Label edge as :grade if linked to:
-        #   1x surface (e.g. slab or wall) facing ground
-        #   1x surface (i.e. wall) facing outdoors
-        unless psi.has_key?(:grade)
+        # Label edge as :cornerconcave or :cornerconvex if linked to:
+        #   2x deratable walls & f(relative polar wall vectors around edge)
+        unless is[:cornerconcave] || is[:cornerconvex]
           edge[:surfaces].keys.each do |i|
-            next if psi.has_key?(:grade)
-            next if psi.has_key?(:gradeconcave)
-            next if psi.has_key?(:gradeconvex)
-            next unless surfaces[id].has_key?(:ground)
-            next unless surfaces[id][:ground]
-            next unless surfaces.has_key?(i)
-            next unless surfaces[i].has_key?(:conditioned)
-            next unless surfaces[i][:conditioned]
-            next unless surfaces[i][:boundary].downcase == "outdoors"
+            next if is[:cornerconcave] || is[:cornerconvex]
+            next if i == id
+            next unless deratables.size == 2
+            next unless deratables.include?(i)
+            next unless walls.has_key?(id)
+            next unless walls.has_key?(i)
 
-            concave = io_p.set[p].has_key?(:gradeconcave)
-            convex  = io_p.set[p].has_key?(:gradeconvex)
-            grades = concave && convex
-            s1 = edge[:surfaces][id]
-            s2 = edge[:surfaces][i]
+            s1      = edge[:surfaces][id]
+            s2      = edge[:surfaces][i]
+            concave = concave?(s1, s2)
+            convex  = convex?(s1, s2)
+            flat    = !concave && !convex
 
-            val = io_p.set[p][:grade]        unless grades
-            val = io_p.set[p][:gradeconcave] if concave?(s1, s2) && grades
-            val = io_p.set[p][:gradeconvex]  if convex?(s1,  s2) && grades
-            psi[:gradeconcave] = val         if concave?(s1, s2)
-            psi[:gradeconvex]  = val         if convex?(s1,  s2)
-            edge[:grades] = grades
-          end
-        end
-
-        # Label edge as :balcony if linked to:
-        #   1x floor
-        #   1x shade
-        unless psi.has_key?(:balcony)
-          edge[:surfaces].keys.each do |i|
-            next unless shades.has_key?(i)
-            next unless floors.has_key?(id)
-            psi[:balcony] = io_p.set[p][:balcony]
+            psi[:cornerconcave] = val[:cornerconcave] if concave
+            psi[:cornerconvex]  = val[:cornerconvex]  if convex
+             is[:corner]        = true
           end
         end
 
         # Label edge as :parapet if linked to:
         #   1x deratable wall
         #   1x deratable ceiling
-        unless psi.has_key?(:parapet)
+        unless is[:parapet]
           edge[:surfaces].keys.each do |i|
+            next if is[:parapet]
+            next if i == id
+            next unless deratables.size == 2
+            next unless deratables.include?(i)
             next unless ceilings.has_key?(id)
-            next unless ceilings[id].has_key?(:deratable)
-            next unless ceilings[id][:deratable]
             next unless walls.has_key?(i)
-            next unless walls[i].has_key?(:deratable)
-            next unless walls[i][:deratable]
-            psi[:parapet] = io_p.set[p][:parapet]
+
+            s1      = edge[:surfaces][id]
+            s2      = edge[:surfaces][i]
+            concave = concave?(s1, s2)
+            convex  = convex?(s1, s2)
+            flat    = !concave && !convex
+
+            psi[:parapet]        = val[:parapet]        if flat
+            psi[:parapetconcave] = val[:parapetconcave] if concave
+            psi[:parapetconvex]  = val[:parapetconvex]  if convex
+             is[:parapet]        = true
           end
         end
 
-        # Repeat for exposed floors vs walls, as :parapet is currently a
-        # proxy for intersections between exposed floors & walls
-        unless psi.has_key?(:parapet)
+        # Label edge as :party if linked to:
+        #   1x adiabatic surface
+        #   1x (only) deratable surface
+        unless is[:party]
           edge[:surfaces].keys.each do |i|
-            next unless floors.has_key?(id)
-            next unless floors[id].has_key?(:deratable)
-            next unless floors[id][:deratable]
-            next unless walls.has_key?(i)
-            next unless walls[i].has_key?(:deratable)
-            next unless walls[i][:deratable]
-            psi[:parapet] = io_p.set[p][:parapet]
+            next if is[:party]
+            next if i == id
+            next unless deratables.size == 1
+            next unless surfaces.has_key?(i)
+            next if holes.has_key?(i)
+            next if shades.has_key?(i)
+            next unless surfaces[i][:boundary].downcase == "adiabatic"
+
+            s1      = edge[:surfaces][id]
+            s2      = edge[:surfaces][i]
+            concave = concave?(s1, s2)
+            convex  = convex?(s1, s2)
+            flat    = !concave && !convex
+
+            psi[:party]        = val[:party]        if flat
+            psi[:partyconcave] = val[:partyconcave] if concave
+            psi[:partyconvex]  = val[:partyconvex]  if convex
+             is[:party]        = true
           end
         end
 
-        # Repeat for exposed floors vs roofs, as :parapet is currently a
-        # proxy for intersections between exposed floors & roofs
-        unless psi.has_key?(:parapet)
+        # Label edge as :grade if linked to:
+        #   1x surface (e.g. slab or wall) facing ground
+        #   1x surface (i.e. wall) facing outdoors
+        unless is[:grade]
           edge[:surfaces].keys.each do |i|
-            next unless floors.has_key?(id)
-            next unless floors[id].has_key?(:deratable)
-            next unless floors[id][:deratable]
-            next unless ceilings.has_key?(i)
-            next unless ceilings[i].has_key?(:deratable)
-            next unless ceilings[i][:deratable]
-            psi[:parapet] = io_p.set[p][:parapet]
+            next if is[:grade]
+            next if i == id
+            next unless deratables.size == 1
+            next unless surfaces.has_key?(i)
+            next unless surfaces[i].has_key?(:ground)
+            next unless surfaces[i][:ground]
+
+            s1      = edge[:surfaces][id]
+            s2      = edge[:surfaces][i]
+            concave = concave?(s1, s2)
+            convex  = convex?(s1, s2)
+            flat    = !concave && !convex
+
+            psi[:grade]        = val[:grade]        if flat
+            psi[:gradeconcave] = val[:gradeconcave] if concave
+            psi[:gradeconvex]  = val[:gradeconvex]  if convex
+             is[:grade]        = true
           end
         end
 
-        # Label edge as :rimjoist if linked to:
-        #   1x deratable wall
+        # Label edge as :rimjoist (or :balcony) if linked to:
+        #   1x deratable surface
         #   1x CONDITIONED floor
-        unless psi.has_key?(:rimjoist)
+        #   1x shade (optional)
+        unless is[:rimjoist] || is[:balcony]
+          balcony = false
           edge[:surfaces].keys.each do |i|
+            next if i == id
+            balcony = true if shades.has_key?(i)
+          end
+          edge[:surfaces].keys.each do |i|
+            next if is[:rimjoist] || is[:balcony]
+            next if i == id
+            next unless deratables.size == 2
+            next if floors.has_key?(id)
             next unless floors.has_key?(i)
             next unless floors[i].has_key?(:conditioned)
             next unless floors[i][:conditioned]
             next if floors[i][:ground]
-            next unless walls.has_key?(id)
-            next unless walls[id].has_key?(:deratable)
-            next unless walls[id][:deratable]
-            psi[:rimjoist] = io_p.set[p][:rimjoist]
-          end
-        end
 
-        # Label edge as :head, :sill or :jamb if linked to:
-        #   1x subsurface
-        unless psi.has_key?(:head) || psi.has_key?(:sill) || psi.has_key?(:jamb)
-          edge[:surfaces].keys.each do |i|
-            next if psi.has_key?(:head)
-            next if psi.has_key?(:sill)
-            next if psi.has_key?(:jamb)
-            next unless holes.has_key?(i)
-            s = edge[:surfaces][i]
-
-            head = io_p.set[p].has_key?(:head)
-            sill = io_p.set[p].has_key?(:sill)
-            jamb = io_p.set[p].has_key?(:jamb)
-            openings = head && sill && jamb
-            next unless io_p.set[p].has_key?(:fenestration) || openings
-
-            if ((s[:normal].dot(zenith)).abs - 1).abs < TOL
-              psi[:jamb] = io_p.set[p][:jamb]             if openings
-              psi[:jamb] = io_p.set[p][:fenestration]     unless openings
-            else
-              if edge[:horizontal]
-                if s[:polar].dot(zenith) < 0
-                  psi[:head] = io_p.set[p][:head]         if openings
-                  psi[:head] = io_p.set[p][:fenestration] unless openings
-                else
-                  psi[:sill] = io_p.set[p][:sill]         if openings
-                  psi[:sill] = io_p.set[p][:fenestration] unless openings
-                end
-              else
-                psi[:jamb] = io_p.set[p][:jamb]           if openings
-                psi[:jamb] = io_p.set[p][:fenestration]   unless openings
+            ii = ""
+            ii = i if deratables.include?(i)                     # exposed floor
+            if ii.empty?
+              deratables.each do |j|
+                ii = j unless j == id
               end
             end
-            edge[:openings] = openings
-          end
-        end
+            next if ii.empty?
 
-        # Label edge as :cornerconcave or :cornerconvex if linked to:
-        #   2x deratable walls & f(relative polar wall vectors around edge)
-        unless psi.has_key?(:cornerconcave) || psi.has_key?(:cornerconvex)
-          edge[:surfaces].keys.each do |i|
-            next if psi.has_key?(:cornerconcave)
-            next if psi.has_key?(:cornerconvex)
-            next if i == id
-            next unless walls.has_key?(id)
-            next unless walls[id].has_key?(:deratable)
-            next unless walls[id][:deratable]
-            next unless walls.has_key?(i)
-            next unless walls[i].has_key?(:deratable)
-            next unless walls[i][:deratable]
+            s1      = edge[:surfaces][id]
+            s2      = edge[:surfaces][ii]
+            concave = concave?(s1, s2)
+            convex  = convex?(s1, s2)
+            flat    = !concave && !convex
 
-            concave = io_p.set[p].has_key?(:cornerconcave)
-            convex  = io_p.set[p].has_key?(:cornerconvex)
-            corners = concave && convex
-            next unless io_p.set[p].has_key?(:corner) || corners
-
-            s1 = edge[:surfaces][id]
-            s2 = edge[:surfaces][i]
-            next unless concave?(s1, s2) || convex?(s1, s2)
-
-            val = io_p.set[p][:corner]        unless corners
-            val = io_p.set[p][:cornerconcave] if concave?(s1, s2) && corners
-            val = io_p.set[p][:cornerconvex]  if convex?(s1,  s2) && corners
-            psi[:cornerconcave] = val         if concave?(s1, s2)
-            psi[:cornerconvex]  = val         if convex?(s1,  s2)
-            edge[:corners] = corners
+            if balcony
+              psi[:balcony]        = val[:balcony]        if flat
+              psi[:balconyconcave] = val[:balconyconcave] if concave
+              psi[:balconyconvex]  = val[:balconyconvex]  if convex
+               is[:balcony]        = true
+            else
+              psi[:rimjoist]        = val[:rimjoist]        if flat
+              psi[:rimjoistconcave] = val[:rimjoistconcave] if concave
+              psi[:rimjoistconvex]  = val[:rimjoistconvex]  if convex
+               is[:rimjoist]        = true
+            end
           end
         end
       end                                                 # edge's surfaces loop
@@ -1250,13 +1254,11 @@ RSpec.describe TBD do
       edge[:set] = p unless psi.empty?
     end                                                              # edge loop
 
-    # Tracking (mild) transitions between deratable surfaces around edges that
-    # have not been previoulsy tagged.
+    # Tracking (mild) transitions.
     transitions = {}
     edges.each do |tag, edge|
       next if edge.has_key?(:psi)
       next unless edge.has_key?(:surfaces)
-
       deratable = false
       edge[:surfaces].each do |id, surface|
         next if deratable
@@ -1265,22 +1267,8 @@ RSpec.describe TBD do
         deratable = true if surfaces[id][:deratable]
       end
       next unless deratable
-
-      psi = {}
-      p = io[:building].first[:psi]
-
-      match = false
-      if edge.has_key?(:io_type)
-        match = true
-        t = edge[:io_type]
-        p = edge[:io_set]       if edge.has_key?(:io_set)
-        edge[:set] = p          if io_p.set.has_key?(p)
-        psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
-      end
-
       count = 0
       edge[:surfaces].keys.each do |id|
-        next if match
         next unless surfaces.has_key?(id)
         next unless surfaces[id].has_key?(:deratable)
         next unless surfaces[id][:deratable]
@@ -1290,7 +1278,7 @@ RSpec.describe TBD do
       psi = {}
       psi[:transition] = 0.000
       edge[:psi] = psi
-      edge[:set] = p
+      edge[:set] = io[:building].first[:psi]
 
       tr = []
       edge[:surfaces].keys.each do |id|
@@ -1321,397 +1309,70 @@ RSpec.describe TBD do
     end
     expect(w1_count).to eq(2)
 
-    if io
-      if io.has_key?(:stories)
-        io[:stories].each do |story|
-          next unless story.has_key?(:id)
-          next unless story.has_key?(:psi)
-          i = story[:id]
-          p = story[:psi]
-          next unless io_p.set.has_key?(p)
-
-          heads    = io_p.set[p].has_key?(:head)
-          sills    = io_p.set[p].has_key?(:sill)
-          jambs    = io_p.set[p].has_key?(:jamb)
-          openings = heads && sills && jambs
-          cconcave = io_p.set.has_key?(:cornerconcave)
-          cconvex  = io_p.set.has_key?(:cornerconvex)
-          corners  = cconcave && cconvex
-          pconcave = io_p.set.has_key?(:partyconcave)
-          pconvex  = io_p.set.has_key?(:partyconvex)
-          parties  = pconcave && pconvex
-          gconcave = io_p.set.has_key?(:gradeconcave)
-          gconvex  = io_p.set.has_key?(:gradeconvex)
-          grades   = gconcave && gconvex
-
-          edges.values.each do |edge|
-            next unless edge.has_key?(:psi)
-            next if edge.has_key?(:io_set)
-            next unless edge.has_key?(:surfaces)
-            edge[:surfaces].keys.each do |id|
-              next unless surfaces.has_key?(id)
-              next unless surfaces[id].has_key?(:story)
-              st = surfaces[id][:story]
-              next unless i == st.nameString
-              edge[:stories] = {} unless edge.has_key?(:stories)
-              edge[:stories][p] = {}
-
-              psi = {}
-              if edge.has_key?(:io_type)
-                t = edge[:io_type]
-                ok = io_p.set[p].has_key?(t)
-                psi[t] = io_p.set[p][t] if ok
-              else
-                edge[:psi].keys.each do |t|
-                  tt = t
-                  ok = io_p.set[p].has_key?(tt)
-                  unless ok
-                    if t == :head || t == :sill || t == :jamb
-                      tt = :fenestration unless openings
-                    elsif t == :cornerconcave || t == :cornerconvex
-                      tt = :corner unless corners
-                    elsif t == :partyconcave || t == :partyconvex
-                      tt = :party unless parties
-                    elsif t == :gradeconcave || t == :gradeconvex
-                      tt = :grade unless grades
-                    end
-                    ok = io_p.set[p].has_key?(tt)
-                  end
-                  psi[tt] = io_p.set[p][tt] if ok
-                end
-              end
-              edge[:stories][p] = psi
-            end
-          end
-        end
-
-        edges.values.each do |edge|
-          next unless edge.has_key?(:psi)
-          next unless edge.has_key?(:stories)
-          edge[:psi].keys.each do |type|
-            vals = {}
-            edge[:stories].each do |p, psi|
-              vals[p] = psi[type] if psi.has_key?(type)
-            end
-            next if vals.empty?
-            edge[:psi][type] = vals.values.max
-            edge[:sets] = {} unless edge.has_key?(:sets)
-            edge[:sets][type] = vals.key(vals.values.max)
-          end
-        end
-      end
-
-      if io.has_key?(:spacetypes)
-        io[:spacetypes].each do |stype|
-          next unless stype.has_key?(:id)
-          next unless stype.has_key?(:psi)
-          i = stype[:id]
-          p = stype[:psi]
-          next unless io_p.set.has_key?(p)
-
-          heads    = io_p.set[p].has_key?(:head)
-          sills    = io_p.set[p].has_key?(:sill)
-          jambs    = io_p.set[p].has_key?(:jamb)
-          openings = heads && sills && jambs
-          concave  = io_p.set.has_key?(:cornerconcave)
-          convex   = io_p.set.has_key?(:cornerconvex)
-          corners  = concave && convex
-
-          edges.values.each do |edge|
-            next unless edge.has_key?(:psi)
-            next if edge.has_key?(:io_set)
-            next unless edge.has_key?(:surfaces)
-            edge[:surfaces].keys.each do |id|
-              next unless surfaces.has_key?(id)
-              next unless surfaces[id].has_key?(:stype)
-              st = surfaces[id][:stype]
-              next unless i == st.nameString
-              edge[:spacetypes] = {} unless edge.has_key?(:spacetypes)
-              edge[:spacetypes][p] = {}
-
-              psi = {}
-              if edge.has_key?(:io_type)
-                t = edge[:io_type]
-                ok = io_p.set[p].has_key?(t)
-                psi[t] = io_p.set[p][t] if ok
-              else
-                edge[:psi].keys.each do |t|
-                  tt = t
-                  ok = io_p.set[p].has_key?(tt)
-                  unless ok
-                    if t == :head || t == :sill || t == :jamb
-                      tt = :fenestration unless openings
-                    elsif t == :cornerconcave || t == :cornerconvex
-                      tt = :corner unless corners
-                    end
-                    ok = io_p.set[p].has_key?(tt)
-                  end
-                  psi[tt] = io_p.set[p][tt] if ok
-                end
-              end
-              edge[:spacetypes][p] = psi
-            end
-          end
-        end
-
-        edges.values.each do |edge|
-          next unless edge.has_key?(:psi)
-          next unless edge.has_key?(:spacetypes)
-          edge[:psi].keys.each do |type|
-            vals = {}
-            edge[:spacetypes].each do |p, psi|
-              vals[p] = psi[type] if psi.has_key?(type)
-            end
-            next if vals.empty?
-            edge[:psi][type] = vals.values.max
-            edge[:sets] = {} unless edge.has_key?(:sets)
-            edge[:sets][type] = vals.key(vals.values.max)
-          end
-        end
-      end
-
-      if io.has_key?(:spaces)
-        io[:spaces].each do |space|
-          next unless space.has_key?(:id)
-          next unless space.has_key?(:psi)
-          i = space[:id]
-          p = space[:psi]
-          next unless io_p.set.has_key?(p)
-
-          heads    = io_p.set[p].has_key?(:head)
-          sills    = io_p.set[p].has_key?(:sill)
-          jambs    = io_p.set[p].has_key?(:jamb)
-          openings = heads && sills && jambs
-          concave  = io_p.set.has_key?(:cornerconcave)
-          convex   = io_p.set.has_key?(:cornerconvex)
-          corners  = concave && convex
-
-          edges.values.each do |edge|
-            next unless edge.has_key?(:psi)
-            next if edge.has_key?(:io_set)
-            next unless edge.has_key?(:surfaces)
-            edge[:surfaces].keys.each do |id|
-              next unless surfaces.has_key?(id)
-              next unless surfaces[id].has_key?(:space)
-              sp = surfaces[id][:space]
-              next unless i == sp.nameString
-              edge[:spaces] = {} unless edge.has_key?(:spaces)
-              edge[:spaces][p] = {}
-
-              psi = {}
-              if edge.has_key?(:io_type)
-                t = edge[:io_type]
-                ok = io_p.set[p].has_key?(t)
-                psi[t] = io_p.set[p][t] if ok
-              else
-                edge[:psi].keys.each do |t|
-                  tt = t
-                  ok = io_p.set[p].has_key?(tt)
-                  unless ok
-                    if t == :head || t == :sill || t == :jamb
-                      tt = :fenestration unless openings
-                    elsif t == :cornerconcave || t == :cornerconvex
-                      tt = :corner unless corners
-                    end
-                    ok = io_p.set[p].has_key?(tt)
-                  end
-                  psi[tt] = io_p.set[p][tt] if ok
-                end
-              end
-              edge[:spaces][p] = psi
-            end
-          end
-        end
-
-        edges.values.each do |edge|
-          next unless edge.has_key?(:psi)
-          next unless edge.has_key?(:spaces)
-          edge[:psi].keys.each do |type|
-            vals = {}
-            edge[:spaces].each do |p, psi|
-              vals[p] = psi[type] if psi.has_key?(type)
-            end
-            next if vals.empty?
-            edge[:psi][type] = vals.values.max
-            edge[:sets] = {} unless edge.has_key?(:sets)
-            edge[:sets][type] = vals.key(vals.values.max)
-          end
-        end
-      end
-
-      if io.has_key?(:surfaces)
-        io[:surfaces].each do |surface|
-          next unless surface.has_key?(:id)
-          next unless surface.has_key?(:psi)
-          i = surface[:id]
-          p = surface[:psi]
-          next unless io_p.set.has_key?(p)
-
-          heads    = io_p.set[p].has_key?(:head)
-          sills    = io_p.set[p].has_key?(:sill)
-          jambs    = io_p.set[p].has_key?(:jamb)
-          openings = heads && sills && jambs
-          concave  = io_p.set.has_key?(:cornerconcave)
-          convex   = io_p.set.has_key?(:cornerconvex)
-          corners  = concave && convex
-
-          edges.values.each do |edge|
-            next unless edge.has_key?(:psi)
-            next if edge.has_key?(:io_set)
-            next unless edge.has_key?(:surfaces)
-            edge[:surfaces].each do |id, s|
-              next unless surfaces.has_key?(id)
-              next unless i == id
-
-              psi = {}
-              if edge.has_key?(:io_type)
-                t = edge[:io_type]
-                ok = io_p.set[p].has_key?(t)
-                psi[t] = io_p.set[p][t] if ok
-              else
-                edge[:psi].keys.each do |t|
-                  tt = t
-                  ok = io_p.set[p].has_key?(tt)
-                  unless ok
-                    if t == :head || t == :sill || t == :jamb
-                      tt = :fenestration unless openings
-                    elsif t == :cornerconcave || t == :cornerconvex
-                      tt = :corner unless corners
-                    end
-                    ok = io_p.set[p].has_key?(tt)
-                  end
-                  psi[tt] = io_p.set[p][tt] if ok
-                end
-              end
-              s[:psi] = psi
-              s[:set] = p
-            end
-          end
-        end
-
-        edges.values.each do |edge|
-          next unless edge.has_key?(:psi)
-          next unless edge.has_key?(:surfaces)
-
-          edge[:psi].keys.each do |type|
-            vals = {}
-            edge[:surfaces].each do |id, s|
-              next unless s.has_key?(:psi)
-              next unless s.has_key?(:set)
-              psi = s[:psi]
-              next if psi.empty?
-              p = s[:set]
-              vals[p] = psi[type] if psi.has_key?(type)
-            end
-            next if vals.empty?
-            edge[:psi][type] = vals.values.max
-            edge[:sets] = {} unless edge.has_key?(:sets)
-            edge[:sets][type] = vals.key(vals.values.max)
-          end
-        end
-      end
-
-      # Loop through all customized edges on file WITH a custom PSI set
-      edges.values.each do |edge|
-        next unless edge.has_key?(:psi)
-        next unless edge.has_key?(:io_set)
-        next unless edge.has_key?(:io_type)
-        next unless edge.has_key?(:surfaces)
-
-        p = edge[:io_set]
-        next unless io_p.set.has_key?(p)
-
-        heads    = io_p.set[p].has_key?(:head)
-        sills    = io_p.set[p].has_key?(:sill)
-        jambs    = io_p.set[p].has_key?(:jamb)
-        openings = heads && sills && jambs
-        concave  = io_p.set.has_key?(:cornerconcave)
-        convex   = io_p.set.has_key?(:cornerconvex)
-        corners  = concave && convex
-
-        psi = {}
-
-        if edge[:io_type] == :fenestration
-          t = :head if edge[:psi].has_key?(:head)
-          t = :sill if edge[:psi].has_key?(:sill)
-          t = :jamb if edge[:psi].has_key?(:jamb)
-          psi[t] = io_p.set[p][:fenestration]
-        elsif edge[:io_type] == :corner
-          t = :cornerconcave if edge[:psi].has_key?(:cornerconcave)
-          t = :cornerconvex  if edge[:psi].has_key?(:cornerconvex)
-          psi[t] = io_p.set[p][:corner]
-        else
-          t = edge[:io_type]
-          ok = io_p.set[p].has_key?(t)
-          unless ok
-            if t == :head || t == :sill || t == :jamb
-              t = :fenestration unless openings
-            elsif t == :cornerconcave || t == :cornerconvex
-              t = :corner unless corners
-            end
-            ok = io_p.set[p].has_key?(t)
-          end
-          psi[t] = io_p.set[p][t] if ok
-        end
-        next if psi.empty?
-
-        edge[:psi] = psi
-        edge[:set] = p
-      end
-    end
-
-    n_deratables               = 0
-    n_edges_at_grade           = 0
-    n_edges_as_balconies       = 0
-    n_edges_as_parapets        = 0
-    n_edges_as_rimjoists       = 0
-    n_edges_as_fenestrations   = 0
-    n_edges_as_heads           = 0
-    n_edges_as_sills           = 0
-    n_edges_as_jambs           = 0
-    n_edges_as_corners         = 0
-    n_edges_as_concave_corners = 0
-    n_edges_as_convex_corners  = 0
-    n_edges_as_transitions     = 0
+    n_deratables                 = 0
+    n_edges_at_grade             = 0
+    n_edges_as_balconies         = 0
+    n_edges_as_parapets          = 0
+    n_edges_as_rimjoists         = 0
+    n_edges_as_concave_rimjoists = 0
+    n_edges_as_convex_rimjoists  = 0
+    n_edges_as_fenestrations     = 0
+    n_edges_as_heads             = 0
+    n_edges_as_sills             = 0
+    n_edges_as_jambs             = 0
+    n_edges_as_concave_jambs     = 0
+    n_edges_as_convex_jambs      = 0
+    n_edges_as_corners           = 0
+    n_edges_as_concave_corners   = 0
+    n_edges_as_convex_corners    = 0
+    n_edges_as_transitions       = 0
 
     edges.values.each do |edge|
       next unless edge.has_key?(:psi)
       n_deratables += 1
-      n_edges_at_grade            += 1 if edge[:psi].has_key?(:grade)
-      n_edges_at_grade            += 1 if edge[:psi].has_key?(:gradeconcave)
-      n_edges_at_grade            += 1 if edge[:psi].has_key?(:gradeconvex)
-      n_edges_as_balconies        += 1 if edge[:psi].has_key?(:balcony)
-      n_edges_as_parapets         += 1 if edge[:psi].has_key?(:parapet)
-      n_edges_as_rimjoists        += 1 if edge[:psi].has_key?(:rimjoist)
-      n_edges_as_fenestrations    += 1 if edge[:psi].has_key?(:fenestration)
-      n_edges_as_heads            += 1 if edge[:psi].has_key?(:head)
-      n_edges_as_sills            += 1 if edge[:psi].has_key?(:sill)
-      n_edges_as_jambs            += 1 if edge[:psi].has_key?(:jamb)
-      n_edges_as_corners          += 1 if edge[:psi].has_key?(:corner)
-      n_edges_as_concave_corners  += 1 if edge[:psi].has_key?(:cornerconcave)
-      n_edges_as_convex_corners   += 1 if edge[:psi].has_key?(:cornerconvex)
-      n_edges_as_transitions      += 1 if edge[:psi].has_key?(:transition)
+      n_edges_at_grade             += 1 if edge[:psi].has_key?(:grade)
+      n_edges_at_grade             += 1 if edge[:psi].has_key?(:gradeconcave)
+      n_edges_at_grade             += 1 if edge[:psi].has_key?(:gradeconvex)
+      n_edges_as_balconies         += 1 if edge[:psi].has_key?(:balcony)
+      n_edges_as_parapets          += 1 if edge[:psi].has_key?(:parapetconcave)
+      n_edges_as_parapets          += 1 if edge[:psi].has_key?(:parapetconvex)
+      n_edges_as_rimjoists         += 1 if edge[:psi].has_key?(:rimjoist)
+      n_edges_as_concave_rimjoists += 1 if edge[:psi].has_key?(:rimjoistconcave)
+      n_edges_as_convex_rimjoists  += 1 if edge[:psi].has_key?(:rimjoistconvex)
+      n_edges_as_fenestrations     += 1 if edge[:psi].has_key?(:fenestration)
+      n_edges_as_heads             += 1 if edge[:psi].has_key?(:head)
+      n_edges_as_sills             += 1 if edge[:psi].has_key?(:sill)
+      n_edges_as_jambs             += 1 if edge[:psi].has_key?(:jamb)
+      n_edges_as_concave_jambs     += 1 if edge[:psi].has_key?(:jambconcave)
+      n_edges_as_convex_jambs      += 1 if edge[:psi].has_key?(:jambconvex)
+      n_edges_as_corners           += 1 if edge[:psi].has_key?(:corner)
+      n_edges_as_concave_corners   += 1 if edge[:psi].has_key?(:cornerconcave)
+      n_edges_as_convex_corners    += 1 if edge[:psi].has_key?(:cornerconvex)
+      n_edges_as_transitions       += 1 if edge[:psi].has_key?(:transition)
     end
-    expect(n_deratables).to               eq(66)
-    expect(n_edges_at_grade).to           eq( 0)
-    expect(n_edges_as_balconies).to       eq( 4)
-    expect(n_edges_as_parapets).to        eq(31)
-    expect(n_edges_as_rimjoists).to       eq(32)
-    expect(n_edges_as_fenestrations).to   eq( 0)
-    expect(n_edges_as_heads).to           eq( 2)
-    expect(n_edges_as_sills).to           eq( 2)
-    expect(n_edges_as_jambs).to           eq( 8)
-    expect(n_edges_as_corners).to         eq( 0)
-    expect(n_edges_as_concave_corners).to eq( 4)
-    expect(n_edges_as_convex_corners).to  eq(12)
-    expect(n_edges_as_transitions).to     eq( 4)
+    expect(n_deratables).to                 eq(66)
+    expect(n_edges_at_grade).to             eq( 0)
+    expect(n_edges_as_balconies).to         eq( 4)
+    expect(n_edges_as_parapets).to          eq( 8)
+    expect(n_edges_as_rimjoists).to         eq( 5)
+    expect(n_edges_as_concave_rimjoists).to eq( 5)
+    expect(n_edges_as_convex_rimjoists).to  eq(18)
+    expect(n_edges_as_fenestrations).to     eq( 0)
+    expect(n_edges_as_heads).to             eq( 2)
+    expect(n_edges_as_sills).to             eq( 2)
+    expect(n_edges_as_jambs).to             eq( 4)
+    expect(n_edges_as_concave_jambs).to     eq( 0)
+    expect(n_edges_as_convex_jambs).to      eq( 4)
+    expect(n_edges_as_corners).to           eq( 0)
+    expect(n_edges_as_concave_corners).to   eq( 4)
+    expect(n_edges_as_convex_corners).to    eq(12)
+    expect(n_edges_as_transitions).to       eq( 4)
 
     # Loop through each edge and assign heat loss to linked surfaces.
     edges.each do |identifier, edge|
       next unless edge.has_key?(:psi)
       psi = edge[:psi].values.max
       type = edge[:psi].key(psi)
-
       bridge = { psi: psi, type: type, length: edge[:length] }
 
       if edge.has_key?(:sets) && edge[:sets].has_key?(type)
@@ -1727,17 +1388,17 @@ RSpec.describe TBD do
       end
 
       # Retrieve linked openings.
+      is = {}
+      is[:head]     = edge[:psi].keys.to_s.include?("head")
+      is[:sill]     = edge[:psi].keys.to_s.include?("sill")
+      is[:jamb]     = edge[:psi].keys.to_s.include?("jamb")
       openings = {}
-      # if edge[:psi].has_key?(:fenestration)
-      if edge[:psi].has_key?(:head) ||
-         edge[:psi].has_key?(:sill) ||
-         edge[:psi].has_key?(:jamb)
+      if is[:head] || is[:sill] || is[:jamb]
         edge[:surfaces].each do |id, surface|
           next unless holes.has_key?(id)
           openings[id] = surface
         end
       end
-
       next if openings.size > 1 # edge links 2x openings
 
       # Prune if edge links an opening and its parent, as well as 1x other
@@ -1761,7 +1422,6 @@ RSpec.describe TBD do
           end
         end
       end
-
       next if deratables.empty?
 
       # Sum RSI of targeted insulating layer from each deratable surface.
@@ -1784,7 +1444,7 @@ RSpec.describe TBD do
 
     # Assign thermal bridging heat loss [in W/K] to each deratable surface.
     n_surfaces_to_derate = 0
-    surfaces.values.each do |surface|
+    surfaces.each do |id, surface|
       next unless surface.has_key?(:edges)
       surface[:heatloss] = 0
       surface[:edges].values.each do |edge|
@@ -2073,6 +1733,8 @@ RSpec.describe TBD do
         l_grade        += edge[:length] if edge[:type] == :gradeconcave
         l_grade        += edge[:length] if edge[:type] == :gradeconvex
         l_parapet      += edge[:length] if edge[:type] == :parapet
+        l_parapet      += edge[:length] if edge[:type] == :parapetconcave
+        l_parapet      += edge[:length] if edge[:type] == :parapetconvex
         l_corner       += edge[:length] if edge[:type] == :cornerconcave
         l_corner       += edge[:length] if edge[:type] == :cornerconvex
       end
@@ -2228,6 +1890,8 @@ RSpec.describe TBD do
           l_grade        += edge[:length] if edge[:type] == :gradeconcave
           l_grade        += edge[:length] if edge[:type] == :gradeconvex
           l_parapet      += edge[:length] if edge[:type] == :parapet
+          l_parapet      += edge[:length] if edge[:type] == :parapetconcave
+          l_parapet      += edge[:length] if edge[:type] == :parapetconvex
           l_corner       += edge[:length] if edge[:type] == :cornerconcave
           l_corner       += edge[:length] if edge[:type] == :cornerconvex
         end
@@ -2908,6 +2572,13 @@ RSpec.describe TBD do
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(surfaces.size).to eq(23)
 
+    # Now mimic the export functionality of the measure
+    out = JSON.pretty_generate(io)
+    outP = File.dirname(__FILE__) + "/../json/tbd_warehouse6.out.json"
+    File.open(outP, "w") do |outP|
+      outP.puts out
+    end
+
     ids = { a: "Office Front Wall",
             b: "Office Left Wall",
             c: "Fine Storage Roof",
@@ -3475,7 +3146,6 @@ RSpec.describe TBD do
       expect(surface[:edges].size).to eq(10) if id == nom1
       expect(surface[:edges].size).to eq(6) if id == nom2
     end
-
     expect(io.has_key?(:edges)).to be(true)
     expect(io[:edges].size).to eq(80)
 
@@ -3511,16 +3181,18 @@ RSpec.describe TBD do
       expect(edge.has_key?(:surfaces)).to be(true)
       valid = edge[:surfaces].include?(nom1) || edge[:surfaces].include?(nom2)
       next unless valid
-
-      t = edge[:type]
       s = {}
       io[:psis].each do |set| s = set if set[:id] == edge[:psi]; end
       next if s.empty?
       expect(s.is_a?(Hash)).to be(true)
-      next unless s.has_key?(t)
 
+      t = edge[:type]
       nb_rimjoist_edges     += 1 if t == :rimjoist
+      nb_rimjoist_edges     += 1 if t == :rimjoistconcave
+      nb_rimjoist_edges     += 1 if t == :rimjoistconvex
       nb_parapet_edges      += 1 if t == :parapet
+      nb_parapet_edges      += 1 if t == :parapetconcave
+      nb_parapet_edges      += 1 if t == :parapetconvex
       nb_fenestration_edges += 1 if t == :fenestration
       nb_head_edges         += 1 if t == :head
       nb_sill_edges         += 1 if t == :sill
@@ -3534,13 +3206,10 @@ RSpec.describe TBD do
       nb_grade_edges        += 1 if t == :gradeconcave
       nb_grade_edges        += 1 if t == :gradeconvex
       nb_transition_edges   += 1 if t == :transition
-
-      expect(t).to eq(:parapet).or eq(:transition)
-      next unless t == :parapet
-      expect(s[t]).to be_within(0.01).of(0.5)
+      expect(t).to eq(:parapetconvex).or eq(:transition)
+      next unless t == :parapetconvex
       expect(edge[:length]).to be_within(0.01).of(3.6)
     end
-
     expect(nb_rimjoist_edges).to     eq(0)
     expect(nb_parapet_edges).to      eq(1)    # parapet linked to "good" PSI set
     expect(nb_fenestration_edges).to eq(0)
@@ -3553,7 +3222,7 @@ RSpec.describe TBD do
     expect(nb_balcony_edges).to      eq(0)
     expect(nb_party_edges).to        eq(0)
     expect(nb_grade_edges).to        eq(0)
-    expect(nb_transition_edges).to   eq(0)
+    expect(nb_transition_edges).to   eq(2)  # all PSI sets inherit :transitions
 
     # Reset counters to track the total number of edges delineating either
     # derated surfaces that DO NOT contribute in derating their insulation
@@ -3575,15 +3244,18 @@ RSpec.describe TBD do
     io[:edges].each do |edge|
       valid = edge[:surfaces].include?(nom1) || edge[:surfaces].include?(nom2)
       next unless valid
-
-      t = edge[:type]
       s = {}
       io[:psis].each do |set| s = set if set[:id] == edge[:psi]; end
       next unless s.empty?
       expect edge[:psi] == psi_set
 
+      t = edge[:type]
       nb_rimjoist_edges     += 1 if t == :rimjoist
+      nb_rimjoist_edges     += 1 if t == :rimjoistconcave
+      nb_rimjoist_edges     += 1 if t == :rimjoistconvex
       nb_parapet_edges      += 1 if t == :parapet
+      nb_parapet_edges      += 1 if t == :parapetconcave
+      nb_parapet_edges      += 1 if t == :parapetconvex
       nb_fenestration_edges += 1 if t == :fenestration
       nb_head_edges         += 1 if t == :head
       nb_sill_edges         += 1 if t == :sill
@@ -3633,21 +3305,24 @@ RSpec.describe TBD do
     io[:edges].each do |edge|
       valid = edge[:surfaces].include?(nom1) || edge[:surfaces].include?(nom2)
       next unless valid
-
-      t = edge[:type]
       s = {}
       io[:psis].each do |set| s = set if set[:id] == edge[:psi]; end
       next if s.empty?
       expect(s.is_a?(Hash)).to be(true)
-      next if s.has_key?(t)
 
+      t = edge[:type]
+      next if t.to_s.include?("parapet")
       nb_rimjoist_edges     += 1 if t == :rimjoist
+      nb_rimjoist_edges     += 1 if t == :rimjoistconcave
+      nb_rimjoist_edges     += 1 if t == :rimjoistconvex
       nb_parapet_edges      += 1 if t == :parapet
+      nb_parapet_edges      += 1 if t == :parapetconcave
+      nb_parapet_edges      += 1 if t == :parapetconvex
       nb_fenestration_edges += 1 if t == :fenestration
       nb_head_edges         += 1 if t == :head
       nb_sill_edges         += 1 if t == :sill
       nb_jamb_edges         += 1 if t == :jamb
-      nb-corners            += 1 if t == :corner
+      nb_corners            += 1 if t == :corner
       nb_concave_edges      += 1 if t == :cornerconcave
       nb_convex_edges       += 1 if t == :cornerconvex
       nb_balcony_edges      += 1 if t == :balcony
@@ -3702,6 +3377,12 @@ RSpec.describe TBD do
       expect(surface.has_key?(:ratio)).to be(false) unless id == name
       next unless id == "Entryway  Wall 5"
       expect(surface[:heatloss]).to be_within(0.01).of(8.89)
+    end
+
+    out = JSON.pretty_generate(io)
+    outP = File.dirname(__FILE__) + "/../json/tbd_seb_n4.out.json"
+    File.open(outP, "w") do |outP|
+      outP.puts out
     end
   end
 
@@ -3857,12 +3538,6 @@ RSpec.describe TBD do
       expect(surface[:heatloss]).to be_within(0.01).of(-0.40) if id == ids[:j]
       expect(surface[:heatloss]).to be_within(0.01).of(-0.20) if id == ids[:k]
       expect(surface[:heatloss]).to be_within(0.01).of(-0.20) if id == ids[:l]
-    end
-
-    out = JSON.pretty_generate(io)
-    outP = File.dirname(__FILE__) + "/../json/tbd_warehouse4.out.json"
-    File.open(outP, "w") do |outP|
-      outP.puts out
     end
   end
 
@@ -4238,8 +3913,8 @@ RSpec.describe TBD do
         expect(edge.has_key?(:type)).to be(true)
         expect(edge.has_key?(:psi)).to be(true)
         next unless id.include?("Roof")
-        expect(edge[:type]).to eq(:parapet).or eq(:transition)
-        next unless edge[:type] == :parapet
+        expect(edge[:type]).to eq(:parapetconvex).or eq(:transition)
+        next unless edge[:type] == :parapetconvex
         next if id == "t Roof C"
         expect(edge[:psi]).to be_within(0.01).of(0.178) # 57.3% of 0.311
       end
@@ -4248,7 +3923,7 @@ RSpec.describe TBD do
       surface[:edges].values.each do |edge|
         next unless id.include?("t ")
         next unless id.include?("Wall ")
-        next unless edge[:type] == :parapet
+        next unless edge[:type] == :parapetconvex
         next if id.include?(" C")
         expect(edge[:psi]).to be_within(0.01).of(0.133) # 42.7% of 0.311
       end
@@ -4470,7 +4145,7 @@ RSpec.describe TBD do
     n_jambs        = 0
 
     t1 = :transition
-    t2 = :parapet
+    t2 = :parapetconvex
     t3 = :fenestration
     t4 = :head
     t5 = :sill

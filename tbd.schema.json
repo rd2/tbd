@@ -88,8 +88,24 @@
           "title": "Floor/wall edge PSI",
           "type": "number"
         },
+        "rimjoistconcave": {
+          "title": "Concave floor/wall edge PSI",
+          "type": "number"
+        },
+        "rimjoistconvex": {
+          "title": "Convex floor/wall edge PSI",
+          "type": "number"
+        },
         "parapet": {
-          "title": "Roof/wall or exposed-floor/wall edge PSI",
+          "title": "Roof/wall edge PSI",
+          "type": "number"
+        },
+        "parapetconcave": {
+          "title": "Concave roof/wall edge PSI",
+          "type": "number"
+        },
+        "parapetconvex": {
+          "title": "Convex roof/wall edge PSI",
           "type": "number"
         },
         "fenestration": {
@@ -100,12 +116,36 @@
           "title": "Aperture head/lintel PSI",
           "type": "number"
         },
+        "headconcave": {
+          "title": "Concave aperture head/lintel PSI",
+          "type": "number"
+        },
+        "headconvex": {
+          "title": "Convex aperture head/lintel PSI",
+          "type": "number"
+        },
         "sill": {
           "title": "Aperture sill/base PSI",
           "type": "number"
         },
+        "sillconcave": {
+          "title": "Concave aperture sill/base PSI",
+          "type": "number"
+        },
+        "sillconvex": {
+          "title": "Convex aperture sill/base PSI",
+          "type": "number"
+        },
         "jamb": {
           "title": "Aperture jamb/side PSI",
+          "type": "number"
+        },
+        "jambconcave": {
+          "title": "Concave aperture jamb/side PSI",
+          "type": "number"
+        },
+        "jambconvex": {
+          "title": "Convex aperture jamb/side PSI",
           "type": "number"
         },
         "corner": {
@@ -122,6 +162,14 @@
         },
         "balcony": {
           "title": "Floor/balcony edge PSI ",
+          "type": "number"
+        },
+        "balconyconcave": {
+          "title": "Concave floor/balcony edge PSI ",
+          "type": "number"
+        },
+        "balconyconvex": {
+          "title": "Convex floor/balcony edge PSI ",
           "type": "number"
         },
         "party": {
@@ -195,15 +243,27 @@
           "type": "string",
           "enum": [
             "rimjoist",
+            "rimjoistconcave",
+            "rimjoisconvext",
             "parapet",
+            "parapetconcave",
+            "parapetconvex",
             "fenestration",
             "head",
+            "headconcave",
+            "headconvex",
             "sill",
+            "sillconcave",
+            "sillconvex",
             "jamb",
+            "jambconcave",
+            "jambconvex",
             "corner",
             "cornerconcave",
             "cornerconvex",
             "balcony",
+            "balconyconcave",
+            "balconyconvex",
             "party",
             "partyconcave",
             "partyconvex",
