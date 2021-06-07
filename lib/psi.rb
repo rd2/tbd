@@ -94,7 +94,6 @@ class PSI
     #     Le = from exterior corner to edge of "zone of influence"           (m)
     #
     #  Li-Le = wall thickness e.g., -0.25m (negative here as Li < Le)
-
     @set["poor (BETBG)"] =
     {
       rimjoist:      1.000, # *
@@ -378,7 +377,7 @@ class PSI
 end
 
 ##
-# Check for matching vertex pairs between edges (10mm tolerance).
+# Check for matching vertex pairs between edges (10mm tolerance)
 # @param [Hash] e1 First edge
 # @param [Hash] e2 Second edge
 #
@@ -425,6 +424,31 @@ def matches?(e1, e2)
     )
   )
   answer
+end
+
+##
+# Return safe PSI type if missing input from PSI set (relies on inheritance)
+# @param [Symbol] type PSI type e.g., :rimjoistconcave
+# @param [Hash] holds A true/false struct (see shorthands)
+#
+# @return [Symbol] Returns safe type (nil if none were found)
+def safeType(type, holds)
+  raise "#{holds.class}? expected Hash (safeType)" unless holds.is_a?(Hash)
+  tt = type
+  tt = tt.to_sym unless tt.is_a?(Symbol)
+  unless holds[tt]
+    tt_concave = tt.to_s.include?("concave")
+    tt_convex  = tt.to_s.include?("convex")
+    tt = tt.to_s.chomp("concave").to_sym if tt_concave
+    tt = tt.to_s.chomp("convex").to_sym  if tt_convex
+    unless holds[tt]
+      tt = :fenestration if tt == :head
+      tt = :fenestration if tt == :sill
+      tt = :fenestration if tt == :jamb
+    end
+  end
+  return tt if holds[tt]
+  nil
 end
 
 ##
@@ -648,19 +672,8 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
               holds, values = psi.shorthands(p)
               next if holds.empty?
               next if values.empty?
-              tt = t
-              unless holds[tt]
-                tt_concave = tt.to_s.include?("concave")
-                tt_convex  = tt.to_s.include?("convex")
-                tt = tt.to_s.chomp("concave").to_sym if tt_concave
-                tt = tt.to_s.chomp("convex").to_sym  if tt_convex
-                unless holds[tt]
-                  tt = :fenestration if tt == :head
-                  tt = :fenestration if tt == :sill
-                  tt = :fenestration if tt == :jamb
-                end
-                raise "#{p} missing PSI #{t} or variants" unless holds[tt]
-              end
+              tt = safeType(t, holds)
+              raise "#{p} missing PSI #{t} or variants" if tt.nil?
               e[:io_set] = p
             end
           end
@@ -2209,15 +2222,14 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
   east   = Topolys::Vector3D.new(1, 0, 0).freeze
 
   edges.values.each do |edge|
-    origin      = edge[:v0].point
-    terminal    = edge[:v1].point
-    dx = (origin.x - terminal.x).abs
-    dy = (origin.y - terminal.y).abs
-    dz = (origin.z - terminal.z).abs
-    horizontal  = dz.abs < TOL
-    vertical    = dx < TOL && dy < TOL
-
-    edge_V = terminal - origin
+    origin     = edge[:v0].point
+    terminal   = edge[:v1].point
+    dx         = (origin.x - terminal.x).abs
+    dy         = (origin.y - terminal.y).abs
+    dz         = (origin.z - terminal.z).abs
+    horizontal = dz.abs < TOL
+    vertical   = dx < TOL && dy < TOL
+    edge_V     = terminal - origin
     edge_plane = Topolys::Plane3D.new(origin, edge_V)
 
     if vertical
@@ -2234,18 +2246,15 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       # edge while ensuring candidate point is not aligned with edge.
       t_model.wires.each do |wire|
         if surface[:wire] == wire.id            # there should be a unique match
-          normal = surfaces[id][:n]         if surfaces.has_key?(id)
-          normal = holes[id].attributes[:n] if holes.has_key?(id)
-          normal = shades[id][:n]           if shades.has_key?(id)
-
-          farthest = Topolys::Point3D.new(origin.x, origin.y, origin.z)
+          normal     = surfaces[id][:n]         if surfaces.has_key?(id)
+          normal     = holes[id].attributes[:n] if holes.has_key?(id)
+          normal     = shades[id][:n]           if shades.has_key?(id)
+          farthest   = Topolys::Point3D.new(origin.x, origin.y, origin.z)
           farthest_V = farthest - origin             # zero magnitude, initially
-
-          inverted = false
-
-          i_origin = wire.points.index(origin)
+          inverted   = false
+          i_origin   = wire.points.index(origin)
           i_terminal = wire.points.index(terminal)
-          i_last = wire.points.size - 1
+          i_last     = wire.points.size - 1
 
           if i_terminal == 0
             inverted = true unless i_origin == i_last
@@ -2282,10 +2291,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
           end
 
           angle = reference_V.angle(farthest_V)
-
-          # Adjust angle [180°, 360°] if necessary.
-          adjust = false
-
+          adjust = false                # adjust angle [180°, 360°] if necessary
           if vertical
             adjust = true if east.dot(farthest_V) < -TOL
           else
@@ -2296,10 +2302,8 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
               adjust = true if north.dot(farthest_V) < -TOL
             end
           end
-
           angle = 2 * Math::PI - angle if adjust
           angle -= 2 * Math::PI if (angle - 2 * Math::PI).abs < TOL
-
           surface[:angle] = angle
           farthest_V.normalize!
           surface[:polar] = farthest_V
@@ -2340,19 +2344,8 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     psi = {}
 
     if edge.has_key?(:io_type)
-      tt = edge[:io_type]
-      unless has[tt]
-        tt_concave = tt.to_s.include?("concave")
-        tt_convex  = tt.to_s.include?("convex")
-        tt = tt.to_s.chomp("concave").to_sym if tt_concave
-        tt = tt.to_s.chomp("convex").to_sym  if tt_convex
-        unless has[tt]
-          tt = :fenestration if tt == :head
-          tt = :fenestration if tt == :sill
-          tt = :fenestration if tt == :jamb
-        end
-      end
-      if has[tt]
+      tt = safeType(edge[:io_type], has)
+      unless tt.nil?
         edge[:sets] = {} unless edge.has_key?(:sets)
         edge[:sets][edge[:io_type]] = val[tt]     # default to :building PSI set
         psi[edge[:io_type]] = val[tt]
@@ -2663,7 +2656,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
 
         edges.values.each do |edge|
           next unless edge.has_key?(:psi)
-          next if edge.has_key?(:io_set)       # customized edge WITH custom PSI
+          next if edge.has_key?(:io_set)
           next unless edge.has_key?(:surfaces)
           edge[:surfaces].keys.each do |id|
             next unless surfaces.has_key?(id)
@@ -2672,26 +2665,17 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
             next unless i == st.nameString
             edge[:stories] = {} unless edge.has_key?(:stories)
             edge[:stories][p] = {}
-
             psi = {}
-            psi[:io_type] = values[:io_type] if edge.has_key?(:io_type)
-            edge[:psi].keys.each do |t|
-              next if edge.has_key?(:io_type)
-              tt = t
-              unless holds[tt]
-                tt_concave = tt.to_s.include?("concave")
-                tt_convex  = tt.to_s.include?("convex")
-                tt = tt.to_s.chomp("concave").to_sym if tt_concave
-                tt = tt.to_s.chomp("convex").to_sym  if tt_convex
-                unless holds[tt]
-                  tt = :fenestration if tt == :head
-                  tt = :fenestration if tt == :sill
-                  tt = :fenestration if tt == :jamb
-                end
+            if edge.has_key?(:io_type)
+              tt = safeType(edge[:io_type], holds)
+              psi[edge[:io_type]] = values[tt] unless tt.nil?
+            else
+              edge[:psi].keys.each do |t|
+                tt = safeType(t, holds)
+                psi[t] = values[tt] unless tt.nil?
               end
-              psi[t] = values[tt] if holds[tt]
             end
-            edge[:stories][p] = psi
+            edge[:stories][p] = psi unless psi.empty?
           end
         end
       end
@@ -2704,30 +2688,19 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       edges.values.each do |edge|
         next unless edge.has_key?(:psi)
         next unless edge.has_key?(:stories)
-        edge[:psi].keys.each do |type|
-          tt = type
+        edge[:psi].keys.each do |t|
           vals = {}
           edge[:stories].each do |p, psi|
             holds, values = io_p.shorthands(p)
             next if holds.empty?
             next if values.empty?
-            unless holds[tt]
-              tt_concave = tt.to_s.include?("concave")
-              tt_convex  = tt.to_s.include?("convex")
-              tt = tt.to_s.chomp("concave").to_sym if tt_concave
-              tt = tt.to_s.chomp("convex").to_sym  if tt_convex
-              unless holds[tt]
-                tt = :fenestration if tt == :head
-                tt = :fenestration if tt == :sill
-                tt = :fenestration if tt == :jamb
-              end
-            end
-            vals[p] = values[tt] if holds[tt]
+            tt = safeType(t, holds)
+            vals[p] = values[tt] unless tt.nil?
           end
           next if vals.empty?
-          edge[:psi][type] = vals.values.max
+          edge[:psi][t] = vals.values.max
           edge[:sets] = {} unless edge.has_key?(:sets)
-          edge[:sets][type] = vals.key(vals.values.max)
+          edge[:sets][t] = vals.key(vals.values.max)
         end
       end
     end
@@ -2745,7 +2718,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
 
         edges.values.each do |edge|
           next unless edge.has_key?(:psi)
-          next if edge.has_key?(:io_set)       # customized edge WITH custom PSI
+          next if edge.has_key?(:io_set)
           next unless edge.has_key?(:surfaces)
           edge[:surfaces].keys.each do |id|
             next unless surfaces.has_key?(id)
@@ -2754,26 +2727,17 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
             next unless i == st.nameString
             edge[:spacetypes] = {} unless edge.has_key?(:spacetypes)
             edge[:spacetypes][p] = {}
-
             psi = {}
-            psi[:io_type] = values[:io_type] if edge.has_key?(:io_type)
-            edge[:psi].keys.each do |t|
-              next if edge.has_key?(:io_type)
-              tt = t
-              unless holds[tt]
-                tt_concave = tt.to_s.include?("concave")
-                tt_convex  = tt.to_s.include?("convex")
-                tt = tt.to_s.chomp("concave").to_sym if tt_concave
-                tt = tt.to_s.chomp("convex").to_sym  if tt_convex
-                unless holds[tt]
-                  tt = :fenestration if tt == :head
-                  tt = :fenestration if tt == :sill
-                  tt = :fenestration if tt == :jamb
-                end
+            if edge.has_key?(:io_type)
+              tt = safeType(edge[:io_type], holds)
+              psi[edge[:io_type]] = values[tt] unless tt.nil?
+            else
+              edge[:psi].keys.each do |t|
+                tt = safeType(t, holds)
+                psi[t] = values[tt] unless tt.nil?
               end
-              psi[t] = values[tt] if holds[tt]
             end
-            edge[:spacetypes][p] = psi
+            edge[:spacetypes][p] = psi unless psi.empty?
           end
         end
       end
@@ -2786,30 +2750,19 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       edges.values.each do |edge|
         next unless edge.has_key?(:psi)
         next unless edge.has_key?(:spacetypes)
-        edge[:psi].keys.each do |type|
-          tt = type
+        edge[:psi].keys.each do |t|
           vals = {}
           edge[:spacetypes].each do |p, psi|
             holds, values = io_p.shorthands(p)
             next if holds.empty?
             next if values.empty?
-            unless holds[tt]
-              tt_concave = tt.to_s.include?("concave")
-              tt_convex  = tt.to_s.include?("convex")
-              tt = tt.to_s.chomp("concave").to_sym if tt_concave
-              tt = tt.to_s.chomp("convex").to_sym  if tt_convex
-              unless holds[tt]
-                tt = :fenestration if tt == :head
-                tt = :fenestration if tt == :sill
-                tt = :fenestration if tt == :jamb
-              end
-            end
-            vals[p] = values[tt] if holds[tt]
+            tt = safeType(t, holds)
+            vals[p] = values[tt] unless tt.nil?
           end
           next if vals.empty?
-          edge[:psi][type] = vals.values.max
+          edge[:psi][t] = vals.values.max
           edge[:sets] = {} unless edge.has_key?(:sets)
-          edge[:sets][type] = vals.key(vals.values.max)
+          edge[:sets][t] = vals.key(vals.values.max)
         end
       end
     end
@@ -2827,7 +2780,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
 
         edges.values.each do |edge|
           next unless edge.has_key?(:psi)
-          next if edge.has_key?(:io_set)       # customized edge WITH custom PSI
+          next if edge.has_key?(:io_set)
           next unless edge.has_key?(:surfaces)
           edge[:surfaces].keys.each do |id|
             next unless surfaces.has_key?(id)
@@ -2836,38 +2789,14 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
             next unless i == sp.nameString
             edge[:spaces] = {} unless edge.has_key?(:spaces)
             edge[:spaces][p] = {}
-
             psi = {}
             if edge.has_key?(:io_type)
-              tt = edge[:io_type]
-              unless holds[tt]
-                tt_concave = tt.to_s.include?("concave")
-                tt_convex  = tt.to_s.include?("convex")
-                tt = tt.to_s.chomp("concave").to_sym if tt_concave
-                tt = tt.to_s.chomp("convex").to_sym  if tt_convex
-                unless holds[tt]
-                  tt = :fenestration if tt == :head
-                  tt = :fenestration if tt == :sill
-                  tt = :fenestration if tt == :jamb
-                end
-              end
-              psi[edge[:io_type]] = values[tt] if holds[tt]
+              tt = safeType(edge[:io_type], holds)
+              psi[edge[:io_type]] = values[tt] unless tt.nil?
             else
               edge[:psi].keys.each do |t|
-                next if edge.has_key?(:io_type)
-                tt = t
-                unless holds[tt]
-                  tt_concave = tt.to_s.include?("concave")
-                  tt_convex  = tt.to_s.include?("convex")
-                  tt = tt.to_s.chomp("concave").to_sym if tt_concave
-                  tt = tt.to_s.chomp("convex").to_sym  if tt_convex
-                  unless holds[tt]
-                    tt = :fenestration if tt == :head
-                    tt = :fenestration if tt == :sill
-                    tt = :fenestration if tt == :jamb
-                  end
-                end
-                psi[t] = values[tt] if holds[tt]
+                tt = safeType(t, holds)
+                psi[t] = values[tt] unless tt.nil?
               end
             end
             edge[:spaces][p] = psi unless psi.empty?
@@ -2883,30 +2812,19 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       edges.values.each do |edge|
         next unless edge.has_key?(:psi)
         next unless edge.has_key?(:spaces)
-        edge[:psi].keys.each do |type|
-          tt = type
+        edge[:psi].keys.each do |t|
           vals = {}
           edge[:spaces].each do |p, psi|
             holds, values = io_p.shorthands(p)
             next if holds.empty?
             next if values.empty?
-            unless holds[tt]
-              tt_concave = tt.to_s.include?("concave")
-              tt_convex  = tt.to_s.include?("convex")
-              tt = tt.to_s.chomp("concave").to_sym if tt_concave
-              tt = tt.to_s.chomp("convex").to_sym  if tt_convex
-              unless holds[tt]
-                tt = :fenestration if tt == :head
-                tt = :fenestration if tt == :sill
-                tt = :fenestration if tt == :jamb
-              end
-            end
-            vals[p] = psi[type] if psi.has_key?(type)
+            tt = safeType(t, holds)
+            vals[p] = values[tt] unless tt.nil?
           end
           next if vals.empty?
-          edge[:psi][type] = vals.values.max
+          edge[:psi][t] = vals.values.max
           edge[:sets] = {} unless edge.has_key?(:sets)
-          edge[:sets][type] = vals.key(vals.values.max)
+          edge[:sets][t] = vals.key(vals.values.max)
         end
       end
     end
@@ -2924,42 +2842,19 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
 
         edges.values.each do |edge|
           next unless edge.has_key?(:psi)
-          next if edge.has_key?(:io_set)       # customized edge WITH custom PSI
+          next if edge.has_key?(:io_set)
           next unless edge.has_key?(:surfaces)
           edge[:surfaces].each do |id, s|
             next unless surfaces.has_key?(id)
             next unless i == id
-
             psi = {}
             if edge.has_key?(:io_type)
-              tt = edge[:io_type]
-              unless holds[tt]
-                tt_concave = tt.to_s.include?("concave")
-                tt_convex  = tt.to_s.include?("convex")
-                tt = tt.to_s.chomp("concave").to_sym if tt_concave
-                tt = tt.to_s.chomp("convex").to_sym  if tt_convex
-                unless holds[tt]
-                  tt = :fenestration if tt == :head
-                  tt = :fenestration if tt == :sill
-                  tt = :fenestration if tt == :jamb
-                end
-              end
-              psi[:io_type] = values[tt] if holds[tt]
+              tt = safeType(edge[:io_type], holds)
+              psi[:io_type] = values[tt] unless tt.nil?
             else
               edge[:psi].keys.each do |t|
-                tt = t
-                unless holds[tt]
-                  tt_concave = tt.to_s.include?("concave")
-                  tt_convex  = tt.to_s.include?("convex")
-                  tt = tt.to_s.chomp("concave").to_sym if tt_concave
-                  tt = tt.to_s.chomp("convex").to_sym  if tt_convex
-                  unless holds[tt]
-                    tt = :fenestration if tt == :head
-                    tt = :fenestration if tt == :sill
-                    tt = :fenestration if tt == :jamb
-                  end
-                end
-                psi[t] = values[tt] if holds[tt]
+                tt = safeType(t, holds)
+                psi[t] = values[tt] unless tt.nil?
               end
             end
             s[:psi] = psi unless psi.empty?
@@ -2975,8 +2870,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       edges.values.each do |edge|
         next unless edge.has_key?(:psi)
         next unless edge.has_key?(:surfaces)
-        edge[:psi].keys.each do |type|
-          tt = type
+        edge[:psi].keys.each do |t|
           vals = {}
           edge[:surfaces].each do |id, s|
             next unless s.has_key?(:psi)
@@ -2985,23 +2879,13 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
             holds, values = io_p.shorthands(s[:set])
             next if holds.empty?
             next if values.empty?
-            unless holds[tt]
-              tt_concave = tt.to_s.include?("concave")
-              tt_convex  = tt.to_s.include?("convex")
-              tt = tt.to_s.chomp("concave").to_sym if tt_concave
-              tt = tt.to_s.chomp("convex").to_sym  if tt_convex
-              unless holds[tt]
-                tt = :fenestration if tt == :head
-                tt = :fenestration if tt == :sill
-                tt = :fenestration if tt == :jamb
-              end
-            end
-            vals[s[:set]] = values[tt] if holds[tt]
+            tt = safeType(t, holds)
+            vals[s[:set]] = values[tt] unless tt.nil?
           end
           next if vals.empty?
-          edge[:psi][type] = vals.values.max
+          edge[:psi][t] = vals.values.max
           edge[:sets] = {} unless edge.has_key?(:sets)
-          edge[:sets][type] = vals.key(vals.values.max)
+          edge[:sets][t] = vals.key(vals.values.max)
         end
       end
     end
@@ -3014,51 +2898,25 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       if edge.has_key?(:io_set)
         next unless io_p.set.has_key?(edge[:io_set])
         holds, values = io_p.shorthands(edge[:io_set])
-        next if holds.empty?
-        next if values.empty?
-        tt = edge[:io_type]
-        unless holds[tt]
-          tt_concave = tt.to_s.include?("concave")
-          tt_convex  = tt.to_s.include?("convex")
-          tt = tt.to_s.chomp("concave").to_sym if tt_concave
-          tt = tt.to_s.chomp("convex").to_sym  if tt_convex
-          unless has[tt]
-            tt = :fenestration if tt == :head
-            tt = :fenestration if tt == :sill
-            tt = :fenestration if tt == :jamb
-          end
-        end
-        next unless holds[tt]
+      else
+        next unless edge[:sets].has_key?(edge[:io_type])
+        next unless io_p.set.has_key?(edge[:sets][edge[:io_set]])
+        holds, values = io_p.shorthands(edge[:sets][edge[:io_type]])
+      end
+      next if holds.empty?
+      next if values.empty?
+      tt = safeType(edge[:io_type], holds)
+      next if tt.nil?
+      if edge.has_key?(:io_set)
         edge[:psi] = {}
-        edge[:psi][edge[:io_type]] = values[tt]
         edge[:set] = edge[:io_set]
       else
-        set = edge[:sets][edge[:io_type]]
-        holds, values = io_p.shorthands(set)
-        next if holds.empty?
-        next if values.empty?
-        tt = edge[:io_type]
-        unless holds[tt]
-          tt_concave = tt.to_s.include?("concave")
-          tt_convex  = tt.to_s.include?("convex")
-          tt = tt.to_s.chomp("concave").to_sym if tt_concave
-          tt = tt.to_s.chomp("convex").to_sym  if tt_convex
-          unless has[tt]
-            tt = :fenestration if tt == :head
-            tt = :fenestration if tt == :sill
-            tt = :fenestration if tt == :jamb
-          end
-        end
-        next unless holds[tt]
         edge[:sets] = {} unless edge.has_key?(:sets)
         edge[:sets][edge[:io_type]] = values[tt]
-        edge[:psi][edge[:io_type]] = values[tt]
       end
+      edge[:psi][edge[:io_type]] = values[tt]
     end
   end
-
-  # Redundancy above ... needs cleanup.
-  # Needs more testing for custom edges with any PSI set inheritance ...
 
   # Loop through each edge and assign heat loss to linked surfaces.
   edges.each do |identifier, edge|

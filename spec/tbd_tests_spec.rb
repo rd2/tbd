@@ -2572,13 +2572,6 @@ RSpec.describe TBD do
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(surfaces.size).to eq(23)
 
-    # Now mimic the export functionality of the measure
-    out = JSON.pretty_generate(io)
-    outP = File.dirname(__FILE__) + "/../json/tbd_warehouse6.out.json"
-    File.open(outP, "w") do |outP|
-      outP.puts out
-    end
-
     ids = { a: "Office Front Wall",
             b: "Office Left Wall",
             c: "Fine Storage Roof",
@@ -3346,12 +3339,6 @@ RSpec.describe TBD do
     expect(nb_party_edges).to        eq(0)
     expect(nb_grade_edges).to        eq(0)
     expect(nb_transition_edges).to   eq(2)           # edges between walls 5 & 6
-
-    out = JSON.pretty_generate(io)
-    outP = File.dirname(__FILE__) + "/../json/tbd_seb_n3.out.json"
-    File.open(outP, "w") do |outP|
-      outP.puts out
-    end
   end
 
   it "can process TB & D : JSON surface KHI & PSI entries + building & edge" do
@@ -3377,12 +3364,6 @@ RSpec.describe TBD do
       expect(surface.has_key?(:ratio)).to be(false) unless id == name
       next unless id == "Entryway  Wall 5"
       expect(surface[:heatloss]).to be_within(0.01).of(8.89)
-    end
-
-    out = JSON.pretty_generate(io)
-    outP = File.dirname(__FILE__) + "/../json/tbd_seb_n4.out.json"
-    File.open(outP, "w") do |outP|
-      outP.puts out
     end
   end
 
@@ -3466,12 +3447,6 @@ RSpec.describe TBD do
       end
       next unless id == "Entryway  Wall 5"
       expect(surface[:heatloss]).to be_within(0.01).of(15.62)
-    end
-
-    out = JSON.pretty_generate(io)
-    outP = File.dirname(__FILE__) + "/../json/tbd_seb_n7.out.json"
-    File.open(outP, "w") do |outP|
-      outP.puts out
     end
   end
 
@@ -3828,12 +3803,6 @@ RSpec.describe TBD do
       expect(heatloss).to be_within(0.01).of(11.61) if id == name
       name = "Office Front Wall"
       expect(heatloss).to be_within(0.01).of(22.94) if id == name
-    end
-
-    out = JSON.pretty_generate(io)
-    outP = File.dirname(__FILE__) + "/../json/tbd_warehouse5.out.json"
-    File.open(outP, "w") do |outP|
-      outP.puts out
     end
   end
 
