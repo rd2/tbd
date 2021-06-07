@@ -68,12 +68,18 @@ end
 # complete) set of PSI-values in W/K per linear meter.
 class PSI
   # @return [Hash] PSI set
+  # @return [Hash] shorthand listing of PSI types in a set
+  # @return [Hash] shorthand listing of PSI values in a set
   attr_reader :set
+  attr_reader :has
+  attr_reader :val
 
   ##
   # Construct a new PSI library (with defaults)
   def initialize
     @set = {}
+    @has = {}
+    @val = {}
 
     # The following are default PSI values (* published, ** calculated). Users
     # may edit these sets, add new sets here, or read-in custom sets from a TBD
@@ -107,6 +113,7 @@ class PSI
       joint:         0.300, # *
       transition:    0.000
     }.freeze               # based on INTERIOR dimensions (p.15 BETBG)
+    self.genShorthands("poor (BETBG)")
 
     @set["regular (BETBG)"] =
     {
@@ -120,6 +127,7 @@ class PSI
       joint:         0.200, # *
       transition:    0.000
     }.freeze               # based on INTERIOR dimensions (p.15 BETBG)
+    self.genShorthands("regular (BETBG)")
 
     @set["efficient (BETBG)"] =
     {
@@ -133,6 +141,7 @@ class PSI
       joint:         0.100, # *
       transition:    0.000
     }.freeze               # based on INTERIOR dimensions (p.15 BETBG)
+    self.genShorthands("efficient (BETBG)")
 
     @set["spandrel (BETBG)"] =
     {
@@ -146,6 +155,7 @@ class PSI
       joint:         0.500, # * Detail 3.3.2
       transition:    0.000
     }.freeze               # "conventional", closer to window wall spandrels
+    self.genShorthands("spandrel (BETBG)")
 
     @set["spandrel HP (BETBG)"] =
     {
@@ -159,6 +169,7 @@ class PSI
       joint:         0.140, # * Detail 7.4.2
       transition:    0.000
     }.freeze               # "good" to "high performance" curtainwall spandrels
+    self.genShorthands("spandrel HP (BETBG)")
 
     @set["code (Quebec)"] = # NECB-QC (code-compliant) defaults:
     {
@@ -172,6 +183,7 @@ class PSI
       joint:         0.200, # ** "regular (BETBG)"
       transition:    0.000
     }.freeze               # based on EXTERIOR dimensions (art. 3.1.1.6)
+    self.genShorthands("code (Quebec)")
 
     @set["(non thermal bridging)"] = # ... would not derate surfaces:
     {
@@ -185,6 +197,123 @@ class PSI
       joint:         0.000,
       transition:    0.000
     }.freeze
+    self.genShorthands("(non thermal bridging)")
+  end
+
+  ##
+  # Generate PSI set shorthand listings
+  # Requires a valid, unique :id.
+  #
+  # @param [String] p A PSI set identifier
+  def genShorthands(p)
+    if @set.has_key?(p)
+      h = {}
+      h[:joint]           = @set[p].has_key?(:joint)
+      h[:transition]      = @set[p].has_key?(:transition)
+      h[:fenestration]    = @set[p].has_key?(:fenestration)
+      h[:head]            = @set[p].has_key?(:head)
+      h[:headconcave]     = @set[p].has_key?(:headconcave)
+      h[:headconvex]      = @set[p].has_key?(:headconvex)
+      h[:sill]            = @set[p].has_key?(:sill)
+      h[:sillconcave]     = @set[p].has_key?(:sillconcave)
+      h[:sillconvex]      = @set[p].has_key?(:sillconvex)
+      h[:jamb]            = @set[p].has_key?(:jamb)
+      h[:jambconcave]     = @set[p].has_key?(:jambconcave)
+      h[:jambconvex]      = @set[p].has_key?(:jambconvex)
+      h[:corner]          = @set[p].has_key?(:corner)
+      h[:cornerconcave]   = @set[p].has_key?(:cornerconcave)
+      h[:cornerconvex]    = @set[p].has_key?(:cornerconvex)
+      h[:parapet]         = @set[p].has_key?(:parapet)
+      h[:partyconcave]    = @set[p].has_key?(:parapetconcave)
+      h[:parapetconvex]   = @set[p].has_key?(:parapetconvex)
+      h[:party]           = @set[p].has_key?(:party)
+      h[:partyconcave]    = @set[p].has_key?(:partyconcave)
+      h[:partyconvex]     = @set[p].has_key?(:partyconvex)
+      h[:grade]           = @set[p].has_key?(:grade)
+      h[:gradeconcave]    = @set[p].has_key?(:gradeconcave)
+      h[:gradeconvex]     = @set[p].has_key?(:gradeconvex)
+      h[:balcony]         = @set[p].has_key?(:balcony)
+      h[:balconyconcave]  = @set[p].has_key?(:balconyconcave)
+      h[:balconyconvex]   = @set[p].has_key?(:balconyconvex)
+      h[:rimjoist]        = @set[p].has_key?(:rimjoist)
+      h[:rimjoistconcave] = @set[p].has_key?(:rimjoistconcave)
+      h[:rimjoistconvex]  = @set[p].has_key?(:rimjoistconvex)
+      @has[p] = h
+
+      v = {}
+      v[:joint]    = 0; v[:transition]      = 0; v[:fenestration]   = 0
+      v[:head]     = 0; v[:headconcave]     = 0; v[:headconvex]     = 0
+      v[:sill]     = 0; v[:sillconcave]     = 0; v[:sillconvex]     = 0
+      v[:jamb]     = 0; v[:jambconcave]     = 0; v[:jambconvex]     = 0
+      v[:corner]   = 0; v[:cornerconcave]   = 0; v[:cornerconvex]   = 0
+      v[:parapet]  = 0; v[:parapetconcave]  = 0; v[:parapetconvex]  = 0
+      v[:party]    = 0; v[:partyconcave]    = 0; v[:partyconvex]    = 0
+      v[:grade]    = 0; v[:gradeconcave]    = 0; v[:gradeconvex]    = 0
+      v[:balcony]  = 0; v[:balconyconcave]  = 0; v[:balconyconvex]  = 0
+      v[:rimjoist] = 0; v[:rimjoistconcave] = 0; v[:rimjoistconvex] = 0
+
+      v[:joint]           = @set[p][:joint]           if h[:joint]
+      v[:transition]      = @set[p][:transition]      if h[:transition]
+      v[:fenestration]    = @set[p][:fenestration]    if h[:fenestration]
+      v[:head]            = @set[p][:fenestration]    if h[:fenestration]
+      v[:headconcave]     = @set[p][:fenestration]    if h[:fenestration]
+      v[:headconvex]      = @set[p][:fenestration]    if h[:fenestration]
+      v[:sill]            = @set[p][:fenestration]    if h[:fenestration]
+      v[:sillconcave]     = @set[p][:fenestration]    if h[:fenestration]
+      v[:sillconvex]      = @set[p][:fenestration]    if h[:fenestration]
+      v[:jamb]            = @set[p][:fenestration]    if h[:fenestration]
+      v[:jambconcave]     = @set[p][:fenestration]    if h[:fenestration]
+      v[:jambconvex]      = @set[p][:fenestration]    if h[:fenestration]
+      v[:head]            = @set[p][:head]            if h[:head]
+      v[:headconcave]     = @set[p][:head]            if h[:head]
+      v[:headconvex]      = @set[p][:head]            if h[:head]
+      v[:sill]            = @set[p][:sill]            if h[:sill]
+      v[:sillconcave]     = @set[p][:sill]            if h[:sill]
+      v[:sillconvex]      = @set[p][:sill]            if h[:sill]
+      v[:jamb]            = @set[p][:jamb]            if h[:jamb]
+      v[:jambconcave]     = @set[p][:jamb]            if h[:jamb]
+      v[:jambconvex]      = @set[p][:jamb]            if h[:jamb]
+      v[:headconcave]     = @set[p][:headconcave]     if h[:headconcave]
+      v[:headconvex]      = @set[p][:headconvex]      if h[:headconvex]
+      v[:sillconcave]     = @set[p][:sillconcave]     if h[:sillconcave]
+      v[:sillconvex]      = @set[p][:sillconvex]      if h[:sillconvex]
+      v[:jambconcave]     = @set[p][:jambconcave]     if h[:jambconcave]
+      v[:jambconvex]      = @set[p][:jambconvex]      if h[:jambconvex]
+      v[:corner]          = @set[p][:corner]          if h[:corner]
+      v[:cornerconcave]   = @set[p][:corner]          if h[:corner]
+      v[:cornerconvex]    = @set[p][:corner]          if h[:corner]
+      v[:cornerconcave]   = @set[p][:cornerconcave]   if h[:cornerconcave]
+      v[:cornerconvex]    = @set[p][:cornerconvex]    if h[:cornerconvex]
+      v[:parapet]         = @set[p][:parapet]         if h[:parapet]
+      v[:parapetconcave]  = @set[p][:parapet]         if h[:parapet]
+      v[:parapetconvex]   = @set[p][:parapet]         if h[:parapet]
+      v[:parapetconcave]  = @set[p][:parapetconcave]  if h[:parapetconcave]
+      v[:parapetconvex]   = @set[p][:parapetconvex]   if h[:parapetconvex]
+      v[:party]           = @set[p][:party]           if h[:party]
+      v[:partyconcave]    = @set[p][:party]           if h[:party]
+      v[:partyconvex]     = @set[p][:party]           if h[:party]
+      v[:partyconcave]    = @set[p][:partyconcave]    if h[:partyconcave]
+      v[:partyconvex]     = @set[p][:partyconvex]     if h[:partyconvex]
+      v[:grade]           = @set[p][:grade]           if h[:grade]
+      v[:gradeconcave]    = @set[p][:grade]           if h[:grade]
+      v[:gradeconvex]     = @set[p][:grade]           if h[:grade]
+      v[:gradeconcave]    = @set[p][:gradeconcave]    if h[:gradeconcave]
+      v[:gradeconvex]     = @set[p][:gradeconvex]     if h[:gradeconvex]
+      v[:balcony]         = @set[p][:balcony]         if h[:balcony]
+      v[:balconyconcave]  = @set[p][:balcony]         if h[:balcony]
+      v[:balconyconvex]   = @set[p][:balcony]         if h[:balcony]
+      v[:balconyconcave]  = @set[p][:balconyconcave]  if h[:balconyconcave]
+      v[:balconyconvex]   = @set[p][:balconyconvex]   if h[:balconyconvex]
+      v[:rimjoist]        = @set[p][:rimjoist]        if h[:rimjoist]
+      v[:rimjoistconcave] = @set[p][:rimjoist]        if h[:rimjoist]
+      v[:rimjoistconvex]  = @set[p][:rimjoist]        if h[:rimjoist]
+      v[:rimjoistconcave] = @set[p][:rimjoistconcave] if h[:rimjoistconcave]
+      v[:rimjoistconvex]  = @set[p][:rimjoistconvex]  if h[:rimjoistconvex]
+
+      max = [v[:parapetconcave], v[:parapetconvex]].max
+      v[:parapet] = max unless @has[:parapet]
+      @val[p] = v
+    end
   end
 
   ##
@@ -239,167 +368,90 @@ class PSI
 
     s[:joint]           = 0.000 unless p.has_key?(:joint)
     s[:transition]      = 0.000 unless p.has_key?(:transition)
-    @set[id] = s unless @set.has_key?(id)
+    unless @set.has_key?(id)
+      @set[id] = s
+      self.genShorthands(id)
+    end
   end
 
   ##
   # Generate shorthand hash of PSI content
   #
-  # @param [String] s A PSI set identifier
+  # @param [String] p A PSI set identifier
   #
   # @return [Hash] Returns true/false statements as to PSI content
   # @return [Hash] Returns implicitly calculated or explicitly-set PSI values
-  def shorthands(s)
-    has = {}
-    val = {}
-
-    if @set.has_key?(s)
-      has[:joint]           = @set[s].has_key?(:joint)
-      has[:transition]      = @set[s].has_key?(:transition)
-      has[:fenestration]    = @set[s].has_key?(:fenestration)
-      has[:head]            = @set[s].has_key?(:head)
-      has[:headconcave]     = @set[s].has_key?(:headconcave)
-      has[:headconvex]      = @set[s].has_key?(:headconvex)
-      has[:sill]            = @set[s].has_key?(:sill)
-      has[:sillconcave]     = @set[s].has_key?(:sillconcave)
-      has[:sillconvex]      = @set[s].has_key?(:sillconvex)
-      has[:jamb]            = @set[s].has_key?(:jamb)
-      has[:jambconcave]     = @set[s].has_key?(:jambconcave)
-      has[:jambconvex]      = @set[s].has_key?(:jambconvex)
-      has[:corner]          = @set[s].has_key?(:corner)
-      has[:cornerconcave]   = @set[s].has_key?(:cornerconcave)
-      has[:cornerconvex]    = @set[s].has_key?(:cornerconvex)
-      has[:parapet]         = @set[s].has_key?(:parapet)
-      has[:partyconcave]    = @set[s].has_key?(:parapetconcave)
-      has[:parapetconvex]   = @set[s].has_key?(:parapetconvex)
-      has[:party]           = @set[s].has_key?(:party)
-      has[:partyconcave]    = @set[s].has_key?(:partyconcave)
-      has[:partyconvex]     = @set[s].has_key?(:partyconvex)
-      has[:grade]           = @set[s].has_key?(:grade)
-      has[:gradeconcave]    = @set[s].has_key?(:gradeconcave)
-      has[:gradeconvex]     = @set[s].has_key?(:gradeconvex)
-      has[:balcony]         = @set[s].has_key?(:balcony)
-      has[:balconyconcave]  = @set[s].has_key?(:balconyconcave)
-      has[:balconyconvex]   = @set[s].has_key?(:balconyconvex)
-      has[:rimjoist]        = @set[s].has_key?(:rimjoist)
-      has[:rimjoistconcave] = @set[s].has_key?(:rimjoistconcave)
-      has[:rimjoistconvex]  = @set[s].has_key?(:rimjoistconvex)
-
-      val[:joint]    = 0; val[:transition]      = 0; val[:fenestration]   = 0
-      val[:head]     = 0; val[:headconcave]     = 0; val[:headconvex]     = 0
-      val[:sill]     = 0; val[:sillconcave]     = 0; val[:sillconvex]     = 0
-      val[:jamb]     = 0; val[:jambconcave]     = 0; val[:jambconvex]     = 0
-      val[:corner]   = 0; val[:cornerconcave]   = 0; val[:cornerconvex]   = 0
-      val[:parapet]  = 0; val[:parapetconcave]  = 0; val[:parapetconvex]  = 0
-      val[:party]    = 0; val[:partyconcave]    = 0; val[:partyconvex]    = 0
-      val[:grade]    = 0; val[:gradeconcave]    = 0; val[:gradeconvex]    = 0
-      val[:balcony]  = 0; val[:balconyconcave]  = 0; val[:balconyconvex]  = 0
-      val[:rimjoist] = 0; val[:rimjoistconcave] = 0; val[:rimjoistconvex] = 0
-
-      val[:joint]           = @set[s][:joint]           if has[:joint]
-      val[:transition]      = @set[s][:transition]      if has[:transition]
-      val[:fenestration]    = @set[s][:fenestration]    if has[:fenestration]
-      val[:head]            = @set[s][:fenestration]    if has[:fenestration]
-      val[:headconcave]     = @set[s][:fenestration]    if has[:fenestration]
-      val[:headconvex]      = @set[s][:fenestration]    if has[:fenestration]
-      val[:sill]            = @set[s][:fenestration]    if has[:fenestration]
-      val[:sillconcave]     = @set[s][:fenestration]    if has[:fenestration]
-      val[:sillconvex]      = @set[s][:fenestration]    if has[:fenestration]
-      val[:jamb]            = @set[s][:fenestration]    if has[:fenestration]
-      val[:jambconcave]     = @set[s][:fenestration]    if has[:fenestration]
-      val[:jambconvex]      = @set[s][:fenestration]    if has[:fenestration]
-      val[:head]            = @set[s][:head]            if has[:head]
-      val[:headconcave]     = @set[s][:head]            if has[:head]
-      val[:headconvex]      = @set[s][:head]            if has[:head]
-      val[:sill]            = @set[s][:sill]            if has[:sill]
-      val[:sillconcave]     = @set[s][:sill]            if has[:sill]
-      val[:sillconvex]      = @set[s][:sill]            if has[:sill]
-      val[:jamb]            = @set[s][:jamb]            if has[:jamb]
-      val[:jambconcave]     = @set[s][:jamb]            if has[:jamb]
-      val[:jambconvex]      = @set[s][:jamb]            if has[:jamb]
-      val[:headconcave]     = @set[s][:headconcave]     if has[:headconcave]
-      val[:headconvex]      = @set[s][:headconvex]      if has[:headconvex]
-      val[:sillconcave]     = @set[s][:sillconcave]     if has[:sillconcave]
-      val[:sillconvex]      = @set[s][:sillconvex]      if has[:sillconvex]
-      val[:jambconcave]     = @set[s][:jambconcave]     if has[:jambconcave]
-      val[:jambconvex]      = @set[s][:jambconvex]      if has[:jambconvex]
-      val[:corner]          = @set[s][:corner]          if has[:corner]
-      val[:cornerconcave]   = @set[s][:corner]          if has[:corner]
-      val[:cornerconvex]    = @set[s][:corner]          if has[:corner]
-      val[:cornerconcave]   = @set[s][:cornerconcave]   if has[:cornerconcave]
-      val[:cornerconvex]    = @set[s][:cornerconvex]    if has[:cornerconvex]
-      val[:parapet]         = @set[s][:parapet]         if has[:parapet]
-      val[:parapetconcave]  = @set[s][:parapet]         if has[:parapet]
-      val[:parapetconvex]   = @set[s][:parapet]         if has[:parapet]
-      val[:parapetconcave]  = @set[s][:parapetconcave]  if has[:parapetconcave]
-      val[:parapetconvex]   = @set[s][:parapetconvex]   if has[:parapetconvex]
-      val[:party]           = @set[s][:party]           if has[:party]
-      val[:partyconcave]    = @set[s][:party]           if has[:party]
-      val[:partyconvex]     = @set[s][:party]           if has[:party]
-      val[:partyconcave]    = @set[s][:partyconcave]    if has[:partyconcave]
-      val[:partyconvex]     = @set[s][:partyconvex]     if has[:partyconvex]
-      val[:grade]           = @set[s][:grade]           if has[:grade]
-      val[:gradeconcave]    = @set[s][:grade]           if has[:grade]
-      val[:gradeconvex]     = @set[s][:grade]           if has[:grade]
-      val[:gradeconcave]    = @set[s][:gradeconcave]    if has[:gradeconcave]
-      val[:gradeconvex]     = @set[s][:gradeconvex]     if has[:gradeconvex]
-      val[:balcony]         = @set[s][:balcony]         if has[:balcony]
-      val[:balconyconcave]  = @set[s][:balcony]         if has[:balcony]
-      val[:balconyconvex]   = @set[s][:balcony]         if has[:balcony]
-      val[:balconyconcave]  = @set[s][:balconyconcave]  if has[:balconyconcave]
-      val[:balconyconvex]   = @set[s][:balconyconvex]   if has[:balconyconvex]
-      val[:rimjoist]        = @set[s][:rimjoist]        if has[:rimjoist]
-      val[:rimjoistconcave] = @set[s][:rimjoist]        if has[:rimjoist]
-      val[:rimjoistconvex]  = @set[s][:rimjoist]        if has[:rimjoist]
-      val[:rimjoistconcave] = @set[s][:rimjoistconcave] if has[:rimjoistconcave]
-      val[:rimjoistconvex]  = @set[s][:rimjoistconvex]  if has[:rimjoistconvex]
-
-      max = [val[:parapetconcave], val[:parapetconvex]].max
-      val[:parapet] = max unless has[:parapet]
-    end
-    return has, val
+  def shorthands(p)
+    h = {}
+    v = {}
+    return @has[p], @val[p] if @set.has_key?(p)
+    return h, v
   end
 
   ##
   # Validate whether a stored PSI set has a complete list of PSI type:values
   #
-  # @param [String] s A PSI set identifier
+  # @param [String] p A PSI set identifier
   #
   # @return [Bool] Returns true if stored and has a complete PSI set
-  def complete?(s)
-    ok = @set.has_key?(s)
-    has = {}
-    val = {}
-    has, val = shorthands(s) if ok
-    unless has.empty? || val.empty?
-      holes = []
-      holes << :head if has[:head]
-      holes << :sill if has[:sill]
-      holes << :jamb if has[:jamb]
-      ok = holes.size == 3
-      ok = true if has[:fenestration]
-      return false unless ok
+  def complete?(p)
+    return false unless @set.has_key?(p)
+    return false unless @has.has_key?(p)
+    return false unless @val.has_key?(p)
+    raise "missing @has key #{p}" unless @has.has_key?(p)
+    raise "missing head" unless @has[p].has_key?(:head)
+    holes = []
+    holes << :head if @has[p][:head]
+    holes << :sill if @has[p][:sill]
+    holes << :jamb if @has[p][:jamb]
+    ok = holes.size == 3
+    ok = true if @has[p][:fenestration]
+    return false unless ok
 
-      corners = []
-      corners << :concave if has[:cornerconcave]
-      corners << :convex  if has[:cornerconvex]
-      ok = corners.size == 2
-      ok = true if has[:corner]
-      return false unless ok
+    corners = []
+    corners << :concave if @has[p][:cornerconcave]
+    corners << :convex  if @has[p][:cornerconvex]
+    ok = corners.size == 2
+    ok = true if @has[p][:corner]
+    return false unless ok
 
-      parapets = []
-      parapets << :concave if has[:parapetconcave]
-      parapets << :convex  if has[:parapetconvex]
-      ok = parapets.size == 2
-      ok = true if has[:parapet]
-      return false unless ok
+    parapets = []
+    parapets << :concave if @has[p][:parapetconcave]
+    parapets << :convex  if @has[p][:parapetconvex]
+    ok = parapets.size == 2
+    ok = true if @has[p][:parapet]
+    return false unless ok
 
-      return false unless has[:party]
-      return false unless has[:grade]
-      return false unless has[:balcony]
-      return false unless has[:rimjoist]
-    end
+    return false unless @has[p][:party]
+    return false unless @has[p][:grade]
+    return false unless @has[p][:balcony]
+    return false unless @has[p][:rimjoist]
     ok
+  end
+
+  ##
+  # Return safe PSI type if missing input from PSI set (relies on inheritance)
+  # @param [String] p A PSI set identifier
+  # @param [Hash] type PSI type e.g., :rimjoistconcave
+  #
+  # @return [Symbol] Returns safe type (nil if none were found)
+  def safeType(p, type)
+    ok = @set.has_key?(p)
+    tt = type
+    tt = tt.to_sym unless tt.is_a?(Symbol)
+    unless @has[p][tt]
+      tt_concave = tt.to_s.include?("concave")
+      tt_convex  = tt.to_s.include?("convex")
+      tt = tt.to_s.chomp("concave").to_sym if tt_concave
+      tt = tt.to_s.chomp("convex").to_sym  if tt_convex
+      unless @has[p][tt]
+        tt = :fenestration if tt == :head
+        tt = :fenestration if tt == :sill
+        tt = :fenestration if tt == :jamb
+      end
+    end
+    return tt if @has[p][tt]
+    nil
   end
 end
 
@@ -451,31 +503,6 @@ def matches?(e1, e2)
     )
   )
   answer
-end
-
-##
-# Return safe PSI type if missing input from PSI set (relies on inheritance)
-# @param [Symbol] type PSI type e.g., :rimjoistconcave
-# @param [Hash] holds A true/false struct (see shorthands)
-#
-# @return [Symbol] Returns safe type (nil if none were found)
-def safeType(type, holds)
-  raise "#{holds.class}? expected Hash (safeType)" unless holds.is_a?(Hash)
-  tt = type
-  tt = tt.to_sym unless tt.is_a?(Symbol)
-  unless holds[tt]
-    tt_concave = tt.to_s.include?("concave")
-    tt_convex  = tt.to_s.include?("convex")
-    tt = tt.to_s.chomp("concave").to_sym if tt_concave
-    tt = tt.to_s.chomp("convex").to_sym  if tt_convex
-    unless holds[tt]
-      tt = :fenestration if tt == :head
-      tt = :fenestration if tt == :sill
-      tt = :fenestration if tt == :jamb
-    end
-  end
-  return tt if holds[tt]
-  nil
 end
 
 ##
@@ -696,10 +723,11 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
             if edge.has_key?(:psi)                                    # optional
               p = edge[:psi]
               raise "PSI mismatch (TBD inputs)" unless psi.set.has_key?(p)
-              holds, values = psi.shorthands(p)
-              next if holds.empty?
-              next if values.empty?
-              tt = safeType(t, holds)
+              #holds, values = psi.shorthands(p)
+              #next if holds.empty?
+              #next if values.empty?
+              tt = psi.safeType(p, t)
+              #tt = safeType(t, holds)
               raise "#{p} missing PSI #{t} or variants" if tt.nil?
               e[:io_set] = p
             end
@@ -2371,7 +2399,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     psi = {}
 
     if edge.has_key?(:io_type)
-      tt = safeType(edge[:io_type], has)
+      tt = io_p.safeType(p, edge[:io_type])
       unless tt.nil?
         edge[:sets] = {} unless edge.has_key?(:sets)
         edge[:sets][edge[:io_type]] = val[tt]     # default to :building PSI set
@@ -2694,11 +2722,11 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
             edge[:stories][p] = {}
             psi = {}
             if edge.has_key?(:io_type)
-              tt = safeType(edge[:io_type], holds)
+              tt = io_p.safeType(p, edge[:io_type])
               psi[edge[:io_type]] = values[tt] unless tt.nil?
             else
               edge[:psi].keys.each do |t|
-                tt = safeType(t, holds)
+                tt = io_p.safeType(p, t)
                 psi[t] = values[tt] unless tt.nil?
               end
             end
@@ -2721,7 +2749,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
             holds, values = io_p.shorthands(p)
             next if holds.empty?
             next if values.empty?
-            tt = safeType(t, holds)
+            tt = io_p.safeType(p, t)
             vals[p] = values[tt] unless tt.nil?
           end
           next if vals.empty?
@@ -2756,11 +2784,11 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
             edge[:spacetypes][p] = {}
             psi = {}
             if edge.has_key?(:io_type)
-              tt = safeType(edge[:io_type], holds)
+              tt = io_p.safeType(p, edge[:io_type])
               psi[edge[:io_type]] = values[tt] unless tt.nil?
             else
               edge[:psi].keys.each do |t|
-                tt = safeType(t, holds)
+                tt = io_p.safeType(p, t)
                 psi[t] = values[tt] unless tt.nil?
               end
             end
@@ -2783,7 +2811,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
             holds, values = io_p.shorthands(p)
             next if holds.empty?
             next if values.empty?
-            tt = safeType(t, holds)
+            tt = io_p.safeType(p, t)
             vals[p] = values[tt] unless tt.nil?
           end
           next if vals.empty?
@@ -2818,11 +2846,11 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
             edge[:spaces][p] = {}
             psi = {}
             if edge.has_key?(:io_type)
-              tt = safeType(edge[:io_type], holds)
+              tt = io_p.safeType(p, edge[:io_type])
               psi[edge[:io_type]] = values[tt] unless tt.nil?
             else
               edge[:psi].keys.each do |t|
-                tt = safeType(t, holds)
+                tt = io_p.safeType(p, t)
                 psi[t] = values[tt] unless tt.nil?
               end
             end
@@ -2845,7 +2873,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
             holds, values = io_p.shorthands(p)
             next if holds.empty?
             next if values.empty?
-            tt = safeType(t, holds)
+            tt = io_p.safeType(p, t)
             vals[p] = values[tt] unless tt.nil?
           end
           next if vals.empty?
@@ -2876,11 +2904,11 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
             next unless i == id
             psi = {}
             if edge.has_key?(:io_type)
-              tt = safeType(edge[:io_type], holds)
+              tt = io_p.safeType(p, edge[:io_type])
               psi[:io_type] = values[tt] unless tt.nil?
             else
               edge[:psi].keys.each do |t|
-                tt = safeType(t, holds)
+                tt = io_p.safeType(p, t)
                 psi[t] = values[tt] unless tt.nil?
               end
             end
@@ -2906,7 +2934,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
             holds, values = io_p.shorthands(s[:set])
             next if holds.empty?
             next if values.empty?
-            tt = safeType(t, holds)
+            tt = io_p.safeType(s[:set], t)
             vals[s[:set]] = values[tt] unless tt.nil?
           end
           next if vals.empty?
@@ -2924,15 +2952,16 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       next unless edge.has_key?(:surfaces)
       if edge.has_key?(:io_set)
         next unless io_p.set.has_key?(edge[:io_set])
-        holds, values = io_p.shorthands(edge[:io_set])
+        set = edge[:io_set]
       else
         next unless edge[:sets].has_key?(edge[:io_type])
-        next unless io_p.set.has_key?(edge[:sets][edge[:io_set]])
-        holds, values = io_p.shorthands(edge[:sets][edge[:io_type]])
+        next unless io_p.set.has_key?(edge[:sets][edge[:io_type]])
+        set = edge[:sets][edge[:io_type]]
       end
+      holds, values = io_p.shorthands(set)
       next if holds.empty?
       next if values.empty?
-      tt = safeType(edge[:io_type], holds)
+      tt = io_p.safeType(set, edge[:io_type])
       next if tt.nil?
       if edge.has_key?(:io_set)
         edge[:psi] = {}

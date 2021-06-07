@@ -1016,9 +1016,8 @@ RSpec.describe TBD do
       psi = {}
 
       edge[:surfaces].keys.each do |id|
+        next unless surfaces.has_key?(id)
         next unless deratables.include?(id)
-        next unless surfaces[id].has_key?(:conditioned)
-        next unless surfaces[id][:conditioned]
 
         # Evaluate PSI content before processing a new linked surface.
         is = {}
