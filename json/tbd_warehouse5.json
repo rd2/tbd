@@ -7,8 +7,7 @@
       "rimjoist": 0.300,
       "parapet": 0.300,
       "fenestration": 0.300,
-      "cornerconcave": 0.300,
-      "cornerconvex": 0.300,
+      "corner": 0.300,
       "balcony": 0.300,
       "party": 0.300,
       "grade": 0.300
@@ -18,8 +17,7 @@
       "rimjoist": 0.500,
       "parapet": 0.500,
       "fenestration": 0.500,
-      "cornerconcave": 0.500,
-      "cornerconvex": 0.500,
+      "corner": 0.500,
       "balcony": 0.500,
       "party": 0.500,
       "grade": 0.500

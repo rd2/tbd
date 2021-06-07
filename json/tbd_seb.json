@@ -12,8 +12,7 @@
       "rimjoist": 0.3,
       "parapet": 0.325,
       "fenestration": 0.35,
-      "cornerconcave": 0.45,
-      "cornerconvex": 0.45,
+      "corner": 0.45,
       "balcony": 0.5,
       "party": 0.5,
       "grade": 0.45
