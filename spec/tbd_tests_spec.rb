@@ -3543,10 +3543,12 @@ RSpec.describe TBD do
     psi = PSI.new
     expect(io.has_key?(:psis)).to be(true)
     io[:psis].each do |p| psi.append(p); end
-    expect(psi.set.size).to eq(7)
+    expect(psi.set.size).to eq(9)
     expect(psi.set.has_key?("poor (BETBG)")).to be(true)
     expect(psi.set.has_key?("regular (BETBG)")).to be(true)
     expect(psi.set.has_key?("efficient (BETBG)")).to be(true)
+    expect(psi.set.has_key?("spandrel (BETBG)")).to be(true)
+    expect(psi.set.has_key?("spandrel HP (BETBG)")).to be(true)
     expect(psi.set.has_key?("code (Quebec)")).to be(true)
     expect(psi.set.has_key?("(non thermal bridging)")).to be(true)
     expect(psi.set.has_key?("good")).to be(true)
@@ -3560,6 +3562,8 @@ RSpec.describe TBD do
     expect(khi.point.has_key?("poor (BETBG)")).to be(true)
     expect(khi.point.has_key?("regular (BETBG)")).to be(true)
     expect(khi.point.has_key?("efficient (BETBG)")).to be(true)
+    expect(psi.set.has_key?("spandrel (BETBG)")).to be(true)
+    expect(psi.set.has_key?("spandrel HP (BETBG)")).to be(true)
     expect(khi.point.has_key?("code (Quebec)")).to be(true)
     expect(khi.point.has_key?("(non thermal bridging)")).to be(true)
     expect(khi.point.has_key?("column")).to be(true)
@@ -3626,10 +3630,12 @@ RSpec.describe TBD do
     psi = PSI.new
     expect(io.has_key?(:psis)).to be(true)
     io[:psis].each do |p| psi.append(p); end
-    expect(psi.set.size).to eq(7)
+    expect(psi.set.size).to eq(9)
     expect(psi.set.has_key?("poor (BETBG)")).to be(true)
     expect(psi.set.has_key?("regular (BETBG)")).to be(true)
     expect(psi.set.has_key?("efficient (BETBG)")).to be(true)
+    expect(psi.set.has_key?("spandrel (BETBG)")).to be(true)
+    expect(psi.set.has_key?("spandrel HP (BETBG)")).to be(true)
     expect(psi.set.has_key?("code (Quebec)")).to be(true)
     expect(psi.set.has_key?("(non thermal bridging)")).to be(true)
     expect(psi.set.has_key?("OK")).to be(true)
@@ -3673,10 +3679,12 @@ RSpec.describe TBD do
     psi = PSI.new
     expect(io.has_key?(:psis)).to be(true)
     io[:psis].each do |p| psi.append(p); end
-    expect(psi.set.size).to eq(8)
+    expect(psi.set.size).to eq(10)
     expect(psi.set.has_key?("poor (BETBG)")).to be(true)
     expect(psi.set.has_key?("regular (BETBG)")).to be(true)
     expect(psi.set.has_key?("efficient (BETBG)")).to be(true)
+    expect(psi.set.has_key?("spandrel (BETBG)")).to be(true)
+    expect(psi.set.has_key?("spandrel HP (BETBG)")).to be(true)
     expect(psi.set.has_key?("code (Quebec)")).to be(true)
     expect(psi.set.has_key?("(non thermal bridging)")).to be(true)
     expect(psi.set.has_key?("OK")).to be(true)
@@ -3738,10 +3746,12 @@ RSpec.describe TBD do
     psi = PSI.new
     expect(io.has_key?(:psis)).to be(true)
     io[:psis].each do |p| psi.append(p); end
-    expect(psi.set.size).to eq(6)
+    expect(psi.set.size).to eq(8)
     expect(psi.set.has_key?("poor (BETBG)")).to be(true)
     expect(psi.set.has_key?("regular (BETBG)")).to be(true)
     expect(psi.set.has_key?("efficient (BETBG)")).to be(true)
+    expect(psi.set.has_key?("spandrel (BETBG)")).to be(true)
+    expect(psi.set.has_key?("spandrel HP (BETBG)")).to be(true)
     expect(psi.set.has_key?("code (Quebec)")).to be(true)
     expect(psi.set.has_key?("(non thermal bridging)")).to be(true)
     expect(psi.set.has_key?("OK")).to be(true)

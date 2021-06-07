@@ -2,8 +2,8 @@
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>ed8021c6-0359-44d5-8787-e6bf9670537d</version_id>
-  <version_modified>20210607T104350Z</version_modified>
+  <version_id>1cd90c1b-6bc3-441e-b0bd-c8097b97a8fe</version_id>
+  <version_modified>20210607T132144Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -49,6 +49,14 @@
         <choice>
           <value>efficient (BETBG)</value>
           <display_name>efficient (BETBG)</display_name>
+        </choice>
+        <choice>
+          <value>spandrel (BETBG)</value>
+          <display_name>spandrel (BETBG)</display_name>
+        </choice>
+        <choice>
+          <value>spandrel HP (BETBG)</value>
+          <display_name>spandrel HP (BETBG)</display_name>
         </choice>
         <choice>
           <value>code (Quebec)</value>
@@ -252,7 +260,7 @@
       <filename>psi.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>87877F7B</checksum>
+      <checksum>D4306A1E</checksum>
     </file>
   </files>
 </measure>

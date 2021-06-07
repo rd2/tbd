@@ -77,7 +77,8 @@ class PSI
 
     # The following are default PSI values (* published, ** calculated). Users
     # may edit these sets, add new sets here, or read-in custom sets from a TBD
-    # JSON input file. PSI units are in W/K per linear meter.
+    # JSON input file. PSI units are in W/K per linear meter. The spandrel sets
+    # are added as practical suggestions in early design stages.
 
     # Convex vs concave PSI adjustments may be warranted if there is a mismatch
     # between dimensioning conventions (interior vs exterior) used for the OSM
@@ -132,6 +133,32 @@ class PSI
       joint:         0.100, # *
       transition:    0.000
     }.freeze               # based on INTERIOR dimensions (p.15 BETBG)
+
+    @set["spandrel (BETBG)"] =
+    {
+      rimjoist:      0.615, # * Detail 1.2.1
+      parapet:       1.000, # * Detail 1.3.2
+      fenestration:  0.000, # * ... generally part of clear-field RSi
+      corner:        0.425, # * Detail 1.4.1
+      balcony:       1.110, # * Detail 8.1.9/9.1.6
+      party:         0.990, # ** ... similar to parapet/balcony
+      grade:         0.880, # * Detail 2.5.1
+      joint:         0.500, # * Detail 3.3.2
+      transition:    0.000
+    }.freeze               # "conventional", closer to window wall spandrels
+
+    @set["spandrel HP (BETBG)"] =
+    {
+      rimjoist:      0.170, # * Detail 1.2.7
+      parapet:       0.660, # * Detail 1.3.2
+      fenestration:  0.000, # * ... generally part of clear-field RSi
+      corner:        0.200, # * Detail 1.4.2
+      balcony:       0.400, # * Detail 9.1.15
+      party:         0.500, # ** ... similar to parapet/balcony
+      grade:         0.880, # * Detail 2.5.1
+      joint:         0.140, # * Detail 7.4.2
+      transition:    0.000
+    }.freeze               # "good" to "high performance" curtainwall spandrels
 
     @set["code (Quebec)"] = # NECB-QC (code-compliant) defaults:
     {
