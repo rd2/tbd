@@ -2397,20 +2397,20 @@ RSpec.describe TBD do
     # it's vented (infiltration) and there's necessarily heat conduction with
     # the outdoors and with the zone below. But otherwise, it's a dead zone
     # (no heating/cooling, no setpoints, not detailed in the eplusout.bnd
-    # file). The zone is linked to a "Plenum" zonelist (in the IDF), relied on
-    # only to set infiltration. What leads to some confusion is that the
+    # file), etc. The zone is linked to a "Plenum" zonelist (in the IDF), relied
+    # on only to set infiltration. What leads to some confusion is that the
     # outdoor-facing surfaces (roof & walls) of the "plenum" are insulated,
     # while the dropped ceiling separating the occupied zone below is simply
     # that, lightweight uninsulated ceiling tiles (a situation more evocative
     # of a true plenum). It may be indeed OK to model the plenum this way -
     # there will be plenty of heat transfer between the plenum and the zone
-    # below due to the poor thermal resistance of the dceiling tiles. And if the
-    # infiltration rates are low (unlike an attic), then simulation results may
-    # be quite consistent with a true plenum. Yet in the end, TBD will end up
-    # tagging the SEB plenum as an UNCONDITIONED space, and as a consequence it
-    # will (parially) derate the uninsulated ceiling tiles as well as the walls
-    # below. Fortunately, TBD relies on a proportionate derating solution
-    # whereby the insulated wall will be the main focus of the derating step.
+    # below due to the poor thermal resistance of the ceiling tiles. And if the
+    # infiltration rates are low enough (unlike an attic), then simulation
+    # results may end up being quite consistent with a true plenum. TBD will
+    # nonethless end up tagging the SEB plenum as an UNCONDITIONED space, and
+    # as a consequence will (parially) derate the uninsulated ceiling tiles.
+    # Fortunately, TBD relies on a proportionate derating solution whereby the
+    # insulated wall will be the main focus of the derating step.
     surfaces.each do |id, surface|
       next if surface.has_key?(:edges)
       expect(ids.has_value?(id)).to be(false)
@@ -4156,8 +4156,6 @@ RSpec.describe TBD do
     expect(n_heads).to eq(0)
     expect(n_sills).to eq(0)
     expect(n_jambs).to eq(128)
-
-    # More testing ...
   end
 
   it "has a PSI class" do
