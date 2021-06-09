@@ -4168,14 +4168,14 @@ RSpec.describe TBD do
     new_set =
     {
       id:            "new set",
-      rimjoist:      0.000, #
-      parapet:       0.000, #
-      fenestration:  0.000, #
-      cornerconcave: 0.000, #
-      cornerconvex:  0.000, #
-      balcony:       0.000, #
-      party:         0.000, #
-      grade:         0.000  #
+      rimjoist:      0.000,
+      parapet:       0.000,
+      fenestration:  0.000,
+      cornerconcave: 0.000,
+      cornerconvex:  0.000,
+      balcony:       0.000,
+      party:         0.000,
+      grade:         0.000
     }
     psi.append(new_set)
     expect(psi.set.has_key?("new set")).to be(true)
@@ -4196,6 +4196,105 @@ RSpec.describe TBD do
     psi.append(incomplete_set)
     expect(psi.set.has_key?("incomplete set")).to be(true)
     expect(psi.complete?("incomplete set")).to be(false)
+
+    # Fenestration edge variant - complete, partial, empty
+    expect(psi.set.has_key?("all sills")).to be(false)
+    all_sills =
+    {
+      id:            "all sills",
+      fenestration:  0.391,
+      head:          0.381,
+      headconcave:   0.382,
+      headconvex:    0.383,
+      sill:          0.371,
+      sillconcave:   0.372,
+      sillconvex:    0.373,
+      jamb:          0.361,
+      jambconcave:   0.362,
+      jambconvex:    0.363,
+      rimjoist:      0.001,
+      parapet:       0.002,
+      corner:        0.003,
+      balcony:       0.004,
+      party:         0.005,
+      grade:         0.006
+    }
+    psi.append(all_sills)
+    expect(psi.set.has_key?("all sills")).to be(true)
+    expect(psi.complete?("all sills")).to be(true)
+    holds, vals = psi.shorthands("all sills")
+    expect(holds.empty?).to be(false)
+    expect(vals.empty?).to be(false)
+    expect(holds[:fenestration]).to be(true)
+    expect(vals[:sill]).to be_within(0.001).of(0.371)
+    expect(vals[:sillconcave]).to be_within(0.001).of(0.372)
+    expect(vals[:sillconvex]).to  be_within(0.001).of(0.373)
+
+    expect(psi.set.has_key?("partial sills")).to be(false)
+    partial_sills =
+    {
+      id:            "partial sills",
+      fenestration:  0.391,
+      head:          0.381,
+      headconcave:   0.382,
+      headconvex:    0.383,
+      sill:          0.371,
+      sillconcave:   0.372,
+      # sillconvex:    0.373,                      # dropping the convex variant
+      jamb:          0.361,
+      jambconcave:   0.362,
+      jambconvex:    0.363,
+      rimjoist:      0.001,
+      parapet:       0.002,
+      corner:        0.003,
+      balcony:       0.004,
+      party:         0.005,
+      grade:         0.006
+    }
+    psi.append(partial_sills)
+    expect(psi.set.has_key?("partial sills")).to be(true)
+    expect(psi.complete?("partial sills")).to be(true)   # can be a building set
+    holds, vals = psi.shorthands("partial sills")
+    expect(holds.empty?).to be(false)
+    expect(vals.empty?).to be(false)
+    expect(holds[:sillconvex]).to be(false)                # absent from PSI set
+    expect(vals[:sill]).to        be_within(0.001).of(0.371)
+    expect(vals[:sillconcave]).to be_within(0.001).of(0.372)
+    expect(vals[:sillconvex]).to  be_within(0.001).of(0.371)    # inherits :sill
+
+    expect(psi.set.has_key?("no sills")).to be(false)
+    no_sills =
+    {
+      id:            "no sills",
+      fenestration:  0.391,
+      head:          0.381,
+      headconcave:   0.382,
+      headconvex:    0.383,
+      # sill:          0.371,                     # dropping the concave variant
+      # sillconcave:   0.372,                     # dropping the concave variant
+      # sillconvex:    0.373,                      # dropping the convex variant
+      jamb:          0.361,
+      jambconcave:   0.362,
+      jambconvex:    0.363,
+      rimjoist:      0.001,
+      parapet:       0.002,
+      corner:        0.003,
+      balcony:       0.004,
+      party:         0.005,
+      grade:         0.006
+    }
+    psi.append(no_sills)
+    expect(psi.set.has_key?("no sills")).to be(true)
+    expect(psi.complete?("no sills")).to be(true)        # can be a building set
+    holds, vals = psi.shorthands("no sills")
+    expect(holds.empty?).to be(false)
+    expect(vals.empty?).to be(false)
+    expect(holds[:sill]).to be(false)                      # absent from PSI set
+    expect(holds[:sillconcave]).to be(false)               # absent from PSI set
+    expect(holds[:sillconvex]).to be(false)                # absent from PSI set
+    expect(vals[:sill]).to        be_within(0.001).of(0.391)
+    expect(vals[:sillconcave]).to be_within(0.001).of(0.391)
+    expect(vals[:sillconvex]).to  be_within(0.001).of(0.391)     # :fenestration
   end
 
   it "can generate and access KIVA inputs (seb)" do
