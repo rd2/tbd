@@ -4297,6 +4297,152 @@ RSpec.describe TBD do
     expect(vals[:sillconvex]).to  be_within(0.001).of(0.391)     # :fenestration
   end
 
+  it "can factor-in Frame & Divider objects" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    file = "/files/test_warehouse.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    psi_set = "poor (BETBG)"
+    ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse8.json"
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(surfaces.size).to eq(23)
+
+    nom = "Office Front Wall"
+    name = "Office Front Wall Window 1"
+    n_transitions  = 0
+    n_fen_edges    = 0
+    n_heads        = 0
+    n_sills        = 0
+    n_jambs        = 0
+    n_grades       = 0
+    n_corners      = 0
+    n_rimjoists    = 0
+    fen_length     = 0
+
+    t1 = :transition
+    t2 = :fenestration
+    t3 = :head
+    t4 = :sill
+    t5 = :jamb
+    t6 = :gradeconvex
+    t7 = :cornerconvex
+    t8 = :rimjoist
+
+    surfaces.each do |id, surface|
+      next unless surface[:boundary].downcase == "outdoors"
+      next unless surface.has_key?(:ratio)
+      expect(surface.has_key?(:heatloss)).to be(true)
+      heatloss = surface[:heatloss]
+      expect(heatloss.abs).to be > 0
+      next unless id == nom
+      expect(heatloss).to be_within(0.1).of(50.2)
+      expect(surface.has_key?(:edges)).to be(true)
+      expect(surface[:edges].size).to eq(17)
+      surface[:edges].values.each do |edge|
+        expect(edge.has_key?(:type)).to be(true)
+        t = edge[:type]
+        n_transitions += 1 if edge[:type] == t1
+        n_fen_edges   += 1 if edge[:type] == t2
+        n_heads       += 1 if edge[:type] == t3
+        n_sills       += 1 if edge[:type] == t4
+        n_jambs       += 1 if edge[:type] == t5
+        n_grades      += 1 if edge[:type] == t6
+        n_corners     += 1 if edge[:type] == t7
+        n_rimjoists   += 1 if edge[:type] == t8
+        fen_length    += edge[:length] if edge[:type] == t2
+      end
+    end
+    expect(n_transitions).to eq(1)
+    expect(n_fen_edges).to   eq(4)                  # Office Front Wall Window 1
+    expect(n_heads).to       eq(2)                             # Window 2 & door
+    expect(n_sills).to       eq(1)                                    # Window 2
+    expect(n_jambs).to       eq(4)                             # Window 2 & door
+    expect(n_grades).to      eq(3)                         # including door sill
+    expect(n_corners).to     eq(1)
+    expect(n_rimjoists).to   eq(1)
+
+    expect(fen_length).to be_within(0.01).of(10.36)         # Window 1 perimeter
+    front = os_model.getSurfaceByName(nom)
+    expect(front.empty?).to be(false)
+    front = front.get
+    expect(front.netArea).to be_within(0.01).of(95.49)
+    expect(front.grossArea).to be_within(0.01).of(110.54)
+    # The above net & gross areas reflect cases without frame & divider objects
+    # This is also what would be reported by SketchUp.
+
+    # Open another warehouse model and add/assign a Frame & Divider object.
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    file = "/files/test_warehouse.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    os_model_FD = translator.loadModel(path)
+    expect(os_model_FD.empty?).to be(false)
+    os_model_FD = os_model_FD.get
+
+    psi_set = "poor (BETBG)"
+    ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse8.json"
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model_FD, psi_set, ioP, schemaP)
+    expect(surfaces.size).to eq(23)
+
+    # Adding/validating Frame & Divider object.
+    fd = OpenStudio::Model::WindowPropertyFrameAndDivider.new(os_model_FD)
+    expect(fd.setFrameWidth(0.030)).to be(true)   # 30mm (narrow) around glazing
+    expect(fd.setFrameConductance(0.500)).to be(true)
+    window_FD = os_model_FD.getSubSurfaceByName(name)
+    expect(window_FD.empty?).to be(false)
+    window_FD = window_FD.get
+    expect(window_FD.allowWindowPropertyFrameAndDivider).to be(true)
+    expect(window_FD.setWindowPropertyFrameAndDivider(fd)).to be(true)
+    width = window_FD.windowPropertyFrameAndDivider.get.frameWidth
+    expect(width).to be_within(0.001).of(0.030)                # good so far ...
+
+    expect(window_FD.netArea).to be_within(0.01).of(5.58)             # 5.89 (?)
+    front_FD = os_model_FD.getSurfaceByName(nom)
+    expect(front_FD.empty?).to be(false)
+    front_FD = front_FD.get
+    expect(front_FD.grossArea).to be_within(0.01).of(110.54)        # this is OK
+    expect(front_FD.netArea).to be_within(0.01).of(95.49)            # 95.17 (?)
+    expect(front_FD.windowToWallRatio()).to be_within(0.01).of(0.101)  # 0.104 ?
+
+    # If one runs a simulation with the exported file below ("os_model_FD.osm"),
+    # EnergyPlus (HTML) will correctly report that the building WWR (gross
+    # window-wall ratio) will have slightly increased from 71% to 72%, due to
+    # the slight increase in area of the "Office Front Wall Window 1" (from
+    # 5.58 m2 to 5.89 m2). The report clearly distinguishes between the revised
+    # glazing area of 5.58 m2 vs a new framing area of 0.31 m2 for this window.
+    # Finally, the parent surface "Office Front Wall" area will also be
+    # correctly reported as 95.17 m2 (vs 95.49 m2). So OpenStudio is correctly
+    # exporting the subsurface and linked Frame & Divider objects to EnergyPlus
+    # (I have not tested triangular windows).
+    #
+    # Unless I'm missing something, there is an obvious discrepency between the
+    # net area ("Office Front Wall") reported by the OpenStudio API vs
+    # EnergyPlus. This may seem minor when looking at the numbers above, but
+    # keep in mind only one glazed subsurface was modified for the comparison.
+    # This difference could easily reach 5% to 10% for models with many windows,
+    # especially for those with narrow aspect ratios (lots of framing).
+    #
+    # The workaround is pretty straightforward - not rocket science. I'll be
+    # implementing/testing something this for TBD a bit later:
+    #
+    #   if frame_and_divider
+    #     heatloss_from_edge = ( edge[:length] + 2*frame_width ) x PSI
+    #   else
+    #     heatloss_from_edge = edge[:length] x PSI
+    #   end
+    #
+    # A similar workaround will be needed for API-reported building WWR.
+    #
+    # ... subsurface.netArea calculation here could be reconsidered (?):
+    # https://github.com/NREL/OpenStudio/blob/
+    # 70a5549c439eda69d6c514a7275254f71f7e3d2b/src/model/Surface.cpp#L1446
+    os_model_FD.save("os_model_FD.osm", true)
+  end
+
   it "can generate and access KIVA inputs (seb)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
