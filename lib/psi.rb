@@ -1,5 +1,6 @@
 require "openstudio"
 require "conditioned"
+require "framedivider"
 
 begin
   # try to load from the gem
@@ -477,8 +478,8 @@ def matches?(e1, e2)
   answer = false
   e1_vector = e1[:v1] - e1[:v0]
   e2_vector = e2[:v1] - e2[:v0]
-  raise "e1 length <= 10mm" if e1_vector.magnitude < TOL
-  raise "e2 length <= 10mm" if e2_vector.magnitude < TOL
+  raise "e1 length <= TOL" if e1_vector.magnitude < TOL
+  raise "e2 length <= TOL" if e2_vector.magnitude < TOL
 
   answer = true if
   (
@@ -724,11 +725,7 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
             if edge.has_key?(:psi)                                    # optional
               p = edge[:psi]
               raise "PSI mismatch (TBD inputs)" unless psi.set.has_key?(p)
-              #holds, values = psi.shorthands(p)
-              #next if holds.empty?
-              #next if values.empty?
               tt = psi.safeType(p, t)
-              #tt = safeType(t, holds)
               raise "#{p} missing PSI #{t} or variants" if tt.nil?
               e[:io_set] = p
             end
@@ -1349,93 +1346,6 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
   # Create the Topolys Model.
   t_model = Topolys::Model.new
 
-  # TBD deals with ~insulated envelope surfaces enclosing spaces that are
-  # directly or indirectly CONDITIONED, or SEMI-HEATED. TBD is designed to
-  # ignore surfaces in UNCONDITIONED and UNENCLOSED spaces. TBD relies as
-  # much as possible on space conditioning categories found in standards like
-  # ASHRAE 90.1 and energy codes like the Canadian NECB. Both documents share
-  # many similarities, regardless of nomenclature. There are however
-  # noticeable differences between approaches on how a space is tagged as
-  # falling into any of the aforementioned categories. First, an overview of
-  # 90.1 requirements (with some minor edits for brevity + added emphasis):
-  #
-  # www.pnnl.gov/main/publications/external/technical_reports/PNNL-26917.pdf
-  #
-  #   3.2.1. General Information - SPACE CONDITIONING CATEGORY
-  #
-  #     - CONDITIONED space: an ENCLOSED space that has a heating and/or
-  #       cooling system of sufficient size to maintain temperatures suitable
-  #       for HUMAN COMFORT:
-  #         - COOLED: cooled by a system >= 10 W/m2
-  #         - HEATED: heated by a system e.g., >= 50 W/m2 in Climate Zone CZ-7
-  #         - INDIRECTLY: heated or cooled via adjacent space(s) provided:
-  #             - UA of adjacent surfaces > UA of other surfaces
-  #                 or
-  #             - intentional air transfer from HEATED/COOLED space > 3 ACH
-  #
-  #               ... includes plenums, atria, etc.
-  #
-  #     - SEMI-HEATED space: an ENCLOSED space that has a heating system
-  #       >= 10 W/m2, yet NOT a CONDITIONED space (see above).
-  #
-  #     - UNCONDITIONED space: an ENCLOSED space that is NOT a conditioned
-  #       space or a SEMI-HEATED space (see above).
-  #
-  #       NOTE: Crawlspaces, attics, and parking garages with natural or
-  #       mechanical ventilation are considered UNENCLOSED spaces.
-  #
-  #       2.3.3 Modeling Requirements: surfaces adjacent to UNENCLOSED spaces
-  #       shall be treated as exterior surfaces. All other UNENCLOSED surfaces
-  #       are to be modeled as is in both proposed and baseline models. For
-  #       instance, modeled fenestration in UNENCLOSED spaces would not be
-  #       factored in WWR calculations.
-  #
-  #
-  # Related NECB definitions and concepts, starting with CONDITIONED space:
-  #
-  # "[...] the temperature of which is controlled to limit variation in
-  # response to the exterior ambient temperature by the provision, either
-  # DIRECTLY or INDIRECTLY, of heating or cooling [...]". Although criteria
-  # differ (e.g., not sizing-based), the general idea is sufficiently similar
-  # to ASHRAE 90.1 for TBD purposes (e.g., heating and/or cooling based, no
-  # distinction for INDIRECTLY conditioned spaces like plenums).
-  #
-  # SEMI-HEATED spaces are also a defined NECB term, but again the distinction
-  # is based on desired/intended design space setpoint temperatures - not
-  # system sizing criteria. However, as there is currently little-to-no
-  # guidance on how to adapt thermal bridge PSI-values when dealing with
-  # spaces not intended to be maintained at 21°C (ref: BETBG), by default TBD
-  # will seek to process envelope surfaces in SEMI-HEATED spaces as those in
-  # CONDITIONED spaces. Users can always rely of customized PSI sets to target
-  # SEMI-HEATED spaces e.g., space- or spacetype-specific.
-  #
-  # The single NECB criterion distinguishing UNCONDITIONED ENCLOSED spaces
-  # (such as vestibules) from UNENCLOSED spaces (such as attics) remains the
-  # intention to ventilate - or rather to what degree. Regardless, TBD will
-  # process both classifications in the same way, namely by focusing on
-  # adjacent surfaces to CONDITIONED (or SEMI-HEATED) spaces as part of the
-  # building envelope.
-
-  # In light of the preceding compare/contrast analysis, TBD is designed to
-  # handle envelope surfaces without a priori knowledge of explicit system
-  # sizing choices or access to iterative autosizing processes. As discussed
-  # in the following, TBD seeks to rely on zoning info and/or "intended"
-  # temperature setpoints to determine which surfaces to process.
-  #
-  # For an OSM in an incomplete or preliminary state (e.g., holding fully-formed
-  # ENCLOSED spaces without thermal zoning information or setpoint temperatures
-  # [early design stage assessments of form/porosity/envelope]), TBD will only
-  # seek to derate opaque, outdoor-facing surfaces by positing that all OSM
-  # spaces are CONDITIONED, having setpoints of ~21°C (heating) and ~24°C
-  # (cooling), à la BETBG.
-  #
-  # If any valid space/zone-specific temperature setpoints are found in the OSM,
-  # TBD will instead seek to tag outdoor-facing opaque surfaces with their
-  # parent space/zone's explicit heating (max) and/or cooling (min) setpoints.
-  # In such cases, spaces/zones without valid heating or cooling setpoints are
-  # either considered as UNCONDITIONED or UNENCLOSED spaces (like attics), or
-  # INDIRECTLY CONDITIONED spaces (like plenums), see "plenum?" function.
-
   # "true" if any OSM space/zone holds setpoint temperatures.
   setpoints = heatingTemperatureSetpoints?(os_model)
   setpoints = coolingTemperatureSetpoints?(os_model) || setpoints
@@ -1493,7 +1403,6 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       boundary:     boundary,
       space:        space,
       gross:        s.grossArea,
-      net:          s.netArea,
       points:       points,
       minz:         minz,
       n:            n
@@ -1553,17 +1462,17 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     t, r = transforms(os_model, space)
     n = trueNormal(s, r)
 
+    gross, points = opening(os_model, id, t)
+    minz = (points.map{ |p| p.z }).min
+
     type = :skylight
     type = :window if /window/i.match(s.subSurfaceType)
     type = :door if /door/i.match(s.subSurfaceType)
 
-    points = (t * s.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
-    minz = (points.map{ |p| p.z }).min
-
     # For every kid, there's a dad somewhere ...
     surfaces.each do |identifier, properties|
       if identifier == dad
-        sub = { points: points, minz: minz, n: n }
+        sub = { points: points, minz: minz, n: n, gross: gross }
         if type == :window
           properties[:windows] = {} unless properties.has_key?(:windows)
           properties[:windows][id] = sub
@@ -1644,6 +1553,21 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
   holes.merge!(wall_holes)
 
   populateTBDdads(t_model, shades)
+
+  # Revise opaque surface net area (maybe subsurfaces with Frame & Divider).
+  surfaces.values.each do |p|
+    subarea = 0
+    if p.has_key?(:windows)
+      p[:windows].values.each   do |o| subarea += o[:gross]; end
+    end
+    if p.has_key?(:doors)
+      p[:doors].values.each     do |o| subarea += o[:gross]; end
+    end
+    if p.has_key?(:skylights)
+      p[:skylights].values.each do |o| subarea += o[:gross]; end
+    end
+    p[:net] = p[:gross] - subarea
+  end
 
   # Loop through Topolys edges and populate TBD edge hash. Initially, there
   # should be a one-to-one correspondence between Topolys and TBD edge
@@ -2392,6 +2316,17 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     end
   end
 
+  # Frame & Divider cases. Loop through all openings (holes). Adjust opening
+  # :gross area if opening subsurface has a Frame & Divider object.
+  surfaces.each do |id, surface|
+    next unless surface.has_key?(:windows)
+    surface[:windows].each do |i, window|
+      # puts "#{id} has window #{i}: #{window[:net]} vs #{window[:gross]} m2" if i == "Office Front Wall Window 1"
+      # puts "#{window[:width]} m" if window.has_key?(:width)
+      # ... reset window gross area
+    end
+  end
+
   # Loop through each edge and assign heat loss to linked surfaces.
   edges.each do |identifier, edge|
     next unless edge.has_key?(:psi)
@@ -2416,7 +2351,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       next unless holes.has_key?(id)
       openings[id] = surface
     end
-    next if openings.size > 1 # edge links 2x openings
+    next if openings.size > 1                           # edge links 2x openings
 
     # Prune if edge links an opening and its parent, as well as 1x other
     # opaque surface (i.e. corner window derates neighbour - not parent).
@@ -2511,7 +2446,6 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
 
       m = nil
       m = derate(os_model, id, surface, c) unless index.nil?
-
       # m may be nilled simply because the targeted construction has already
       # been derated, i.e. holds " tbd" in its name. Names of cloned/derated
       # constructions (due to TBD) include the surface name (since derated

@@ -1,5 +1,92 @@
 require "openstudio"
 
+# TBD deals with ~insulated envelope surfaces enclosing spaces that are
+# directly or indirectly CONDITIONED, or SEMI-HEATED. TBD is designed to
+# ignore surfaces in UNCONDITIONED and UNENCLOSED spaces. TBD relies as
+# much as possible on space conditioning categories found in standards like
+# ASHRAE 90.1 and energy codes like the Canadian NECB. Both documents share
+# many similarities, regardless of nomenclature. There are however
+# noticeable differences between approaches on how a space is tagged as
+# falling into any of the aforementioned categories. First, an overview of
+# 90.1 requirements (with some minor edits for brevity + added emphasis):
+#
+# www.pnnl.gov/main/publications/external/technical_reports/PNNL-26917.pdf
+#
+#   3.2.1. General Information - SPACE CONDITIONING CATEGORY
+#
+#     - CONDITIONED space: an ENCLOSED space that has a heating and/or
+#       cooling system of sufficient size to maintain temperatures suitable
+#       for HUMAN COMFORT:
+#         - COOLED: cooled by a system >= 10 W/m2
+#         - HEATED: heated by a system e.g., >= 50 W/m2 in Climate Zone CZ-7
+#         - INDIRECTLY: heated or cooled via adjacent space(s) provided:
+#             - UA of adjacent surfaces > UA of other surfaces
+#                 or
+#             - intentional air transfer from HEATED/COOLED space > 3 ACH
+#
+#               ... includes plenums, atria, etc.
+#
+#     - SEMI-HEATED space: an ENCLOSED space that has a heating system
+#       >= 10 W/m2, yet NOT a CONDITIONED space (see above).
+#
+#     - UNCONDITIONED space: an ENCLOSED space that is NOT a conditioned
+#       space or a SEMI-HEATED space (see above).
+#
+#       NOTE: Crawlspaces, attics, and parking garages with natural or
+#       mechanical ventilation are considered UNENCLOSED spaces.
+#
+#       2.3.3 Modeling Requirements: surfaces adjacent to UNENCLOSED spaces
+#       shall be treated as exterior surfaces. All other UNENCLOSED surfaces
+#       are to be modeled as is in both proposed and baseline models. For
+#       instance, modeled fenestration in UNENCLOSED spaces would not be
+#       factored in WWR calculations.
+#
+#
+# Related NECB definitions and concepts, starting with CONDITIONED space:
+#
+# "[...] the temperature of which is controlled to limit variation in
+# response to the exterior ambient temperature by the provision, either
+# DIRECTLY or INDIRECTLY, of heating or cooling [...]". Although criteria
+# differ (e.g., not sizing-based), the general idea is sufficiently similar
+# to ASHRAE 90.1 for TBD purposes (e.g., heating and/or cooling based, no
+# distinction for INDIRECTLY conditioned spaces like plenums).
+#
+# SEMI-HEATED spaces are also a defined NECB term, but again the distinction
+# is based on desired/intended design space setpoint temperatures - not
+# system sizing criteria. However, as there is currently little-to-no
+# guidance on how to adapt thermal bridge PSI-values when dealing with
+# spaces not intended to be maintained at 21°C (ref: BETBG), by default TBD
+# will seek to process envelope surfaces in SEMI-HEATED spaces as those in
+# CONDITIONED spaces. Users can always rely of customized PSI sets to target
+# SEMI-HEATED spaces e.g., space- or spacetype-specific.
+#
+# The single NECB criterion distinguishing UNCONDITIONED ENCLOSED spaces
+# (such as vestibules) from UNENCLOSED spaces (such as attics) remains the
+# intention to ventilate - or rather to what degree. Regardless, TBD will
+# process both classifications in the same way, namely by focusing on
+# adjacent surfaces to CONDITIONED (or SEMI-HEATED) spaces as part of the
+# building envelope.
+
+# In light of the preceding compare/contrast analysis, TBD is designed to
+# handle envelope surfaces without a priori knowledge of explicit system
+# sizing choices or access to iterative autosizing processes. As discussed
+# in the following, TBD seeks to rely on zoning info and/or "intended"
+# temperature setpoints to determine which surfaces to process.
+#
+# For an OSM in an incomplete or preliminary state (e.g., holding fully-formed
+# ENCLOSED spaces without thermal zoning information or setpoint temperatures
+# [early design stage assessments of form/porosity/envelope]), TBD will only
+# seek to derate opaque, outdoor-facing surfaces by positing that all OSM
+# spaces are CONDITIONED, having setpoints of ~21°C (heating) and ~24°C
+# (cooling), à la BETBG.
+#
+# If any valid space/zone-specific temperature setpoints are found in the OSM,
+# TBD will instead seek to tag outdoor-facing opaque surfaces with their
+# parent space/zone's explicit heating (max) and/or cooling (min) setpoints.
+# In such cases, spaces/zones without valid heating or cooling setpoints are
+# either considered as UNCONDITIONED or UNENCLOSED spaces (like attics), or
+# INDIRECTLY CONDITIONED spaces (like plenums), see "plenum?" function.
+
 ##
 # Return min & max values for schedule (ruleset).
 #

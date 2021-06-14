@@ -608,7 +608,6 @@ RSpec.describe TBD do
         boundary:     boundary,
         space:        space,
         gross:        s.grossArea,
-        net:          s.netArea,
         points:       points,
         minz:         minz,
         n:            n
@@ -672,17 +671,17 @@ RSpec.describe TBD do
       t, r = transforms(os_model, space)
       n = trueNormal(s, r)
 
+      gross, points = opening(os_model, id, t)
+      minz = (points.map{ |p| p.z }).min
+
       type = :skylight
       type = :window if /window/i.match(s.subSurfaceType)
       type = :door if /door/i.match(s.subSurfaceType)
 
-      points = (t * s.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
-      minz = (points.map{ |p| p.z }).min
-
       # For every kid, there's a dad somewhere ...
       surfaces.each do |identifier, properties|
         if identifier == dad
-          sub = { points: points, minz: minz, n: n }
+          sub = { points: points, minz: minz, n: n, gross: gross }
           if type == :window
             properties[:windows] = {} unless properties.has_key?(:windows)
             properties[:windows][id] = sub
@@ -802,6 +801,21 @@ RSpec.describe TBD do
 
     populateTBDdads(t_model, shades)
     expect(t_model.faces.size).to eq(33)
+
+    # Revise opaque surface net area (maybe subsurfaces with Frame & Divider).
+    surfaces.values.each do |p|
+      subarea = 0
+      if p.has_key?(:windows)
+        p[:windows].values.each   do |o| subarea += o[:gross]; end
+      end
+      if p.has_key?(:doors)
+        p[:doors].values.each     do |o| subarea += o[:gross]; end
+      end
+      if p.has_key?(:skylights)
+        p[:skylights].values.each do |o| subarea += o[:gross]; end
+      end
+      p[:net] = p[:gross] - subarea
+    end
 
     # Loop through Topolys edges and populate TBD edge hash. Initially, there
     # should be a one-to-one correspondence between Topolys and TBD edge
@@ -4382,12 +4396,6 @@ RSpec.describe TBD do
     expect(os_model_FD.empty?).to be(false)
     os_model_FD = os_model_FD.get
 
-    psi_set = "poor (BETBG)"
-    ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse8.json"
-    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model_FD, psi_set, ioP, schemaP)
-    expect(surfaces.size).to eq(23)
-
     # Adding/validating Frame & Divider object.
     fd = OpenStudio::Model::WindowPropertyFrameAndDivider.new(os_model_FD)
     expect(fd.setFrameWidth(0.030)).to be(true)   # 30mm (narrow) around glazing
@@ -4400,12 +4408,13 @@ RSpec.describe TBD do
     width = window_FD.windowPropertyFrameAndDivider.get.frameWidth
     expect(width).to be_within(0.001).of(0.030)                # good so far ...
 
-    expect(window_FD.netArea).to be_within(0.01).of(5.58)             # 5.89 (?)
+    expect(window_FD.netArea).to be_within(0.01).of(5.58)
+    expect(window_FD.grossArea).to be_within(0.01).of(5.58)              # 5.89?
     front_FD = os_model_FD.getSurfaceByName(nom)
     expect(front_FD.empty?).to be(false)
     front_FD = front_FD.get
     expect(front_FD.grossArea).to be_within(0.01).of(110.54)        # this is OK
-    expect(front_FD.netArea).to be_within(0.01).of(95.49)            # 95.17 (?)
+    expect(front_FD.netArea).to be_within(0.01).of(95.49)              # 95.17 ?
     expect(front_FD.windowToWallRatio()).to be_within(0.01).of(0.101)  # 0.104 ?
 
     # If one runs a simulation with the exported file below ("os_model_FD.osm"),
@@ -4416,31 +4425,315 @@ RSpec.describe TBD do
     # glazing area of 5.58 m2 vs a new framing area of 0.31 m2 for this window.
     # Finally, the parent surface "Office Front Wall" area will also be
     # correctly reported as 95.17 m2 (vs 95.49 m2). So OpenStudio is correctly
-    # exporting the subsurface and linked Frame & Divider objects to EnergyPlus
-    # (I have not tested triangular windows).
+    # forward translating the subsurface and linked Frame & Divider objects to
+    # EnergyPlus (I have not tested triangular windows).
     #
-    # Unless I'm missing something, there is an obvious discrepency between the
-    # net area ("Office Front Wall") reported by the OpenStudio API vs
-    # EnergyPlus. This may seem minor when looking at the numbers above, but
-    # keep in mind only one glazed subsurface was modified for the comparison.
-    # This difference could easily reach 5% to 10% for models with many windows,
-    # especially for those with narrow aspect ratios (lots of framing).
+    # There seems to be an obvious discrepency between the net area of the
+    # "Office Front Wall" reported by the OpenStudio API vs EnergyPlus. This
+    # may seem minor when looking at the numbers above, but keep in mind a
+    # single glazed subsurface is modified for this comparison. This difference
+    # could easily reach 5% to 10% for models with many windows, especially
+    # those with narrow aspect ratios (lots of framing).
     #
-    # The workaround is pretty straightforward - not rocket science. I'll be
-    # implementing/testing something this for TBD a bit later:
-    #
-    #   if frame_and_divider
-    #     heatloss_from_edge = ( edge[:length] + 2*frame_width ) x PSI
-    #   else
-    #     heatloss_from_edge = edge[:length] x PSI
-    #   end
-    #
-    # A similar workaround will be needed for API-reported building WWR.
-    #
-    # ... subsurface.netArea calculation here could be reconsidered (?):
+    # ... subsurface.netArea calculation here could be reconsidered :
     # https://github.com/NREL/OpenStudio/blob/
     # 70a5549c439eda69d6c514a7275254f71f7e3d2b/src/model/Surface.cpp#L1446
+    #
+    # Testing framedivider.rb workarounds ...
+    expect(front_FD.space.empty?).to be(false)
+    space = front_FD.space.get
+    t, r = transforms(os_model_FD, space)
+
+    # The following "opening" function is standalone - does not change OSM.
+    opening_area, opening_vertices = opening(os_model_FD, name, t)
+    expect(opening_area).to be_within(0.01).of(5.89)                   # vs 5.58
+    expect(opening_vertices.size).to eq(4)
+
+    # The following X & Z coordinates are all offset by 0.030 (frame width),
+    # with respect to the original subsurface coordinates.
+    expect(opening_vertices[0].x).to be_within(0.01).of(3.63)
+    expect(opening_vertices[0].y).to be_within(0.01).of(0.00)
+    expect(opening_vertices[0].z).to be_within(0.01).of(2.47)
+    expect(opening_vertices[1].x).to be_within(0.01).of(3.63)
+    expect(opening_vertices[1].y).to be_within(0.01).of(0.00)
+    expect(opening_vertices[1].z).to be_within(0.01).of(0.88)
+    expect(opening_vertices[2].x).to be_within(0.01).of(7.34)
+    expect(opening_vertices[2].y).to be_within(0.01).of(0.00)
+    expect(opening_vertices[2].z).to be_within(0.01).of(0.88)
+    expect(opening_vertices[3].x).to be_within(0.01).of(7.34)
+    expect(opening_vertices[3].y).to be_within(0.01).of(0.00)
+    expect(opening_vertices[3].z).to be_within(0.01).of(2.47)
+
     os_model_FD.save("os_model_FD.osm", true)
+
+    psi_set = "poor (BETBG)"
+    ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse8.json"
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model_FD, psi_set, ioP, schemaP)
+    expect(surfaces.size).to eq(23)
+
+    # TBD calling on framedivider.rb workarounds.
+    net_area = surfaces[nom][:net]
+    gross_area = surfaces[nom][:gross]
+    expect(net_area).to be_within(0.01).of(95.17)                  # ! API 95.49
+    expect(gross_area).to be_within(0.01).of(110.54)                      # same
+
+    expect(surfaces[nom].has_key?(:windows)).to be(true)
+    expect(surfaces[nom][:windows].size).to eq(2)
+    surfaces[nom][:windows].each do |i, window|
+      expect(window.has_key?(:points)).to be(true)
+      expect(window[:points].size).to eq(4)
+      if i == name
+        expect(window.has_key?(:gross)).to be(true)
+        expect(window[:gross]).to be_within(0.01).of(5.89)          # ! API 5.58
+      end
+    end
+
+
+    # Testing more complexe cases e.g., triangular windows, irregular 4-side
+    # windows, rough opening edges overlapping parent surface edges.
+    fd_model = OpenStudio::Model::Model.new
+    space = OpenStudio::Model::Space.new(fd_model)
+
+    vec = OpenStudio::Point3dVector.new
+    vec << OpenStudio::Point3d.new(  0.00,  0.00, 10.00)
+    vec << OpenStudio::Point3d.new(  0.00,  0.00,  0.00)
+    vec << OpenStudio::Point3d.new( 10.00,  0.00,  0.00)
+    vec << OpenStudio::Point3d.new( 10.00,  0.00, 10.00)
+    dad = OpenStudio::Model::Surface.new(vec, fd_model)
+    dad.setName("dad")
+    dad.setSpace(space)
+
+    vec = OpenStudio::Point3dVector.new
+    vec << OpenStudio::Point3d.new(  2.00,  0.00,  8.00)
+    vec << OpenStudio::Point3d.new(  1.00,  0.00,  6.00)
+    vec << OpenStudio::Point3d.new(  4.00,  0.00,  9.00)
+    w1 = OpenStudio::Model::SubSurface.new(vec, fd_model)
+    w1.setName("w1")
+    w1.setSubSurfaceType("Window")
+    w1.setSurface(dad)
+
+    vec = OpenStudio::Point3dVector.new
+    vec << OpenStudio::Point3d.new(  7.00,  0.00,  4.00)
+    vec << OpenStudio::Point3d.new(  4.00,  0.00,  1.00)
+    vec << OpenStudio::Point3d.new(  8.00,  0.00,  2.00)
+    vec << OpenStudio::Point3d.new(  9.00,  0.00,  3.00)
+    w2 = OpenStudio::Model::SubSurface.new(vec, fd_model)
+    w2.setName("w2")
+    w2.setSubSurfaceType("Window")
+    w2.setSurface(dad)
+
+    vec = OpenStudio::Point3dVector.new
+    vec << OpenStudio::Point3d.new(  9.00,  0.00,  9.80)
+    vec << OpenStudio::Point3d.new(  9.80,  0.00,  9.00)
+    vec << OpenStudio::Point3d.new(  9.80,  0.00,  9.80)
+    w3 = OpenStudio::Model::SubSurface.new(vec, fd_model)
+    w3.setName("w3")
+    w3.setSubSurfaceType("Window")
+    w3.setSurface(dad)
+
+    space.setName("FD space")
+    t, r = transforms(fd_model, space)
+
+    # Without Frame & Divider objects linked to subsurface.
+    opening_area, opening_vertices = opening(fd_model, "w1", t)
+    expect(opening_area).to be_within(0.1).of(1.5)
+    expect(opening_vertices.size).to eq(3)
+
+    # Adding a Frame & Divider object.
+    fd = OpenStudio::Model::WindowPropertyFrameAndDivider.new(fd_model)
+    expect(fd.setFrameWidth(0.200)).to be(true)   # 200mm (wide!) around glazing
+    expect(fd.setFrameConductance(0.500)).to be(true)
+
+    expect(w1.allowWindowPropertyFrameAndDivider).to be(true)
+    expect(w1.setWindowPropertyFrameAndDivider(fd)).to be(true)
+    width = w1.windowPropertyFrameAndDivider.get.frameWidth
+    expect(width).to be_within(0.001).of(0.200)                # good so far ...
+
+    opening_area, opening_vertices = opening(fd_model, "w1", t)
+    expect(opening_area).to be_within(0.1).of(3.75)
+    expect(opening_vertices.size).to eq(3)
+    # The following X & Z coordinates are all offset by 0.200 (frame width),
+    # with respect to the original subsurface coordinates. For acute angles,
+    # the rough opening edge intersection can be far, far away from the glazing
+    # coordinates (+1m).
+    expect(opening_vertices[0].x).to be_within(0.01).of( 1.85)
+    expect(opening_vertices[0].y).to be_within(0.01).of( 0.00)
+    expect(opening_vertices[0].z).to be_within(0.01).of( 8.15)
+    expect(opening_vertices[1].x).to be_within(0.01).of( 0.27)
+    expect(opening_vertices[1].y).to be_within(0.01).of( 0.00)
+    expect(opening_vertices[1].z).to be_within(0.01).of( 4.99)
+    expect(opening_vertices[2].x).to be_within(0.01).of( 5.01)
+    expect(opening_vertices[2].y).to be_within(0.01).of( 0.00)
+    expect(opening_vertices[2].z).to be_within(0.01).of( 9.73)
+
+    # Adding a Frame & Divider object for w2.
+    expect(w2.allowWindowPropertyFrameAndDivider).to be(true)
+    expect(w2.setWindowPropertyFrameAndDivider(fd)).to be(true)
+    width = w2.windowPropertyFrameAndDivider.get.frameWidth
+    expect(width).to be_within(0.001).of(0.200)
+
+    opening_area, opening_vertices = opening(fd_model, "w2", t)
+    expect(opening_area).to be_within(0.1).of(8.64)
+    expect(opening_vertices.size).to eq(4)
+
+    # This window would have 2 shared edges (@right angle) with the parent.
+    expect(opening_vertices[0].x).to be_within(0.01).of( 6.96)
+    expect(opening_vertices[0].y).to be_within(0.01).of( 0.00)
+    expect(opening_vertices[0].z).to be_within(0.01).of( 4.24)
+    expect(opening_vertices[1].x).to be_within(0.01).of( 3.35)
+    expect(opening_vertices[1].y).to be_within(0.01).of( 0.00)
+    expect(opening_vertices[1].z).to be_within(0.01).of( 0.63)
+    expect(opening_vertices[2].x).to be_within(0.01).of( 8.10)
+    expect(opening_vertices[2].y).to be_within(0.01).of( 0.00)
+    expect(opening_vertices[2].z).to be_within(0.01).of( 1.82)
+    expect(opening_vertices[3].x).to be_within(0.01).of( 9.34)
+    expect(opening_vertices[3].y).to be_within(0.01).of( 0.00)
+    expect(opening_vertices[3].z).to be_within(0.01).of( 3.05)
+
+    # Adding a Frame & Divider object for w3.
+    expect(w3.allowWindowPropertyFrameAndDivider).to be(true)
+    expect(w3.setWindowPropertyFrameAndDivider(fd)).to be(true)
+    width = w3.windowPropertyFrameAndDivider.get.frameWidth
+    expect(width).to be_within(0.001).of(0.200)
+
+    opening_area, opening_vertices = opening(fd_model, "w3", t)
+    expect(opening_area).to be_within(0.1).of(1.1)
+    expect(opening_vertices.size).to eq(3)
+
+    # This window would have 2 shared edges (@right angle) with the parent.
+    expect(opening_vertices[0].x).to be_within(0.01).of( 8.52)
+    expect(opening_vertices[0].y).to be_within(0.01).of( 0.00)
+    expect(opening_vertices[0].z).to be_within(0.01).of(10.00)
+    expect(opening_vertices[1].x).to be_within(0.01).of(10.00)
+    expect(opening_vertices[1].y).to be_within(0.01).of( 0.00)
+    expect(opening_vertices[1].z).to be_within(0.01).of( 8.52)
+    expect(opening_vertices[2].x).to be_within(0.01).of(10.00)
+    expect(opening_vertices[2].y).to be_within(0.01).of( 0.00)
+    expect(opening_vertices[2].z).to be_within(0.01).of(10.00)
+
+
+    # Repeat exercise, with parent surface & subsurfaces rotated 120 (CW).
+    # (i.e., negative coordinates, Y-axis coordinates, etc.)
+    fd2_model = OpenStudio::Model::Model.new
+    space2 = OpenStudio::Model::Space.new(fd2_model)
+
+    vec = OpenStudio::Point3dVector.new
+    vec << OpenStudio::Point3d.new(  0.00,  0.00, 10.00)
+    vec << OpenStudio::Point3d.new(  0.00,  0.00,  0.00)
+    vec << OpenStudio::Point3d.new( -5.00, -8.66,  0.00)
+    vec << OpenStudio::Point3d.new( -5.00, -8.66, 10.00)
+    dad = OpenStudio::Model::Surface.new(vec, fd2_model)
+    dad.setName("dad")
+    dad.setSpace(space)
+
+    vec = OpenStudio::Point3dVector.new
+    vec << OpenStudio::Point3d.new( -1.00, -1.73,  8.00)
+    vec << OpenStudio::Point3d.new( -0.50, -0.87,  6.00)
+    vec << OpenStudio::Point3d.new( -2.00, -3.46,  9.00)
+    w1 = OpenStudio::Model::SubSurface.new(vec, fd2_model)
+    w1.setName("w1")
+    w1.setSubSurfaceType("Window")
+    w1.setSurface(dad)
+
+    vec = OpenStudio::Point3dVector.new
+    vec << OpenStudio::Point3d.new( -3.50, -6.06,  4.00)
+    vec << OpenStudio::Point3d.new( -2.00, -3.46,  1.00)
+    vec << OpenStudio::Point3d.new( -4.00, -6.93,  2.00)
+    vec << OpenStudio::Point3d.new( -4.50, -7.79,  3.00)
+    w2 = OpenStudio::Model::SubSurface.new(vec, fd2_model)
+    w2.setName("w2")
+    w2.setSubSurfaceType("Window")
+    w2.setSurface(dad)
+
+    vec = OpenStudio::Point3dVector.new
+    vec << OpenStudio::Point3d.new( -4.50, -7.79,  9.80)
+    vec << OpenStudio::Point3d.new( -4.90, -8.49,  9.00)
+    vec << OpenStudio::Point3d.new( -4.90, -8.49,  9.80)
+    w3 = OpenStudio::Model::SubSurface.new(vec, fd2_model)
+    w3.setName("w3")
+    w3.setSubSurfaceType("Window")
+    w3.setSurface(dad)
+
+    space.setName("FD 2 space")
+    t, r = transforms(fd2_model, space)
+
+    # Without Frame & Divider objects linked to subsurface.
+    opening_area, opening_vertices = opening(fd2_model, "w1", t)
+    expect(opening_area).to be_within(0.1).of(1.5)
+    expect(opening_vertices.size).to eq(3)
+
+    # Adding a Frame & Divider object.
+    fd2 = OpenStudio::Model::WindowPropertyFrameAndDivider.new(fd2_model)
+    expect(fd2.setFrameWidth(0.200)).to be(true)   # 200mm (wide!) around glazing
+    expect(fd2.setFrameConductance(0.500)).to be(true)
+
+    expect(w1.allowWindowPropertyFrameAndDivider).to be(true)
+    expect(w1.setWindowPropertyFrameAndDivider(fd2)).to be(true)
+    width = w1.windowPropertyFrameAndDivider.get.frameWidth
+    expect(width).to be_within(0.001).of(0.200)                # good so far ...
+
+    opening_area, opening_vertices = opening(fd2_model, "w1", t)
+    expect(opening_area).to be_within(0.1).of(3.75)
+    expect(opening_vertices.size).to eq(3)
+    # The following X & Z coordinates are all offset by 0.200 (frame width),
+    # with respect to the original subsurface coordinates. For acute angles,
+    # the rough opening edge intersection can be far, far away from the glazing
+    # coordinates (+1m).
+    expect(opening_vertices[0].x).to be_within(0.01).of(-0.93)
+    expect(opening_vertices[0].y).to be_within(0.01).of(-1.60)
+    expect(opening_vertices[0].z).to be_within(0.01).of( 8.15)
+    expect(opening_vertices[1].x).to be_within(0.01).of(-0.13)
+    expect(opening_vertices[1].y).to be_within(0.01).of(-0.24)
+    expect(opening_vertices[1].z).to be_within(0.01).of( 4.99)
+    expect(opening_vertices[2].x).to be_within(0.01).of(-2.51)
+    expect(opening_vertices[2].y).to be_within(0.01).of(-4.34)
+    expect(opening_vertices[2].z).to be_within(0.01).of( 9.73)
+
+    # Adding a Frame & Divider object for w2.
+    expect(w2.allowWindowPropertyFrameAndDivider).to be(true)
+    expect(w2.setWindowPropertyFrameAndDivider(fd2)).to be(true)
+    width = w2.windowPropertyFrameAndDivider.get.frameWidth
+    expect(width).to be_within(0.001).of(0.200)
+
+    opening_area, opening_vertices = opening(fd2_model, "w2", t)
+    expect(opening_area).to be_within(0.1).of(8.64)
+    expect(opening_vertices.size).to eq(4)
+
+    # This window would have 2 shared edges (@right angle) with the parent.
+    expect(opening_vertices[0].x).to be_within(0.01).of(-3.48)
+    expect(opening_vertices[0].y).to be_within(0.01).of(-6.03)
+    expect(opening_vertices[0].z).to be_within(0.01).of( 4.24)
+    expect(opening_vertices[1].x).to be_within(0.01).of(-1.67)
+    expect(opening_vertices[1].y).to be_within(0.01).of(-2.90)
+    expect(opening_vertices[1].z).to be_within(0.01).of( 0.63)
+    expect(opening_vertices[2].x).to be_within(0.01).of(-4.05)
+    expect(opening_vertices[2].y).to be_within(0.01).of(-7.02)
+    expect(opening_vertices[2].z).to be_within(0.01).of( 1.82)
+    expect(opening_vertices[3].x).to be_within(0.01).of(-4.67)
+    expect(opening_vertices[3].y).to be_within(0.01).of(-8.09)
+    expect(opening_vertices[3].z).to be_within(0.01).of( 3.05)
+
+    # Adding a Frame & Divider object for w3.
+    expect(w3.allowWindowPropertyFrameAndDivider).to be(true)
+    expect(w3.setWindowPropertyFrameAndDivider(fd2)).to be(true)
+    width = w3.windowPropertyFrameAndDivider.get.frameWidth
+    expect(width).to be_within(0.001).of(0.200)
+
+    opening_area, opening_vertices = opening(fd2_model, "w3", t)
+    expect(opening_area).to be_within(0.1).of(1.1)
+    expect(opening_vertices.size).to eq(3)
+
+    # This window would have 2 shared edges (@right angle) with the parent.
+    expect(opening_vertices[0].x).to be_within(0.01).of(-4.26)
+    expect(opening_vertices[0].y).to be_within(0.01).of(-7.37)
+    expect(opening_vertices[0].z).to be_within(0.01).of(10.00)
+    expect(opening_vertices[1].x).to be_within(0.01).of(-5.00)
+    expect(opening_vertices[1].y).to be_within(0.01).of(-8.66)
+    expect(opening_vertices[1].z).to be_within(0.01).of( 8.52)
+    expect(opening_vertices[2].x).to be_within(0.01).of(-5.00)
+    expect(opening_vertices[2].y).to be_within(0.01).of(-8.66)
+    expect(opening_vertices[2].z).to be_within(0.01).of(10.00)
   end
 
   it "can generate and access KIVA inputs (seb)" do
