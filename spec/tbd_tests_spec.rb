@@ -4734,6 +4734,129 @@ RSpec.describe TBD do
     expect(opening_vertices[2].x).to be_within(0.01).of(-5.00)
     expect(opening_vertices[2].y).to be_within(0.01).of(-8.66)
     expect(opening_vertices[2].z).to be_within(0.01).of(10.00)
+
+
+
+    # Repeat 3rd time - 2x 30° rotations (along the 2 other axes).
+    fd3_model = OpenStudio::Model::Model.new
+    space3 = OpenStudio::Model::Space.new(fd3_model)
+
+    vec = OpenStudio::Point3dVector.new
+    vec << OpenStudio::Point3d.new( -2.17,  4.33,  8.75)
+    vec << OpenStudio::Point3d.new(  0.00,  0.00,  0.00)
+    vec << OpenStudio::Point3d.new( -6.25, -7.50,  2.17)
+    vec << OpenStudio::Point3d.new( -8.42, -3.17, 10.92)
+    dad = OpenStudio::Model::Surface.new(vec, fd3_model)
+    dad.setName("dad")
+    dad.setSpace(space)
+
+    vec = OpenStudio::Point3dVector.new
+    vec << OpenStudio::Point3d.new( -2.98,  1.96,  7.43)
+    vec << OpenStudio::Point3d.new( -1.92,  1.85,  5.47)
+    vec << OpenStudio::Point3d.new( -4.45,  0.90,  8.74)
+    w1 = OpenStudio::Model::SubSurface.new(vec, fd3_model)
+    w1.setName("w1")
+    w1.setSubSurfaceType("Window")
+    w1.setSurface(dad)
+
+    vec = OpenStudio::Point3dVector.new
+    vec << OpenStudio::Point3d.new( -5.24, -3.52,  5.02)
+    vec << OpenStudio::Point3d.new( -2.72, -2.57,  1.74)
+    vec << OpenStudio::Point3d.new( -5.43, -5.13,  3.48)
+    vec << OpenStudio::Point3d.new( -6.27, -5.45,  4.57)
+    w2 = OpenStudio::Model::SubSurface.new(vec, fd3_model)
+    w2.setName("w2")
+    w2.setSubSurfaceType("Window")
+    w2.setSurface(dad)
+
+    vec = OpenStudio::Point3dVector.new
+    vec << OpenStudio::Point3d.new( -7.75, -2.51, 10.52)
+    vec << OpenStudio::Point3d.new( -8.07, -3.45, 10.00)
+    vec << OpenStudio::Point3d.new( -8.25, -3.11, 10.70)
+    w3 = OpenStudio::Model::SubSurface.new(vec, fd3_model)
+    w3.setName("w3")
+    w3.setSubSurfaceType("Window")
+    w3.setSurface(dad)
+
+    space.setName("FD 3 space")
+    t, r = transforms(fd3_model, space)
+
+    # Without Frame & Divider objects linked to subsurface.
+    opening_area, opening_vertices = opening(fd3_model, "w1", t)
+    expect(opening_area).to be_within(0.1).of(1.5)
+    expect(opening_vertices.size).to eq(3)
+
+    # Adding a Frame & Divider object.
+    fd3 = OpenStudio::Model::WindowPropertyFrameAndDivider.new(fd3_model)
+    expect(fd3.setFrameWidth(0.200)).to be(true)   # 200mm (wide!) around glazing
+    expect(fd3.setFrameConductance(0.500)).to be(true)
+
+    expect(w1.allowWindowPropertyFrameAndDivider).to be(true)
+    expect(w1.setWindowPropertyFrameAndDivider(fd3)).to be(true)
+    width = w1.windowPropertyFrameAndDivider.get.frameWidth
+    expect(width).to be_within(0.001).of(0.200)                # good so far ...
+
+    opening_area, opening_vertices = opening(fd3_model, "w1", t)
+    expect(opening_area).to be_within(0.1).of(3.75)
+    expect(opening_vertices.size).to eq(3)
+    # The following X & Z coordinates are all offset by 0.200 (frame width),
+    # with respect to the original subsurface coordinates. For acute angles,
+    # the rough opening edge intersection can be far, far away from the glazing
+    # coordinates (+1m).
+    expect(opening_vertices[0].x).to be_within(0.01).of(-2.92)
+    expect(opening_vertices[0].y).to be_within(0.01).of( 2.14)
+    expect(opening_vertices[0].z).to be_within(0.01).of( 7.53)
+    expect(opening_vertices[1].x).to be_within(0.01).of(-1.24)
+    expect(opening_vertices[1].y).to be_within(0.01).of( 1.96)
+    expect(opening_vertices[1].z).to be_within(0.01).of( 4.42)
+    expect(opening_vertices[2].x).to be_within(0.01).of(-5.25)
+    expect(opening_vertices[2].y).to be_within(0.01).of( 0.45)
+    expect(opening_vertices[2].z).to be_within(0.01).of( 9.60)
+
+    # Adding a Frame & Divider object for w2.
+    expect(w2.allowWindowPropertyFrameAndDivider).to be(true)
+    expect(w2.setWindowPropertyFrameAndDivider(fd3)).to be(true)
+    width = w2.windowPropertyFrameAndDivider.get.frameWidth
+    expect(width).to be_within(0.001).of(0.200)
+
+    opening_area, opening_vertices = opening(fd3_model, "w2", t)
+    expect(opening_area).to be_within(0.1).of(8.64)
+    expect(opening_vertices.size).to eq(4)
+
+    # This window would have 2 shared edges (@right angle) with the parent.
+    expect(opening_vertices[0].x).to be_within(0.01).of(-5.27)
+    expect(opening_vertices[0].y).to be_within(0.01).of(-3.38)
+    expect(opening_vertices[0].z).to be_within(0.01).of( 5.22)
+    expect(opening_vertices[1].x).to be_within(0.01).of(-2.23)
+    expect(opening_vertices[1].y).to be_within(0.01).of(-2.24)
+    expect(opening_vertices[1].z).to be_within(0.01).of( 1.28)
+    expect(opening_vertices[2].x).to be_within(0.01).of(-5.46)
+    expect(opening_vertices[2].y).to be_within(0.01).of(-5.29)
+    expect(opening_vertices[2].z).to be_within(0.01).of( 3.35)
+    expect(opening_vertices[3].x).to be_within(0.01).of(-6.50)
+    expect(opening_vertices[3].y).to be_within(0.01).of(-5.68)
+    expect(opening_vertices[3].z).to be_within(0.01).of( 4.69)
+
+    # Adding a Frame & Divider object for w3.
+    expect(w3.allowWindowPropertyFrameAndDivider).to be(true)
+    expect(w3.setWindowPropertyFrameAndDivider(fd3)).to be(true)
+    width = w3.windowPropertyFrameAndDivider.get.frameWidth
+    expect(width).to be_within(0.001).of(0.200)
+
+    opening_area, opening_vertices = opening(fd3_model, "w3", t)
+    expect(opening_area).to be_within(0.1).of(1.1)
+    expect(opening_vertices.size).to eq(3)
+
+    # This window would have 2 shared edges (@right angle) with the parent.
+    expect(opening_vertices[0].x).to be_within(0.01).of(-7.49)
+    expect(opening_vertices[0].y).to be_within(0.01).of(-2.06)
+    expect(opening_vertices[0].z).to be_within(0.01).of(10.59)
+    expect(opening_vertices[1].x).to be_within(0.01).of(-8.09)
+    expect(opening_vertices[1].y).to be_within(0.01).of(-3.81)
+    expect(opening_vertices[1].z).to be_within(0.01).of( 9.62)
+    expect(opening_vertices[2].x).to be_within(0.01).of(-8.42)
+    expect(opening_vertices[2].y).to be_within(0.01).of(-3.17)
+    expect(opening_vertices[2].z).to be_within(0.01).of(10.92)
   end
 
   it "can generate and access KIVA inputs (seb)" do
