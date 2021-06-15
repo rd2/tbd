@@ -4494,6 +4494,8 @@ RSpec.describe TBD do
     # windows, rough opening edges overlapping parent surface edges.
     fd_model = OpenStudio::Model::Model.new
     space = OpenStudio::Model::Space.new(fd_model)
+    space.setName("FD space")
+    t, r = transforms(fd_model, space)
 
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new(  0.00,  0.00, 10.00)
@@ -4531,9 +4533,6 @@ RSpec.describe TBD do
     w3.setName("w3")
     w3.setSubSurfaceType("Window")
     w3.setSurface(dad)
-
-    space.setName("FD space")
-    t, r = transforms(fd_model, space)
 
     # Without Frame & Divider objects linked to subsurface.
     opening_area, opening_vertices = opening(fd_model, "w1", t)
@@ -4617,6 +4616,8 @@ RSpec.describe TBD do
     # (i.e., negative coordinates, Y-axis coordinates, etc.)
     fd2_model = OpenStudio::Model::Model.new
     space2 = OpenStudio::Model::Space.new(fd2_model)
+    space2.setName("FD 2 space")
+    t, r = transforms(fd2_model, space2)
 
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new(  0.00,  0.00, 10.00)
@@ -4625,7 +4626,7 @@ RSpec.describe TBD do
     vec << OpenStudio::Point3d.new( -5.00, -8.66, 10.00)
     dad = OpenStudio::Model::Surface.new(vec, fd2_model)
     dad.setName("dad")
-    dad.setSpace(space)
+    dad.setSpace(space2)
 
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new( -1.00, -1.73,  8.00)
@@ -4654,9 +4655,6 @@ RSpec.describe TBD do
     w3.setName("w3")
     w3.setSubSurfaceType("Window")
     w3.setSurface(dad)
-
-    space.setName("FD 2 space")
-    t, r = transforms(fd2_model, space)
 
     # Without Frame & Divider objects linked to subsurface.
     opening_area, opening_vertices = opening(fd2_model, "w1", t)
@@ -4736,10 +4734,11 @@ RSpec.describe TBD do
     expect(opening_vertices[2].z).to be_within(0.01).of(10.00)
 
 
-
     # Repeat 3rd time - 2x 30° rotations (along the 2 other axes).
     fd3_model = OpenStudio::Model::Model.new
     space3 = OpenStudio::Model::Space.new(fd3_model)
+    space3.setName("FD 3 space")
+    t, r = transforms(fd3_model, space3)
 
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new( -2.17,  4.33,  8.75)
@@ -4748,7 +4747,7 @@ RSpec.describe TBD do
     vec << OpenStudio::Point3d.new( -8.42, -3.17, 10.92)
     dad = OpenStudio::Model::Surface.new(vec, fd3_model)
     dad.setName("dad")
-    dad.setSpace(space)
+    dad.setSpace(space3)
 
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new( -2.98,  1.96,  7.43)
@@ -4777,9 +4776,6 @@ RSpec.describe TBD do
     w3.setName("w3")
     w3.setSubSurfaceType("Window")
     w3.setSurface(dad)
-
-    space.setName("FD 3 space")
-    t, r = transforms(fd3_model, space)
 
     # Without Frame & Divider objects linked to subsurface.
     opening_area, opening_vertices = opening(fd3_model, "w1", t)
