@@ -71,6 +71,14 @@ def opening(model, id, t)
   dad = (t * parent.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
   points = (t * s.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
 
+  # check if points are inside the parent
+  ft = OpenStudio::Transformation::alignFace(parent.vertices).inverse
+  os_dad = (ft * parent.vertices).reverse
+  os_points = ft * s.vertices
+  os_points.each do |os_point|
+    puts "point is inside = #{OpenStudio::pointInPolygon(os_point, os_dad, TOL)}"
+  end
+
   # Should verify convexity of vertex wire/face ...
   #
   #       A
