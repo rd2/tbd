@@ -4439,6 +4439,7 @@ RSpec.describe TBD do
     # https://github.com/NREL/OpenStudio/blob/
     # 70a5549c439eda69d6c514a7275254f71f7e3d2b/src/model/Surface.cpp#L1446
     #
+    #
     # Testing framedivider.rb workarounds ...
     expect(front_FD.space.empty?).to be(false)
     space = front_FD.space.get
@@ -4622,8 +4623,8 @@ RSpec.describe TBD do
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new(  0.00,  0.00, 10.00)
     vec << OpenStudio::Point3d.new(  0.00,  0.00,  0.00)
-    vec << OpenStudio::Point3d.new( -5.00, -8.66,  0.00)
-    vec << OpenStudio::Point3d.new( -5.00, -8.66, 10.00)
+    vec << OpenStudio::Point3d.new( -5.00, -8.67,  0.00)
+    vec << OpenStudio::Point3d.new( -5.00, -8.67, 10.00)
     dad = OpenStudio::Model::Surface.new(vec, fd2_model)
     dad.setName("dad")
     dad.setSpace(space2)
@@ -4784,7 +4785,7 @@ RSpec.describe TBD do
 
     # Adding a Frame & Divider object.
     fd3 = OpenStudio::Model::WindowPropertyFrameAndDivider.new(fd3_model)
-    expect(fd3.setFrameWidth(0.200)).to be(true)   # 200mm (wide!) around glazing
+    expect(fd3.setFrameWidth(0.200)).to be(true)  # 200mm (wide!) around glazing
     expect(fd3.setFrameConductance(0.500)).to be(true)
 
     expect(w1.allowWindowPropertyFrameAndDivider).to be(true)

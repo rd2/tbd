@@ -3,8 +3,8 @@
   <error>cannot load such file -- conditioned</error>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>f08c41b4-81d1-4841-a778-10894533902e</version_id>
-  <version_modified>20210614T203408Z</version_modified>
+  <version_id>bdd87db8-2632-430a-9e51-ddcbaa628480</version_id>
+  <version_modified>20210617T131904Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -264,16 +264,16 @@
       <checksum>697EAA90</checksum>
     </file>
     <file>
-      <filename>framedivider.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>F2721D47</checksum>
-    </file>
-    <file>
       <filename>psi.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
       <checksum>8D5AED41</checksum>
+    </file>
+    <file>
+      <filename>framedivider.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>D97B4C70</checksum>
     </file>
   </files>
 </measure>

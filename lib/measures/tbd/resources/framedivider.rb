@@ -38,7 +38,7 @@ def areaHeron(pts)
 end
 
 ##
-# Calculate subsurface rough opening.
+# Calculate subsurface rough opening area & vertices.
 #
 # @param [OpenStudio::Model::Model] model An OS model
 # @param [String] id SubSurface identifier
@@ -68,8 +68,15 @@ def opening(model, id, t)
   n = s.vertices.size
   raise "#{id} vertex count, 3 or 4 (roughOpening)!" unless n == 3 || n == 4
 
-  dad = (t * parent.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
+  # Transformed Topolys 3D points lists.
   points = (t * s.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
+  dad = (t * parent.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
+
+  # This creates an OpenStudio clone, flat on its face.
+  os_dad = OpenStudio::Point3dVector.new
+  dad.each do |v| os_dad << OpenStudio::Point3d.new(v.x, v.y, v.z); end
+  ft = OpenStudio::Transformation::alignFace(os_dad).inverse
+  flat_dad = (ft * os_dad).reverse
 
   # Should verify convexity of vertex wire/face ...
   #
@@ -88,13 +95,9 @@ def opening(model, id, t)
   #     /     \
   #    B - C - D   <<< allowed as OpenStudio/E+ subsurface?
   #
-  width = 0
-  if s.windowPropertyFrameAndDivider.empty?
-    return area, points
-  else
-    width = s.windowPropertyFrameAndDivider.get.frameWidth
-    return area, points if width < TOL
-  end
+  return area, points if s.windowPropertyFrameAndDivider.empty?
+  width = s.windowPropertyFrameAndDivider.get.frameWidth
+  return area, points if width < TOL
 
   four = true if s.vertices.size == 4
   pts = {}
@@ -225,22 +228,11 @@ def opening(model, id, t)
   #             |   C (or D)
   #
   pts[:A][:angle] = pts[:A][:n_prev_unto_next_pl].angle(pts[:A][:n_next_unto_prev_pl])
-  pts[:A][:n_prev_unto_next_pl].normalize!
-  pts[:A][:n_next_unto_prev_pl].normalize!
-
   pts[:B][:angle] = pts[:B][:n_prev_unto_next_pl].angle(pts[:B][:n_next_unto_prev_pl])
-  pts[:B][:n_prev_unto_next_pl].normalize!
-  pts[:B][:n_next_unto_prev_pl].normalize!
-
   pts[:C][:angle] = pts[:C][:n_prev_unto_next_pl].angle(pts[:C][:n_next_unto_prev_pl])
-  pts[:C][:n_prev_unto_next_pl].normalize!
-  pts[:C][:n_next_unto_prev_pl].normalize!
-
   pts[:D][:angle] = pts[:D][:n_prev_unto_next_pl].angle(pts[:D][:n_next_unto_prev_pl]) if four
-  pts[:D][:n_prev_unto_next_pl].normalize! if four
-  pts[:D][:n_next_unto_prev_pl].normalize! if four
 
-  # Generate new 3D points A', B', C' (and D')
+  # Generate new 3D points A', B', C' (and D') ... zigzag.
   #
   #
   #
@@ -252,39 +244,34 @@ def opening(model, id, t)
   #         \      \
   #          \      \
   #           C'      C
-  pts[:A][:p] = pts[:A][:pt] + (pts[:A][:n_prev_unto_next_pl] * width)
   pts[:A][:from_next].normalize!
-  pts[:A][:p] = pts[:A][:p]  + (pts[:A][:from_next] * width * Math.tan(pts[:A][:angle]/2))
+  pts[:A][:n_prev_unto_next_pl].normalize!
+  pts[:A][:p] = pts[:A][:pt] + (pts[:A][:n_prev_unto_next_pl] * width) + (pts[:A][:from_next] * width * Math.tan(pts[:A][:angle]/2))
 
-  pts[:B][:p] = pts[:B][:pt] + (pts[:B][:n_prev_unto_next_pl] * width)
   pts[:B][:from_next].normalize!
-  pts[:B][:p] = pts[:B][:p]  + (pts[:B][:from_next] * width * Math.tan(pts[:B][:angle]/2))
+  pts[:B][:n_prev_unto_next_pl].normalize!
+  pts[:B][:p] = pts[:B][:pt] + (pts[:B][:n_prev_unto_next_pl] * width) + (pts[:B][:from_next] * width * Math.tan(pts[:B][:angle]/2))
 
-  pts[:C][:p] = pts[:C][:pt] + (pts[:C][:n_prev_unto_next_pl] * width)
   pts[:C][:from_next].normalize!
-  pts[:C][:p] = pts[:C][:p]  + (pts[:C][:from_next] * width * Math.tan(pts[:C][:angle]/2))
+  pts[:C][:n_prev_unto_next_pl].normalize!
+  pts[:C][:p] = pts[:C][:pt] + (pts[:C][:n_prev_unto_next_pl] * width) + (pts[:C][:from_next] * width * Math.tan(pts[:C][:angle]/2))
 
-  pts[:D][:p] = pts[:D][:pt] + (pts[:D][:n_prev_unto_next_pl] * width) if four
   pts[:D][:from_next].normalize! if four
-  pts[:D][:p] = pts[:D][:p]  + (pts[:D][:from_next] * width * Math.tan(pts[:D][:angle]/2)) if four
+  pts[:D][:n_prev_unto_next_pl].normalize! if four
+  pts[:D][:p] = pts[:D][:pt] + (pts[:D][:n_prev_unto_next_pl] * width) + (pts[:D][:from_next] * width * Math.tan(pts[:D][:angle]/2)) if four
 
-  # Validate if rough opening 'fits' within host surface (think acute angles).
-  # ref: https://github.com/NREL/OpenStudio/blob/
-  #              e603410ac3567d44e7660294f3b06a8a2d591118/ruby/test/
-  #              Polygon3d_PointInPolygonUp_Test.rb
+  # Convert Topolys 3D points into OpenStudio 3D points for fitting test.
   vec = OpenStudio::Point3dVector.new
-  dad.each do |vertex|
-    vec.push(OpenStudio::Point3d.new(vertex.x, vertex.y, vertex.z))
+  vec << OpenStudio::Point3d.new(pts[:A][:p].x, pts[:A][:p].y, pts[:A][:p].z)
+  vec << OpenStudio::Point3d.new(pts[:B][:p].x, pts[:B][:p].y, pts[:B][:p].z)
+  vec << OpenStudio::Point3d.new(pts[:C][:p].x, pts[:C][:p].y, pts[:C][:p].z)
+  vec << OpenStudio::Point3d.new(pts[:D][:p].x, pts[:D][:p].y, pts[:D][:p].z) if four
+
+  flat_points = ft * vec
+  flat_points.each do |flat_point|
+    return area, points unless OpenStudio::pointInPolygon(flat_point, flat_dad, TOL)
   end
-  # polygon = OpenStudio::Polygon3d.new(vec) <<< error : uninitialized constant OpenStudio::Polygon3d
-
   # At some point, also check for conflicts with other subsurfaces ...
-
-  points3D = []
-  points3D << pts[:A][:p]
-  points3D << pts[:B][:p]
-  points3D << pts[:C][:p]
-  points3D << pts[:D][:p] if four
 
   tr1 = []
   tr1 << pts[:A][:p]
@@ -300,6 +287,12 @@ def opening(model, id, t)
     area2 = areaHeron(tr2)
   end
   area = area1 + area2
+
+  points3D = []
+  points3D << pts[:A][:p]
+  points3D << pts[:B][:p]
+  points3D << pts[:C][:p]
+  points3D << pts[:D][:p] if four
 
   return area, points3D
 end
