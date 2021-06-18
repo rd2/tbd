@@ -1,5 +1,81 @@
 require "openstudio"
 
+
+##
+# Flatten OpenStudio 3D points vs Z-axis (Z=0).
+#
+# @param [Array] pts Point3D array
+#
+# @return [Array] Flattened OS 3D points array
+def flatZ(pts)
+  raise "Invalid pts (flatZ)" unless pts
+
+  cl = OpenStudio::Point3dVector
+  valid = pts.is_a?(cl) || pts.is_a?(Array)
+  raise "#{pts.class}? expected #{cl} (flatZ)" unless valid
+
+  cl = OpenStudio::Point3d
+  pts.each do |pt|
+    raise "#{pt.class}? expected OS 3D points (flatZ)" unless pt.class == cl
+    pt = OpenStudio::Point3d.new(pt.x, pt.y, 0)
+  end
+  pts
+end
+
+##
+# Validate whether an OpenStudio subsurface can 'fit in' (vs parent, siblings)
+#
+# @param [OpenStudio::Model::Model] model An OS model
+# @param [String] id SubSurface identifier
+# @param [Array] pts Point3D array of subsurface 'id'
+#
+# @return [Bool] Returns true if subsurface can fit in.
+def fit?(model, id, pts)
+  raise "Invalid model (fit?)" unless model
+  raise "Invalid ID (fit?)" unless id
+  raise "Invalid pts (fit?)" unless pts
+
+  cl = OpenStudio::Model::Model
+  raise "#{model.class}? expected #{cl} (fit?)" unless model.is_a?(cl)
+
+  cl = OpenStudio::Point3dVector
+  valid = pts.is_a?(cl) || pts.is_a?(Array)
+  raise "#{pts.class}? expected #{cl} (flatZ)" unless valid
+
+  cl = OpenStudio::Point3d
+  pts.each do |pt|
+    raise "#{pt.class}? expected OS 3D points (fit?)" unless pt.class == cl
+  end
+
+  s = model.getSubSurfaceByName(id)
+  raise "#{id} subSurface missmatch (fit?)" if s.empty?
+  s = s.get
+
+  raise "Invalid parent surface (fit?)" if s.surface.empty?
+  parent = model.getSurfaceByName(s.surface.get.nameString)
+  raise "#{id} missing parent surface (fit?)" if parent.empty?
+  parent = parent.get
+  ft = OpenStudio::Transformation::alignFace(parent.vertices).inverse
+  ft_parent = (ft * parent.vertices).reverse
+  ft_parent = flatZ(ft_parent)
+
+  siblings = []
+  model.getSubSurfaces.each do |sub|
+    next if sub.nameString == id
+    next if sub.surface.empty?
+    next unless sub.surface.get.nameString == parent.nameString
+    siblings << flatZ( (ft * sub.vertices).reverse )
+  end
+
+  ft_pts = flatZ(ft * pts)
+  ft_pts.each do |ft_pt|
+    return false unless OpenStudio::pointInPolygon(ft_pt, ft_parent, TOL)
+    siblings.each do |sibling|
+      return false if OpenStudio::pointInPolygon(ft_pt, sibling, TOL)
+    end
+  end
+end
+
 ##
 # Calculate triangle area.
 #
@@ -42,41 +118,25 @@ end
 #
 # @param [OpenStudio::Model::Model] model An OS model
 # @param [String] id SubSurface identifier
-# @param [] id SubSurface identifier
 #
-# @return [Float] subsurface rough opening area (m2)
-# @return [Array] subsurface rough opening sorted Topolys 3D points
-def opening(model, id, t)
-  raise "Invalid model (roughOpening)" unless model
-  raise "Invalid ID (roughOpening)" unless id
+# @return [Float] Returns subsurface rough opening area (m2)
+# @return [Array] Returns subsurface rough opening OpenStudio 3D points
+def opening(model, id)
+  raise "Invalid model (opening)" unless model
+  raise "Invalid ID (opening)" unless id
 
   cl = OpenStudio::Model::Model
-  raise "#{model.class}? expected #{cl} (roughOpening)" unless model.is_a?(cl)
+  raise "#{model.class}? expected #{cl} (opening)" unless model.is_a?(cl)
 
   s = model.getSubSurfaceByName(id)
-  raise "#{id} SubSurface missmatch!" if s.empty?
+  raise "#{id} SubSurface missmatch (opening)" if s.empty?
   s = s.get
-
-  raise "Invalid parent surface (roughOpening)" if s.surface.empty?
-  parent = model.getSurfaceByName(s.surface.get.nameString)
-  raise "#{id} missing parent surface (roughOpening)!" if parent.empty?
-  parent = parent.get
+  points = s.vertices
+  n = points.size
+  raise "#{id} vertex count, 3 or 4 (opening)" unless n == 3 || n == 4
 
   area = s.grossArea
-  raise "#{id} gross area < 0 m2 (roughOpening)?" unless area > TOL
-
-  n = s.vertices.size
-  raise "#{id} vertex count, 3 or 4 (roughOpening)!" unless n == 3 || n == 4
-
-  # Transformed Topolys 3D points lists.
-  points = (t * s.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
-  dad = (t * parent.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
-
-  # This creates an OpenStudio clone, flat on its face.
-  os_dad = OpenStudio::Point3dVector.new
-  dad.each do |v| os_dad << OpenStudio::Point3d.new(v.x, v.y, v.z); end
-  ft = OpenStudio::Transformation::alignFace(os_dad).inverse
-  flat_dad = (ft * os_dad).reverse
+  raise "#{id} gross area < 0 m2 (opening)?" unless area > TOL
 
   # Should verify convexity of vertex wire/face ...
   #
@@ -107,10 +167,10 @@ def opening(model, id, t)
   pts[:C] = {}
   pts[:D] = {} if four
 
-  pts[:A][:pt] = points[0]
-  pts[:B][:pt] = points[1]
-  pts[:C][:pt] = points[2]
-  pts[:D][:pt] = points[3] if four
+  pts[:A][:pt] = Topolys::Point3D.new(points[0].x, points[0].y, points[0].z)
+  pts[:B][:pt] = Topolys::Point3D.new(points[1].x, points[1].y, points[1].z)
+  pts[:C][:pt] = Topolys::Point3D.new(points[2].x, points[2].y, points[2].z)
+  pts[:D][:pt] = Topolys::Point3D.new(points[3].x, points[3].y, points[3].z) if four
 
   # Generate vector pairs, from next point & from previous point.
   #
@@ -260,18 +320,14 @@ def opening(model, id, t)
   pts[:D][:n_prev_unto_next_pl].normalize! if four
   pts[:D][:p] = pts[:D][:pt] + (pts[:D][:n_prev_unto_next_pl] * width) + (pts[:D][:from_next] * width * Math.tan(pts[:D][:angle]/2)) if four
 
-  # Convert Topolys 3D points into OpenStudio 3D points for fitting test.
+  # Re-convert Topolys 3D points into OpenStudio 3D points for fitting test.
   vec = OpenStudio::Point3dVector.new
   vec << OpenStudio::Point3d.new(pts[:A][:p].x, pts[:A][:p].y, pts[:A][:p].z)
   vec << OpenStudio::Point3d.new(pts[:B][:p].x, pts[:B][:p].y, pts[:B][:p].z)
   vec << OpenStudio::Point3d.new(pts[:C][:p].x, pts[:C][:p].y, pts[:C][:p].z)
   vec << OpenStudio::Point3d.new(pts[:D][:p].x, pts[:D][:p].y, pts[:D][:p].z) if four
 
-  flat_points = ft * vec
-  flat_points.each do |flat_point|
-    return area, points unless OpenStudio::pointInPolygon(flat_point, flat_dad, TOL)
-  end
-  # At some point, also check for conflicts with other subsurfaces ...
+  return area, points unless fit?(model, id, vec)
 
   tr1 = []
   tr1 << pts[:A][:p]
@@ -288,11 +344,5 @@ def opening(model, id, t)
   end
   area = area1 + area2
 
-  points3D = []
-  points3D << pts[:A][:p]
-  points3D << pts[:B][:p]
-  points3D << pts[:C][:p]
-  points3D << pts[:D][:p] if four
-
-  return area, points3D
+  return area, vec
 end

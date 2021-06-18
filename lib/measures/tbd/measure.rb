@@ -3,8 +3,6 @@ begin
   $STARTING_DIR = Dir.pwd
   require "topolys"
   require "psi"
-  require "conditioned"
-  require "framedivider"
 rescue LoadError
   if $STARTING_DIR != Dir.pwd
     Dir.chdir($STARTING_DIR)

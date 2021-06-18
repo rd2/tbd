@@ -1,16 +1,17 @@
 require "openstudio"
 
 begin
-  # try to load from the gem
+  # Topolys: try to load from the gem
   require "topolys"
 rescue LoadError
-  require_relative "conditioned"
-  require_relative "framedivider"
   require_relative "geometry.rb"
   require_relative "model.rb"
   require_relative "transformation.rb"
   require_relative "version.rb"
 end
+
+require_relative "conditioned.rb"
+require_relative "framedivider.rb"
 
 # Set 10mm tolerance for edge (thermal bridge) vertices.
 TOL = 0.01
@@ -1458,11 +1459,13 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     dad   = s.surface.get.nameString
     id    = s.nameString
 
+    gross, pts = opening(os_model, id)
+
     # Site-specific (or absolute, or true) surface normal.
     t, r = transforms(os_model, space)
     n = trueNormal(s, r)
 
-    gross, points = opening(os_model, id, t)
+    points = (t * pts).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
     minz = (points.map{ |p| p.z }).min
 
     type = :skylight

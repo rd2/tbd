@@ -667,11 +667,13 @@ RSpec.describe TBD do
       dad   = s.surface.get.nameString
       id    = s.nameString
 
+      gross, pts = opening(os_model, id)
+
       # Site-specific (or absolute, or true) surface normal.
       t, r = transforms(os_model, space)
       n = trueNormal(s, r)
 
-      gross, points = opening(os_model, id, t)
+      points = (t * pts).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
       minz = (points.map{ |p| p.z }).min
 
       type = :skylight
@@ -4446,9 +4448,10 @@ RSpec.describe TBD do
     t, r = transforms(os_model_FD, space)
 
     # The following "opening" function is standalone - does not change OSM.
-    opening_area, opening_vertices = opening(os_model_FD, name, t)
+    opening_area, opening_vertices = opening(os_model_FD, name)
     expect(opening_area).to be_within(0.01).of(5.89)                   # vs 5.58
     expect(opening_vertices.size).to eq(4)
+    opening_vertices = t * opening_vertices
 
     # The following X & Z coordinates are all offset by 0.030 (frame width),
     # with respect to the original subsurface coordinates.
@@ -4536,7 +4539,7 @@ RSpec.describe TBD do
     w3.setSurface(dad)
 
     # Without Frame & Divider objects linked to subsurface.
-    opening_area, opening_vertices = opening(fd_model, "w1", t)
+    opening_area, opening_vertices = opening(fd_model, "w1")
     expect(opening_area).to be_within(0.1).of(1.5)
     expect(opening_vertices.size).to eq(3)
 
@@ -4550,9 +4553,10 @@ RSpec.describe TBD do
     width = w1.windowPropertyFrameAndDivider.get.frameWidth
     expect(width).to be_within(0.001).of(0.200)                # good so far ...
 
-    opening_area, opening_vertices = opening(fd_model, "w1", t)
+    opening_area, opening_vertices = opening(fd_model, "w1")
     expect(opening_area).to be_within(0.1).of(3.75)
     expect(opening_vertices.size).to eq(3)
+    opening_vertices = t * opening_vertices
     # The following X & Z coordinates are all offset by 0.200 (frame width),
     # with respect to the original subsurface coordinates. For acute angles,
     # the rough opening edge intersection can be far, far away from the glazing
@@ -4573,9 +4577,10 @@ RSpec.describe TBD do
     width = w2.windowPropertyFrameAndDivider.get.frameWidth
     expect(width).to be_within(0.001).of(0.200)
 
-    opening_area, opening_vertices = opening(fd_model, "w2", t)
+    opening_area, opening_vertices = opening(fd_model, "w2")
     expect(opening_area).to be_within(0.1).of(8.64)
     expect(opening_vertices.size).to eq(4)
+    opening_vertices = t * opening_vertices
 
     # This window would have 2 shared edges (@right angle) with the parent.
     expect(opening_vertices[0].x).to be_within(0.01).of( 6.96)
@@ -4597,9 +4602,10 @@ RSpec.describe TBD do
     width = w3.windowPropertyFrameAndDivider.get.frameWidth
     expect(width).to be_within(0.001).of(0.200)
 
-    opening_area, opening_vertices = opening(fd_model, "w3", t)
+    opening_area, opening_vertices = opening(fd_model, "w3")
     expect(opening_area).to be_within(0.1).of(1.1)
     expect(opening_vertices.size).to eq(3)
+    opening_vertices = t * opening_vertices
 
     # This window would have 2 shared edges (@right angle) with the parent.
     expect(opening_vertices[0].x).to be_within(0.01).of( 8.52)
@@ -4658,7 +4664,7 @@ RSpec.describe TBD do
     w3.setSurface(dad)
 
     # Without Frame & Divider objects linked to subsurface.
-    opening_area, opening_vertices = opening(fd2_model, "w1", t)
+    opening_area, opening_vertices = opening(fd2_model, "w1")
     expect(opening_area).to be_within(0.1).of(1.5)
     expect(opening_vertices.size).to eq(3)
 
@@ -4672,9 +4678,10 @@ RSpec.describe TBD do
     width = w1.windowPropertyFrameAndDivider.get.frameWidth
     expect(width).to be_within(0.001).of(0.200)                # good so far ...
 
-    opening_area, opening_vertices = opening(fd2_model, "w1", t)
+    opening_area, opening_vertices = opening(fd2_model, "w1")
     expect(opening_area).to be_within(0.1).of(3.75)
     expect(opening_vertices.size).to eq(3)
+    opening_vertices = t * opening_vertices
     # The following X & Z coordinates are all offset by 0.200 (frame width),
     # with respect to the original subsurface coordinates. For acute angles,
     # the rough opening edge intersection can be far, far away from the glazing
@@ -4695,9 +4702,10 @@ RSpec.describe TBD do
     width = w2.windowPropertyFrameAndDivider.get.frameWidth
     expect(width).to be_within(0.001).of(0.200)
 
-    opening_area, opening_vertices = opening(fd2_model, "w2", t)
+    opening_area, opening_vertices = opening(fd2_model, "w2")
     expect(opening_area).to be_within(0.1).of(8.64)
     expect(opening_vertices.size).to eq(4)
+    opening_vertices = t * opening_vertices
 
     # This window would have 2 shared edges (@right angle) with the parent.
     expect(opening_vertices[0].x).to be_within(0.01).of(-3.48)
@@ -4719,9 +4727,10 @@ RSpec.describe TBD do
     width = w3.windowPropertyFrameAndDivider.get.frameWidth
     expect(width).to be_within(0.001).of(0.200)
 
-    opening_area, opening_vertices = opening(fd2_model, "w3", t)
+    opening_area, opening_vertices = opening(fd2_model, "w3")
     expect(opening_area).to be_within(0.1).of(1.1)
     expect(opening_vertices.size).to eq(3)
+    opening_vertices = t * opening_vertices
 
     # This window would have 2 shared edges (@right angle) with the parent.
     expect(opening_vertices[0].x).to be_within(0.01).of(-4.26)
@@ -4779,7 +4788,7 @@ RSpec.describe TBD do
     w3.setSurface(dad)
 
     # Without Frame & Divider objects linked to subsurface.
-    opening_area, opening_vertices = opening(fd3_model, "w1", t)
+    opening_area, opening_vertices = opening(fd3_model, "w1")
     expect(opening_area).to be_within(0.1).of(1.5)
     expect(opening_vertices.size).to eq(3)
 
@@ -4793,9 +4802,11 @@ RSpec.describe TBD do
     width = w1.windowPropertyFrameAndDivider.get.frameWidth
     expect(width).to be_within(0.001).of(0.200)                # good so far ...
 
-    opening_area, opening_vertices = opening(fd3_model, "w1", t)
+    opening_area, opening_vertices = opening(fd3_model, "w1")
     expect(opening_area).to be_within(0.1).of(3.75)
     expect(opening_vertices.size).to eq(3)
+    opening_vertices = t * opening_vertices
+
     # The following X & Z coordinates are all offset by 0.200 (frame width),
     # with respect to the original subsurface coordinates. For acute angles,
     # the rough opening edge intersection can be far, far away from the glazing
@@ -4816,9 +4827,10 @@ RSpec.describe TBD do
     width = w2.windowPropertyFrameAndDivider.get.frameWidth
     expect(width).to be_within(0.001).of(0.200)
 
-    opening_area, opening_vertices = opening(fd3_model, "w2", t)
+    opening_area, opening_vertices = opening(fd3_model, "w2")
     expect(opening_area).to be_within(0.1).of(8.64)
     expect(opening_vertices.size).to eq(4)
+    opening_vertices = t * opening_vertices
 
     # This window would have 2 shared edges (@right angle) with the parent.
     expect(opening_vertices[0].x).to be_within(0.01).of(-5.27)
@@ -4840,9 +4852,10 @@ RSpec.describe TBD do
     width = w3.windowPropertyFrameAndDivider.get.frameWidth
     expect(width).to be_within(0.001).of(0.200)
 
-    opening_area, opening_vertices = opening(fd3_model, "w3", t)
+    opening_area, opening_vertices = opening(fd3_model, "w3")
     expect(opening_area).to be_within(0.1).of(1.1)
     expect(opening_vertices.size).to eq(3)
+    opening_vertices = t * opening_vertices
 
     # This window would have 2 shared edges (@right angle) with the parent.
     expect(opening_vertices[0].x).to be_within(0.01).of(-7.49)
