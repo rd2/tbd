@@ -1,11 +1,11 @@
 require "openstudio"
-require "conditioned"
-require "framedivider"
 
 begin
   # try to load from the gem
   require "topolys"
 rescue LoadError
+  require_relative "conditioned"
+  require_relative "framedivider"
   require_relative "geometry.rb"
   require_relative "model.rb"
   require_relative "transformation.rb"
