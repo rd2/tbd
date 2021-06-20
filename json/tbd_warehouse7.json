@@ -1,11 +1,12 @@
 {
   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
-  "description": "testing TBD JSON for seb.osm",
+  "description": "testing heads, sills & jambs for test_warehouse.osm",
   "psis": [
     {
-      "id": "good",
-      "parapet": 0.5,
-      "party": 0.9
+      "id": "detailed",
+      "head": 0.500,
+      "sill": 0.300,
+      "jamb": 0.100
     },
     {
       "id": "compliant",
@@ -18,19 +19,17 @@
       "grade": 0.45
     }
   ],
-  "khis": [
+  "surfaces":
+  [
     {
-      "id": "column",
-      "point": 0.5
-    },
-    {
-      "id": "support",
-      "point": 0.5
+      "id": "Bulk Storage Roof",
+      "psi": "detailed"
     }
   ],
-  "building": [
+  "building":
+  [
     {
-      "psi": "(non thermal bridging)"
+      "psi": "compliant"
     }
   ]
 }

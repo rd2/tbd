@@ -1,7 +1,7 @@
 require "openstudio"
 
 begin
-  # try to load from the gem
+  # Topolys: try to load from the gem
   require "topolys"
 rescue LoadError
   require_relative "geometry.rb"
@@ -10,21 +10,27 @@ rescue LoadError
   require_relative "version.rb"
 end
 
+require_relative "conditioned.rb"
+require_relative "framedivider.rb"
+
 # Set 10mm tolerance for edge (thermal bridge) vertices.
 TOL = 0.01
 
-# Sources for the following defaults KHI & PSI values/sets:
+# Sources for thermal bridge types and/or linked default KHI & PSI values/sets:
 
-# BETB = BC Hydro's Building Envelope Thermal Bridging Guide v1.4
+# BETBG = Building Envelope Thermal Bridging Guide v1.4
 # www.bchydro.com/content/dam/BCHydro/customer-portal/documents/power-smart/
 # business/programs/BETB-Building-Envelope-Thermal-Bridging-Guide-v1-4.pdf
 
+# ISO 14683 (Appendix C) www.iso.org/standard/65706.html
+
 # NECB-QC: Québec's energy code for new commercial buildings
-# www2.publicationsduquebec.gouv.qc.ca/dynamicSearch/telecharge.php?type=1&file=72541.pdf
+# www2.publicationsduquebec.gouv.qc.ca/dynamicSearch/
+# telecharge.php?type=1&file=72541.pdf
 
 ##
 # Library of point thermal bridges (e.g. columns). Each key:value entry
-# requires a unique identifier e.g. "poor (BC Hydro)" and a KHI-value in W/K.
+# requires a unique identifier e.g. "poor (BETBG)" and a KHI-value in W/K.
 class KHI
   # @return [Hash] KHI library
   attr_reader :point
@@ -37,9 +43,9 @@ class KHI
     # The following are defaults. Users may edit these defaults,
     # append new key:value pairs, or even read-in other pairs on file.
     # Units are in W/K.
-    @point[ "poor (BC Hydro)" ]         = 0.900 # detail 5.7.2 BETB
-    @point[ "regular (BC Hydro)" ]      = 0.500 # detail 5.7.4 BETB
-    @point[ "efficient (BC Hydro)" ]    = 0.150 # detail 5.7.3 BETB
+    @point[ "poor (BETBG)" ]            = 0.900 # detail 5.7.2 BETBG
+    @point[ "regular (BETBG)" ]         = 0.500 # detail 5.7.4 BETBG
+    @point[ "efficient (BETBG)" ]       = 0.150 # detail 5.7.3 BETBG
     @point[ "code (Quebec)" ]           = 0.500 # art. 3.3.1.3. NECB-QC
     @point[ "(non thermal bridging)" ]  = 0.000
   end
@@ -61,79 +67,256 @@ end
 
 ##
 # Library of linear thermal bridges (e.g. corners, balconies). Each key:value
-# entry requires a unique identifier e.g. "poor (BC Hydro)" and a (partial or
+# entry requires a unique identifier e.g. "poor (BETBG)" and a (partial or
 # complete) set of PSI-values in W/K per linear meter.
 class PSI
   # @return [Hash] PSI set
+  # @return [Hash] shorthand listing of PSI types in a set
+  # @return [Hash] shorthand listing of PSI values in a set
   attr_reader :set
+  attr_reader :has
+  attr_reader :val
 
   ##
   # Construct a new PSI library (with defaults)
   def initialize
     @set = {}
+    @has = {}
+    @val = {}
 
-    # The following are defaults (* stated, ** inferred). Users may edit
-    # these sets, add new sets, or even read-in other sets on file.
-    # Units are in W/K per linear meter.
-    @set[ "poor (BC Hydro)" ] =
-    {
-      rimjoist:     1.000, # *
-      parapet:      0.800, # *
-      fenestration: 0.500, # *
-      concave:      0.850, # *
-      convex:       0.850, # *
-      balcony:      1.000, # *
-      party:        1.000, # **
-      grade:        1.000  # **
-    }.freeze
+    # The following are default PSI values (* published, ** calculated). Users
+    # may edit these sets, add new sets here, or read-in custom sets from a TBD
+    # JSON input file. PSI units are in W/K per linear meter. The spandrel sets
+    # are added as practical suggestions in early design stages.
 
-    @set[ "regular (BC Hydro)" ] =
+    # Convex vs concave PSI adjustments may be warranted if there is a mismatch
+    # between dimensioning conventions (interior vs exterior) used for the OSM
+    # vs published PSI data. For instance, the BETBG data reflects an interior
+    # dimensioning convention, while ISO 14683 reports PSI values for both
+    # conventions. The following may be used to adjust BETBG PSI values for
+    # convex corners when using outside dimensions for an OSM.
+    #
+    # PSIe = PSIi + U * 2(Li-Le), where:
+    #   PSIe = adjusted PSI                                          (W/K per m)
+    #   PSIi = initial published PSI                                 (W/K per m)
+    #      U = average clear field U-factor of adjacent walls           (W/m2.K)
+    #     Li = from interior corner to edge of "zone of influence"           (m)
+    #     Le = from exterior corner to edge of "zone of influence"           (m)
+    #
+    #  Li-Le = wall thickness e.g., -0.25m (negative here as Li < Le)
+    @set["poor (BETBG)"] =
     {
-      rimjoist:     0.500, # *
-      parapet:      0.450, # *
-      fenestration: 0.350, # *
-      concave:      0.450, # *
-      convex:       0.450, # *
-      balcony:      0.500, # *
-      party:        0.500, # **
-      grade:        0.450  # *
-    }.freeze
+      rimjoist:      1.000, # *
+      parapet:       0.800, # *
+      fenestration:  0.500, # *
+      corner:        0.850, # *
+      balcony:       1.000, # *
+      party:         0.850, # *
+      grade:         0.850, # *
+      joint:         0.300, # *
+      transition:    0.000
+    }.freeze               # based on INTERIOR dimensions (p.15 BETBG)
+    self.genShorthands("poor (BETBG)")
 
-    @set[ "efficient (BC Hydro)" ] =
+    @set["regular (BETBG)"] =
     {
-      rimjoist:     0.200, # *
-      parapet:      0.200, # *
-      fenestration: 0.200, # *
-      concave:      0.200, # *
-      convex:       0.200, # *
-      balcony:      0.200, # *
-      party:        0.200, # *
-      grade:        0.200  # *
-    }.freeze
+      rimjoist:      0.500, # *
+      parapet:       0.450, # *
+      fenestration:  0.350, # *
+      corner:        0.450, # *
+      balcony:       0.500, # *
+      party:         0.450, # *
+      grade:         0.450, # *
+      joint:         0.200, # *
+      transition:    0.000
+    }.freeze               # based on INTERIOR dimensions (p.15 BETBG)
+    self.genShorthands("regular (BETBG)")
 
-    @set[ "code (Quebec)" ] = # NECB-QC (code-compliant) defaults:
+    @set["efficient (BETBG)"] =
     {
-      rimjoist:     0.300, # *
-      parapet:      0.325, # *
-      fenestration: 0.350, # **
-      concave:      0.450, # **
-      convex:       0.450, # **
-      balcony:      0.500, # *
-      party:        0.500, # **
-      grade:        0.450  # **
-    }.freeze
+      rimjoist:      0.200, # *
+      parapet:       0.200, # *
+      fenestration:  0.200, # *
+      corner:        0.200, # *
+      balcony:       0.200, # *
+      party:         0.200, # *
+      grade:         0.200, # *
+      joint:         0.100, # *
+      transition:    0.000
+    }.freeze               # based on INTERIOR dimensions (p.15 BETBG)
+    self.genShorthands("efficient (BETBG)")
 
-    @set[ "(non thermal bridging)" ] = # ... would not derate surfaces:
+    @set["spandrel (BETBG)"] =
     {
-      rimjoist:     0.000, #
-      parapet:      0.000, #
-      fenestration: 0.000, #
-      concave:      0.000, #
-      convex:       0.000, #
-      balcony:      0.000, #
-      party:        0.000, #
-      grade:        0.000  #
+      rimjoist:      0.615, # * Detail 1.2.1
+      parapet:       1.000, # * Detail 1.3.2
+      fenestration:  0.000, # * ... generally part of clear-field RSi
+      corner:        0.425, # * Detail 1.4.1
+      balcony:       1.110, # * Detail 8.1.9/9.1.6
+      party:         0.990, # ** ... similar to parapet/balcony
+      grade:         0.880, # * Detail 2.5.1
+      joint:         0.500, # * Detail 3.3.2
+      transition:    0.000
+    }.freeze               # "conventional", closer to window wall spandrels
+    self.genShorthands("spandrel (BETBG)")
+
+    @set["spandrel HP (BETBG)"] =
+    {
+      rimjoist:      0.170, # * Detail 1.2.7
+      parapet:       0.660, # * Detail 1.3.2
+      fenestration:  0.000, # * ... generally part of clear-field RSi
+      corner:        0.200, # * Detail 1.4.2
+      balcony:       0.400, # * Detail 9.1.15
+      party:         0.500, # ** ... similar to parapet/balcony
+      grade:         0.880, # * Detail 2.5.1
+      joint:         0.140, # * Detail 7.4.2
+      transition:    0.000
+    }.freeze               # "good" to "high performance" curtainwall spandrels
+    self.genShorthands("spandrel HP (BETBG)")
+
+    @set["code (Quebec)"] = # NECB-QC (code-compliant) defaults:
+    {
+      rimjoist:      0.300, # *
+      parapet:       0.325, # *
+      fenestration:  0.350, # ** "regular (BETBG)"
+      corner:        0.300, # ** "regular (BETBG)", adjusted for ext. dimension
+      balcony:       0.500, # *
+      party:         0.450, # ** "regular (BETBG)"
+      grade:         0.450, # *
+      joint:         0.200, # ** "regular (BETBG)"
+      transition:    0.000
+    }.freeze               # based on EXTERIOR dimensions (art. 3.1.1.6)
+    self.genShorthands("code (Quebec)")
+
+    @set["(non thermal bridging)"] = # ... would not derate surfaces:
+    {
+      rimjoist:      0.000,
+      parapet:       0.000,
+      fenestration:  0.000,
+      corner:        0.000,
+      balcony:       0.000,
+      party:         0.000,
+      grade:         0.000,
+      joint:         0.000,
+      transition:    0.000
     }.freeze
+    self.genShorthands("(non thermal bridging)")
+  end
+
+  ##
+  # Generate PSI set shorthand listings
+  # Requires a valid, unique :id.
+  #
+  # @param [String] p A PSI set identifier
+  def genShorthands(p)
+    if @set.has_key?(p)
+      h = {}
+      h[:joint]           = @set[p].has_key?(:joint)
+      h[:transition]      = @set[p].has_key?(:transition)
+      h[:fenestration]    = @set[p].has_key?(:fenestration)
+      h[:head]            = @set[p].has_key?(:head)
+      h[:headconcave]     = @set[p].has_key?(:headconcave)
+      h[:headconvex]      = @set[p].has_key?(:headconvex)
+      h[:sill]            = @set[p].has_key?(:sill)
+      h[:sillconcave]     = @set[p].has_key?(:sillconcave)
+      h[:sillconvex]      = @set[p].has_key?(:sillconvex)
+      h[:jamb]            = @set[p].has_key?(:jamb)
+      h[:jambconcave]     = @set[p].has_key?(:jambconcave)
+      h[:jambconvex]      = @set[p].has_key?(:jambconvex)
+      h[:corner]          = @set[p].has_key?(:corner)
+      h[:cornerconcave]   = @set[p].has_key?(:cornerconcave)
+      h[:cornerconvex]    = @set[p].has_key?(:cornerconvex)
+      h[:parapet]         = @set[p].has_key?(:parapet)
+      h[:partyconcave]    = @set[p].has_key?(:parapetconcave)
+      h[:parapetconvex]   = @set[p].has_key?(:parapetconvex)
+      h[:party]           = @set[p].has_key?(:party)
+      h[:partyconcave]    = @set[p].has_key?(:partyconcave)
+      h[:partyconvex]     = @set[p].has_key?(:partyconvex)
+      h[:grade]           = @set[p].has_key?(:grade)
+      h[:gradeconcave]    = @set[p].has_key?(:gradeconcave)
+      h[:gradeconvex]     = @set[p].has_key?(:gradeconvex)
+      h[:balcony]         = @set[p].has_key?(:balcony)
+      h[:balconyconcave]  = @set[p].has_key?(:balconyconcave)
+      h[:balconyconvex]   = @set[p].has_key?(:balconyconvex)
+      h[:rimjoist]        = @set[p].has_key?(:rimjoist)
+      h[:rimjoistconcave] = @set[p].has_key?(:rimjoistconcave)
+      h[:rimjoistconvex]  = @set[p].has_key?(:rimjoistconvex)
+      @has[p] = h
+
+      v = {}
+      v[:joint]    = 0; v[:transition]      = 0; v[:fenestration]   = 0
+      v[:head]     = 0; v[:headconcave]     = 0; v[:headconvex]     = 0
+      v[:sill]     = 0; v[:sillconcave]     = 0; v[:sillconvex]     = 0
+      v[:jamb]     = 0; v[:jambconcave]     = 0; v[:jambconvex]     = 0
+      v[:corner]   = 0; v[:cornerconcave]   = 0; v[:cornerconvex]   = 0
+      v[:parapet]  = 0; v[:parapetconcave]  = 0; v[:parapetconvex]  = 0
+      v[:party]    = 0; v[:partyconcave]    = 0; v[:partyconvex]    = 0
+      v[:grade]    = 0; v[:gradeconcave]    = 0; v[:gradeconvex]    = 0
+      v[:balcony]  = 0; v[:balconyconcave]  = 0; v[:balconyconvex]  = 0
+      v[:rimjoist] = 0; v[:rimjoistconcave] = 0; v[:rimjoistconvex] = 0
+
+      v[:joint]           = @set[p][:joint]           if h[:joint]
+      v[:transition]      = @set[p][:transition]      if h[:transition]
+      v[:fenestration]    = @set[p][:fenestration]    if h[:fenestration]
+      v[:head]            = @set[p][:fenestration]    if h[:fenestration]
+      v[:headconcave]     = @set[p][:fenestration]    if h[:fenestration]
+      v[:headconvex]      = @set[p][:fenestration]    if h[:fenestration]
+      v[:sill]            = @set[p][:fenestration]    if h[:fenestration]
+      v[:sillconcave]     = @set[p][:fenestration]    if h[:fenestration]
+      v[:sillconvex]      = @set[p][:fenestration]    if h[:fenestration]
+      v[:jamb]            = @set[p][:fenestration]    if h[:fenestration]
+      v[:jambconcave]     = @set[p][:fenestration]    if h[:fenestration]
+      v[:jambconvex]      = @set[p][:fenestration]    if h[:fenestration]
+      v[:head]            = @set[p][:head]            if h[:head]
+      v[:headconcave]     = @set[p][:head]            if h[:head]
+      v[:headconvex]      = @set[p][:head]            if h[:head]
+      v[:sill]            = @set[p][:sill]            if h[:sill]
+      v[:sillconcave]     = @set[p][:sill]            if h[:sill]
+      v[:sillconvex]      = @set[p][:sill]            if h[:sill]
+      v[:jamb]            = @set[p][:jamb]            if h[:jamb]
+      v[:jambconcave]     = @set[p][:jamb]            if h[:jamb]
+      v[:jambconvex]      = @set[p][:jamb]            if h[:jamb]
+      v[:headconcave]     = @set[p][:headconcave]     if h[:headconcave]
+      v[:headconvex]      = @set[p][:headconvex]      if h[:headconvex]
+      v[:sillconcave]     = @set[p][:sillconcave]     if h[:sillconcave]
+      v[:sillconvex]      = @set[p][:sillconvex]      if h[:sillconvex]
+      v[:jambconcave]     = @set[p][:jambconcave]     if h[:jambconcave]
+      v[:jambconvex]      = @set[p][:jambconvex]      if h[:jambconvex]
+      v[:corner]          = @set[p][:corner]          if h[:corner]
+      v[:cornerconcave]   = @set[p][:corner]          if h[:corner]
+      v[:cornerconvex]    = @set[p][:corner]          if h[:corner]
+      v[:cornerconcave]   = @set[p][:cornerconcave]   if h[:cornerconcave]
+      v[:cornerconvex]    = @set[p][:cornerconvex]    if h[:cornerconvex]
+      v[:parapet]         = @set[p][:parapet]         if h[:parapet]
+      v[:parapetconcave]  = @set[p][:parapet]         if h[:parapet]
+      v[:parapetconvex]   = @set[p][:parapet]         if h[:parapet]
+      v[:parapetconcave]  = @set[p][:parapetconcave]  if h[:parapetconcave]
+      v[:parapetconvex]   = @set[p][:parapetconvex]   if h[:parapetconvex]
+      v[:party]           = @set[p][:party]           if h[:party]
+      v[:partyconcave]    = @set[p][:party]           if h[:party]
+      v[:partyconvex]     = @set[p][:party]           if h[:party]
+      v[:partyconcave]    = @set[p][:partyconcave]    if h[:partyconcave]
+      v[:partyconvex]     = @set[p][:partyconvex]     if h[:partyconvex]
+      v[:grade]           = @set[p][:grade]           if h[:grade]
+      v[:gradeconcave]    = @set[p][:grade]           if h[:grade]
+      v[:gradeconvex]     = @set[p][:grade]           if h[:grade]
+      v[:gradeconcave]    = @set[p][:gradeconcave]    if h[:gradeconcave]
+      v[:gradeconvex]     = @set[p][:gradeconvex]     if h[:gradeconvex]
+      v[:balcony]         = @set[p][:balcony]         if h[:balcony]
+      v[:balconyconcave]  = @set[p][:balcony]         if h[:balcony]
+      v[:balconyconvex]   = @set[p][:balcony]         if h[:balcony]
+      v[:balconyconcave]  = @set[p][:balconyconcave]  if h[:balconyconcave]
+      v[:balconyconvex]   = @set[p][:balconyconvex]   if h[:balconyconvex]
+      v[:rimjoist]        = @set[p][:rimjoist]        if h[:rimjoist]
+      v[:rimjoistconcave] = @set[p][:rimjoist]        if h[:rimjoist]
+      v[:rimjoistconvex]  = @set[p][:rimjoist]        if h[:rimjoist]
+      v[:rimjoistconcave] = @set[p][:rimjoistconcave] if h[:rimjoistconcave]
+      v[:rimjoistconvex]  = @set[p][:rimjoistconvex]  if h[:rimjoistconvex]
+
+      max = [v[:parapetconcave], v[:parapetconvex]].max
+      v[:parapet] = max unless @has[:parapet]
+      @val[p] = v
+    end
   end
 
   ##
@@ -142,66 +325,162 @@ class PSI
   #
   # @param [Hash] p A (identifier):(PSI set) pair
   def append(p)
-    if p.is_a?(Hash) && p.has_key?(:id)
-      id = p[:id]
-      unless @set.has_key?(id)       # should log message if duplication attempt
-        @set[id] = {}
+    raise "Append PSI set: #{p.class}? expected Hash" unless p.is_a?(Hash)
+    raise "Append PSI set: missing identifier" unless p.has_key?(:id)
+    id = p[:id]
+    s = {}
 
-        @set[id][:rimjoist]     = p[:rimjoist]     if p.has_key?(:rimjoist)
-        @set[id][:parapet]      = p[:parapet]      if p.has_key?(:parapet)
-        @set[id][:fenestration] = p[:fenestration] if p.has_key?(:fenestration)
-        @set[id][:concave]      = p[:concave]      if p.has_key?(:concave)
-        @set[id][:convex]       = p[:convex]       if p.has_key?(:convex)
-        @set[id][:balcony]      = p[:balcony]      if p.has_key?(:balcony)
-        @set[id][:party]        = p[:party]        if p.has_key?(:party)
-        @set[id][:grade]        = p[:grade]        if p.has_key?(:grade)
-      end
+    # Most PSI types have concave and convex variants, depending on the polar
+    # position of deratable surfaces around an edge-as-thermal-bridge. One
+    # exception is :fenestration, which TBD later breaks down into :head, :sill
+    # or :jamb edge types. Another exception is a :joint edge, a PSI type that
+    # is not autoassigned to an edge (i.e., only via a TBD JSON input file).
+    # Finally, transitions are autoassigned by TBD precively when an edge is
+    # "flat" i.e., no noticeable polar angle difference between surfaces.
+    s[:rimjoist]        = p[:rimjoist]        if p.has_key?(:rimjoist)
+    s[:rimjoistconcave] = p[:rimjoistconcave] if p.has_key?(:rimjoistconcave)
+    s[:rimjoistconvex]  = p[:rimjoistconvex]  if p.has_key?(:rimjoistconvex)
+    s[:parapet]         = p[:parapet]         if p.has_key?(:parapet)
+    s[:parapetconcave]  = p[:parapetconcave]  if p.has_key?(:parapetconcave)
+    s[:parapetconvex]   = p[:parapetconvex]   if p.has_key?(:parapetconvex)
+    s[:head]            = p[:head]            if p.has_key?(:head)
+    s[:headconcave]     = p[:headconcave]     if p.has_key?(:headconcave)
+    s[:headconvex]      = p[:headconvex]      if p.has_key?(:headconvex)
+    s[:sill]            = p[:sill]            if p.has_key?(:sill)
+    s[:sillconcave]     = p[:sillconcave]     if p.has_key?(:sillconcave)
+    s[:sillconvex]      = p[:sillconvex]      if p.has_key?(:sillconvex)
+    s[:jamb]            = p[:jamb]            if p.has_key?(:jamb)
+    s[:jambconcave]     = p[:jambconcave]     if p.has_key?(:jambconcave)
+    s[:jambconvex]      = p[:jambconvex]      if p.has_key?(:jambconcave)
+    s[:corner]          = p[:corner]          if p.has_key?(:corner)
+    s[:cornerconcave]   = p[:cornerconcave]   if p.has_key?(:cornerconcave)
+    s[:cornerconvex]    = p[:cornerconvex]    if p.has_key?(:cornerconvex)
+    s[:balcony]         = p[:balcony]         if p.has_key?(:balcony)
+    s[:balconyconcave]  = p[:balconyconcave]  if p.has_key?(:balconyconcave)
+    s[:balconyconvex]   = p[:balconyconvex]   if p.has_key?(:balconyconvex)
+    s[:party]           = p[:party]           if p.has_key?(:party)
+    s[:partyconcave]    = p[:partyconcave]    if p.has_key?(:partyconcave)
+    s[:partyconvex]     = p[:partyconvex]     if p.has_key?(:partyconvex)
+    s[:grade]           = p[:grade]           if p.has_key?(:grade)
+    s[:gradeconcave]    = p[:gradeconcave]    if p.has_key?(:gradeconcave)
+    s[:gradeconvex]     = p[:gradeconvex]     if p.has_key?(:gradeconvex)
+
+    s[:fenestration]    = p[:fenestration]    if p.has_key?(:fenestration)
+    s[:joint]           = p[:joint]           if p.has_key?(:joint)
+    s[:transition]      = p[:transition]      if p.has_key?(:transition)
+
+    s[:joint]           = 0.000 unless p.has_key?(:joint)
+    s[:transition]      = 0.000 unless p.has_key?(:transition)
+    unless @set.has_key?(id)
+      @set[id] = s
+      self.genShorthands(id)
     end
-    # should log if else message
+  end
+
+  ##
+  # Generate shorthand hash of PSI content
+  #
+  # @param [String] p A PSI set identifier
+  #
+  # @return [Hash] Returns true/false statements as to PSI content
+  # @return [Hash] Returns implicitly calculated or explicitly-set PSI values
+  def shorthands(p)
+    h = {}
+    v = {}
+    return @has[p], @val[p] if @set.has_key?(p)
+    return h, v
   end
 
   ##
   # Validate whether a stored PSI set has a complete list of PSI type:values
   #
-  # @param [String] s A PSI set identifier
+  # @param [String] p A PSI set identifier
   #
-  # @return [Boolean] Returns true if stored and has a complete PSI set
-  def complete?(s) # true/false
-    answer = @set.has_key?(s)
-    answer = answer && @set[s].has_key?(:rimjoist)
-    answer = answer && @set[s].has_key?(:parapet)
-    answer = answer && @set[s].has_key?(:fenestration)
-    answer = answer && @set[s].has_key?(:concave)
-    answer = answer && @set[s].has_key?(:convex)
-    answer = answer && @set[s].has_key?(:balcony)
-    answer = answer && @set[s].has_key?(:party)
-    answer = answer && @set[s].has_key?(:grade)
-    answer
+  # @return [Bool] Returns true if stored and has a complete PSI set
+  def complete?(p)
+    return false unless @set.has_key?(p)
+    return false unless @has.has_key?(p)
+    return false unless @val.has_key?(p)
+    raise "missing @has key #{p}" unless @has.has_key?(p)
+    raise "missing head" unless @has[p].has_key?(:head)
+    holes = []
+    holes << :head if @has[p][:head]
+    holes << :sill if @has[p][:sill]
+    holes << :jamb if @has[p][:jamb]
+    ok = holes.size == 3
+    ok = true if @has[p][:fenestration]
+    return false unless ok
+
+    corners = []
+    corners << :concave if @has[p][:cornerconcave]
+    corners << :convex  if @has[p][:cornerconvex]
+    ok = corners.size == 2
+    ok = true if @has[p][:corner]
+    return false unless ok
+
+    parapets = []
+    parapets << :concave if @has[p][:parapetconcave]
+    parapets << :convex  if @has[p][:parapetconvex]
+    ok = parapets.size == 2
+    ok = true if @has[p][:parapet]
+    return false unless ok
+
+    return false unless @has[p][:party]
+    return false unless @has[p][:grade]
+    return false unless @has[p][:balcony]
+    return false unless @has[p][:rimjoist]
+    ok
+  end
+
+  ##
+  # Return safe PSI type if missing input from PSI set (relies on inheritance)
+  # @param [String] p A PSI set identifier
+  # @param [Hash] type PSI type e.g., :rimjoistconcave
+  #
+  # @return [Symbol] Returns safe type (nil if none were found)
+  def safeType(p, type)
+    ok = @set.has_key?(p)
+    tt = type
+    tt = tt.to_sym unless tt.is_a?(Symbol)
+    unless @has[p][tt]
+      tt_concave = tt.to_s.include?("concave")
+      tt_convex  = tt.to_s.include?("convex")
+      tt = tt.to_s.chomp("concave").to_sym if tt_concave
+      tt = tt.to_s.chomp("convex").to_sym  if tt_convex
+      unless @has[p][tt]
+        tt = :fenestration if tt == :head
+        tt = :fenestration if tt == :sill
+        tt = :fenestration if tt == :jamb
+      end
+    end
+    return tt if @has[p][tt]
+    nil
   end
 end
 
 ##
-# Check for matching vertex pairs between edges (10mm tolerance).
+# Check for matching vertex pairs between edges (10mm tolerance)
 # @param [Hash] e1 First edge
 # @param [Hash] e2 Second edge
 #
-# @return [Boolean] Returns true if edges share vertex pairs
+# @return [Bool] Returns true if edges share vertex pairs
 def matches?(e1, e2)
-  raise "matches? missing edges" unless e1 && e2
-  raise "matches? missing :v0 for e1" unless e1.has_key?(:v0)
-  raise "matches? missing :v1 for e1" unless e1.has_key?(:v1)
-  raise "matches? missing :v0 for e2" unless e2.has_key?(:v0)
-  raise "matches? missing :v1 for e2" unless e2.has_key?(:v1)
-  raise "e1 v0: #{e1[:v0].class}? expected a Topolys point3D" unless e1[:v0].is_a?(Topolys::Point3D)
-  raise "e1 v1: #{e1[:v1].class}? expected a Topolys point3D" unless e1[:v1].is_a?(Topolys::Point3D)
-  raise "e2 v0: #{e1[:v0].class}? expected a Topolys point3D" unless e2[:v0].is_a?(Topolys::Point3D)
-  raise "e2 v1: #{e1[:v1].class}? expected a Topolys point3D" unless e2[:v1].is_a?(Topolys::Point3D)
+  raise "Invalid edges (matches?)" unless e1 && e2
+  raise "Missing :v0 for e1" unless e1.has_key?(:v0)
+  raise "Missing :v1 for e1" unless e1.has_key?(:v1)
+  raise "Missing :v0 for e2" unless e2.has_key?(:v0)
+  raise "Missing :v1 for e2" unless e2.has_key?(:v1)
+  cl = Topolys::Point3D
+  raise "e1 v0: #{e1[:v0].class}? expected #{cl}" unless e1[:v0].is_a?(cl)
+  raise "e1 v1: #{e1[:v1].class}? expected #{cl}" unless e1[:v1].is_a?(cl)
+  raise "e2 v0: #{e1[:v0].class}? expected #{cl}" unless e2[:v0].is_a?(cl)
+  raise "e2 v1: #{e1[:v1].class}? expected #{cl}" unless e2[:v1].is_a?(cl)
 
   answer = false
   e1_vector = e1[:v1] - e1[:v0]
   e2_vector = e2[:v1] - e2[:v0]
-  raise "matches? e1 length <= 10mm" if e1_vector.magnitude < TOL
-  raise "matches? e2 length <= 10mm" if e2_vector.magnitude < TOL
+  raise "e1 length <= TOL" if e1_vector.magnitude < TOL
+  raise "e2 length <= TOL" if e2_vector.magnitude < TOL
 
   answer = true if
   (
@@ -236,18 +515,18 @@ end
 # If successful, "edges" (input) may inherit additional properties, e.g.:
 # :io_set  = edge-specific PSI set, held in TBD JSON file
 # :io_type = edge-specific PSI type (e.g. "corner"), held in TBD JSON file
-# :io_unit = project-wide PSI set, if absent from TBD JSON file
+# :io_building = project-wide PSI set, if absent from TBD JSON file
 #
 # @param [Hash] surfaces Preprocessed collection of TBD surfaces
 # @param [Hash] edges Preprocessed collection TBD edges
 # @param [String] set Default) PSI set identifier, can be "" (empty)
-# @param [String] io_path Path to a user-set TBD JSON input file (optional)
-# @param [String] schema_path Path to a TBD JSON schema file (optional)
+# @param [String] ioP Path to a user-set TBD JSON input file (optional)
+# @param [String] schemaP Path to a TBD JSON schema file (optional)
 #
 # @return [Hash] Returns a JSON-generated collection of user inputs
 # @return [Hash] Returns a new PSI library, enriched with optional sets on file
 # @return [Hash] Returns a new KHI library, enriched with optional pairs on file
-def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
+def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
   # In the near future, the bulk of the "raises" in processTBDinputs will
   # be logged as mild or severe warnings, possibly halting all TBD processes
   # The OpenStudio/EnergyPlus model would remain unaltered (or un-derated).
@@ -255,34 +534,31 @@ def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
   # JSON validation relies on case-senitive string comparisons (e.g. OpenStudio
   # space or surface names, vs corresponding TBD JSON identifiers). So "Space-1"
   # would not match "SPACE-1". A head's up ...
-  io = {}
+  io  = {}
   psi = PSI.new                  # PSI hash, initially holding built-in defaults
   khi = KHI.new                  # KHI hash, initially holding built-in defaults
 
-  raise "processTBDinputs: invalid TBD surfaces?" unless surfaces
-  unless surfaces.is_a?(Hash)
-    raise "processTBDinputs: TBD surfaces class #{surfaces.class}?"
-  end
+  raise "Invalid surfaces (TBD inputs)" unless surfaces
+  raise "Invalid edges (TBD inputs)" unless edges
+  cl = surfaces.class
+  raise "#{cl}? expected surfaces Hash (TBD inputs)" unless cl == Hash
+  cl = edges.class
+  raise "#{cl}? expected edges Hash (TBD inputs)" unless cl == Hash
 
-  raise "processTBDinputs: invalid TBD edges?" unless edges
-  unless edges.is_a?(Hash)
-    raise "processTBDinputs: TBD edges class #{edges.class}?"
-  end
+  if ioP && File.size?(ioP) # optional input file exists and is non-zero
+    ioC = File.read(ioP)
+    io = JSON.parse(ioC, symbolize_names: true)
 
-  if io_path && File.size?(io_path) # optional input file exists and is non-zero
-    io_c = File.read(io_path)
-    io = JSON.parse(io_c, symbolize_names: true)
-
-    # schema validation is not yet supported in the OpenStudio Application
-    if schema_path
+    # Schema validation is not yet supported in the OpenStudio Application.
+    if schemaP
       require "json-schema"
 
-      raise "processTBDinputs: TBD schema file?" unless File.exist?(schema_path)
-      raise "processTBDinputs: Empty TBD schema file?" if File.zero?(schema_path)
-      schema_c = File.read(schema_path)
-      schema = JSON.parse(schema_c, symbolize_names: true)
+      raise "Invalid TBD schema file" unless File.exist?(schemaP)
+      raise "Empty TBD schema file" if File.zero?(schemaP)
+      schemaC = File.read(schemaP)
+      schema = JSON.parse(schemaC, symbolize_names: true)
 
-      if !JSON::Validator.validate!(schema, io)
+      unless JSON::Validator.validate!(schema, io)
         # Log severe warning: enable to parse (invalid) user TBD JSON file
       end
     end
@@ -297,14 +573,14 @@ def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
       io[:khis].each do |k| khi.append(k); end
     end
 
-    if io.has_key?(:unit)
-      raise "Unit PSI?" unless io[:unit].first.has_key?(:psi)
+    if io.has_key?(:building)
+      raise "Building PSI?" unless io[:building].first.has_key?(:psi)
     else
-      # No unit PSI - "set" must default to a built-in PSI set.
-      io[:unit] = [{ psi: set }]               # i.e. default PSI set & no KHI's
+      # No building PSI - "set" must default to a built-in PSI set.
+      io[:building] = [{ psi: set }]           # i.e. default PSI set & no KHI's
     end
 
-    p = io[:unit].first[:psi]
+    p = io[:building].first[:psi]
     raise "Incomplete PSI set #{p}" unless psi.complete?(p)
 
     if io.has_key?(:stories)
@@ -313,8 +589,37 @@ def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
         next unless story.has_key?(:psi)
         i = story[:id]
         p = story[:psi]
+
+        # Validate if story "id" is found in stories hash
+        match = false
+        surfaces.values.each do |properties|
+          next if match
+          next unless properties.has_key?(:story)
+          st = properties[:story]
+          match = true if i = st.nameString
+        end
+        raise "Mismatch OpenStudio #{i}" unless match
         raise "#{i} PSI mismatch" unless psi.set.has_key?(p)
-        # ... later, validate "id" vs OSM/IDF group names (ZoneLists?)
+      end
+    end
+
+    if io.has_key?(:spacetypes)
+      io[:spacetypes].each do |stype|
+        next unless stype.has_key?(:id)
+        next unless stype.has_key?(:psi)
+        i = stype[:id]
+        p = stype[:psi]
+
+        # Validate if spacetype "id" is found in spacetypes hash
+        match = false
+        surfaces.values.each do |properties|
+          next if match
+          next unless properties.has_key?(:stype)
+          spt = properties[:stype]
+          match = true if i = spt.nameString
+        end
+        raise "Mismatch OpenStudio #{i}" unless match
+        raise "#{i} PSI mismatch" unless psi.set.has_key?(p)
       end
     end
 
@@ -400,12 +705,16 @@ def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
                      edge.has_key?(:v1x) &&
                      edge.has_key?(:v1y) &&
                      edge.has_key?(:v1z)
-                raise "Edge vertices must come in pairs"          # all or none
+                raise "Edge vertices must come in pairs"           # all or none
               end
               e1 = {}
               e2 = {}
-              e1[:v0] = Topolys::Point3D.new(edge[:v0x].to_f, edge[:v0y].to_f, edge[:v0z].to_f)
-              e1[:v1] = Topolys::Point3D.new(edge[:v1x].to_f, edge[:v1y].to_f, edge[:v1z].to_f)
+              e1[:v0] = Topolys::Point3D.new(edge[:v0x].to_f,
+                                             edge[:v0y].to_f,
+                                             edge[:v0z].to_f)
+              e1[:v1] = Topolys::Point3D.new(edge[:v1x].to_f,
+                                             edge[:v1y].to_f,
+                                             edge[:v1z].to_f)
               e2[:v0] = e[:v0].point
               e2[:v1] = e[:v1].point
               match = matches?(e1, e2)
@@ -416,25 +725,22 @@ def processTBDinputs(surfaces, edges, set, io_path = nil, schema_path = nil)
             n += 1
             if edge.has_key?(:psi)                                    # optional
               p = edge[:psi]
-              raise "PSI mismatch" unless psi.set.has_key?(p)
-              raise "#{p} missing PSI #{t}" unless psi.set[p].has_key?(t)
+              raise "PSI mismatch (TBD inputs)" unless psi.set.has_key?(p)
+              tt = psi.safeType(p, t)
+              raise "#{p} missing PSI #{t} or variants" if tt.nil?
               e[:io_set] = p
             end
           end
         end
-        if n == 0
-          puts edge[:surfaces]
-          raise "Edge: missing OpenStudio match"
-        end
+        raise "Edge: missing OpenStudio match" if n == 0
       end
     end
   else
     # No (optional) user-defined TBD JSON input file.
     # In such cases, "set" must refer to a valid PSI set
     raise "Incomplete PSI set #{set}" unless psi.complete?(set)
-    io[:unit] = [{ psi: set }]                 # i.e. default PSI set & no KHI's
+    io[:building] = [{ psi: set }]             # i.e. default PSI set & no KHI's
   end
-
   return io, psi, khi
 end
 
@@ -447,18 +753,17 @@ end
 # @return [OpenStudio::Transformation] Returns group vs site transformation
 # @return [Float] Returns site + group rotation angle [0,2PI) radians
 def transforms(model, group)
-  if model && group
-    unless model.is_a?(OpenStudio::Model::Model)
-      raise "Expected OpenStudio model - got #{model.class}"
-    end
-    unless group.is_a?(OpenStudio::Model::Space)               ||
-           group.is_a?(OpenStudio::Model::ShadingSurfaceGroup)
-      raise "Expected OpenStudio group - got a #{group.class}"
-    end
-    t = group.siteTransformation
-    r = group.directionofRelativeNorth + model.getBuilding.northAxis
-    return t, r
-  end
+  raise "Invalid model (transforms)" unless model
+  raise "invalid group (transforms)" unless group
+  cl = OpenStudio::Model::Model
+  raise "#{model.class}? expected #{cl} (transforms)" unless model.is_a?(cl)
+  gr = group.is_a?(OpenStudio::Model::Space)
+  gr = group.is_a?(OpenStudio::Model::ShadingSurfaceGroup) || gr
+  raise "#{group.class}? expected OS group (transforms)" unless gr
+
+  t = group.siteTransformation
+  r = group.directionofRelativeNorth + model.getBuilding.northAxis
+  return t, r
 end
 
 ##
@@ -469,17 +774,83 @@ end
 #
 # @return [OpenStudio::Vector3D] Returns normal vector <x,y,z> of s
 def trueNormal(s, r)
-  if s && r
-    c = OpenStudio::Model::PlanarSurface
-    raise "Expected #{c} - got #{s.class}" unless s.is_a?(c)
-    raise "Expected a numeric - got #{r.class}" unless r.is_a?(Numeric)
+  raise "Invalid surface (normals)" unless s
+  raise "Invalid rotation angle (normals)" unless r
+  cl = OpenStudio::Model::PlanarSurface
+  raise "#{s.class}? expected #{cl} (normals)" unless s.is_a?(cl)
+  raise "#{r.class}? expected numeric (normals)" unless r.is_a?(Numeric)
 
-    n = Topolys::Vector3D.new(s.outwardNormal.x * Math.cos(r) -
-                              s.outwardNormal.y * Math.sin(r),               # x
-                              s.outwardNormal.x * Math.sin(r) +
-                              s.outwardNormal.y * Math.cos(r),               # y
-                              s.outwardNormal.z)                             # z
-  end
+  n = Topolys::Vector3D.new(s.outwardNormal.x * Math.cos(r) -
+                            s.outwardNormal.y * Math.sin(r),                 # x
+                            s.outwardNormal.x * Math.sin(r) +
+                            s.outwardNormal.y * Math.cos(r),                 # y
+                            s.outwardNormal.z)                               # z
+end
+
+##
+# Validate whether edge surfaces form a concave angle, as seen from outside.
+#
+# @param [Surface] s1 A first TBD surface
+# @param [Surface] s2 A second TBD surface
+#
+# @return [Bool] Returns true if angle between surfaces is concave
+def concave?(s1, s2)
+  concave = false
+  raise "#{s1.class}? expected Hash (concave?)" unless s1.is_a?(Hash)
+  raise "#{s2.class}? expected Hash (concave?)" unless s2.is_a?(Hash)
+  raise "Missing angle from s1 (concave?)" unless s1.has_key?(:angle)
+  raise "Missing angle from s2 (concave?)" unless s2.has_key?(:angle)
+  raise "Numeric s1 angle please (concave?)" unless s1[:angle].is_a?(Numeric)
+  raise "Numeric s2 angle please (concave?)" unless s2[:angle].is_a?(Numeric)
+  raise "Missing normal from s1 (concave?)" unless s1.has_key?(:normal)
+  raise "Missing normal from s2 (concave?)" unless s2.has_key?(:normal)
+  raise "Missing polar angle from s1 (concave?)" unless s1.has_key?(:polar)
+  raise "Missing polar angle from s2 (concave?)" unless s2.has_key?(:polar)
+
+  angle = 0
+  angle = s2[:angle] - s1[:angle] if s2[:angle] > s1[:angle]
+  angle = s1[:angle] - s2[:angle] if s1[:angle] > s2[:angle]
+  return false if angle < TOL
+  return false unless (2 * Math::PI - angle).abs > TOL
+  return false if angle > 3 * Math::PI / 4 && angle < 5 * Math::PI / 4
+
+  n1_d_p2 = s1[:normal].dot(s2[:polar])
+  p1_d_n2 = s1[:polar].dot(s2[:normal])
+  concave = true if n1_d_p2 > 0 && p1_d_n2 > 0
+  concave
+end
+
+##
+# Validate whether edge surfaces form a convex angle, as seen from outside.
+#
+# @param [Surface] s1 A first TBD surface
+# @param [Surface] s2 A second TBD surface
+#
+# @return [Bool] Returns true if angle between surfaces is convex
+def convex?(s1, s2)
+  convex = false
+  raise "#{s1.class}? expected Hash (convex?)" unless s1.is_a?(Hash)
+  raise "#{s2.class}? expected Hash (convex?)" unless s2.is_a?(Hash)
+  raise "Missing angle from s1 (convex?)" unless s1.has_key?(:angle)
+  raise "Missing angle from s2 (convex?)" unless s2.has_key?(:angle)
+  raise "Numeric s1 angle please (concave?)" unless s1[:angle].is_a?(Numeric)
+  raise "Numeric s2 angle please (concave?)" unless s2[:angle].is_a?(Numeric)
+  raise "Missing normal from s1 (convex?)" unless s1.has_key?(:normal)
+  raise "Missing normal from s2 (convex?)" unless s2.has_key?(:normal)
+  raise "Missing polar angle from s1 (convex?)" unless s1.has_key?(:polar)
+  raise "Missing polar angle from s2 (convex?)" unless s2.has_key?(:polar)
+
+  angle = 0
+  angle = s2[:angle] - s1[:angle] if s2[:angle] > s1[:angle]
+  angle = s1[:angle] - s2[:angle] if s1[:angle] > s2[:angle]
+  return false if angle < TOL
+  return false unless (2 * Math::PI - angle).abs > TOL
+  return false if angle > 3 * Math::PI / 4 && angle < 5 * Math::PI / 4
+
+  n1_d_p2 = s1[:normal].dot(s2[:polar])
+  p1_d_n2 = s1[:polar].dot(s2[:normal])
+  convex = true if n1_d_p2 < 0 && p1_d_n2 < 0
+  convex
 end
 
 ##
@@ -487,27 +858,25 @@ end
 # a side effect, it will - if successful - also populate the Topolys
 # model with the vertices and wire.
 #
-# @param [OpenStudio::Model::Model] model An OS model
+# @param [Topolys::Model] model An OS model
 # @param [Array] points A 1D array of 3D Topolys points (min 2x)
 #
 # @return [Array] Returns a 1D array of 3D Topolys vertices
 # @return [Topolys::Wire] Returns a corresponding Topolys wire
 def topolysObjects(model, points)
-  if model && points
-    unless model.is_a?(Topolys::Model)
-      raise "Expected Topolys model - got #{model.class}"
-    end
-    unless points.is_a?(Array)
-      raise "Expected array of Topolys points - got a #{points.class}"
-    end
-    unless points.size > 2
-      raise "Expected more than 2 points - got #{points.size}"
-    end
+  raise "Invalid model (Topolys obj)" unless model
+  raise "Invalid points (Topolys obj)" unless points
+  cl = Topolys::Model
+  cl2 = model.class
+  raise "#{cl2}? expected #{cl} (Topolys obj)" unless model.is_a?(cl)
+  cl2 = points.class
+  raise "#{cl2}? expected array (Topolys obj)" unless points.is_a?(Array)
+  n = points.size
+  raise "#{n}? expected +2 points (Topolys obj)" unless n > 2
 
-    vertices = model.get_vertices(points)
-    wire = model.get_wire(vertices)
-    return vertices, wire
-  end
+  vertices = model.get_vertices(points)
+  wire = model.get_wire(vertices)
+  return vertices, wire
 end
 
 ##
@@ -515,26 +884,26 @@ end
 # a side effect, it will - if successful - also populate the Topolys
 # model with Topolys vertices, wires, holes.
 #
-# @param [OpenStudio::Model::Model] model An OS model
+# @param [Topolys::Model] model A Topolys model
 # @param [Hash] kids A collection of TBD subsurfaces
 #
 # @return [Array] Returns a 1D array of 3D Topolys holes, i.e. wires
 def populateTBDkids(model, kids)
   holes = []
-  if model && kids
-    unless model.is_a?(Topolys::Model)
-      raise "Expected Topolys model - got #{model.class}"
-    end
-    unless kids.is_a?(Hash)
-      raise "Expected hash of TBD surfaces - got a #{kids.class}"
-    end
-    kids.each do |id, properties|
-      vtx, hole = topolysObjects(model, properties[:points])
-      hole.attributes[:id] = id
-      hole.attributes[:n] = properties[:n] if properties.has_key?(:n)
-      properties[:hole] = hole
-      holes << hole
-    end
+  raise "Invalid model (TBD kids)" unless model
+  raise "Invalid kids (TBD kids)" unless kids
+  cl = Topolys::Model
+  cl2 = model.class
+  raise "#{cl2}? expected #{cl} (TBD kids)" unless model.is_a?(cl)
+  cl2 = kids.class
+  raise "#{cl2}? expected surface hash (TBD kids)" unless kids.is_a?(Hash)
+
+  kids.each do |id, properties|
+    vtx, hole = topolysObjects(model, properties[:points])
+    hole.attributes[:id] = id
+    hole.attributes[:n] = properties[:n] if properties.has_key?(:n)
+    properties[:hole] = hole
+    holes << hole
   end
   holes
 end
@@ -544,46 +913,44 @@ end
 # a side effect, it will - if successful - also populate the Topolys
 # model with Topolys vertices, wires, holes & faces.
 #
-# @param [OpenStudio::Model::Model] model An OS model
+# @param [Topolys::Model] model A Topolys model
 # @param [Hash] dads A collection of TBD (parent) surfaces
 #
 # @return [Array] Returns a 1D array of 3D Topolys parent holes, i.e. wires
 def populateTBDdads(model, dads)
   tbd_holes = {}
+  raise "Invalid model (TBD dads)" unless model
+  raise "Invalid kids (TBD dads)" unless dads
+  cl = Topolys::Model
+  cl2 = model.class
+  raise "#{cl2}? expected #{cl} (TBD dads)" unless model.is_a?(cl)
+  cl2 = dads.class
+  raise "#{cl2}? expected surface hash (TBD dads)" unless dads.is_a?(Hash)
 
-  if model && dads
-    unless model.is_a?(Topolys::Model)
-      raise "Expected Topolys model - got #{model.class}"
+  dads.each do |id, properties|
+    vertices, wire = topolysObjects(model, properties[:points])
+
+    # Create surface holes for kids.
+    holes = []
+    if properties.has_key?(:windows)
+      holes += populateTBDkids(model, properties[:windows])
     end
-    unless dads.is_a?(Hash)
-      raise "Expected hash of TBD surfaces - got a #{dads.class}"
+    if properties.has_key?(:doors)
+      holes += populateTBDkids(model, properties[:doors])
+    end
+    if properties.has_key?(:skylights)
+      holes += populateTBDkids(model, properties[:skylights])
     end
 
-    dads.each do |id, properties|
-      vertices, wire = topolysObjects(model, properties[:points])
+    face = model.get_face(wire, holes)
+    raise "Cannot build face for #{id}" if face.nil?
 
-      # Create surface holes for kids.
-      holes = []
-      if properties.has_key?(:windows)
-        holes += populateTBDkids(model, properties[:windows])
-      end
-      if properties.has_key?(:doors)
-        holes += populateTBDkids(model, properties[:doors])
-      end
-      if properties.has_key?(:skylights)
-        holes += populateTBDkids(model, properties[:skylights])
-      end
+    face.attributes[:id] = id
+    face.attributes[:n] = properties[:n] if properties.has_key?(:n)
+    properties[:face] = face
 
-      face = model.get_face(wire, holes)
-      raise "Cannot build face for #{id}" if face.nil?
-
-      face.attributes[:id] = id
-      face.attributes[:n] = properties[:n] if properties.has_key?(:n)
-      properties[:face] = face
-
-      # Populate hash of created holes (to return).
-      holes.each do |h| tbd_holes[h.attributes[:id]] = h; end
-    end
+    # Populate hash of created holes (to return).
+    holes.each do |h| tbd_holes[h.attributes[:id]] = h; end
   end
   tbd_holes
 end
@@ -594,35 +961,33 @@ end
 # @param [Hash] surfaces A collection of TBD surfaces
 # @param [Hash] edges A collection TBD edges
 def tbdSurfaceEdges(surfaces, edges)
-  if surfaces
-    unless surfaces.is_a?(Hash)
-      raise "Expected hash of TBD surfaces - got a #{surfaces.class}"
-    end
-    unless edges.is_a?(Hash)
-      raise "Expected hash of TBD edges - got a #{edges.class}"
-    end
+  raise "Invalid surfaces (TBD edges)" unless surfaces
+  raise "Invalid edges (TBD edges)" unless edges
+  cl = Hash
+  cl2 = surfaces.class
+  raise "#{cl2}? expected surfaces hash (TBD edges)" unless surfaces.is_a?(cl)
+  cl2 = edges.class
+  raise "#{cl2}? expected edges hash (TBD edges)" unless edges.is_a?(cl)
 
-    surfaces.each do |id, properties|
-      unless properties.has_key?(:face)
-        raise "Missing Topolys face for #{id}"
-      end
-      properties[:face].wires.each do |wire|
-        wire.edges.each do |e|
-          unless edges.has_key?(e.id)
-            edges[e.id] = {length: e.length,
-                           v0: e.v0,
-                           v1: e.v1,
-                           surfaces: {}}
-          end
-          unless edges[e.id][:surfaces].has_key?(id)
-            edges[e.id][:surfaces][id] = {wire: wire.id}
-          end
+  surfaces.each do |id, properties|
+    unless properties.has_key?(:face)
+      raise "Missing Topolys face for #{id} (TBD edges)"
+    end
+    properties[:face].wires.each do |wire|
+      wire.edges.each do |e|
+        unless edges.has_key?(e.id)
+          edges[e.id] = { length: e.length,
+                          v0: e.v0,
+                          v1: e.v1,
+                          surfaces: {} }
+        end
+        unless edges[e.id][:surfaces].has_key?(id)
+          edges[e.id][:surfaces][id] = { wire: wire.id }
         end
       end
     end
   end
 end
-
 
 ##
 # Generate OSM Kiva settings and objects if model surfaces have 'foundation'
@@ -633,15 +998,29 @@ end
 # @param [Hash] walls TBD-generated walls
 # @param [Hash] edges TBD-generated edges (many linking floors & walls
 #
-# @return [Bool] Returns true if all Kiva foundations are successfully generated.
+# @return [Bool] Returns true if Kiva foundations are successfully generated.
 def generateKiva(os_model, walls, floors, edges)
+  raise "Invalid OS model (gen KIVA)" unless os_model
+  raise "Invalid walls (gen KIVA)" unless walls
+  raise "Invalid floors (gen KIVA)" unless floors
+  raise "Invalid edges (gen KIVA)" unless edges
+  cl = OpenStudio::Model::Model
+  cl2 = os_model.class
+  raise "#{cl2}? expected #{cl} (gen KIVA)" unless os_model.is_a?(cl)
+  cl2 = walls.class
+  raise "#{cl2}? expected walls hash (gen KIVA)" unless walls.is_a?(Hash)
+  cl2 = floors.class
+  raise "#{cl2}? expected floors hash (gen KIVA)" unless floors.is_a?(Hash)
+  cl2 = edges.class
+  raise "#{cl2}? expected edges hash (gen KIVA)" unless edges.is_a?(Hash)
+
   # Strictly rely on Kiva's total exposed perimeter approach.
   arg = "TotalExposedPerimeter"
   kiva = true
 
   # The following is loosely adapted from:
-  # https://github.com/NREL/OpenStudio-resources/blob/develop/model/simulationtests/foundation_kiva.rb
-  # ... thanks.
+  # github.com/NREL/OpenStudio-resources/blob/develop/model/simulationtests/
+  # foundation_kiva.rb ... thanks.
 
   # Generate template for KIVA settings. This is usually not required (the
   # default KIVA settings are fine), but its explicit inclusion in the OSM
@@ -657,14 +1036,14 @@ def generateKiva(os_model, walls, floors, edges)
   # foundation_kiva_settings.setSoilConductivity(soil_k)
 
   # Generic 1" XPS insulation (for slab-on-grade setup) - unused if basement.
-  xps_25mm = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
-  xps_25mm.setRoughness("Rough")
-  xps_25mm.setThickness(0.0254)
-  xps_25mm.setConductivity(0.029)
-  xps_25mm.setDensity(28)
-  xps_25mm.setSpecificHeat(1450)
-  xps_25mm.setThermalAbsorptance(0.9)
-  xps_25mm.setSolarAbsorptance(0.7)
+  xps25mm = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
+  xps25mm.setRoughness("Rough")
+  xps25mm.setThickness(0.0254)
+  xps25mm.setConductivity(0.029)
+  xps25mm.setDensity(28)
+  xps25mm.setSpecificHeat(1450)
+  xps25mm.setThermalAbsorptance(0.9)
+  xps25mm.setSolarAbsorptance(0.7)
 
   # Tag foundation-facing floors, then walls.
   edges.values.each do |edge|
@@ -673,9 +1052,6 @@ def generateKiva(os_model, walls, floors, edges)
       # Start by processing edge-linked foundation-facing floors.
       next unless floors.has_key?(id)
       next unless floors[id][:boundary].downcase == "foundation"
-
-      # A match, yet skip if previously processed.
-      next if floors[id].has_key?(:kiva)
 
       # By default, foundation floors are initially slabs-on-grade.
       floors[id][:kiva] = :slab
@@ -705,7 +1081,7 @@ def generateKiva(os_model, walls, floors, edges)
       edge[:surfaces].keys.each do |i|
         next unless walls.has_key?(i)
         b = walls[i][:boundary].downcase
-        next unless b == "foundation" || b == "outdoors"
+        next unless b == "outdoors"
         floors[id][:exposed] += edge[:length]
       end
     end
@@ -724,7 +1100,7 @@ def generateKiva(os_model, walls, floors, edges)
       # constructions. Perimeter insulation for slabs-on-grade.
       # Typical circa-1980 slab-on-grade (perimeter) insulation setup.
       if floors[id][:kiva] == :slab
-        floors[id][:foundation].setInteriorHorizontalInsulationMaterial(xps_25mm)
+        floors[id][:foundation].setInteriorHorizontalInsulationMaterial(xps25mm)
         floors[id][:foundation].setInteriorHorizontalInsulationWidth(0.6)
       end
 
@@ -744,7 +1120,7 @@ def generateKiva(os_model, walls, floors, edges)
 
         # Generate surface's Kiva exposed perimeter object.
         exp = floors[id][:exposed]
-        #exp = 0.01 if exp < 0.01
+        #exp = TOL if exp < TOL
         perimeter = s.createSurfacePropertyExposedFoundationPerimeter(arg, exp)
 
         # The following 5x lines are a (temporary?) fix for exposed perimeter
@@ -786,7 +1162,6 @@ def generateKiva(os_model, walls, floors, edges)
       end
     end
   end
-
   kiva
 end
 
@@ -799,36 +1174,41 @@ end
 # @return [Symbol] Returns type of insulating material (:standard or :massless)
 # @return [Float] Returns insulating layer thermal resistance [m2.K/W]
 def deratableLayer(construction)
+  raise "Invalid construction (layer)" unless construction
+  cl = OpenStudio::Model::Construction
+  cl2 = construction.class
+  raise "#{cl2}? expected #{cl} (layer)" unless construction.is_a?(cl)
+
   # Identify insulating material (and key attributes) within a construction.
-  r                     = 0.0         # R-value of insulating material
-  index                 = nil         # index of insulating material
-  type                  = nil         # nil, :massless; or :standard
-  i                     = 0           # iterator
+  r                = 0.0         # R-value of insulating material
+  index            = nil         # index of insulating material
+  type             = nil         # nil, :massless; or :standard
+  i                = 0           # iterator
 
   construction.layers.each do |m|
     unless m.to_MasslessOpaqueMaterial.empty?
-      m                 = m.to_MasslessOpaqueMaterial.get
+      m            = m.to_MasslessOpaqueMaterial.get
       if m.thermalResistance < 0.001 || m.thermalResistance < r
         i += 1
         next
       else
-        r                 = m.thermalResistance
-        index             = i
-        type              = :massless
+        r          = m.thermalResistance
+        index      = i
+        type       = :massless
       end
     end
 
     unless m.to_StandardOpaqueMaterial.empty?
-      m                 = m.to_StandardOpaqueMaterial.get
-      k                 = m.thermalConductivity
-      d                 = m.thickness
+      m            = m.to_StandardOpaqueMaterial.get
+      k            = m.thermalConductivity
+      d            = m.thickness
       if d < 0.003 || k > 3.0 || d / k < r
         i += 1
         next
       else
-        r                 = d / k
-        index             = i
-        type              = :standard
+        r          = d / k
+        index      = i
+        type       = :standard
       end
     end
     i += 1
@@ -843,31 +1223,50 @@ end
 # @param [String] id Insulating material identifier
 # @param [Hash] surface A TBD surface
 # @param [OpenStudio::Model::Construction] c An OS construction
-# @param [Integer] index Position of layer (to derate) within c
-# @param [Symbol] type Insulating material type (:standard or :massless)
-# @param [Float] r Thermal resistance of insulating layer [m2.K/W]
 #
 # @return [OpenStudio::Model::Material] Returns derated (cloned) material
-def derate(os_model, id, surface, c, index, type, r)
+def derate(os_model, id, surface, c)
+  raise "Invalid OS model (derate)" unless os_model
+  raise "Invalid ID (derate)" unless id
+  raise "Invalid surface (derate)" unless surface
+  raise "Invalid construction (derate)" unless c
+  cl = OpenStudio::Model::Model
+  cl2 = os_model.class
+  raise "#{cl2}? expected #{cl} (derate)" unless os_model.is_a?(cl)
+  cl = Hash
+  cl2 = surface.class
+  raise "#{cl2}? expected #{cl} (derate)" unless surface.is_a?(cl)
+  cl = OpenStudio::Model::Construction
+  raise "#{c.class}? expected #{cl} (derate)" unless c.is_a?(cl)
+
   m = nil
-  if surface.has_key?(:heatloss)                   &&
-    surface.has_key?(:net)                         &&
-    surface[:heatloss].is_a?(Numeric)              &&
-    surface[:net].is_a?(Numeric)                   &&
-    index != nil                                   &&
-    index.is_a?(Integer)                           &&
-    index >= 0                                     &&
-    r.is_a?(Numeric)                               &&
-    r >= 0.001                                     &&
-    (type == :massless || type == :standard)       &&
+  if surface.has_key?(:heatloss)                                    &&
+    surface[:heatloss].is_a?(Numeric)                               &&
+    surface[:heatloss].abs > TOL                                    &&
+    surface.has_key?(:net)                                          &&
+    surface[:net].is_a?(Numeric)                                    &&
+    surface[:net] > TOL                                             &&
+    surface.has_key?(:construction)                                 &&
+    surface.has_key?(:index)                                        &&
+    surface[:index] != nil                                          &&
+    surface[:index].is_a?(Integer)                                  &&
+    surface[:index] >= 0                                            &&
+    surface.has_key?(:ltype)                                        &&
+    (surface[:ltype] == :massless || surface[:ltype] == :standard)  &&
+    surface.has_key?(:r)                                            &&
+    surface[:r].is_a?(Numeric)                                      &&
+    surface[:r] >= 0.001                                            &&
     / tbd/i.match(c.nameString) == nil                 # skip if already derated
 
+    index          = surface[:index]
+    ltype          = surface[:ltype]
+    r              = surface[:r]
     u              = surface[:heatloss] / surface[:net]
     loss           = 0.0
     de_u           = 1.0 / r + u                                     # derated U
     de_r           = 1.0 / de_u                                      # derated R
 
-    if type == :massless
+    if ltype == :massless
       m            = c.getLayer(index).to_MasslessOpaqueMaterial
 
       unless m.empty?
@@ -884,7 +1283,7 @@ def derate(os_model, id, surface, c, index, type, r)
         m.setThermalResistance(de_r)
       end
 
-    else                                                     # type == :standard
+    else                                                    # ltype == :standard
       m            = c.getLayer(index).to_StandardOpaqueMaterial
       unless m.empty?
         m          = m.get
@@ -930,29 +1329,61 @@ end
 #
 # @param [OpenStudio::Model::Model] os_model An OS model
 # @param [String] psi_set Default PSI set identifier, can be "" (empty)
-# @param [String] io_path Path to a user-set TBD JSON input file (optional)
-# @param [String] schema_path Path to a TBD JSON schema file (optional)
-# @param [Bool] gen_kiva Have TBD generate Kiva objects
+# @param [String] ioP Path to a user-set TBD JSON input file (optional)
+# @param [String] schemaP Path to a TBD JSON schema file (optional)
+# @param [Bool] g_kiva Have TBD generate Kiva objects
 #
 # @return [Hash] Returns TBD collection of objects for JSON serialization
 # @return [Hash] Returns collection of derated TBD surfaces
-def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
-  surfaces = {}
-
-  os_model_class = OpenStudio::Model::Model
-  raise "Empty OpenStudio Model"    unless os_model
-  raise "Invalid OpenStudio Model"  unless os_model.is_a?(os_model_class)
+def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
+  raise "Invalid OS model (process TBD)" unless os_model
+  cl = OpenStudio::Model::Model
+  raise "#{os_model.class}? expected OS model" unless os_model.is_a?(cl)
+  a = g_kiva == true || g_kiva == false
+  raise "#{g_kiva.class}? expected true or false (process TBD)" unless a
 
   os_building = os_model.getBuilding
 
   # Create the Topolys Model.
   t_model = Topolys::Model.new
 
+  # "true" if any OSM space/zone holds setpoint temperatures.
+  setpoints = heatingTemperatureSetpoints?(os_model)
+  setpoints = coolingTemperatureSetpoints?(os_model) || setpoints
+
+  # "true" if any OSM space/zone is part of an HVAC air loop.
+  airloops = airLoopsHVAC?(os_model)
+
   # Fetch OpenStudio (opaque) surfaces & key attributes.
+  surfaces = {}
   os_model.getSurfaces.each do |s|
     next if s.space.empty?
     space = s.space.get
     id    = s.nameString
+
+    ground   = s.isGroundSurface
+    boundary = s.outsideBoundaryCondition
+    if boundary.downcase == "surface"
+      raise "#{id}: adjacent surface?" if s.adjacentSurface.empty?
+      adjacent = s.adjacentSurface.get.nameString
+      test = os_model.getSurfaceByName(adjacent)
+      raise "mismatch #{id} vs #{adjacent}" if test.empty?
+      boundary = adjacent
+    end
+
+    conditioned = true
+    if setpoints
+      unless space.thermalZone.empty?
+        zone = space.thermalZone.get
+        heating, _ = maxHeatScheduledSetpoint(zone)
+        cooling, _ = minCoolScheduledSetpoint(zone)
+        unless heating || cooling
+          conditioned = false unless plenum?(space, airloops, setpoints)
+        end
+      else
+        conditioned = false unless plenum?(space, airloops, setpoints)
+      end
+    end
 
     # Site-specific (or absolute, or true) surface normal.
     t, r = transforms(os_model, space)
@@ -962,24 +1393,63 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
     type = :ceiling if /ceiling/i.match(s.surfaceType)
     type = :wall    if /wall/i.match(s.surfaceType)
 
-    ground   = s.isGroundSurface
-    boundary = s.outsideBoundaryCondition
     points   = (t * s.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
     minz     = (points.map{ |p| p.z }).min
 
     # Content of the hash will evolve over the next few hundred lines.
     surfaces[id] = {
-      type:     type,
-      ground:   ground,
-      boundary: boundary,
-      space:    space,
-      gross:    s.grossArea,
-      net:      s.netArea,
-      points:   points,
-      minz:     minz,
-      n:        n
+      type:         type,
+      conditioned:  conditioned,
+      ground:       ground,
+      boundary:     boundary,
+      space:        space,
+      gross:        s.grossArea,
+      points:       points,
+      minz:         minz,
+      n:            n
     }
+    surfaces[id][:heating] = heating if heating     # if valid heating setpoints
+    surfaces[id][:cooling] = cooling if cooling     # if valid cooling setpoints
+    a = space.spaceType.empty?
+    surfaces[id][:stype] = space.spaceType.get unless a
+    a = space.buildingStory.empty?
+    surfaces[id][:story] = space.buildingStory.get unless a
+
+    unless s.construction.empty?
+      construction = s.construction.get.to_Construction.get
+      # index  - of layer/material (to derate) in construction
+      # ltype  - either massless (RSi) or standard (k + d)
+      # r      - initial RSi value of the indexed layer to derate
+      index, ltype, r = deratableLayer(construction)
+      index = nil unless index.is_a?(Numeric)
+      index = nil unless index >= 0
+      index = nil unless index < construction.layers.size
+      unless index.nil?
+        surfaces[id][:construction] = construction
+        surfaces[id][:index]        = index
+        surfaces[id][:ltype]        = ltype
+        surfaces[id][:r]            = r
+      end
+    end
   end                                              # (opaque) surfaces populated
+
+  # TBD only derates constructions of opaque surfaces in CONDITIONED spaces, if
+  # facing outdoors or facing UNCONDITIONED space.
+  surfaces.each do |id, surface|
+    surface[:deratable] = false
+    next unless surface.has_key?(:conditioned)
+    next unless surface[:conditioned]
+    next if surface[:ground]
+    b = surface[:boundary]
+    if b.downcase == "outdoors"
+      surface[:deratable] = true
+    else
+      next unless surfaces.has_key?(b)
+      next unless surfaces[b].has_key?(:conditioned)
+      next if surfaces[b][:conditioned]
+      surface[:deratable] = true
+    end
+  end
 
   # Fetch OpenStudio subsurfaces & key attributes.
   os_model.getSubSurfaces.each do |s|
@@ -989,21 +1459,23 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
     dad   = s.surface.get.nameString
     id    = s.nameString
 
+    gross, pts = opening(os_model, id)
+
     # Site-specific (or absolute, or true) surface normal.
     t, r = transforms(os_model, space)
     n = trueNormal(s, r)
+
+    points = (t * pts).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
+    minz = (points.map{ |p| p.z }).min
 
     type = :skylight
     type = :window if /window/i.match(s.subSurfaceType)
     type = :door if /door/i.match(s.subSurfaceType)
 
-    points = (t * s.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
-    minz = (points.map{ |p| p.z }).min
-
     # For every kid, there's a dad somewhere ...
     surfaces.each do |identifier, properties|
       if identifier == dad
-        sub = { points: points, minz: minz, n: n }
+        sub = { points: points, minz: minz, n: n, gross: gross }
         if type == :window
           properties[:windows] = {} unless properties.has_key?(:windows)
           properties[:windows][id] = sub
@@ -1085,12 +1557,24 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
 
   populateTBDdads(t_model, shades)
 
+  # Revise opaque surface net area (maybe subsurfaces with Frame & Divider).
+  surfaces.values.each do |p|
+    subarea = 0
+    if p.has_key?(:windows)
+      p[:windows].values.each   do |o| subarea += o[:gross]; end
+    end
+    if p.has_key?(:doors)
+      p[:doors].values.each     do |o| subarea += o[:gross]; end
+    end
+    if p.has_key?(:skylights)
+      p[:skylights].values.each do |o| subarea += o[:gross]; end
+    end
+    p[:net] = p[:gross] - subarea
+  end
+
   # Loop through Topolys edges and populate TBD edge hash. Initially, there
   # should be a one-to-one correspondence between Topolys and TBD edge
-  # objects. TBD edges shared only by non-deratable surfaces (e.g. 2x interior
-  # walls, or outer edges of shadng surfaces) will either be removed from the
-  # hash, or ignored (on the fence right now). Use Topolys-generated
-  # identifiers as unique edge hash keys.
+  # objects. Use Topolys-generated identifiers as unique edge hash keys.
   edges = {}
 
   # Start with hole edges.
@@ -1116,7 +1600,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
 
   # Generate OSM Kiva settings and objects if foundation-facing floors.
   # 'kiva' == false if partial failure (log failure eventually).
-  kiva = generateKiva(os_model, walls, floors, edges) if gen_kiva
+  kiva = generateKiva(os_model, walls, floors, edges) if g_kiva
 
   # Thermal bridging characteristics of edges are determined - in part - by
   # relative polar position of linked surfaces (or wires) around each edge.
@@ -1138,16 +1622,14 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
   east   = Topolys::Vector3D.new(1, 0, 0).freeze
 
   edges.values.each do |edge|
-    origin      = edge[:v0].point
-    terminal    = edge[:v1].point
-
-    horizontal  = false
-    horizontal  = true if (origin.z - terminal.z).abs < 0.01
-    vertical    = false
-    vertical    = true if (origin.x - terminal.x).abs < 0.01 &&
-                          (origin.y - terminal.y).abs < 0.01
-
-    edge_V = terminal - origin
+    origin     = edge[:v0].point
+    terminal   = edge[:v1].point
+    dx         = (origin.x - terminal.x).abs
+    dy         = (origin.y - terminal.y).abs
+    dz         = (origin.z - terminal.z).abs
+    horizontal = dz.abs < TOL
+    vertical   = dx < TOL && dy < TOL
+    edge_V     = terminal - origin
     edge_plane = Topolys::Plane3D.new(origin, edge_V)
 
     if vertical
@@ -1164,18 +1646,15 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
       # edge while ensuring candidate point is not aligned with edge.
       t_model.wires.each do |wire|
         if surface[:wire] == wire.id            # there should be a unique match
-          normal = surfaces[id][:n]         if surfaces.has_key?(id)
-          normal = holes[id].attributes[:n] if holes.has_key?(id)
-          normal = shades[id][:n]           if shades.has_key?(id)
-
-          farthest = Topolys::Point3D.new(origin.x, origin.y, origin.z)
+          normal     = surfaces[id][:n]         if surfaces.has_key?(id)
+          normal     = holes[id].attributes[:n] if holes.has_key?(id)
+          normal     = shades[id][:n]           if shades.has_key?(id)
+          farthest   = Topolys::Point3D.new(origin.x, origin.y, origin.z)
           farthest_V = farthest - origin             # zero magnitude, initially
-
-          inverted = false
-
-          i_origin = wire.points.index(origin)
+          inverted   = false
+          i_origin   = wire.points.index(origin)
           i_terminal = wire.points.index(terminal)
-          i_last = wire.points.size - 1
+          i_last     = wire.points.size - 1
 
           if i_terminal == 0
             inverted = true unless i_origin == i_last
@@ -1191,7 +1670,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
             point_on_plane = edge_plane.project(point)
             origin_point_V = point_on_plane - origin
             point_V_magnitude = origin_point_V.magnitude
-            next unless point_V_magnitude > 0.01
+            next unless point_V_magnitude > TOL
 
             # Generate a plane between origin, terminal & point. Only consider
             # planes that share the same normal as wire.
@@ -1201,9 +1680,9 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
               plane = Topolys::Plane3D.from_points(origin, terminal, point)
             end
 
-            next unless (normal.x - plane.normal.x).abs < 0.01 &&
-                        (normal.y - plane.normal.y).abs < 0.01 &&
-                        (normal.z - plane.normal.z).abs < 0.01
+            next unless (normal.x - plane.normal.x).abs < TOL &&
+                        (normal.y - plane.normal.y).abs < TOL &&
+                        (normal.z - plane.normal.z).abs < TOL
 
             if point_V_magnitude > farthest_V.magnitude
               farthest = point
@@ -1212,25 +1691,19 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
           end
 
           angle = reference_V.angle(farthest_V)
-
-          # Adjust angle [180°, 360°] if necessary.
-          adjust = false
-
+          adjust = false                # adjust angle [180°, 360°] if necessary
           if vertical
-            adjust = true if east.dot(farthest_V) < -0.01
+            adjust = true if east.dot(farthest_V) < -TOL
           else
-            if north.dot(farthest_V).abs < 0.01            ||
-              (north.dot(farthest_V).abs - 1).abs < 0.01
-                adjust = true if east.dot(farthest_V) < -0.01
+            if north.dot(farthest_V).abs < TOL            ||
+              (north.dot(farthest_V).abs - 1).abs < TOL
+                adjust = true if east.dot(farthest_V) < -TOL
             else
-              adjust = true if north.dot(farthest_V) < -0.01
+              adjust = true if north.dot(farthest_V) < -TOL
             end
           end
-
           angle = 2 * Math::PI - angle if adjust
-          angle -= 2 * Math::PI if (angle - 2 * Math::PI).abs < 0.01
-
-          # store angle
+          angle -= 2 * Math::PI if (angle - 2 * Math::PI).abs < TOL
           surface[:angle] = angle
           farthest_V.normalize!
           surface[:polar] = farthest_V
@@ -1239,316 +1712,649 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
       end                             # end of edge-linked, surface-to-wire loop
     end                                        # end of edge-linked surface loop
 
-    # sort angles
+    edge[:horizontal] = horizontal
+    edge[:vertical] = vertical
     edge[:surfaces] = edge[:surfaces].sort_by{ |i, p| p[:angle] }.to_h
   end                                                         # end of edge loop
 
   # Topolys edges may constitute thermal bridges (and therefore thermally
-  # derate linked OpenStudio surfaces), depending on a number of factors such
-  # as surface types and boundary conditions. Thermal bridging attributes
-  # (type & PSI-value pairs) are grouped into PSI sets (method argument).
+  # derate linked OpenStudio opaque surfaces), depending on a number of factors
+  # such as surface type, space conditioning and boundary conditions. Thermal
+  # bridging attributes (type & PSI-value pairs) are grouped into PSI sets,
+  # normally accessed through the 'set' user-argument (in the OpenStudio
+  # Measure interface).
 
   # Process user-defined TBD JSON file inputs if file exists & valid:
   #   "io" holds valid TBD JSON hash from file
   #   "io_p" holds TBD PSI sets (built-in defaults & those on file)
   #   "io_k" holds TBD KHI points (built-in defaults & those on file)
-  io, io_p, io_k = processTBDinputs(surfaces, edges, psi_set, io_path, schema_path)
+  io, io_p, io_k = processTBDinputs(surfaces, edges, psi_set, ioP, schemaP)
+  p = io[:building].first[:psi]                           # default building PSI
+  has, val = io_p.shorthands(p)
 
   edges.values.each do |edge|
     next unless edge.has_key?(:surfaces)
-    next unless edge[:surfaces].size > 1 #       may need to revisit e.g. :party
-
-    # Skip unless one (at least) linked surface is deratable, i.e.
-    # outside-facing floor, ceiling or wall. Ground-facing surfaces
-    # are equally processed (up to a point), as the coupling of TBD
-    # edges and OpenStudio/EnergyPlus ground-facing surfaces
-    # isn't currently enabled, e.g. KIVA ... TO DO.
-    deratable = false
+    deratables = []
     edge[:surfaces].each do |id, surface|
-      deratable = true if floors.has_key?(id)
-      deratable = true if ceilings.has_key?(id)
-      deratable = true if walls.has_key?(id)
+      next unless surfaces.has_key?(id)
+      next unless surfaces[id].has_key?(:deratable)
+      deratables << id if surfaces[id][:deratable]
     end
-    next unless deratable
+    next if deratables.empty?
+    psi = {}
 
-    psi = {}                                           # edge-specific PSI types
-    p = io[:unit].first[:psi]                                 # default unit PSI
-
-    match = false
-    if edge.has_key?(:io_type)                # customized edge in TBD JSON file
-      match = true
-      t = edge[:io_type]
-      p = edge[:io_set]       if edge.has_key?(:io_set)
-      edge[:set] = p          if io_p.set.has_key?(p)
-      psi[t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+    if edge.has_key?(:io_type)
+      tt = io_p.safeType(p, edge[:io_type])
+      unless tt.nil?
+        edge[:sets] = {} unless edge.has_key?(:sets)
+        edge[:sets][edge[:io_type]] = val[tt]     # default to :building PSI set
+        psi[edge[:io_type]] = val[tt]
+        edge[:psi] = psi
+        match = true
+      end
     end
 
     edge[:surfaces].keys.each do |id|
-      next if match                                         # skip if customized
+      next if match
       next unless surfaces.has_key?(id)
+      next unless deratables.include?(id)
 
-      # Skipping the :party wall label for now. Criteria determining party
-      # wall edges from TBD edges is to be determined. Most likely scenario
-      # seems to be an edge linking only 1x outside-facing or ground-facing
-      # surface with only 1x adiabatic surface. Warrants separate tests.
-      # TO DO.
+      # Evaluate PSI content before processing a new linked surface.
+      is = {}
+      is[:head]     = psi.keys.to_s.include?("head")
+      is[:sill]     = psi.keys.to_s.include?("sill")
+      is[:jamb]     = psi.keys.to_s.include?("jamb")
+      is[:corner]   = psi.keys.to_s.include?("corner")
+      is[:parapet]  = psi.keys.to_s.include?("parapet")
+      is[:party]    = psi.keys.to_s.include?("party")
+      is[:grade]    = psi.keys.to_s.include?("grade")
+      is[:balcony]  = psi.keys.to_s.include?("balcony")
+      is[:rimjoist] = psi.keys.to_s.include?("rimjoist")
 
-      # Label edge as :grade if linked to:
-      #   1x ground-facing surface (e.g. slab or wall)
-      #   1x outside-facing surface (i.e. normally a wall)
-      unless psi.has_key?(:grade)
+      # Label edge as :head, :sill or :jamb if linked to:
+      #   1x subsurface
+      unless is[:head] || is[:sill] || is[:jamb]
         edge[:surfaces].keys.each do |i|
-          next unless surfaces.has_key?(i)
-          next unless surfaces[i][:boundary].downcase == "outdoors"
-          next unless surfaces[id].has_key?(:ground)
-          next unless surfaces[id][:ground]
-          psi[:grade] = io_p.set[p][:grade]
+          next if is[:head] || is[:sill] || is[:jamb]
+          next if i == id
+          next if deratables.include?(i)
+          next unless holes.has_key?(i)
+
+          ii = ""
+          ii = id if deratables.size == 1                           # just dad
+          if ii.empty?                                            # seek uncle
+            jj = deratables.first unless deratables.first == id
+            jj = deratables.last  unless deratables.last  == id
+            id_has = {}
+            id_has[:windows]   = true if surfaces[id].has_key?(:windows)
+            id_has[:doors]     = true if surfaces[id].has_key?(:doors)
+            id_has[:skylights] = true if surfaces[id].has_key?(:skylights)
+            ido = []
+            ido = ido + surfaces[id][:windows].keys   if id_has[:windows]
+            ido = ido + surfaces[id][:doors].keys     if id_has[:doors]
+            ido = ido + surfaces[id][:skylights].keys if id_has[:skylights]
+            jj_has = {}
+            jj_has[:windows]   = true if surfaces[jj].has_key?(:windows)
+            jj_has[:doors]     = true if surfaces[jj].has_key?(:doors)
+            jj_has[:skylights] = true if surfaces[jj].has_key?(:skylights)
+            jjo = []
+            jjo = jjo + surfaces[jj][:windows].keys   if jj_has[:windows]
+            jjo = jjo + surfaces[jj][:doors].keys     if jj_has[:doors]
+            jjo = jjo + surfaces[jj][:skylights].keys if jj_has[:skylights]
+            ii = jj if ido.include?(i)
+            ii = id if jjo.include?(i)
+          end
+          next if ii.empty?
+
+          s1      = edge[:surfaces][ii]
+          s2      = edge[:surfaces][i]
+          concave = concave?(s1, s2)
+          convex  = convex?(s1, s2)
+          flat    = !concave && !convex
+
+          # Subsurface edges are tagged as :head, :sill or :jamb, regardless of
+          # building PSI set subsurface tags. If the latter is simply
+          # :fenestration, then its (single) PSI value is systematically
+          # attributed to subsurface :head, :sill & :jamb edges. If absent,
+          # concave or convex variants also inherit from base type.
+          #
+          # TBD tags a subsurface edge as :jamb if the subsurface is "flat". If
+          # not flat, TBD tags a horizontal edge as either :head or :sill based
+          # on the polar angle of the subsurface around the edge vs sky zenith.
+          # Otherwise, all other subsurface edges are tagged as :jamb.
+
+          if ((s2[:normal].dot(zenith)).abs - 1).abs < TOL
+            psi[:jamb]        = val[:jamb]        if flat
+            psi[:jambconcave] = val[:jambconcave] if concave
+            psi[:jambconvex]  = val[:jambconvex]  if convex
+             is[:jamb]        = true
+          else
+            if edge[:horizontal]
+              if s2[:polar].dot(zenith) < 0
+                psi[:head]        = val[:head]        if flat
+                psi[:headconcave] = val[:headconcave] if concave
+                psi[:headconvex]  = val[:headconvex]  if convex
+                 is[:head]        = true
+              else
+                psi[:sill]        = val[:sill]        if flat
+                psi[:sillconcave] = val[:sillconcave] if concave
+                psi[:sillconvex]  = val[:sillconvex]  if convex
+                 is[:sill]        = true
+              end
+            else
+              psi[:jamb]        = val[:jamb]        if flat
+              psi[:jambconcave] = val[:jambconcave] if concave
+              psi[:jambconvex]  = val[:jambconvex]  if convex
+               is[:jamb]        = true
+            end
+          end
         end
       end
 
-      # Label edge as :balcony if linked to:
-      #   1x floor
-      #   1x shade
-      unless psi.has_key?(:balcony)
+      # Label edge as :cornerconcave or :cornerconvex if linked to:
+      #   2x deratable walls & f(relative polar wall vectors around edge)
+      unless is[:corner]
         edge[:surfaces].keys.each do |i|
-          next unless shades.has_key?(i)
-          next unless floors.has_key?(id)
-          psi[:balcony] = io_p.set[p][:balcony]
+          next if is[:corner]
+          next if i == id
+          next unless deratables.size == 2
+          next unless deratables.include?(i)
+          next unless walls.has_key?(id)
+          next unless walls.has_key?(i)
+
+          s1      = edge[:surfaces][id]
+          s2      = edge[:surfaces][i]
+          concave = concave?(s1, s2)
+          convex  = convex?(s1, s2)
+          flat    = !concave && !convex
+
+          psi[:cornerconcave] = val[:cornerconcave] if concave
+          psi[:cornerconvex]  = val[:cornerconvex]  if convex
+           is[:corner]        = true
         end
       end
 
       # Label edge as :parapet if linked to:
-      #   1x outside-facing wall &
-      #   1x outside-facing ceiling
-      unless psi.has_key?(:parapet)
+      #   1x deratable wall
+      #   1x deratable ceiling
+      unless is[:parapet]
         edge[:surfaces].keys.each do |i|
-          next unless walls.has_key?(i)
-          next unless walls[i][:boundary].downcase == "outdoors"
+          next if is[:parapet]
+          next if i == id
+          next unless deratables.size == 2
+          next unless deratables.include?(i)
           next unless ceilings.has_key?(id)
-          next unless ceilings[id][:boundary].downcase == "outdoors"
-          psi[:parapet] = io_p.set[p][:parapet]
-        end
-      end
-
-      # Repeat for exposed floors vs walls, as :parapet is currently a
-      # proxy for intersections between exposed floors & walls
-      unless psi.has_key?(:parapet)
-        edge[:surfaces].keys.each do |i|
           next unless walls.has_key?(i)
-          next unless walls[i][:boundary].downcase == "outdoors"
-          next unless floors.has_key?(id)
-          next unless floors[id][:boundary].downcase == "outdoors"
-          psi[:parapet] = io_p.set[p][:parapet]
+
+          s1      = edge[:surfaces][id]
+          s2      = edge[:surfaces][i]
+          concave = concave?(s1, s2)
+          convex  = convex?(s1, s2)
+          flat    = !concave && !convex
+
+          psi[:parapet]        = val[:parapet]        if flat
+          psi[:parapetconcave] = val[:parapetconcave] if concave
+          psi[:parapetconvex]  = val[:parapetconvex]  if convex
+           is[:parapet]        = true
         end
       end
 
-      # Repeat for exposed floors vs roofs, as :parapet is currently a
-      # proxy for intersections between exposed floors & roofs
-      unless psi.has_key?(:parapet)
+      # Label edge as :party if linked to:
+      #   1x adiabatic surface
+      #   1x (only) deratable surface
+      unless is[:party]
         edge[:surfaces].keys.each do |i|
-          next unless ceilings.has_key?(i)
-          next unless ceilings[i][:boundary].downcase == "outdoors"
-          next unless floors.has_key?(id)
-          next unless floors[id][:boundary].downcase == "outdoors"
-          psi[:parapet] = io_p.set[p][:parapet]
+          next if is[:party]
+          next if i == id
+          next unless deratables.size == 1
+          next unless surfaces.has_key?(i)
+          next if holes.has_key?(i)
+          next if shades.has_key?(i)
+          next unless surfaces[i][:boundary].downcase == "adiabatic"
+
+          s1      = edge[:surfaces][id]
+          s2      = edge[:surfaces][i]
+          concave = concave?(s1, s2)
+          convex  = convex?(s1, s2)
+          flat    = !concave && !convex
+
+          psi[:party]        = val[:party]        if flat
+          psi[:partyconcave] = val[:partyconcave] if concave
+          psi[:partyconvex]  = val[:partyconvex]  if convex
+           is[:party]        = true
         end
       end
 
-      # Label edge as :rimjoist if linked to:
-      #   1x outside-facing wall &
-      #   1x floor
-      unless psi.has_key?(:rimjoist)
+      # Label edge as :grade if linked to:
+      #   1x surface (e.g. slab or wall) facing ground
+      #   1x surface (i.e. wall) facing outdoors
+      unless is[:grade]
         edge[:surfaces].keys.each do |i|
-          next unless floors.has_key?(i)
-          next unless walls.has_key?(id)
-          next unless walls[id][:boundary].downcase == "outdoors"
-          psi[:rimjoist] = io_p.set[p][:rimjoist]
+          next if is[:grade]
+          next if i == id
+          next unless deratables.size == 1
+          next unless surfaces.has_key?(i)
+          next unless surfaces[i].has_key?(:ground)
+          next unless surfaces[i][:ground]
+
+          s1      = edge[:surfaces][id]
+          s2      = edge[:surfaces][i]
+          concave = concave?(s1, s2)
+          convex  = convex?(s1, s2)
+          flat    = !concave && !convex
+
+          psi[:grade]        = val[:grade]        if flat
+          psi[:gradeconcave] = val[:gradeconcave] if concave
+          psi[:gradeconvex]  = val[:gradeconvex]  if convex
+           is[:grade]        = true
         end
       end
 
-      # Label edge as :fenestration if linked to:
-      #   1x subsurface
-      unless psi.has_key?(:fenestration)
-        edge[:surfaces].keys.each do |i|
-          next unless holes.has_key?(i)
-          psi[:fenestration] = io_p.set[p][:fenestration]
-        end
-      end
-
-      # Label edge as :concave or :convex (corner) if linked to:
-      #   2x outside-facing walls (& relative polar positions of walls)
-      unless psi.has_key?(:concave) || psi.has_key?(:convex)
+      # Label edge as :rimjoist (or :balcony) if linked to:
+      #   1x deratable surface
+      #   1x CONDITIONED floor
+      #   1x shade (optional)
+      unless is[:rimjoist] || is[:balcony]
+        balcony = false
         edge[:surfaces].keys.each do |i|
           next if i == id
-          next unless walls.has_key?(i)
-          next unless walls[i][:boundary].downcase == "outdoors"
-          next unless walls.has_key?(id)
-          next unless walls[id][:boundary].downcase == "outdoors"
+          balcony = true if shades.has_key?(i)
+        end
+        edge[:surfaces].keys.each do |i|
+          next if is[:rimjoist] || is[:balcony]
+          next if i == id
+          next unless deratables.size == 2
+          next if floors.has_key?(id)
+          next unless floors.has_key?(i)
+          next unless floors[i].has_key?(:conditioned)
+          next unless floors[i][:conditioned]
+          next if floors[i][:ground]
 
-          s1 = edge[:surfaces][id]
-          s2 = edge[:surfaces][i]
+          ii = ""
+          ii = i if deratables.include?(i)                     # exposed floor
+          if ii.empty?
+            deratables.each do |j| ii = j unless j == id; end
+          end
+          next if ii.empty?
 
-          angle = s2[:angle] - s1[:angle]
-          next unless angle > 0
-          next unless (2 * Math::PI - angle).abs > 0
-          next if angle > 3 * Math::PI / 4 && angle < 5 * Math::PI / 4
+          s1      = edge[:surfaces][id]
+          s2      = edge[:surfaces][ii]
+          concave = concave?(s1, s2)
+          convex  = convex?(s1, s2)
+          flat    = !concave && !convex
 
-          n1_d_p2 = s1[:normal].dot(s2[:polar])
-          p1_d_n2 = s1[:polar].dot(s2[:normal])
-          psi[:concave] = io_p.set[p][:concave] if n1_d_p2 > 0 && p1_d_n2 > 0
-          psi[:convex]  = io_p.set[p][:convex]  if n1_d_p2 < 0 && p1_d_n2 < 0
+          if balcony
+            psi[:balcony]        = val[:balcony]        if flat
+            psi[:balconyconcave] = val[:balconyconcave] if concave
+            psi[:balconyconvex]  = val[:balconyconvex]  if convex
+             is[:balcony]        = true
+          else
+            psi[:rimjoist]        = val[:rimjoist]        if flat
+            psi[:rimjoistconcave] = val[:rimjoistconcave] if concave
+            psi[:rimjoistconvex]  = val[:rimjoistconvex]  if convex
+             is[:rimjoist]        = true
+          end
         end
       end
-    end                                                   # edge's surfaces loop
+    end                                                    # edge's surfaces loop
 
     edge[:psi] = psi unless psi.empty?
     edge[:set] = p unless psi.empty?
   end                                                                # edge loop
 
-  # Generate OSM Kiva settings and objects if foundation-facing floors.
-  # 'kiva' == false if partial failure (log failure eventually).
-  # kiva = generateKiva(os_model, walls, floors, edges) if gen_kiva
+  # Tracking (mild) transitions between deratable surfaces around edges that
+  # have not been previously tagged.
+  edges.values.each do |edge|
+    next if edge.has_key?(:psi)
+    next unless edge.has_key?(:surfaces)
+    deratable = false
+    edge[:surfaces].each do |id, surface|
+      next if deratable
+      next unless surfaces.has_key?(id)
+      next unless surfaces[id].has_key?(:deratable)
+      deratable = true if surfaces[id][:deratable]
+    end
+    next unless deratable
+    count = 0
+    edge[:surfaces].keys.each do |id|
+      next unless surfaces.has_key?(id)
+      next unless surfaces[id].has_key?(:deratable)
+      next unless surfaces[id][:deratable]
+      count += 1
+    end
+    next unless count > 0
+    psi = {}
+    psi[:transition] = 0.000
+    edge[:psi] = psi
+    edge[:set] = io[:building].first[:psi]
+  end
 
-  # In the preceding loop, TBD initially sets individual edge PSI types/values
-  # to those of the project-wide :unit set. If the TBD JSON file holds custom
-  # :story, :space or :surface PSI sets that are applicable to individual edges,
-  # then those override the default :unit ones.
-
-  # For now, the link between TBD :stories and OSM BuildingStories isn't yet
-  # completed/tested, so ignored for now ...
-  # openstudio-sdk-documentation.s3.amazonaws.com/cpp/OpenStudio-2.9.0-doc/model/html/classopenstudio_1_1model_1_1_building_story.html
+  # A priori, TBD applies (default) :building PSI types and values to individual
+  # edges. If a TBD JSON input file holds custom:
+  #   :stories
+  #   :spacetypes
+  #   :surfaces
+  #   :edges
+  # ... PSI sets that may apply to individual edges, then the default :building
+  # PSI types and/or values are overridden, as follows:
+  #   custom :stories    PSI sets trump :building PSI sets
+  #   custom :spacetypes PSI sets trump the aforementioned PSI sets
+  #   custom :spaces     PSI sets trump the aforementioned PSI sets
+  #   custom :surfaces   PSI sets trump the aforementioned PSI sets
+  #   custom :edges      PSI sets trump the aforementioned PSI sets
   if io
-    # if io.has_key?(:stories)                    # ... will override :unit sets
-    # end
+    if io.has_key?(:stories)
+      io[:stories].each do |story|
+        next unless story.has_key?(:id)
+        next unless story.has_key?(:psi)
+        i = story[:id]
+        p = story[:psi]
+        next unless io_p.set.has_key?(p)
+        holds, values = io_p.shorthands(p)
+        next if holds.empty?
+        next if values.empty?
 
-    if io.has_key?(:spaces)                    # ... will override :stories sets
+        edges.values.each do |edge|
+          next unless edge.has_key?(:psi)
+          next if edge.has_key?(:io_set)
+          next unless edge.has_key?(:surfaces)
+          edge[:surfaces].keys.each do |id|
+            next unless surfaces.has_key?(id)
+            next unless surfaces[id].has_key?(:story)
+            st = surfaces[id][:story]
+            next unless i == st.nameString
+            edge[:stories] = {} unless edge.has_key?(:stories)
+            edge[:stories][p] = {}
+            psi = {}
+            if edge.has_key?(:io_type)
+              tt = io_p.safeType(p, edge[:io_type])
+              psi[edge[:io_type]] = values[tt] unless tt.nil?
+            else
+              edge[:psi].keys.each do |t|
+                tt = io_p.safeType(p, t)
+                psi[t] = values[tt] unless tt.nil?
+              end
+            end
+            edge[:stories][p] = psi unless psi.empty?
+          end
+        end
+      end
+
+      # TBD/Topolys edges will generally be linked to more than one surface and
+      # hence to more than one story. It is possible for a TBD JSON file to hold
+      # 2x story PSI sets that end up targetting one or more edges common to
+      # both stories. In such cases, TBD retains the most conductive PSI
+      # type/value from both story PSI sets.
+      edges.values.each do |edge|
+        next unless edge.has_key?(:psi)
+        next unless edge.has_key?(:stories)
+        edge[:psi].keys.each do |t|
+          vals = {}
+          edge[:stories].each do |p, psi|
+            holds, values = io_p.shorthands(p)
+            next if holds.empty?
+            next if values.empty?
+            tt = io_p.safeType(p, t)
+            vals[p] = values[tt] unless tt.nil?
+          end
+          next if vals.empty?
+          edge[:psi][t] = vals.values.max
+          edge[:sets] = {} unless edge.has_key?(:sets)
+          edge[:sets][t] = vals.key(vals.values.max)
+        end
+      end
+    end
+
+    if io.has_key?(:spacetypes)
+      io[:spacetypes].each do |stype|
+        next unless stype.has_key?(:id)
+        next unless stype.has_key?(:psi)
+        i = stype[:id]
+        p = stype[:psi]
+        next unless io_p.set.has_key?(p)
+        holds, values = io_p.shorthands(p)
+        next if holds.empty?
+        next if values.empty?
+
+        edges.values.each do |edge|
+          next unless edge.has_key?(:psi)
+          next if edge.has_key?(:io_set)
+          next unless edge.has_key?(:surfaces)
+          edge[:surfaces].keys.each do |id|
+            next unless surfaces.has_key?(id)
+            next unless surfaces[id].has_key?(:stype)
+            st = surfaces[id][:stype]
+            next unless i == st.nameString
+            edge[:spacetypes] = {} unless edge.has_key?(:spacetypes)
+            edge[:spacetypes][p] = {}
+            psi = {}
+            if edge.has_key?(:io_type)
+              tt = io_p.safeType(p, edge[:io_type])
+              psi[edge[:io_type]] = values[tt] unless tt.nil?
+            else
+              edge[:psi].keys.each do |t|
+                tt = io_p.safeType(p, t)
+                psi[t] = values[tt] unless tt.nil?
+              end
+            end
+            edge[:spacetypes][p] = psi unless psi.empty?
+          end
+        end
+      end
+
+      # TBD/Topolys edges will generally be linked to more than one surface and
+      # hence to more than one spacetype. It is possible for a TBD JSON file to
+      # hold 2x spacetype PSI sets that end up targetting one or more edges
+      # common to both spacetypes. In such cases, TBD retains the most
+      # conductive PSI type/value from both spacetype PSI sets.
+      edges.values.each do |edge|
+        next unless edge.has_key?(:psi)
+        next unless edge.has_key?(:spacetypes)
+        edge[:psi].keys.each do |t|
+          vals = {}
+          edge[:spacetypes].each do |p, psi|
+            holds, values = io_p.shorthands(p)
+            next if holds.empty?
+            next if values.empty?
+            tt = io_p.safeType(p, t)
+            vals[p] = values[tt] unless tt.nil?
+          end
+          next if vals.empty?
+          edge[:psi][t] = vals.values.max
+          edge[:sets] = {} unless edge.has_key?(:sets)
+          edge[:sets][t] = vals.key(vals.values.max)
+        end
+      end
+    end
+
+    if io.has_key?(:spaces)
       io[:spaces].each do |space|
         next unless space.has_key?(:id)
         next unless space.has_key?(:psi)
         i = space[:id]
         p = space[:psi]
         next unless io_p.set.has_key?(p)
+        holds, values = io_p.shorthands(p)
+        next if holds.empty?
+        next if values.empty?
 
         edges.values.each do |edge|
-          next unless edge.has_key?(:psi)   # open to transition edges TO DO ...
-          next if edge.has_key?(:io_set)    # customized edge WITH custom PSI
+          next unless edge.has_key?(:psi)
+          next if edge.has_key?(:io_set)
           next unless edge.has_key?(:surfaces)
-
-          # TBD/Topolys edges will generally be linked to more than one surface
-          # and hence to more than one space. It is possible for a TBD JSON file
-          # to hold 2x space PSI sets that affect one or more edges common to
-          # both spaces. As with Ruby and JSON hashes, the last processed TBD
-          # JSON space PSI set will supersede preceding ones. Caution ...
-          # Future revisons to TBD JSON I/O validation, e.g. log warning?
           edge[:surfaces].keys.each do |id|
             next unless surfaces.has_key?(id)
             next unless surfaces[id].has_key?(:space)
             sp = surfaces[id][:space]
             next unless i == sp.nameString
-
-            if edge.has_key?(:io_type)          # custom edge w/o custom PSI set
-              t = edge[:io_type]
-              next unless io_p.set[p].has_key?(t)
-              psi = {}
-              psi[t] = io_p.set[p][t]
-              edge[:psi] = psi
+            edge[:spaces] = {} unless edge.has_key?(:spaces)
+            edge[:spaces][p] = {}
+            psi = {}
+            if edge.has_key?(:io_type)
+              tt = io_p.safeType(p, edge[:io_type])
+              psi[edge[:io_type]] = values[tt] unless tt.nil?
             else
               edge[:psi].keys.each do |t|
-                edge[:psi][t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                tt = io_p.safeType(p, t)
+                psi[t] = values[tt] unless tt.nil?
               end
             end
-            edge[:set] = p
+            edge[:spaces][p] = psi unless psi.empty?
           end
+        end
+      end
+
+      # TBD/Topolys edges will generally be linked to more than one surface and
+      # hence to more than one space. It is possible for a TBD JSON file to hold
+      # 2x space PSI sets that end up targetting one or more edges common to
+      # both spaces. In such cases, TBD retains the most conductive PSI
+      # type/value from both space PSI sets.
+      edges.values.each do |edge|
+        next unless edge.has_key?(:psi)
+        next unless edge.has_key?(:spaces)
+        edge[:psi].keys.each do |t|
+          vals = {}
+          edge[:spaces].each do |p, psi|
+            holds, values = io_p.shorthands(p)
+            next if holds.empty?
+            next if values.empty?
+            tt = io_p.safeType(p, t)
+            vals[p] = values[tt] unless tt.nil?
+          end
+          next if vals.empty?
+          edge[:psi][t] = vals.values.max
+          edge[:sets] = {} unless edge.has_key?(:sets)
+          edge[:sets][t] = vals.key(vals.values.max)
         end
       end
     end
 
-    if io.has_key?(:surfaces)                   # ... will override :spaces sets
+    if io.has_key?(:surfaces)
       io[:surfaces].each do |surface|
         next unless surface.has_key?(:id)
         next unless surface.has_key?(:psi)
         i = surface[:id]
         p = surface[:psi]
         next unless io_p.set.has_key?(p)
+        holds, values = io_p.shorthands(p)
+        next if holds.empty?
+        next if values.empty?
 
         edges.values.each do |edge|
-          next unless edge.has_key?(:psi)   # open to transition edges TO DO ...
-          next if edge.has_key?(:io_set)    # customized edge WITH custom PSI
+          next unless edge.has_key?(:psi)
+          next if edge.has_key?(:io_set)
           next unless edge.has_key?(:surfaces)
-
-          # TBD/Topolys edges will generally be linked to more than one
-          # surface. It is possible for a TBD JSON file to hold 2x surface PSI
-          # sets that affect one or more edges common to both surfaces. As
-          # with Ruby and JSON hashes, the last processed TBD JSON surface PSI
-          # set will supersede preceding ones. Caution ...
-          # Future revisons to TBD JSON I/O validation, e.g. log warning?
-          edge[:surfaces].keys.each do |s|
-            next unless surfaces.has_key?(s)
-            next unless i == s
-            if edge.has_key?(:io_type)          # custom edge w/o custom PSI set
-              t = edge[:io_type]
-              next unless io_p.set[p].has_key?(t)
-              psi = {}
-              psi[t] = io_p.set[p][t]
-              edge[:psi] = psi
+          edge[:surfaces].each do |id, s|
+            next unless surfaces.has_key?(id)
+            next unless i == id
+            psi = {}
+            if edge.has_key?(:io_type)
+              tt = io_p.safeType(p, edge[:io_type])
+              psi[:io_type] = values[tt] unless tt.nil?
             else
-              edge[:psi] = {} unless edge.has_key?(:psi)
               edge[:psi].keys.each do |t|
-                edge[:psi][t] = io_p.set[p][t] if io_p.set[p].has_key?(t)
+                tt = io_p.safeType(p, t)
+                psi[t] = values[tt] unless tt.nil?
               end
             end
-            edge[:set] = p
+            s[:psi] = psi unless psi.empty?
+            s[:set] = p unless psi.empty?
           end
+        end
+      end
+
+      # TBD/Topolys edges will generally be linked to more than one surface. It
+      # is possible for a TBD JSON file to hold 2x surface PSI sets that end up
+      # targetting one or more edges shared by both surfaces. In such cases, TBD
+      # retains the most conductive PSI type/value from both surface PSI sets.
+      edges.values.each do |edge|
+        next unless edge.has_key?(:psi)
+        next unless edge.has_key?(:surfaces)
+        edge[:psi].keys.each do |t|
+          vals = {}
+          edge[:surfaces].each do |id, s|
+            next unless s.has_key?(:psi)
+            next unless s.has_key?(:set)
+            next if s[:set].empty?
+            holds, values = io_p.shorthands(s[:set])
+            next if holds.empty?
+            next if values.empty?
+            tt = io_p.safeType(s[:set], t)
+            vals[s[:set]] = values[tt] unless tt.nil?
+          end
+          next if vals.empty?
+          edge[:psi][t] = vals.values.max
+          edge[:sets] = {} unless edge.has_key?(:sets)
+          edge[:sets][t] = vals.key(vals.values.max)
         end
       end
     end
 
-    # Loop through all customized edges on file WITH a custom PSI set
+    # Loop through all customized edges on file w/w/o a custom PSI set
     edges.values.each do |edge|
-      next unless edge.has_key?(:psi)      # open to transition edges TO DO ...
-      next unless edge.has_key?(:io_set)
+      next unless edge.has_key?(:psi)
       next unless edge.has_key?(:io_type)
       next unless edge.has_key?(:surfaces)
+      if edge.has_key?(:io_set)
+        next unless io_p.set.has_key?(edge[:io_set])
+        set = edge[:io_set]
+      else
+        next unless edge[:sets].has_key?(edge[:io_type])
+        next unless io_p.set.has_key?(edge[:sets][edge[:io_type]])
+        set = edge[:sets][edge[:io_type]]
+      end
+      holds, values = io_p.shorthands(set)
+      next if holds.empty?
+      next if values.empty?
+      tt = io_p.safeType(set, edge[:io_type])
+      next if tt.nil?
+      if edge.has_key?(:io_set)
+        edge[:psi] = {}
+        edge[:set] = edge[:io_set]
+      else
+        edge[:sets] = {} unless edge.has_key?(:sets)
+        edge[:sets][edge[:io_type]] = values[tt]
+      end
+      edge[:psi][edge[:io_type]] = values[tt]
+    end
+  end
 
-      t = edge[:io_type]
-      p = edge[:io_set]
-      next unless io_p.set.has_key?(p)
-      next unless io_p.set[p].has_key?(t)
-      psi = {}
-      psi[t] = io_p.set[p][t]
-      edge[:psi] = psi
-      edge[:set] = p
+  # Frame & Divider cases. Loop through all openings (holes). Adjust opening
+  # :gross area if opening subsurface has a Frame & Divider object.
+  surfaces.each do |id, surface|
+    next unless surface.has_key?(:windows)
+    surface[:windows].each do |i, window|
+      # puts "#{id} has window #{i}: #{window[:net]} vs #{window[:gross]} m2" if i == "Office Front Wall Window 1"
+      # puts "#{window[:width]} m" if window.has_key?(:width)
+      # ... reset window gross area
     end
   end
 
   # Loop through each edge and assign heat loss to linked surfaces.
   edges.each do |identifier, edge|
     next unless edge.has_key?(:psi)
-
     psi = edge[:psi].values.max
+    type = edge[:psi].key(psi)
+    bridge = { psi: psi, type: type, length: edge[:length] }
 
-    bridge = { psi: psi,
-               type: edge[:psi].key(psi),
-               length: edge[:length] }
+    if edge.has_key?(:sets) && edge[:sets].has_key?(type)
+      edge[:set] = edge[:sets][type] unless edge.has_key?(:io_set)
+    end
 
     # Retrieve valid linked surfaces as deratables.
     deratables = {}
     edge[:surfaces].each do |id, surface|
       next unless surfaces.has_key?(id)
-      next unless surfaces[id][:boundary].downcase == "outdoors"
+      next unless surfaces[id][:deratable]
       deratables[id] = surface
     end
 
-    # Retrieve linked openings.
     openings = {}
-    if edge[:psi].has_key?(:fenestration)
-      edge[:surfaces].each do |id, surface|
-        next unless holes.has_key?(id)
-        openings[id] = surface
-      end
+    edge[:surfaces].each do |id, surface|
+      next unless holes.has_key?(id)
+      openings[id] = surface
     end
-
-    next if openings.size > 1 # edge links 2x openings
+    next if openings.size > 1                           # edge links 2x openings
 
     # Prune if edge links an opening and its parent, as well as 1x other
     # opaque surface (i.e. corner window derates neighbour - not parent).
@@ -1571,16 +2377,23 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
         end
       end
     end
+    next if deratables.empty?
 
-    next unless deratables.size > 0
+    # Sum RSI of targeted insulating layer from each deratable surface.
+    rsi = 0
+    deratables.each do |id, deratable|
+      next unless surfaces[id].has_key?(:r)
+      rsi += surfaces[id][:r]
+    end
 
-    # Split thermal bridge heat loss equally amongst deratable surfaces.
-    bridge[:psi] /= deratables.size
-
-    # Assign heat loss from thermal bridges to surfaces.
+    # Assign heat loss from thermal bridges to surfaces, in proportion to
+    # insulating layer thermal resistance
     deratables.each do |id, deratable|
       surfaces[id][:edges] = {} unless surfaces[id].has_key?(:edges)
-      surfaces[id][:edges][identifier] = bridge
+      loss = 0
+      loss = bridge[:psi] * surfaces[id][:r] / rsi if rsi > 0.001
+      b = { psi: loss, type: bridge[:type], length: bridge[:length] }
+      surfaces[id][:edges][identifier] = b
     end
   end
 
@@ -1595,7 +2408,8 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
 
   # Add point conductances (W/K x count), held in TBD JSON file (under surfaces)
   surfaces.each do |id, surface|
-    next unless surface[:boundary].downcase == "outdoors"
+    next unless surface.has_key?(:deratable)
+    next unless surface[:deratable]
     next unless io
     next unless io.has_key?(:surfaces)
     io[:surfaces].each do |s|
@@ -1606,7 +2420,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
         next unless k.has_key?(:id)
         next unless k.has_key?(:count)
         next unless io_k.point.has_key?(k[:id])
-        next unless io_k.point[k[:id]] > 0.000
+        next unless io_k.point[k[:id]] > 0.001
         surface[:heatloss] = 0 unless surface.has_key?(:heatloss)
         surface[:heatloss] += io_k.point[k[:id]] * k[:count]
       end
@@ -1620,33 +2434,25 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
   # avoiding inadvertent derating - TBD will not derate constructions
   # (or rather materials) having " tbd" in its OpenStudio name.
   surfaces.each do |id, surface|
+    next unless surface.has_key?(:construction)
+    next unless surface.has_key?(:index)
+    next unless surface.has_key?(:ltype)
+    next unless surface.has_key?(:r)
     next unless surface.has_key?(:edges)
     next unless surface.has_key?(:heatloss)
-    next unless surface[:heatloss] > 0.01
+    next unless surface[:heatloss].abs > TOL
     os_model.getSurfaces.each do |s|
       next unless id == s.nameString
-      current_c = s.construction.get
-      next if current_c.nil?
-      construction_name = current_c.nameString
+      index = surface[:index]
+      current_c = surface[:construction]
       c = current_c.clone(os_model).to_Construction.get
 
-      # index - of layer/material (to derate) in cloned construction
-      # type  - either massless (RSi) or standard (k + d)
-      # r     - initial RSi value of the targeted layer to derate
-      index, type, r = deratableLayer(c)
-
-      index = nil unless index.is_a?(Numeric) &&
-                         index >=0            &&
-                         index < c.layers.size
-
-      # m ... newly derated, cloned material
       m = nil
-      m = derate(os_model, id, surface, c, index, type, r) unless index.nil?
-
+      m = derate(os_model, id, surface, c) unless index.nil?
       # m may be nilled simply because the targeted construction has already
       # been derated, i.e. holds " tbd" in its name. Names of cloned/derated
       # constructions (due to TBD) include the surface name (since derated
-      # constructions are unique to each surface) and the suffix " c tbd".
+      # constructions are now unique to each surface) and the suffix " c tbd".
       unless m.nil?
         c.setLayer(index, m)
         c.setName("#{id} c tbd")
@@ -1675,7 +2481,7 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
         # uFactor calculation. An example would be 25mm-50mm air gaps behind
         # brick veneer.
         #
-        # If one comments-out the following loop (3 lines), tested surfaces
+        # If one comments out the following loop (3 lines), tested surfaces
         # with air layers will generate discrepencies between the calculed RSi
         # value above and the inverse of the uFactor. All other surface
         # constructions pass the test.
@@ -1683,8 +2489,26 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
         # if ((1/current_R) - s.uFactor.to_f).abs > 0.005
         #   puts "#{s.nameString} - Usi:#{1/current_R} UFactor: #{s.uFactor}"
         # end
-
         s.setConstruction(c)
+
+        # If derated surface construction separates CONDITIONED space from
+        # UNCONDITIONED or UNENCLOSED space, then derate adjacent surface
+        # construction as well (unless defaulted).
+        if s.outsideBoundaryCondition.downcase == "surface"
+          unless s.adjacentSurface.empty?
+            adjacent = s.adjacentSurface.get
+            i = adjacent.nameString
+            if surfaces.has_key?(i) && adjacent.isConstructionDefaulted == false
+              indx = surfaces[i][:index]
+              current_cc = surfaces[i][:construction]
+              cc = current_cc.clone(os_model).to_Construction.get
+
+              cc.setLayer(indx, m)
+              cc.setName("#{i} c tbd")
+              adjacent.setConstruction(cc)
+            end
+          end
+        end
 
         # Compute updated RSi value from layers.
         updated_R = s.filmResistance
@@ -1706,13 +2530,12 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
         end
 
         ratio  = -(current_R - updated_R) * 100 / current_R
-        surface[:ratio] = ratio
+        surface[:ratio] = ratio if ratio.abs > TOL
       end
     end
   end
 
   io[:edges] = []
-
   # Enrich io with TBD/Topolys edge info before returning:
   # 1. edge custom PSI set, if on file
   # 2. edge PSI type
@@ -1724,9 +2547,9 @@ def processTBD(os_model, psi_set, io_path = nil, schema_path = nil, gen_kiva)
     next unless e.has_key?(:set)
     v = e[:psi].values.max
     p = e[:set]
-    next unless v > 0.000
     t = e[:psi].key(v)
     l = e[:length]
+
     edge = { psi: p, type: t, length: l, surfaces: e[:surfaces].keys }
     edge[:v0x] = e[:v0].point.x
     edge[:v0y] = e[:v0].point.y

@@ -10,7 +10,7 @@ task default: :spec
 
 require 'yard'
 YARD::Rake::YardocTask.new do |t|
-  t.files   = ["lib/psi.rb"]
+  t.files   = ["lib/psi.rb", "lib/conditioned.rb", "lib/framedivider.rb"]
 end
 
 desc "Update Library Files"

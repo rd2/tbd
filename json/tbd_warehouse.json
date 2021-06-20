@@ -11,8 +11,7 @@
       "rimjoist": 0.3,
       "parapet": 0.325,
       "fenestration": 0.35,
-      "concave": 0.45,
-      "convex": 0.45,
+      "corner": 0.45,
       "balcony": 0.5,
       "party": 0.5,
       "grade": 0.45
@@ -28,7 +27,7 @@
       ]
     }
   ],
-  "unit": [
+  "building": [
     {
       "psi": "compliant"
     }

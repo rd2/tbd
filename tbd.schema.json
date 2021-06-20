@@ -46,6 +46,13 @@
       },
       "uniqueItems": true
     },
+    "spacetypes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/SpaceType"
+      },
+      "uniqueItems": true
+    },
     "stories": {
       "type": "array",
       "items": {
@@ -53,10 +60,10 @@
       },
       "uniqueItems": true
     },
-    "unit": {
+    "building": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/Unit"
+        "$ref": "#/definitions/Building"
       },
       "uniqueItems": true
     },
@@ -79,43 +86,123 @@
         },
         "rimjoist": {
           "title": "Floor/wall edge PSI",
-          "type": "number",
-          "minimum": 0
+          "type": "number"
+        },
+        "rimjoistconcave": {
+          "title": "Concave floor/wall edge PSI",
+          "type": "number"
+        },
+        "rimjoistconvex": {
+          "title": "Convex floor/wall edge PSI",
+          "type": "number"
         },
         "parapet": {
-          "title": "Roof/wall or exposed-floor/wall edge PSI",
-          "type": "number",
-          "minimum": 0
+          "title": "Roof/wall edge PSI",
+          "type": "number"
+        },
+        "parapetconcave": {
+          "title": "Concave roof/wall edge PSI",
+          "type": "number"
+        },
+        "parapetconvex": {
+          "title": "Convex roof/wall edge PSI",
+          "type": "number"
         },
         "fenestration": {
           "title": "Window, door, skylight perimeter PSI",
-          "type": "number",
-          "minimum": 0
+          "type": "number"
         },
-        "concave": {
-          "title": "Wall corner [0°,135°) PSI",
-          "type": "number",
-          "minimum": 0
+        "head": {
+          "title": "Aperture head/lintel PSI",
+          "type": "number"
         },
-        "convex": {
-          "title": "Wall corner (225°,360°] PSI",
-          "type": "number",
-          "minimum": 0
+        "headconcave": {
+          "title": "Concave aperture head/lintel PSI",
+          "type": "number"
+        },
+        "headconvex": {
+          "title": "Convex aperture head/lintel PSI",
+          "type": "number"
+        },
+        "sill": {
+          "title": "Aperture sill/base PSI",
+          "type": "number"
+        },
+        "sillconcave": {
+          "title": "Concave aperture sill/base PSI",
+          "type": "number"
+        },
+        "sillconvex": {
+          "title": "Convex aperture sill/base PSI",
+          "type": "number"
+        },
+        "jamb": {
+          "title": "Aperture jamb/side PSI",
+          "type": "number"
+        },
+        "jambconcave": {
+          "title": "Concave aperture jamb/side PSI",
+          "type": "number"
+        },
+        "jambconvex": {
+          "title": "Convex aperture jamb/side PSI",
+          "type": "number"
+        },
+        "corner": {
+          "title": "Any wall corner [0°,135°) or (225°,360°] PSI",
+          "type": "number"
+        },
+        "cornerconcave": {
+          "title": "Concave wall corner [0°,135°) PSI",
+          "type": "number"
+        },
+        "cornerconvex": {
+          "title": "Convex wall corner (225°,360°] PSI",
+          "type": "number"
         },
         "balcony": {
           "title": "Floor/balcony edge PSI ",
-          "type": "number",
-          "minimum": 0
+          "type": "number"
+        },
+        "balconyconcave": {
+          "title": "Concave floor/balcony edge PSI ",
+          "type": "number"
+        },
+        "balconyconvex": {
+          "title": "Convex floor/balcony edge PSI ",
+          "type": "number"
         },
         "party": {
           "title": "Party wall edge PSI",
-          "type": "number",
-          "minimum": 0
+          "type": "number"
+        },
+        "partyconcave": {
+          "title": "Concave party wall edge PSI",
+          "type": "number"
+        },
+        "partyconvex": {
+          "title": "Convex party wall edge PSI",
+          "type": "number"
         },
         "grade": {
           "title": "Floor/foundation edge PSI",
-          "type": "number",
-          "minimum": 0
+          "type": "number"
+        },
+        "gradeconcave": {
+          "title": "Concave floor/foundation edge PSI",
+          "type": "number"
+        },
+        "gradecovex": {
+          "title": "Convex floor/foundation edge PSI",
+          "type": "number"
+        },
+        "joint": {
+          "title": "Joints PSI",
+          "type": "number"
+        },
+        "transition": {
+          "title": "(Mild) transition PSI",
+          "type": "number"
         }
       },
       "additionalProperties": false,
@@ -134,8 +221,7 @@
         },
         "point": {
           "title": "Point KHI-value",
-          "type": "number",
-          "minimum": 0
+          "type": "number"
         }
       },
       "additionalProperties": false,
@@ -153,17 +239,39 @@
           "type": "string"
         },
         "type": {
-          "title": "PSI-set type, e.g. 'parapet'",
+          "title": "PSI-set type e.g., 'parapet'",
           "type": "string",
           "enum": [
             "rimjoist",
+            "rimjoistconcave",
+            "rimjoisconvext",
             "parapet",
+            "parapetconcave",
+            "parapetconvex",
             "fenestration",
-            "concave",
-            "convex",
+            "head",
+            "headconcave",
+            "headconvex",
+            "sill",
+            "sillconcave",
+            "sillconvex",
+            "jamb",
+            "jambconcave",
+            "jambconvex",
+            "corner",
+            "cornerconcave",
+            "cornerconvex",
             "balcony",
+            "balconyconcave",
+            "balconyconvex",
             "party",
-            "grade"
+            "partyconcave",
+            "partyconvex",
+            "grade",
+            "gradeconcave",
+            "gradeconvex",
+            "joint",
+            "transition"
           ]
         },
         "length": {
@@ -274,6 +382,25 @@
         "psi"
       ]
     },
+    "SpaceType": {
+      "description": "SpaceType default PSI-set (optional for OS)",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "e.g. OS spacetype identifier",
+          "type": "string"
+        },
+        "psi": {
+          "title": "PSI-set identifier",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "psi"
+      ]
+    },
     "Story": {
       "description": "Story default PSI-set (optional for OS)",
       "type": "object",
@@ -293,8 +420,8 @@
         "psi"
       ]
     },
-    "Unit": {
-      "description": "Building unit default PSI-set (optional for OS)",
+    "Building": {
+      "description": "Building default PSI-set (optional for OS)",
       "type": "object",
       "properties": {
         "psi": {

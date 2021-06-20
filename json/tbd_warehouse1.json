@@ -1,6 +1,6 @@
 {
   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
-  "description": "testing TBD JSON for test_warehouse.osm",
+  "description": "testing custom edges for test_warehouse.osm",
   "psis": [
     {
       "id": "bad",
@@ -11,8 +11,7 @@
       "rimjoist": 0.3,
       "parapet": 0.325,
       "fenestration": 0.35,
-      "concave": 0.45,
-      "convex": 0.45,
+      "corner": 0.45,
       "balcony": 0.5,
       "party": 0.5,
       "grade": 0.45
@@ -34,7 +33,7 @@
       "v1z": 0.914355407629293
     }
   ],
-  "unit": [
+  "building": [
     {
       "psi": "compliant"
     }

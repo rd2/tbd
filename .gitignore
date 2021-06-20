@@ -44,6 +44,8 @@ json/*out.json
 spec/files/osms/tbd.out.json
 os_model_KIVA.osm
 warehouse_KIVA.osm
+os_model_test.osm
+os_model_FD.osm
 
 runner.conf
 

@@ -16,8 +16,7 @@
       "rimjoist": 0.3,
       "parapet": 0.325,
       "fenestration": 0.35,
-      "concave": 0.45,
-      "convex": 0.45,
+      "corner": 0.45,
       "balcony": 0.8,
       "party": 0.5,
       "grade": 0.6
@@ -64,7 +63,7 @@
       "psi": "compliant"
     }
   ],
-  "unit": [
+  "building": [
     {
       "psi": "(non thermal bridging)"
     }
