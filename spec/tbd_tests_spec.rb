@@ -4869,6 +4869,23 @@ RSpec.describe TBD do
     expect(opening_vertices[2].z).to be_within(0.01).of(10.92)
   end
 
+  it "can process an OSM converted from an IDF" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    file = "/files/5Zone_2.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    psi_set = "poor (BETBG)"
+    io, surfaces = processTBD(os_model, psi_set)
+    expect(io.nil?).to be(false)
+    expect(io.has_key?(:edges))
+    expect(io[:edges].size).to eq(47)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.size).to eq(40)
+  end
+
   it "can generate and access KIVA inputs (seb)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
