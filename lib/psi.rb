@@ -770,7 +770,7 @@ end
 # Return site-specific (or absolute) Topolys surface normal
 #
 # @param [OpenStudio::Model::PlanarSurface] s An OS planar surface
-# @param [Float] r A rotation angle [0,2PI) radians
+# @param [Float] r A rotation angle [0,360) degrees
 #
 # @return [OpenStudio::Vector3D] Returns normal vector <x,y,z> of s
 def trueNormal(s, r)
@@ -780,6 +780,7 @@ def trueNormal(s, r)
   raise "#{s.class}? expected #{cl} (normals)" unless s.is_a?(cl)
   raise "#{r.class}? expected numeric (normals)" unless r.is_a?(Numeric)
 
+  r = -r * Math::PI / 180.0
   n = Topolys::Vector3D.new(s.outwardNormal.x * Math.cos(r) -
                             s.outwardNormal.y * Math.sin(r),                 # x
                             s.outwardNormal.x * Math.sin(r) +

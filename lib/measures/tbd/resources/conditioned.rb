@@ -185,7 +185,7 @@ def scheduleCompactMinMax(sched)
 
   vals = []
   prev_str = ""
-  sch.extensibleGroups.each do |eg|
+  sched.extensibleGroups.each do |eg|
     if prev_str.include?("until")
       vals << eg.getDouble(0).get unless eg.getDouble(0).empty?
     end
@@ -630,7 +630,7 @@ def plenum?(space, loops, setpoints)
   #           "inactive" thermostat (i.e., can't extract valid setpoints); or
   #   case C. spacetype is "plenum".
   raise "Invalid space (plenum?)" unless space
-  raise "Invalid loops (plenum?)" unless loops
+  raise "Invalid loops (plenum?)" unless loops == true || loops == false
   raise "Invalid setpoints (plenum?)" unless setpoints
   cl = OpenStudio::Model::Space
   cl2 = space.class

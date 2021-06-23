@@ -4869,6 +4869,127 @@ RSpec.describe TBD do
     expect(opening_vertices[2].z).to be_within(0.01).of(10.92)
   end
 
+  it "can process an OSM converted from an IDF (with rotation)" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    file = "/files/5Zone_2.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    # Tracking insulated ceiling surfaces below PLENUM.
+    os_model.getSurfaces.each do |s|
+      next unless s.surfaceType == "RoofCeiling"
+      next if s.outsideBoundaryCondition == "Outdoors"
+      expect(s.isConstructionDefaulted).to be(false)
+      c = s.construction
+      expect(c.empty?).to be(false)
+      c = c.get.to_Construction
+      expect(c.empty?).to be(false)
+      c = c.get
+      id = c.nameString
+      expect(id).to eq("CLNG-1")
+      expect(c.layers.size).to eq(1)
+      expect(c.layers[0].nameString).to eq("MAT-CLNG-1") # RSi 0.650
+    end
+
+    # Tracking outdoor-facing office walls.
+    os_model.getSurfaces.each do |s|
+      next unless s.surfaceType == "Wall"
+      next unless s.outsideBoundaryCondition == "Outdoors"
+      expect(s.isConstructionDefaulted).to be(false)
+      c = s.construction
+      expect(c.empty?).to be(false)
+      c = c.get.to_Construction
+      expect(c.empty?).to be(false)
+      c = c.get
+      id = c.nameString
+      expect(id).to eq("WALL-1")
+      expect(c.layers.size).to eq(4)
+      expect(c.layers[0].nameString).to eq("WD01") # RSi 0.165
+      expect(c.layers[1].nameString).to eq("PW03") # RSI 0.110
+      expect(c.layers[2].nameString).to eq("IN02") # RSi 2.090
+      expect(c.layers[3].nameString).to eq("GP01") # RSi 0.079
+    end
+
+    psi_set = "poor (BETBG)"
+    io, surfaces = processTBD(os_model, psi_set)
+
+    # out = JSON.pretty_generate(io)
+    # outP = File.dirname(__FILE__) + "/../json/tbd_5Zone_2.out.json"
+    # File.open(outP, "w") do |outP| outP.puts out; end
+
+    expect(io.nil?).to be(false)
+    expect(io.has_key?(:edges))
+    expect(io[:edges].size).to eq(47)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.size).to eq(40)
+
+    ids = { a: "LEFT-1",
+            b: "RIGHT-1",
+            c: "FRONT-1",
+            d: "BACK-1",
+            e: "C1-1",
+            f: "C2-1",
+            g: "C3-1",
+            h: "C4-1",
+            i: "C5-1"  }.freeze
+
+    surfaces.each do |id, surface|
+      next if surface.has_key?(:edges)
+      expect(ids.has_value?(id)).to be(false)
+    end
+
+    # Testing plenum/attic.
+    surfaces.each do |id, surface|
+      expect(surface.has_key?(:space)).to be(true)
+      next unless surface[:space].nameString == "PLENUM-1"
+
+      # Outdoor-facing surfaces are not derated.
+      expect(surface.has_key?(:conditioned)).to be(true)
+      expect(surface[:conditioned]).to be(false)
+      expect(surface.has_key?(:heatloss)).to be(false)
+      expect(surface.has_key?(:ratio)).to be(false)
+
+      expect(surface.has_key?(:boundary)).to be(true)
+      b = surface[:boundary]
+      next if b == "Outdoors"
+
+      # TBD/Topolys track adjacent CONDITIONED surface.
+      expect(surfaces.has_key?(b)).to be(true)
+      expect(surfaces[b].has_key?(:conditioned)).to be(true)
+      expect(surfaces[b][:conditioned]).to be(true)
+
+      next if id == "C5-1P"
+      expect id == "C1-1P" || id == "C2-1P" || id == "C3-1P" || id == "C4-1P"
+      expect(surfaces[b].has_key?(:heatloss)).to be(true)
+      expect(surfaces[b].has_key?(:ratio)).to be(true)
+      h = surfaces[b][:heatloss]
+      expect(h).to be_within(0.01).of(5.79) if id == "C1-1P"
+      expect(h).to be_within(0.01).of(2.89) if id == "C2-1P"
+      expect(h).to be_within(0.01).of(5.79) if id == "C3-1P"
+      expect(h).to be_within(0.01).of(2.89) if id == "C4-1P"
+    end
+
+    surfaces.each do |id, surface|
+      next unless surface.has_key?(:edges)
+      expect(ids.has_value?(id)).to be(true)
+      expect(surface.has_key?(:heatloss)).to be(true)
+      expect(surface.has_key?(:ratio)).to be(true) unless id == "C5-1"
+      next if id == ids[:i]
+      h = surface[:heatloss]
+
+      s = os_model.getSurfaceByName(id)
+      expect(s.empty?).to be(false)
+      s = s.get
+      expect(s.nameString).to eq(id)
+      expect(s.isConstructionDefaulted).to be(false)
+      expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
+      expect(h).to be_within(0.01).of(0) if id == "C5-1"
+      expect(h).to be_within(0.01).of(64.92) if id == "FRONT-1"
+    end
+  end
+
   it "can generate and access KIVA inputs (seb)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
