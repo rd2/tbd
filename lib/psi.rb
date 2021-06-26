@@ -12,9 +12,11 @@ end
 
 require_relative "conditioned.rb"
 require_relative "framedivider.rb"
+require_relative "log.rb"
 
 # Set 10mm tolerance for edge (thermal bridge) vertices.
 TOL = 0.01
+TOL2 = 0.1
 
 # Sources for thermal bridge types and/or linked default KHI & PSI values/sets:
 
@@ -1342,6 +1344,8 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
   raise "#{os_model.class}? expected OS model" unless os_model.is_a?(cl)
   a = g_kiva == true || g_kiva == false
   raise "#{g_kiva.class}? expected true or false (process TBD)" unless a
+
+  TBD.log(TBD::FATAL, "test")
 
   os_building = os_model.getBuilding
 

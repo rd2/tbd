@@ -15,6 +15,7 @@ rescue LoadError
   require_relative "resources/model.rb"
   require_relative "resources/transformation.rb"
   require_relative "resources/version.rb"
+  require_relative "resources/log.rb"
 end
 
 # start the measure
@@ -98,6 +99,14 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     io_path = nil
     schema_path = nil
 
+    # Internal note: The generation of a "tbd.log" file should be flagged in the
+    # runner.registerError, e.g. "TBD: Warning" or "TBD: Fatal (see tbd.log").
+
+    # To trigger an exit (e.g. failed OSM), e.g. "if/unless TBD.log.fatal?"
+    # The TBD Measure receives "io" & "surfaces" from processTBD(). If a FATAL
+    # error occurs, processTBD would return nil for both "io" & "surfaces", which
+    # would trigger a "tbd.log" file (with informative FATAL error messages).
+
     if load_tbd_json
       runner.workflow.absoluteFilePaths.each {|p| runner.registerInfo("Searching for tbd.json in #{p}")}
       io_path = runner.workflow.findFile('tbd.json')
@@ -122,6 +131,9 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     end
 
     io, surfaces = processTBD(model, option, io_path, schema_path, gen_kiva)
+
+    runner.registerInfo("TBD: no fatal errors") unless TBD.fatal?
+    runner.registerInfo("TBD: fatal errors") if TBD.fatal?
 
     surfaces.each do |id, surface|
       if surface.has_key?(:ratio)
