@@ -21,12 +21,15 @@ end
 # TBD exit strategy when faced with warnings/errors.
 def exitTBD(runner, out_dir)
   unless TBD.logs.empty? && TBD.status < TBD::WARN
-    runner.registerInfo("TBD: warning(s) - see 'tbd.log' file)") if TBD.warn?
-    runner.registerInfo("TBD: non-fatal error(s) - see 'tbd.log' file") if TBD.error?
-    runner.registerInfo("TBD: fatal error(s):") if TBD.fatal?
 
-    msgs = TBD.logs.map{ |l| "#{l[:time]} (#{TBD.tag(l[:level])}) #{l[:msg]}" }
-    msgs.each { |msg| runner.registerInfo(msg) }
+    msgs = []
+    TBD.logs.each do |l|
+      msg = "#{l[:time]} (#{TBD.tag(l[:level])}) #{l[:msg]}"
+      runner.registerError(msg) if l[:level] == TBD::FATAL
+      runner.registerWarning(msg) unless l[:level] == TBD::FATAL
+      msgs << msg
+    end
+    runner.registerWarning("Consult 'tbd.log' - under /files") unless TBD.fatal?
 
     out_path = File.join(out_dir, "tbd.log")
     File.open(out_path, "w") do |l|
@@ -129,11 +132,9 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     schema_path = nil
 
     if load_tbd_json
-      #file_paths.each {|p| runner.registerInfo("Searching for tbd.json in #{p}")} # for debugging
       io_path = runner.workflow.findFile('tbd.json')
       if io_path.empty?
-        runner.registerError("Cannot find tbd.json")
-        TBD.log(TBD::FATAL, "Cannot find 'tbd.json' - simulation ended")
+        TBD.log(TBD::FATAL, "Cannot find 'tbd.json' - simulation halted")
         exitTBD(runner, out_dir)
         return false
       else
@@ -178,7 +179,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     unless io.nil?
       if write_tbd_json
         out_path = File.join(out_dir, 'tbd.out.json')
-        runner.registerInfo("Writing #{out_path} in #{Dir.pwd}")
+        # runner.registerInfo("Writing #{out_path} in #{Dir.pwd}") # for debugging
 
         File.open(out_path, 'w') do |file|
           file.puts JSON::pretty_generate(io)
