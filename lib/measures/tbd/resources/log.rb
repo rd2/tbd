@@ -55,10 +55,14 @@ module TBD
     @@log_status
   end
 
-  # To trigger an exit (e.g. failed OSM), e.g. "if/unless TBD.log.fatal?"
-  # The TBD Measure receives "io" & "surfaces" from processTBD(). If a FATAL
-  # error occurs, processTBD would return nil for both "io" & "surfaces", which
-  # would trigger a "tbd.log" file (with informative FATAL error messages).
+  def self.warn?
+    return @@log_status == WARN
+  end
+
+  def self.error?
+    return @@log_status == ERROR
+  end
+
   def self.fatal?
     return @@log_status == FATAL
   end

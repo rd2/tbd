@@ -18,6 +18,26 @@ rescue LoadError
   require_relative "resources/log.rb"
 end
 
+# TBD exit strategy when faced with warnings/errors.
+def exitTBD(runner, out_dir)
+  unless TBD.logs.empty? && TBD.status < TBD::WARN
+    runner.registerInfo("TBD: warning(s) - see 'tbd.log' file)") if TBD.warn?
+    runner.registerInfo("TBD: non-fatal error(s) - see 'tbd.log' file") if TBD.error?
+    runner.registerInfo("TBD: fatal error(s) - see 'tbd.log' file") if TBD.fatal?
+
+    msgs = TBD.logs.map{ |l| "#{l[:time]} (#{TBD.tag(l[:level])}) #{l[:msg]}" }
+    out_path = File.join(out_dir, "tbd.log")
+    File.open(out_path, "w") do |l|
+      l.write msgs.join("\n")
+      begin
+        l.fsync
+      rescue StandardError
+        l.flush
+      end
+    end
+  end
+end
+
 # start the measure
 class TBDMeasure < OpenStudio::Measure::ModelMeasure
   # human readable name
@@ -84,34 +104,35 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     load_tbd_json = runner.getBoolArgumentValue("load_tbd_json", user_arguments)
 
     option = runner.getStringArgumentValue("option", user_arguments)
-
     write_tbd_json = runner.getBoolArgumentValue("write_tbd_json", user_arguments)
-
     gen_kiva = runner.getBoolArgumentValue("gen_kiva", user_arguments)
-
     gen_kiva_force = runner.getBoolArgumentValue("gen_kiva_force", user_arguments)
 
     # use the built-in error checking
-    if !runner.validateUserArguments(arguments(model), user_arguments)
-      return false
+    return false unless runner.validateUserArguments(arguments(model), user_arguments)
+
+    # Output folder for both TBD output JSON & TBD error/warning log files.
+    out_dir = '.'
+    file_paths = runner.workflow.absoluteFilePaths
+    # file_paths.each {|p| runner.registerInfo("Searching for out_dir in #{p}")} # for debugging
+
+    # Apply Measure Now does not copy files from first path back to generated_files
+    if file_paths.size >=2 && (/WorkingFiles/.match(file_paths[1].to_s) || /files/.match(file_paths[1].to_s)) && File.exists?(file_paths[1].to_s)
+      out_dir = file_paths[1].to_s
+    elsif !file_paths.empty? && File.exists?(file_paths.first.to_s)
+      out_dir = file_paths.first.to_s
     end
 
     io_path = nil
     schema_path = nil
 
-    # Internal note: The generation of a "tbd.log" file should be flagged in the
-    # runner.registerError, e.g. "TBD: Warning" or "TBD: Fatal (see tbd.log").
-
-    # To trigger an exit (e.g. failed OSM), e.g. "if/unless TBD.log.fatal?"
-    # The TBD Measure receives "io" & "surfaces" from processTBD(). If a FATAL
-    # error occurs, processTBD would return nil for both "io" & "surfaces", which
-    # would trigger a "tbd.log" file (with informative FATAL error messages).
-
     if load_tbd_json
-      runner.workflow.absoluteFilePaths.each {|p| runner.registerInfo("Searching for tbd.json in #{p}")}
+      #file_paths.each {|p| runner.registerInfo("Searching for tbd.json in #{p}")} # for debugging
       io_path = runner.workflow.findFile('tbd.json')
       if io_path.empty?
         runner.registerError("Cannot find tbd.json")
+        TBD.log(TBD::FATAL, "Cannot find 'tbd.json' - simulation ended")
+        exitTBD(runner, out_dir)
         return false
       else
         io_path = io_path.get.to_s
@@ -132,45 +153,45 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
 
     io, surfaces = processTBD(model, option, io_path, schema_path, gen_kiva)
 
-    runner.registerInfo("TBD: no fatal errors") unless TBD.fatal?
-    runner.registerInfo("TBD: fatal errors") if TBD.fatal?
-
-    surfaces.each do |id, surface|
-      if surface.has_key?(:ratio)
-        ratio  = format "%3.1f", surface[:ratio]
-        name   = id.rjust(15, " ")
-        output = "#{name} RSi derated by #{ratio}%"
-        runner.registerInfo(output)
-      end
+    if io.nil? || surfaces.nil?
+      TBD.log(TBD::ERROR, "Error(s) - halting TBD processes")
     end
 
-    if write_tbd_json
-      out_dir = '.'
-      file_paths = runner.workflow.absoluteFilePaths
-      file_paths.each {|p| runner.registerInfo("Searching for out_dir in #{p}")}
+    if TBD.fatal?
+      exitTBD(runner, out_dir)
+      return false
+    end
 
-      # Apply Measure Now does not copy files from first path back to generated_files
-      if file_paths.size >=2 && (/WorkingFiles/.match(file_paths[1].to_s) || /files/.match(file_paths[1].to_s)) && File.exists?(file_paths[1].to_s)
-        out_dir = file_paths[1].to_s
-      elsif !file_paths.empty? && File.exists?(file_paths.first.to_s)
-        out_dir = file_paths.first.to_s
-      end
-
-      out_path = File.join(out_dir, 'tbd.out.json')
-      runner.registerInfo("Writing #{out_path} in #{Dir.pwd}")
-
-      File.open(out_path, 'w') do |file|
-        file.puts JSON::pretty_generate(io)
-
-        # make sure data is written to the disk one way or the other
-        begin
-          file.fsync
-        rescue StandardError
-          file.flush
+    unless surfaces.nil?
+      surfaces.each do |id, surface|
+        if surface.has_key?(:ratio)
+          ratio  = format "%3.1f", surface[:ratio]
+          name   = id.rjust(15, " ")
+          output = "#{name} RSi derated by #{ratio}%"
+          runner.registerInfo(output)
         end
       end
     end
 
+    unless io.nil?
+      if write_tbd_json
+        out_path = File.join(out_dir, 'tbd.out.json')
+        runner.registerInfo("Writing #{out_path} in #{Dir.pwd}")
+
+        File.open(out_path, 'w') do |file|
+          file.puts JSON::pretty_generate(io)
+
+          # make sure data is written to the disk one way or the other
+          begin
+            file.fsync
+          rescue StandardError
+            file.flush
+          end
+        end
+      end
+    end
+
+    exitTBD(runner, out_dir)
     return true
   end
 end

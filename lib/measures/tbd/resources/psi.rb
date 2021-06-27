@@ -1345,8 +1345,6 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
   a = g_kiva == true || g_kiva == false
   raise "#{g_kiva.class}? expected true or false (process TBD)" unless a
 
-  TBD.log(TBD::FATAL, "test")
-
   os_building = os_model.getBuilding
 
   # Create the Topolys Model.
