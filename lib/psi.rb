@@ -57,13 +57,23 @@ class KHI
   # Requires a valid, unique :id
   #
   # @param [Hash] k A (identifier):(KHI) pair
+  #
+  # @return [Bool] Returns true if successful in appending KHI pair
   def append(k)
-    if k.is_a?(Hash) && k.has_key?(:id)
-      id = k[:id]
-      @point[id] = k[:point] unless @point.has_key?(id)
-      # should log message if duplicate attempt
+    unless k.is_a?(Hash)
+      TBD.log(TBD::ERROR, "Can't append invalid KHI pair - skipping")
+      return false
     end
-    # should log message if else
+    unless k.has_key?(:id)
+      TBD.log(TBD::ERROR, "Missing KHI pair ID - skipping")
+      return false
+    end
+    if @point.has_key?(k[:id])
+      TBD.log(TBD::ERROR, "Can't override #{k[:id]} KHI pair  - skipping")
+      return false
+    end
+    @point[k[:id]] = k[:point]
+    true
   end
 end
 
@@ -210,115 +220,121 @@ class PSI
   # Requires a valid, unique :id.
   #
   # @param [String] p A PSI set identifier
+  #
+  # @return [Bool] Returns true if successful in generating PSI set shorthands
   def genShorthands(p)
-    if @set.has_key?(p)
-      h = {}
-      h[:joint]           = @set[p].has_key?(:joint)
-      h[:transition]      = @set[p].has_key?(:transition)
-      h[:fenestration]    = @set[p].has_key?(:fenestration)
-      h[:head]            = @set[p].has_key?(:head)
-      h[:headconcave]     = @set[p].has_key?(:headconcave)
-      h[:headconvex]      = @set[p].has_key?(:headconvex)
-      h[:sill]            = @set[p].has_key?(:sill)
-      h[:sillconcave]     = @set[p].has_key?(:sillconcave)
-      h[:sillconvex]      = @set[p].has_key?(:sillconvex)
-      h[:jamb]            = @set[p].has_key?(:jamb)
-      h[:jambconcave]     = @set[p].has_key?(:jambconcave)
-      h[:jambconvex]      = @set[p].has_key?(:jambconvex)
-      h[:corner]          = @set[p].has_key?(:corner)
-      h[:cornerconcave]   = @set[p].has_key?(:cornerconcave)
-      h[:cornerconvex]    = @set[p].has_key?(:cornerconvex)
-      h[:parapet]         = @set[p].has_key?(:parapet)
-      h[:partyconcave]    = @set[p].has_key?(:parapetconcave)
-      h[:parapetconvex]   = @set[p].has_key?(:parapetconvex)
-      h[:party]           = @set[p].has_key?(:party)
-      h[:partyconcave]    = @set[p].has_key?(:partyconcave)
-      h[:partyconvex]     = @set[p].has_key?(:partyconvex)
-      h[:grade]           = @set[p].has_key?(:grade)
-      h[:gradeconcave]    = @set[p].has_key?(:gradeconcave)
-      h[:gradeconvex]     = @set[p].has_key?(:gradeconvex)
-      h[:balcony]         = @set[p].has_key?(:balcony)
-      h[:balconyconcave]  = @set[p].has_key?(:balconyconcave)
-      h[:balconyconvex]   = @set[p].has_key?(:balconyconvex)
-      h[:rimjoist]        = @set[p].has_key?(:rimjoist)
-      h[:rimjoistconcave] = @set[p].has_key?(:rimjoistconcave)
-      h[:rimjoistconvex]  = @set[p].has_key?(:rimjoistconvex)
-      @has[p] = h
-
-      v = {}
-      v[:joint]    = 0; v[:transition]      = 0; v[:fenestration]   = 0
-      v[:head]     = 0; v[:headconcave]     = 0; v[:headconvex]     = 0
-      v[:sill]     = 0; v[:sillconcave]     = 0; v[:sillconvex]     = 0
-      v[:jamb]     = 0; v[:jambconcave]     = 0; v[:jambconvex]     = 0
-      v[:corner]   = 0; v[:cornerconcave]   = 0; v[:cornerconvex]   = 0
-      v[:parapet]  = 0; v[:parapetconcave]  = 0; v[:parapetconvex]  = 0
-      v[:party]    = 0; v[:partyconcave]    = 0; v[:partyconvex]    = 0
-      v[:grade]    = 0; v[:gradeconcave]    = 0; v[:gradeconvex]    = 0
-      v[:balcony]  = 0; v[:balconyconcave]  = 0; v[:balconyconvex]  = 0
-      v[:rimjoist] = 0; v[:rimjoistconcave] = 0; v[:rimjoistconvex] = 0
-
-      v[:joint]           = @set[p][:joint]           if h[:joint]
-      v[:transition]      = @set[p][:transition]      if h[:transition]
-      v[:fenestration]    = @set[p][:fenestration]    if h[:fenestration]
-      v[:head]            = @set[p][:fenestration]    if h[:fenestration]
-      v[:headconcave]     = @set[p][:fenestration]    if h[:fenestration]
-      v[:headconvex]      = @set[p][:fenestration]    if h[:fenestration]
-      v[:sill]            = @set[p][:fenestration]    if h[:fenestration]
-      v[:sillconcave]     = @set[p][:fenestration]    if h[:fenestration]
-      v[:sillconvex]      = @set[p][:fenestration]    if h[:fenestration]
-      v[:jamb]            = @set[p][:fenestration]    if h[:fenestration]
-      v[:jambconcave]     = @set[p][:fenestration]    if h[:fenestration]
-      v[:jambconvex]      = @set[p][:fenestration]    if h[:fenestration]
-      v[:head]            = @set[p][:head]            if h[:head]
-      v[:headconcave]     = @set[p][:head]            if h[:head]
-      v[:headconvex]      = @set[p][:head]            if h[:head]
-      v[:sill]            = @set[p][:sill]            if h[:sill]
-      v[:sillconcave]     = @set[p][:sill]            if h[:sill]
-      v[:sillconvex]      = @set[p][:sill]            if h[:sill]
-      v[:jamb]            = @set[p][:jamb]            if h[:jamb]
-      v[:jambconcave]     = @set[p][:jamb]            if h[:jamb]
-      v[:jambconvex]      = @set[p][:jamb]            if h[:jamb]
-      v[:headconcave]     = @set[p][:headconcave]     if h[:headconcave]
-      v[:headconvex]      = @set[p][:headconvex]      if h[:headconvex]
-      v[:sillconcave]     = @set[p][:sillconcave]     if h[:sillconcave]
-      v[:sillconvex]      = @set[p][:sillconvex]      if h[:sillconvex]
-      v[:jambconcave]     = @set[p][:jambconcave]     if h[:jambconcave]
-      v[:jambconvex]      = @set[p][:jambconvex]      if h[:jambconvex]
-      v[:corner]          = @set[p][:corner]          if h[:corner]
-      v[:cornerconcave]   = @set[p][:corner]          if h[:corner]
-      v[:cornerconvex]    = @set[p][:corner]          if h[:corner]
-      v[:cornerconcave]   = @set[p][:cornerconcave]   if h[:cornerconcave]
-      v[:cornerconvex]    = @set[p][:cornerconvex]    if h[:cornerconvex]
-      v[:parapet]         = @set[p][:parapet]         if h[:parapet]
-      v[:parapetconcave]  = @set[p][:parapet]         if h[:parapet]
-      v[:parapetconvex]   = @set[p][:parapet]         if h[:parapet]
-      v[:parapetconcave]  = @set[p][:parapetconcave]  if h[:parapetconcave]
-      v[:parapetconvex]   = @set[p][:parapetconvex]   if h[:parapetconvex]
-      v[:party]           = @set[p][:party]           if h[:party]
-      v[:partyconcave]    = @set[p][:party]           if h[:party]
-      v[:partyconvex]     = @set[p][:party]           if h[:party]
-      v[:partyconcave]    = @set[p][:partyconcave]    if h[:partyconcave]
-      v[:partyconvex]     = @set[p][:partyconvex]     if h[:partyconvex]
-      v[:grade]           = @set[p][:grade]           if h[:grade]
-      v[:gradeconcave]    = @set[p][:grade]           if h[:grade]
-      v[:gradeconvex]     = @set[p][:grade]           if h[:grade]
-      v[:gradeconcave]    = @set[p][:gradeconcave]    if h[:gradeconcave]
-      v[:gradeconvex]     = @set[p][:gradeconvex]     if h[:gradeconvex]
-      v[:balcony]         = @set[p][:balcony]         if h[:balcony]
-      v[:balconyconcave]  = @set[p][:balcony]         if h[:balcony]
-      v[:balconyconvex]   = @set[p][:balcony]         if h[:balcony]
-      v[:balconyconcave]  = @set[p][:balconyconcave]  if h[:balconyconcave]
-      v[:balconyconvex]   = @set[p][:balconyconvex]   if h[:balconyconvex]
-      v[:rimjoist]        = @set[p][:rimjoist]        if h[:rimjoist]
-      v[:rimjoistconcave] = @set[p][:rimjoist]        if h[:rimjoist]
-      v[:rimjoistconvex]  = @set[p][:rimjoist]        if h[:rimjoist]
-      v[:rimjoistconcave] = @set[p][:rimjoistconcave] if h[:rimjoistconcave]
-      v[:rimjoistconvex]  = @set[p][:rimjoistconvex]  if h[:rimjoistconvex]
-
-      max = [v[:parapetconcave], v[:parapetconvex]].max
-      v[:parapet] = max unless @has[:parapet]
-      @val[p] = v
+    unless @set.has_key?(p)
+      TBD.log(TBD::ERROR, "Can't generate #{p} shorthands - skipping")
+      return false
     end
+
+    h = {}
+    h[:joint]           = @set[p].has_key?(:joint)
+    h[:transition]      = @set[p].has_key?(:transition)
+    h[:fenestration]    = @set[p].has_key?(:fenestration)
+    h[:head]            = @set[p].has_key?(:head)
+    h[:headconcave]     = @set[p].has_key?(:headconcave)
+    h[:headconvex]      = @set[p].has_key?(:headconvex)
+    h[:sill]            = @set[p].has_key?(:sill)
+    h[:sillconcave]     = @set[p].has_key?(:sillconcave)
+    h[:sillconvex]      = @set[p].has_key?(:sillconvex)
+    h[:jamb]            = @set[p].has_key?(:jamb)
+    h[:jambconcave]     = @set[p].has_key?(:jambconcave)
+    h[:jambconvex]      = @set[p].has_key?(:jambconvex)
+    h[:corner]          = @set[p].has_key?(:corner)
+    h[:cornerconcave]   = @set[p].has_key?(:cornerconcave)
+    h[:cornerconvex]    = @set[p].has_key?(:cornerconvex)
+    h[:parapet]         = @set[p].has_key?(:parapet)
+    h[:partyconcave]    = @set[p].has_key?(:parapetconcave)
+    h[:parapetconvex]   = @set[p].has_key?(:parapetconvex)
+    h[:party]           = @set[p].has_key?(:party)
+    h[:partyconcave]    = @set[p].has_key?(:partyconcave)
+    h[:partyconvex]     = @set[p].has_key?(:partyconvex)
+    h[:grade]           = @set[p].has_key?(:grade)
+    h[:gradeconcave]    = @set[p].has_key?(:gradeconcave)
+    h[:gradeconvex]     = @set[p].has_key?(:gradeconvex)
+    h[:balcony]         = @set[p].has_key?(:balcony)
+    h[:balconyconcave]  = @set[p].has_key?(:balconyconcave)
+    h[:balconyconvex]   = @set[p].has_key?(:balconyconvex)
+    h[:rimjoist]        = @set[p].has_key?(:rimjoist)
+    h[:rimjoistconcave] = @set[p].has_key?(:rimjoistconcave)
+    h[:rimjoistconvex]  = @set[p].has_key?(:rimjoistconvex)
+    @has[p] = h
+
+    v = {}
+    v[:joint]    = 0; v[:transition]      = 0; v[:fenestration]   = 0
+    v[:head]     = 0; v[:headconcave]     = 0; v[:headconvex]     = 0
+    v[:sill]     = 0; v[:sillconcave]     = 0; v[:sillconvex]     = 0
+    v[:jamb]     = 0; v[:jambconcave]     = 0; v[:jambconvex]     = 0
+    v[:corner]   = 0; v[:cornerconcave]   = 0; v[:cornerconvex]   = 0
+    v[:parapet]  = 0; v[:parapetconcave]  = 0; v[:parapetconvex]  = 0
+    v[:party]    = 0; v[:partyconcave]    = 0; v[:partyconvex]    = 0
+    v[:grade]    = 0; v[:gradeconcave]    = 0; v[:gradeconvex]    = 0
+    v[:balcony]  = 0; v[:balconyconcave]  = 0; v[:balconyconvex]  = 0
+    v[:rimjoist] = 0; v[:rimjoistconcave] = 0; v[:rimjoistconvex] = 0
+
+    v[:joint]           = @set[p][:joint]           if h[:joint]
+    v[:transition]      = @set[p][:transition]      if h[:transition]
+    v[:fenestration]    = @set[p][:fenestration]    if h[:fenestration]
+    v[:head]            = @set[p][:fenestration]    if h[:fenestration]
+    v[:headconcave]     = @set[p][:fenestration]    if h[:fenestration]
+    v[:headconvex]      = @set[p][:fenestration]    if h[:fenestration]
+    v[:sill]            = @set[p][:fenestration]    if h[:fenestration]
+    v[:sillconcave]     = @set[p][:fenestration]    if h[:fenestration]
+    v[:sillconvex]      = @set[p][:fenestration]    if h[:fenestration]
+    v[:jamb]            = @set[p][:fenestration]    if h[:fenestration]
+    v[:jambconcave]     = @set[p][:fenestration]    if h[:fenestration]
+    v[:jambconvex]      = @set[p][:fenestration]    if h[:fenestration]
+    v[:head]            = @set[p][:head]            if h[:head]
+    v[:headconcave]     = @set[p][:head]            if h[:head]
+    v[:headconvex]      = @set[p][:head]            if h[:head]
+    v[:sill]            = @set[p][:sill]            if h[:sill]
+    v[:sillconcave]     = @set[p][:sill]            if h[:sill]
+    v[:sillconvex]      = @set[p][:sill]            if h[:sill]
+    v[:jamb]            = @set[p][:jamb]            if h[:jamb]
+    v[:jambconcave]     = @set[p][:jamb]            if h[:jamb]
+    v[:jambconvex]      = @set[p][:jamb]            if h[:jamb]
+    v[:headconcave]     = @set[p][:headconcave]     if h[:headconcave]
+    v[:headconvex]      = @set[p][:headconvex]      if h[:headconvex]
+    v[:sillconcave]     = @set[p][:sillconcave]     if h[:sillconcave]
+    v[:sillconvex]      = @set[p][:sillconvex]      if h[:sillconvex]
+    v[:jambconcave]     = @set[p][:jambconcave]     if h[:jambconcave]
+    v[:jambconvex]      = @set[p][:jambconvex]      if h[:jambconvex]
+    v[:corner]          = @set[p][:corner]          if h[:corner]
+    v[:cornerconcave]   = @set[p][:corner]          if h[:corner]
+    v[:cornerconvex]    = @set[p][:corner]          if h[:corner]
+    v[:cornerconcave]   = @set[p][:cornerconcave]   if h[:cornerconcave]
+    v[:cornerconvex]    = @set[p][:cornerconvex]    if h[:cornerconvex]
+    v[:parapet]         = @set[p][:parapet]         if h[:parapet]
+    v[:parapetconcave]  = @set[p][:parapet]         if h[:parapet]
+    v[:parapetconvex]   = @set[p][:parapet]         if h[:parapet]
+    v[:parapetconcave]  = @set[p][:parapetconcave]  if h[:parapetconcave]
+    v[:parapetconvex]   = @set[p][:parapetconvex]   if h[:parapetconvex]
+    v[:party]           = @set[p][:party]           if h[:party]
+    v[:partyconcave]    = @set[p][:party]           if h[:party]
+    v[:partyconvex]     = @set[p][:party]           if h[:party]
+    v[:partyconcave]    = @set[p][:partyconcave]    if h[:partyconcave]
+    v[:partyconvex]     = @set[p][:partyconvex]     if h[:partyconvex]
+    v[:grade]           = @set[p][:grade]           if h[:grade]
+    v[:gradeconcave]    = @set[p][:grade]           if h[:grade]
+    v[:gradeconvex]     = @set[p][:grade]           if h[:grade]
+    v[:gradeconcave]    = @set[p][:gradeconcave]    if h[:gradeconcave]
+    v[:gradeconvex]     = @set[p][:gradeconvex]     if h[:gradeconvex]
+    v[:balcony]         = @set[p][:balcony]         if h[:balcony]
+    v[:balconyconcave]  = @set[p][:balcony]         if h[:balcony]
+    v[:balconyconvex]   = @set[p][:balcony]         if h[:balcony]
+    v[:balconyconcave]  = @set[p][:balconyconcave]  if h[:balconyconcave]
+    v[:balconyconvex]   = @set[p][:balconyconvex]   if h[:balconyconvex]
+    v[:rimjoist]        = @set[p][:rimjoist]        if h[:rimjoist]
+    v[:rimjoistconcave] = @set[p][:rimjoist]        if h[:rimjoist]
+    v[:rimjoistconvex]  = @set[p][:rimjoist]        if h[:rimjoist]
+    v[:rimjoistconcave] = @set[p][:rimjoistconcave] if h[:rimjoistconcave]
+    v[:rimjoistconvex]  = @set[p][:rimjoistconvex]  if h[:rimjoistconvex]
+
+    max = [v[:parapetconcave], v[:parapetconvex]].max
+    v[:parapet] = max unless @has[:parapet]
+    @val[p] = v
+    true
   end
 
   ##
@@ -326,12 +342,23 @@ class PSI
   # Requires a valid, unique :id.
   #
   # @param [Hash] p A (identifier):(PSI set) pair
+  #
+  # @return [Bool] Returns true if successful in appending PSI set
   def append(p)
-    raise "Append PSI set: #{p.class}? expected Hash" unless p.is_a?(Hash)
-    raise "Append PSI set: missing identifier" unless p.has_key?(:id)
-    id = p[:id]
-    s = {}
+    unless p.is_a?(Hash)
+      TBD.log(TBD::ERROR, "Can't append invalid PSI set - skipping")
+      return false
+    end
+    unless p.has_key?(:id)
+      TBD.log(TBD::ERROR, "Missing PSI set ID - skipping")
+      return false
+    end
+    if @set.has_key?(p[:id])
+      TBD.log(TBD::ERROR, "Can't override #{p[:id]} PSI set  - skipping")
+      return false
+    end
 
+    s = {}
     # Most PSI types have concave and convex variants, depending on the polar
     # position of deratable surfaces around an edge-as-thermal-bridge. One
     # exception is :fenestration, which TBD later breaks down into :head, :sill
@@ -373,10 +400,10 @@ class PSI
 
     s[:joint]           = 0.000 unless p.has_key?(:joint)
     s[:transition]      = 0.000 unless p.has_key?(:transition)
-    unless @set.has_key?(id)
-      @set[id] = s
-      self.genShorthands(id)
-    end
+
+    @set[p[:id]] = s
+    self.genShorthands(p[:id])
+    true
   end
 
   ##
@@ -400,11 +427,11 @@ class PSI
   #
   # @return [Bool] Returns true if stored and has a complete PSI set
   def complete?(p)
-    return false unless @set.has_key?(p)
-    return false unless @has.has_key?(p)
-    return false unless @val.has_key?(p)
-    raise "missing @has key #{p}" unless @has.has_key?(p)
-    raise "missing head" unless @has[p].has_key?(:head)
+    unless @set.has_key?(p) && @has.has_key?(p) && @val.has_key?(p)
+      TBD.log(TBD::ERROR, "Can't locate PSI set #{p} - skipping")
+      return false
+    end
+
     holes = []
     holes << :head if @has[p][:head]
     holes << :sill if @has[p][:sill]
@@ -467,24 +494,20 @@ end
 #
 # @return [Bool] Returns true if edges share vertex pairs
 def matches?(e1, e2)
-  raise "Invalid edges (matches?)" unless e1 && e2
-  raise "Missing :v0 for e1" unless e1.has_key?(:v0)
-  raise "Missing :v1 for e1" unless e1.has_key?(:v1)
-  raise "Missing :v0 for e2" unless e2.has_key?(:v0)
-  raise "Missing :v1 for e2" unless e2.has_key?(:v1)
-  cl = Topolys::Point3D
-  raise "e1 v0: #{e1[:v0].class}? expected #{cl}" unless e1[:v0].is_a?(cl)
-  raise "e1 v1: #{e1[:v1].class}? expected #{cl}" unless e1[:v1].is_a?(cl)
-  raise "e2 v0: #{e1[:v0].class}? expected #{cl}" unless e2[:v0].is_a?(cl)
-  raise "e2 v1: #{e1[:v1].class}? expected #{cl}" unless e2[:v1].is_a?(cl)
+  return false unless e1 && e2
+  return false unless e1.has_key?(:v0) && e1.has_key?(:v1)
+  return false unless e2.has_key?(:v0) && e2.has_key?(:v1)
 
-  answer = false
+  cl = Topolys::Point3D
+  return false unless e1[:v0].is_a?(cl) && e1[:v1].is_a?(cl)
+  return false unless e2[:v0].is_a?(cl) && e2[:v1].is_a?(cl)
+
   e1_vector = e1[:v1] - e1[:v0]
   e2_vector = e2[:v1] - e2[:v0]
-  raise "e1 length <= TOL" if e1_vector.magnitude < TOL
-  raise "e2 length <= TOL" if e2_vector.magnitude < TOL
+  return false if e1_vector.magnitude < TOL
+  return false if e2_vector.magnitude < TOL
 
-  answer = true if
+  return true if
   (
     (
       ( (e1[:v0].x - e2[:v0].x).abs < TOL &&
@@ -507,7 +530,7 @@ def matches?(e1, e2)
       )
     )
   )
-  answer
+  false
 end
 
 ##
@@ -525,7 +548,7 @@ end
 # @param [String] ioP Path to a user-set TBD JSON input file (optional)
 # @param [String] schemaP Path to a TBD JSON schema file (optional)
 #
-# @return [Hash] Returns a JSON-generated collection of user inputs
+# @return [Hash] Returns a JSON-generated collection of user inputs; nil if fail
 # @return [Hash] Returns a new PSI library, enriched with optional sets on file
 # @return [Hash] Returns a new KHI library, enriched with optional pairs on file
 def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
@@ -572,7 +595,7 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
     end
 
     if io.has_key?(:khis)                     # library of point thermal bridges
-      io[:khis].each do |k| khi.append(k); end
+      io[:khis].each { |k| khi.append(k) }
     end
 
     if io.has_key?(:building)

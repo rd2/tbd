@@ -23,9 +23,11 @@ def exitTBD(runner, out_dir)
   unless TBD.logs.empty? && TBD.status < TBD::WARN
     runner.registerInfo("TBD: warning(s) - see 'tbd.log' file)") if TBD.warn?
     runner.registerInfo("TBD: non-fatal error(s) - see 'tbd.log' file") if TBD.error?
-    runner.registerInfo("TBD: fatal error(s) - see 'tbd.log' file") if TBD.fatal?
+    runner.registerInfo("TBD: fatal error(s):") if TBD.fatal?
 
     msgs = TBD.logs.map{ |l| "#{l[:time]} (#{TBD.tag(l[:level])}) #{l[:msg]}" }
+    msgs.each { |msg| runner.registerInfo(msg) }
+
     out_path = File.join(out_dir, "tbd.log")
     File.open(out_path, "w") do |l|
       l.write msgs.join("\n")

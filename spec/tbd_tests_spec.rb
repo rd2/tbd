@@ -3557,7 +3557,7 @@ RSpec.describe TBD do
     # Loop through input psis to ensure uniqueness vs PSI defaults
     psi = PSI.new
     expect(io.has_key?(:psis)).to be(true)
-    io[:psis].each do |p| psi.append(p); end
+    io[:psis].each { |p| expect(psi.append(p)).to be(true) }
     expect(psi.set.size).to eq(9)
     expect(psi.set.has_key?("poor (BETBG)")).to be(true)
     expect(psi.set.has_key?("regular (BETBG)")).to be(true)
@@ -3572,7 +3572,7 @@ RSpec.describe TBD do
     # Similar treatment for khis
     khi = KHI.new
     expect(io.has_key?(:khis)).to be(true)
-    io[:khis].each do |k| khi.append(k); end
+    io[:khis].each { |k| expect(khi.append(k)).to be(true) }
     expect(khi.point.size).to eq(7)
     expect(khi.point.has_key?("poor (BETBG)")).to be(true)
     expect(khi.point.has_key?("regular (BETBG)")).to be(true)
@@ -3644,7 +3644,7 @@ RSpec.describe TBD do
     # Loop through input psis to ensure uniqueness vs PSI defaults.
     psi = PSI.new
     expect(io.has_key?(:psis)).to be(true)
-    io[:psis].each do |p| psi.append(p); end
+    io[:psis].each { |p| expect(psi.append(p)).to be(true) }
     expect(psi.set.size).to eq(9)
     expect(psi.set.has_key?("poor (BETBG)")).to be(true)
     expect(psi.set.has_key?("regular (BETBG)")).to be(true)
@@ -3693,7 +3693,7 @@ RSpec.describe TBD do
     # Loop through input psis to ensure uniqueness vs PSI defaults
     psi = PSI.new
     expect(io.has_key?(:psis)).to be(true)
-    io[:psis].each do |p| psi.append(p); end
+    io[:psis].each { |p| expect(psi.append(p)).to be(true) }
     expect(psi.set.size).to eq(10)
     expect(psi.set.has_key?("poor (BETBG)")).to be(true)
     expect(psi.set.has_key?("regular (BETBG)")).to be(true)
@@ -3760,7 +3760,7 @@ RSpec.describe TBD do
     # Loop through input psis to ensure uniqueness vs PSI defaults
     psi = PSI.new
     expect(io.has_key?(:psis)).to be(true)
-    io[:psis].each do |p| psi.append(p); end
+    io[:psis].each { |p| expect(psi.append(p)).to be(true) }
     expect(psi.set.size).to eq(8)
     expect(psi.set.has_key?("poor (BETBG)")).to be(true)
     expect(psi.set.has_key?("regular (BETBG)")).to be(true)
@@ -4193,13 +4193,13 @@ RSpec.describe TBD do
       party:         0.000,
       grade:         0.000
     }
-    psi.append(new_set)
+    expect(psi.append(new_set)).to be(true)
     expect(psi.set.has_key?("new set")).to be(true)
     expect(psi.complete?("new set")).to be(true)
 
     expect(psi.set["new set"][:grade]).to eq(0)
     new_set[:grade] = 1.0
-    psi.append(new_set) # does not override existing value
+    expect(psi.append(new_set)).to be(false) # does not override existing value
     expect(psi.set["new set"][:grade]).to eq(0)
 
     expect(psi.set.has_key?("incomplete set")).to be(false)
@@ -4209,7 +4209,7 @@ RSpec.describe TBD do
       id:           "incomplete set",
       grade:        0.000  #
     }
-    psi.append(incomplete_set)
+    expect(psi.append(incomplete_set)).to be(true)
     expect(psi.set.has_key?("incomplete set")).to be(true)
     expect(psi.complete?("incomplete set")).to be(false)
 
@@ -4235,7 +4235,7 @@ RSpec.describe TBD do
       party:         0.005,
       grade:         0.006
     }
-    psi.append(all_sills)
+    expect(psi.append(all_sills)).to be(true)
     expect(psi.set.has_key?("all sills")).to be(true)
     expect(psi.complete?("all sills")).to be(true)
     holds, vals = psi.shorthands("all sills")
@@ -4267,7 +4267,7 @@ RSpec.describe TBD do
       party:         0.005,
       grade:         0.006
     }
-    psi.append(partial_sills)
+    expect(psi.append(partial_sills)).to be(true)
     expect(psi.set.has_key?("partial sills")).to be(true)
     expect(psi.complete?("partial sills")).to be(true)   # can be a building set
     holds, vals = psi.shorthands("partial sills")
@@ -4299,7 +4299,7 @@ RSpec.describe TBD do
       party:         0.005,
       grade:         0.006
     }
-    psi.append(no_sills)
+    expect(psi.append(no_sills)).to be(true)
     expect(psi.set.has_key?("no sills")).to be(true)
     expect(psi.complete?("no sills")).to be(true)        # can be a building set
     holds, vals = psi.shorthands("no sills")
