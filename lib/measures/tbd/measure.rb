@@ -21,7 +21,6 @@ end
 # TBD exit strategy when faced with warnings/errors.
 def exitTBD(runner, out_dir)
   unless TBD.logs.empty? && TBD.status < TBD::WARN
-
     msgs = []
     TBD.logs.each do |l|
       msg = "#{l[:time]} (#{TBD.tag(l[:level])}) #{l[:msg]}"

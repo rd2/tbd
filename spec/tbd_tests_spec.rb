@@ -591,7 +591,10 @@ RSpec.describe TBD do
       end
 
       t, r = transforms(os_model, space)
+      expect(t.nil?).to be(false)
+      expect(r.nil?).to be(false)
       n = trueNormal(s, r)
+      expect(n.nil?).to be(false)
 
       type = :floor
       type = :ceiling if /ceiling/i.match(s.surfaceType)
@@ -671,7 +674,10 @@ RSpec.describe TBD do
 
       # Site-specific (or absolute, or true) surface normal.
       t, r = transforms(os_model, space)
+      expect(t.nil?).to be(false)
+      expect(r.nil?).to be(false)
       n = trueNormal(s, r)
+      expect(n.nil?).to be(false)
 
       points = (t * pts).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
       minz = (points.map{ |p| p.z }).min
@@ -751,6 +757,8 @@ RSpec.describe TBD do
       # Site-specific (or absolute, or true) surface normal. Shading surface
       # groups may also be linked to (rotated) spaces.
       t, r = transforms(os_model, group)
+      expect(t.nil?).to be(false)
+      expect(r.nil?).to be(false)
       shading = group.to_ShadingSurfaceGroup
       unless shading.empty?
         unless shading.get.space.empty?
@@ -758,6 +766,7 @@ RSpec.describe TBD do
         end
       end
       n = trueNormal(s, r)
+      expect(n.nil?).to be(false)
 
       points = (t * s.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
       minz = (points.map{ |p| p.z }).min
@@ -1017,8 +1026,13 @@ RSpec.describe TBD do
 
     psi_set = "poor (BETBG)"
     io, io_p, io_k = processTBDinputs(surfaces, edges, psi_set)
+    expect(io.nil?).to be(false)
+    expect(io.empty?).to be(false)
+    expect(io.has_key?(:building)).to be(true)
     p = io[:building].first[:psi]
     has, val = io_p.shorthands(p)
+    expect(has.empty?).to be(false)
+    expect(val.empty?).to be(false)
 
     edges.values.each do |edge|
       next unless edge.has_key?(:surfaces)
@@ -4446,6 +4460,8 @@ RSpec.describe TBD do
     expect(front_FD.space.empty?).to be(false)
     space = front_FD.space.get
     t, r = transforms(os_model_FD, space)
+    expect(t.nil?).to be(false)
+    expect(r.nil?).to be(false)
 
     # The following "opening" function is standalone - does not change OSM.
     opening_area, opening_vertices = opening(os_model_FD, name)
@@ -4500,6 +4516,8 @@ RSpec.describe TBD do
     space = OpenStudio::Model::Space.new(fd_model)
     space.setName("FD space")
     t, r = transforms(fd_model, space)
+    expect(t.nil?).to be(false)
+    expect(r.nil?).to be(false)
 
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new(  0.00,  0.00, 10.00)
@@ -4625,6 +4643,8 @@ RSpec.describe TBD do
     space2 = OpenStudio::Model::Space.new(fd2_model)
     space2.setName("FD 2 space")
     t, r = transforms(fd2_model, space2)
+    expect(t.nil?).to be(false)
+    expect(r.nil?).to be(false)
 
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new(  0.00,  0.00, 10.00)
@@ -4749,6 +4769,8 @@ RSpec.describe TBD do
     space3 = OpenStudio::Model::Space.new(fd3_model)
     space3.setName("FD 3 space")
     t, r = transforms(fd3_model, space3)
+    expect(t.nil?).to be(false)
+    expect(r.nil?).to be(false)
 
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new( -2.17,  4.33,  8.75)

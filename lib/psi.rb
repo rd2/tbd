@@ -69,7 +69,7 @@ class KHI
       return false
     end
     if @point.has_key?(k[:id])
-      TBD.log(TBD::ERROR, "Can't override #{k[:id]} KHI pair  - skipping")
+      TBD.log(TBD::ERROR, "Can't override #{k[:id]} KHI pair - skipping")
       return false
     end
     @point[k[:id]] = k[:point]
@@ -223,10 +223,7 @@ class PSI
   #
   # @return [Bool] Returns true if successful in generating PSI set shorthands
   def genShorthands(p)
-    unless @set.has_key?(p)
-      TBD.log(TBD::ERROR, "Can't generate #{p} shorthands - skipping")
-      return false
-    end
+    return false unless @set.has_key?(p)
 
     h = {}
     h[:joint]           = @set[p].has_key?(:joint)
@@ -407,7 +404,7 @@ class PSI
   end
 
   ##
-  # Generate shorthand hash of PSI content
+  # Generate shorthand hash of PSI content (empty hashes if invalid ID)
   #
   # @param [String] p A PSI set identifier
   #
@@ -427,10 +424,7 @@ class PSI
   #
   # @return [Bool] Returns true if stored and has a complete PSI set
   def complete?(p)
-    unless @set.has_key?(p) && @has.has_key?(p) && @val.has_key?(p)
-      TBD.log(TBD::ERROR, "Can't locate PSI set #{p} - skipping")
-      return false
-    end
+    return false unless @set.has_key?(p) && @has.has_key?(p) && @val.has_key?(p)
 
     holes = []
     holes << :head if @has[p][:head]
@@ -563,228 +557,265 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
   psi = PSI.new                  # PSI hash, initially holding built-in defaults
   khi = KHI.new                  # KHI hash, initially holding built-in defaults
 
-  raise "Invalid surfaces (TBD inputs)" unless surfaces
-  raise "Invalid edges (TBD inputs)" unless edges
-  cl = surfaces.class
-  raise "#{cl}? expected surfaces Hash (TBD inputs)" unless cl == Hash
-  cl = edges.class
-  raise "#{cl}? expected edges Hash (TBD inputs)" unless cl == Hash
+  return io, psi, khi unless surfaces
+  return io, psi, khi unless edges
+  return io, psi, khi unless surfaces.class == Hash
+  return io, psi, khi unless edges.class == Hash
 
-  if ioP && File.size?(ioP) # optional input file exists and is non-zero
+  if ioP && File.size?(ioP)         # optional input file exists and is non-zero
     ioC = File.read(ioP)
     io = JSON.parse(ioC, symbolize_names: true)
 
     # Schema validation is not yet supported in the OpenStudio Application.
     if schemaP
       require "json-schema"
-
-      raise "Invalid TBD schema file" unless File.exist?(schemaP)
-      raise "Empty TBD schema file" if File.zero?(schemaP)
-      schemaC = File.read(schemaP)
-      schema = JSON.parse(schemaC, symbolize_names: true)
-
-      unless JSON::Validator.validate!(schema, io)
-        # Log severe warning: enable to parse (invalid) user TBD JSON file
+      if File.exist?(schemaP)
+        unless File.zero?(schemaP)
+          schemaC = File.read(schemaP)
+          schema = JSON.parse(schemaC, symbolize_names: true)
+          unless JSON::Validator.validate!(schema, io)
+            TBD.log(TBD::FATAL, "Invalid TBD (JSON) input file - stopping")
+            return nil, psi, khi
+          end
+        else
+          TBD.log(TBD::DEBUG, "Can't locate/open TBD schema file")
+        end
+        TBD.log(TBD::DEBUG, "Empty TBD schema file")
       end
     end
 
-    # Clear any stored log messages ... TO DO
-
     if io.has_key?(:psis)                    # library of linear thermal bridges
-      io[:psis].each do |p| psi.append(p); end
+      io[:psis].each { |p| return nil, psi, khi unless psi.append(p) }
     end
 
     if io.has_key?(:khis)                     # library of point thermal bridges
-      io[:khis].each { |k| khi.append(k) }
+      io[:khis].each { |k| return nil, psi, khi unless khi.append(k) }
     end
 
     if io.has_key?(:building)
-      raise "Building PSI?" unless io[:building].first.has_key?(:psi)
+      unless io[:building].first.has_key?(:psi)
+        TBD.log(TBD::FATAL, "File input: building PSI? - stopping")
+        return nil, psi, khi
+      end
     else
-      # No building PSI - "set" must default to a built-in PSI set.
+      # No building PSI on file - "set" must default to a built-in PSI set.
       io[:building] = [{ psi: set }]           # i.e. default PSI set & no KHI's
     end
 
     p = io[:building].first[:psi]
-    raise "Incomplete PSI set #{p}" unless psi.complete?(p)
+    unless psi.complete?(p)
+      TBD.log(TBD::FATAL, "Incomplete building PSI set #{p} - stopping")
+      return nil, psi, khi
+    end
 
     if io.has_key?(:stories)
       io[:stories].each do |story|
-        next unless story.has_key?(:id)
-        next unless story.has_key?(:psi)
-        i = story[:id]
-        p = story[:psi]
-
-        # Validate if story "id" is found in stories hash
-        match = false
-        surfaces.values.each do |properties|
-          next if match
-          next unless properties.has_key?(:story)
-          st = properties[:story]
-          match = true if i = st.nameString
+        if story.has_key?(:id) && story.has_key?(:psi)
+          i = story[:id]
+          p = story[:psi]
+          match = false
+          surfaces.values.each do |properties|
+            next if match
+            next unless properties.has_key?(:story)
+            st = properties[:story]
+            match = true if i = st.nameString
+          end
+          unless match
+            TBD.log(TBD::WARN, "OpenStudio story mismatch #{i} - skipping")
+          end
+          unless psi.set.has_key?(p)
+            TBD.log(TBD::WARN, "Story #{i} PSI mismatch - skipping")
+          end
+        else
+          TBD.log(TBD::WARN, "Invalid story PSI entry file - skipping")
         end
-        raise "Mismatch OpenStudio #{i}" unless match
-        raise "#{i} PSI mismatch" unless psi.set.has_key?(p)
       end
     end
 
     if io.has_key?(:spacetypes)
       io[:spacetypes].each do |stype|
-        next unless stype.has_key?(:id)
-        next unless stype.has_key?(:psi)
-        i = stype[:id]
-        p = stype[:psi]
-
-        # Validate if spacetype "id" is found in spacetypes hash
-        match = false
-        surfaces.values.each do |properties|
-          next if match
-          next unless properties.has_key?(:stype)
-          spt = properties[:stype]
-          match = true if i = spt.nameString
+        if stype.has_key?(:id) && stype.has_key?(:psi)
+          i = stype[:id]
+          p = stype[:psi]
+          match = false
+          surfaces.values.each do |properties|
+            next if match
+            next unless properties.has_key?(:stype)
+            spt = properties[:stype]
+            match = true if i = spt.nameString
+          end
+          unless match
+            TBD.log(TBD::WARN, "OpenStudio spacetype mismatch #{i} - skipping")
+          end
+          unless psi.set.has_key?(p)
+            TBD.log(TBD::WARN, "Spacetype #{i} PSI mismatch - skipping")
+          end
+        else
+          TBD.log(TBD::WARN, "Invalid spacetype entry on file - skipping")
         end
-        raise "Mismatch OpenStudio #{i}" unless match
-        raise "#{i} PSI mismatch" unless psi.set.has_key?(p)
       end
     end
 
     if io.has_key?(:spaces)
       io[:spaces].each do |space|
-        next unless space.has_key?(:id)
-        next unless space.has_key?(:psi)
-        i = space[:id]
-        p = space[:psi]
-
-        # Validate if space "id" is found in surfaces hash
-        match = false
-        surfaces.values.each do |properties|
-          next if match
-          next unless properties.has_key?(:space)
-          sp = properties[:space]
-          match = true if i == sp.nameString
+        if space.has_key?(:id) && space.has_key?(:psi)
+          i = space[:id]
+          p = space[:psi]
+          match = false
+          surfaces.values.each do |properties|
+            next if match
+            next unless properties.has_key?(:space)
+            sp = properties[:space]
+            match = true if i == sp.nameString
+          end
+          unless match
+            TBD.log(TBD::WARN, "OpenStudio space mismatch #{i} - skipping")
+          end
+          unless psi.set.has_key?(p)
+            TBD.log(TBD::WARN, "Space #{i} PSI mismatch - skipping")
+          end
+        else
+          TBD.log(TBD::WARN, "Invalid space entry on file - skipping")
         end
-        raise "Mismatch OpenStudio #{i}" unless match
-        raise "#{i} PSI mismatch" unless psi.set.has_key?(p)
       end
     end
 
     if io.has_key?(:surfaces)
       io[:surfaces].each do |surface|
-        next unless surface.has_key?(:id)
-        i = surface[:id]
-        raise "Mismatch OpenStudio #{i}" unless surfaces.has_key?(i)
-
-        # surfaces can optionally hold custom PSI sets and/or KHI data
-        if surface.has_key?(:psi)
-          p = surface[:psi]
-          raise "#{i} PSI mismatch" unless psi.set.has_key?(p)
-        end
-
-        if surface.has_key?(:khis)
-          surface[:khis].each do |k|
-            next unless k.has_key?(:id)
-            ii = k[:id]
-            raise "#{i} KHI #{ii} mismatch" unless khi.point.has_key?(ii)
+        if surface.has_key?(:id)
+          i = surface[:id]
+          unless surfaces.has_key?(i)
+            TBD.log(TBD::WARN, "OpenStudio surface mismatch #{i} - skipping")
           end
+
+          # surfaces can optionally hold custom PSI sets and/or KHI data
+          if surface.has_key?(:psi)
+            p = surface[:psi]
+            unless psi.set.has_key?(p)
+              TBD.log(TBD::WARN, "Surface #{i} PSI mismatch - skipping")
+            end
+          end
+          if surface.has_key?(:khis)
+            surface[:khis].each do |k|
+              next unless k.has_key?(:id)
+              ii = k[:id]
+              unless khi.point.has_key?(ii)
+                TBD.log(TBD::WARN, "#{i} KHI #{ii} mismatch")
+              end
+            end
+          end
+        else
+          TBD.log(TBD::WARN, "Invalid surface entry on file - skipping")
         end
       end
     end
 
     if io.has_key?(:edges)
       io[:edges].each do |edge|
-        next unless edge.has_key?(:type)
-        next unless edge.has_key?(:surfaces)
-        t = edge[:type].to_sym
-
-        # One or more edges on file are valid if all their listed surfaces
-        # together connect at least one or more edges in TBD/Topolys (in
-        # memory). The latter may connect e.g. 3x TBD/Topolys surfaces, but
-        # the list of surfaces on file may be shorter, e.g. only 2x surfaces.
-        n = 0
-        edge[:surfaces].each do |s|                       # JSON objects on file
-          edges.values.each do |e|               # TBD/Topolys objects in memory
-            next if e.has_key?(:io_type)
-            match = false
-            next unless e.has_key?(:surfaces)
-            next unless e[:surfaces].has_key?(s)
-            match = true   # ... yet all JSON surfaces must be linked in Topolys
-            edge[:surfaces].each do |ss|
-              match = false unless e[:surfaces].has_key?(ss)
-            end
-
-            next unless match
-            if edge.has_key?(:length)    # optional, narrows down search (~10mm)
-              match = false unless (e[:length] - edge[:length]).abs < TOL
-            end
-
-            if edge.has_key?(:v0x) ||
-               edge.has_key?(:v0y) ||
-               edge.has_key?(:v0z) ||
-               edge.has_key?(:v1x) ||
-               edge.has_key?(:v1y) ||
-               edge.has_key?(:v1z)
-
-              unless edge.has_key?(:v0x) &&
-                     edge.has_key?(:v0y) &&
-                     edge.has_key?(:v0z) &&
-                     edge.has_key?(:v1x) &&
-                     edge.has_key?(:v1y) &&
-                     edge.has_key?(:v1z)
-                raise "Edge vertices must come in pairs"           # all or none
+        if edge.has_key?(:type) && edge.has_key?(:surfaces)
+          t = edge[:type].to_sym
+          # One or more edges on file are valid if all their listed surfaces
+          # together connect at least one or more edges in TBD/Topolys (in
+          # memory). The latter may connect e.g. 3x TBD/Topolys surfaces, but
+          # the list of surfaces on file may be shorter, e.g. only 2x surfaces.
+          n = 0
+          edge[:surfaces].each do |s|                     # JSON objects on file
+            edges.values.each do |e|             # TBD/Topolys objects in memory
+              next if e.has_key?(:io_type)         # type already set - skipping
+              match = false
+              next unless e.has_key?(:surfaces)
+              next unless e[:surfaces].has_key?(s)
+              match = true # ... yet all JSON surfaces must be linked in Topolys
+              edge[:surfaces].each do |ss|
+                match = false unless e[:surfaces].has_key?(ss)
               end
-              e1 = {}
-              e2 = {}
-              e1[:v0] = Topolys::Point3D.new(edge[:v0x].to_f,
-                                             edge[:v0y].to_f,
-                                             edge[:v0z].to_f)
-              e1[:v1] = Topolys::Point3D.new(edge[:v1x].to_f,
-                                             edge[:v1y].to_f,
-                                             edge[:v1z].to_f)
-              e2[:v0] = e[:v0].point
-              e2[:v1] = e[:v1].point
-              match = matches?(e1, e2)
-            end
 
-            next unless match
-            e[:io_type] = t
-            n += 1
-            if edge.has_key?(:psi)                                    # optional
-              p = edge[:psi]
-              raise "PSI mismatch (TBD inputs)" unless psi.set.has_key?(p)
-              tt = psi.safeType(p, t)
-              raise "#{p} missing PSI #{t} or variants" if tt.nil?
-              e[:io_set] = p
+              next unless match
+              if edge.has_key?(:length)  # optional, narrows down search (~10mm)
+                match = false unless (e[:length] - edge[:length]).abs < TOL
+              end
+
+              if edge.has_key?(:v0x) ||     # optional, narrows down to vertices
+                 edge.has_key?(:v0y) ||
+                 edge.has_key?(:v0z) ||
+                 edge.has_key?(:v1x) ||
+                 edge.has_key?(:v1y) ||
+                 edge.has_key?(:v1z)
+
+                unless edge.has_key?(:v0x) &&
+                       edge.has_key?(:v0y) &&
+                       edge.has_key?(:v0z) &&
+                       edge.has_key?(:v1x) &&
+                       edge.has_key?(:v1y) &&
+                       edge.has_key?(:v1z)
+                  TBD.log(TBD::WARN, "Edge vertices come in pairs - skipping")
+                end
+                e1 = {}
+                e2 = {}
+                e1[:v0] = Topolys::Point3D.new(edge[:v0x].to_f,
+                                               edge[:v0y].to_f,
+                                               edge[:v0z].to_f)
+                e1[:v1] = Topolys::Point3D.new(edge[:v1x].to_f,
+                                               edge[:v1y].to_f,
+                                               edge[:v1z].to_f)
+                e2[:v0] = e[:v0].point
+                e2[:v1] = e[:v1].point
+                match = matches?(e1, e2)
+              end
+
+              next unless match
+              e[:io_type] = t        # sucess: matching edge - setting edge type
+              n += 1
+
+              if edge.has_key?(:psi)                                  # optional
+                p = edge[:psi]
+                if psi.set.has_key?(p)
+                  tt = psi.safeType(p, t)
+                  unless tt.nil?
+                    e[:io_set] = p
+                  else
+                    TBD.log(TBD::WARN, "#{p} missing PSI type #{t} - skipping")
+                  end
+                else
+                  TBD.log(TBD::WARN, "Edge PSI set mismatch - skipping")
+                end
+              end
             end
           end
+          TBD.log(TBD::WARN, "Edge: OpenStudio mimatch - skipping") if n == 0
+        else
+          TBD.log(TBD::WARN, "Invalid edge entry on file - skipping")
         end
-        raise "Edge: missing OpenStudio match" if n == 0
       end
     end
   else
     # No (optional) user-defined TBD JSON input file.
     # In such cases, "set" must refer to a valid PSI set
-    raise "Incomplete PSI set #{set}" unless psi.complete?(set)
-    io[:building] = [{ psi: set }]             # i.e. default PSI set & no KHI's
+    if psi.complete?(set)
+      io[:building] = [{ psi: set }]           # i.e. default PSI set & no KHI's
+    else
+      TBD.log(TBD::FATAL, "Incomplete building PSI set #{set} - stopping")
+      return nil, psi, khi
+    end
   end
   return io, psi, khi
 end
 
 ##
-# Return OpenStudio site/space transformation & rotation
+# Return OpenStudio site/space transformation & rotation; nil if unsuccessful
 #
 # @param [OpenStudio::Model::Model] model An OS model
 # @param [OpenStudio::Model::Space or ::ShadingSurfaceGroup] group An OS group
 #
-# @return [OpenStudio::Transformation] Returns group vs site transformation
+# @return [OpenStudio::Transformation] Returns group/site transformation
 # @return [Float] Returns site + group rotation angle [0,2PI) radians
 def transforms(model, group)
-  raise "Invalid model (transforms)" unless model
-  raise "invalid group (transforms)" unless group
-  cl = OpenStudio::Model::Model
-  raise "#{model.class}? expected #{cl} (transforms)" unless model.is_a?(cl)
+  return nil, nil unless model
+  return nil, nil unless group
+  return nil, nil unless model.is_a?(OpenStudio::Model::Model)
   gr = group.is_a?(OpenStudio::Model::Space)
   gr = group.is_a?(OpenStudio::Model::ShadingSurfaceGroup) || gr
-  raise "#{group.class}? expected OS group (transforms)" unless gr
+  return nil, nil unless gr
 
   t = group.siteTransformation
   r = group.directionofRelativeNorth + model.getBuilding.northAxis
@@ -792,18 +823,17 @@ def transforms(model, group)
 end
 
 ##
-# Return site-specific (or absolute) Topolys surface normal
+# Return site-specific (or absolute) Topolys surface normal; nil unsuccessful
 #
 # @param [OpenStudio::Model::PlanarSurface] s An OS planar surface
 # @param [Float] r A rotation angle [0,360) degrees
 #
 # @return [OpenStudio::Vector3D] Returns normal vector <x,y,z> of s
 def trueNormal(s, r)
-  raise "Invalid surface (normals)" unless s
-  raise "Invalid rotation angle (normals)" unless r
-  cl = OpenStudio::Model::PlanarSurface
-  raise "#{s.class}? expected #{cl} (normals)" unless s.is_a?(cl)
-  raise "#{r.class}? expected numeric (normals)" unless r.is_a?(Numeric)
+  return nil unless s
+  return nil unless r
+  return nil unless s.is_a?(OpenStudio::Model::PlanarSurface)
+  return nil unless r.is_a?(Numeric)
 
   r = -r * Math::PI / 180.0
   n = Topolys::Vector3D.new(s.outwardNormal.x * Math.cos(r) -
@@ -1413,7 +1443,15 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
 
     # Site-specific (or absolute, or true) surface normal.
     t, r = transforms(os_model, space)
+    if t.nil? || r.nil?
+      TBD.log(TBD::FATAL, "Unable to process OS surface transformation")
+      return nil, nil
+    end
     n = trueNormal(s, r)
+    if n.nil?
+      TBD.log(TBD::FATAL, "Unable to process OS surface true normal")
+      return nil, nil
+    end
 
     type = :floor
     type = :ceiling if /ceiling/i.match(s.surfaceType)
@@ -1489,7 +1527,15 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
 
     # Site-specific (or absolute, or true) surface normal.
     t, r = transforms(os_model, space)
+    if t.nil? || r.nil?
+      TBD.log(TBD::FATAL, "Unable to process OS subsurface transformation")
+      return nil, nil
+    end
     n = trueNormal(s, r)
+    if n.nil?
+      TBD.log(TBD::FATAL, "Unable to process OS subsurface true normal")
+      return nil, nil
+    end
 
     points = (t * pts).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
     minz = (points.map{ |p| p.z }).min
@@ -1552,6 +1598,10 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     # Site-specific (or absolute, or true) surface normal. Shading surface
     # groups may also be linked to (rotated) spaces.
     t, r = transforms(os_model, group)
+    if t.nil? || r.nil?
+      TBD.log(TBD::FATAL, "Unable to process OS shading surface transformation")
+      return nil, nil
+    end
     shading = group.to_ShadingSurfaceGroup
     unless shading.empty?
       unless shading.get.space.empty?
@@ -1559,6 +1609,10 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       end
     end
     n = trueNormal(s, r)
+    if n.nil?
+      TBD.log(TBD::FATAL, "Unable to process OS shading surface true normal")
+      return nil, nil
+    end
 
     points = (t * s.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
     minz = (points.map{ |p| p.z }).min
@@ -1755,8 +1809,40 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
   #   "io_p" holds TBD PSI sets (built-in defaults & those on file)
   #   "io_k" holds TBD KHI points (built-in defaults & those on file)
   io, io_p, io_k = processTBDinputs(surfaces, edges, psi_set, ioP, schemaP)
+
+  # A user-defined TBD JSON input file can hold a number of anomalies that
+  # won't affect results, such as a custom PSI set that isn't referenced
+  # elsewhere (similar to an OpenStudio material on file that isn't referenced
+  # by any OpenStudio construction). This may trigger 'warnings' in the log
+  # file, but they're in principle benign.
+  #
+  # A user-defined JSON input file can instead hold a number of more serious
+  # anomalies that risk generating erroneous or unintended results. They're
+  # logged as well, yet it remains up to the user to decide how serious a risk
+  # this may be. If a custom edge is defined on file (e.g., an "expansion joint"
+  # thermal bridge instead of a "mild transition") yet TBD is unable to match
+  # it against OpenStudio and/or Topolys edges (or surfaces), then TBD
+  # will log this as an error while simply 'skipping' the anomaly (TBD will
+  # otherwise ignore the requested change and puruse its processes).
+  #
+  # There are 2 errors that are considered FATAL when processing user-defined
+  # TBD JSON input files:
+  #   - incorrect JSON formatting of the input file (can't parse)
+  #   - TBD is unable to identify a 'complete' building-level PSI set
+  #     (either a bad argument from the Measure, or bad input on file).
+  #
+  # ... in such circumstances, TBD will halt all processes and exit while
+  # signaling to OpenStudio to halt its own processes (e.g., not launch an
+  # EnergyPlus simulation). This is similar to accessing an invalid .osm file.
+  return nil, nil if TBD.fatal?
+
   p = io[:building].first[:psi]                           # default building PSI
   has, val = io_p.shorthands(p)
+
+  if has.empty? || val.empty?
+    TBD.log(TBD::FATAL, "Invalid or incomplete building set - stopping")
+    return nil, nil
+  end
 
   edges.values.each do |edge|
     next unless edge.has_key?(:surfaces)
