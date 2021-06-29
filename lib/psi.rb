@@ -465,7 +465,7 @@ class PSI
   # @param [String] p A PSI set identifier
   # @param [Hash] type PSI type e.g., :rimjoistconcave
   #
-  # @return [Symbol] Returns safe type (nil if none were found)
+  # @return [Symbol] Returns safe type; nil if none were found
   def safeType(p, type)
     ok = @set.has_key?(p)
     tt = type
@@ -590,9 +590,11 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
           end
         else
           TBD.log(TBD::FATAL, "Empty TBD schema file - stopping")
+          return nil, psi, khi
         end
       else
         TBD.log(TBD::FATAL, "Can't locate/open TBD schema file - stopping")
+        return nil, psi, khi
       end
     end
 
@@ -761,6 +763,7 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
                        edge.has_key?(:v1y) &&
                        edge.has_key?(:v1z)
                   TBD.log(TBD::ERROR, "Edge vertices come in pairs - skipping")
+                  next
                 end
                 e1 = {}
                 e2 = {}
@@ -822,9 +825,10 @@ end
 # @return [OpenStudio::Transformation] Returns group/site transformation
 # @return [Float] Returns site + group rotation angle [0,2PI) radians
 def transforms(model, group)
+  gr1 = OpenStudio::Model::Space
+  gr2 = OpenStudio::Model::ShadingSurfaceGroup
   unless model && group && model.is_a?(OpenStudio::Model::Model) &&
-        (group.is_a?(OpenStudio::Model::Space) ||
-         group.is_a?(OpenStudio::Model::ShadingSurfaceGroup))
+        (group.is_a?(gr1) || group.is_a?(gr2))
     TBD.log(TBD::DEBUG, "Invalid arguments for transformation/rotation")
     return nil, nil
   end
@@ -848,11 +852,11 @@ def trueNormal(s, r)
   end
 
   r = -r * Math::PI / 180.0
-  n = Topolys::Vector3D.new(s.outwardNormal.x * Math.cos(r) -
-                            s.outwardNormal.y * Math.sin(r),                 # x
-                            s.outwardNormal.x * Math.sin(r) +
-                            s.outwardNormal.y * Math.cos(r),                 # y
-                            s.outwardNormal.z)                               # z
+  Topolys::Vector3D.new(s.outwardNormal.x * Math.cos(r) -
+                        s.outwardNormal.y * Math.sin(r),                     # x
+                        s.outwardNormal.x * Math.sin(r) +
+                        s.outwardNormal.y * Math.cos(r),                     # y
+                        s.outwardNormal.z)                                   # z
 end
 
 ##
@@ -863,7 +867,6 @@ end
 #
 # @return [Bool] Returns true if angle between surfaces is concave; nil if fail.
 def concave?(s1, s2)
-  concave = false
   unless s1.is_a?(Hash)            && s2.is_a?(Hash)            &&
          s1.has_key?(:angle)       && s2.has_key?(:angle)       &&
          s1[:angle].is_a?(Numeric) && s2[:angle].is_a?(Numeric) &&
@@ -883,8 +886,8 @@ def concave?(s1, s2)
 
   n1_d_p2 = s1[:normal].dot(s2[:polar])
   p1_d_n2 = s1[:polar].dot(s2[:normal])
-  concave = true if n1_d_p2 > 0 && p1_d_n2 > 0
-  concave
+  return true if n1_d_p2 > 0 && p1_d_n2 > 0
+  false
 end
 
 ##
@@ -895,14 +898,13 @@ end
 #
 # @return [Bool] Returns true if angle between surfaces is convex
 def convex?(s1, s2)
-  convex = false
   unless s1.is_a?(Hash)            && s2.is_a?(Hash)            &&
          s1.has_key?(:angle)       && s2.has_key?(:angle)       &&
          s1[:angle].is_a?(Numeric) && s2[:angle].is_a?(Numeric) &&
          s1.has_key?(:normal)      && s2.has_key?(:normal)      &&
          s1.has_key?(:polar)       && s2.has_key?(:polar)
 
-    TBD.log(TBD::DEBUG, "Invalid arguments determining concavity")
+    TBD.log(TBD::DEBUG, "Invalid arguments determining convexity")
     return false
   end
 
@@ -915,8 +917,8 @@ def convex?(s1, s2)
 
   n1_d_p2 = s1[:normal].dot(s2[:polar])
   p1_d_n2 = s1[:polar].dot(s2[:normal])
-  convex = true if n1_d_p2 < 0 && p1_d_n2 < 0
-  convex
+  return true if n1_d_p2 < 0 && p1_d_n2 < 0
+  false
 end
 
 ##
@@ -930,15 +932,22 @@ end
 # @return [Array] Returns a 1D array of 3D Topolys vertices
 # @return [Topolys::Wire] Returns a corresponding Topolys wire
 def topolysObjects(model, points)
-  raise "Invalid model (Topolys obj)" unless model
-  raise "Invalid points (Topolys obj)" unless points
-  cl = Topolys::Model
-  cl2 = model.class
-  raise "#{cl2}? expected #{cl} (Topolys obj)" unless model.is_a?(cl)
-  cl2 = points.class
-  raise "#{cl2}? expected array (Topolys obj)" unless points.is_a?(Array)
-  n = points.size
-  raise "#{n}? expected +2 points (Topolys obj)" unless n > 2
+  unless model && points
+    TBD.log(TBD::DEBUG, "Invalid arguments - Topolys obj")
+    return nil, nil
+  end
+  unless model.is_a?(Topolys::Model)
+    TBD.log(TBD::DEBUG, "#{model.class}? expected Topolys model - Topolys obj")
+    return nil, nil
+  end
+  unless points.is_a?(Array)
+    TBD.log(TBD::DEBUG, "#{points.class}? expected Array - Topolys obj")
+    return nil, nil
+  end
+  unless points.size > 2
+    TBD.log(TBD::DEBUG, "#{points.size}? expected +2 points - Topolys obj")
+    return nil, nil
+  end
 
   vertices = model.get_vertices(points)
   wire = model.get_wire(vertices)
@@ -956,20 +965,27 @@ end
 # @return [Array] Returns a 1D array of 3D Topolys holes, i.e. wires
 def populateTBDkids(model, kids)
   holes = []
-  raise "Invalid model (TBD kids)" unless model
-  raise "Invalid kids (TBD kids)" unless kids
-  cl = Topolys::Model
-  cl2 = model.class
-  raise "#{cl2}? expected #{cl} (TBD kids)" unless model.is_a?(cl)
-  cl2 = kids.class
-  raise "#{cl2}? expected surface hash (TBD kids)" unless kids.is_a?(Hash)
+  unless model && kids
+    TBD.log(TBD::DEBUG, "Invalid arguments - TBD kids")
+    return holes
+  end
+  unless model.is_a?(Topolys::Model)
+    TBD.log(TBD::DEBUG, "#{model.class}? expected Topolys model - TBD kids")
+    return holes
+  end
+  unless kids.is_a?(Hash)
+    TBD.log(TBD::DEBUG, "#{kids.class}? expected surface Hash - TBD kids")
+    return holes
+  end
 
   kids.each do |id, properties|
     vtx, hole = topolysObjects(model, properties[:points])
-    hole.attributes[:id] = id
-    hole.attributes[:n] = properties[:n] if properties.has_key?(:n)
-    properties[:hole] = hole
-    holes << hole
+    unless vtx.nil? || hole.nil?
+      hole.attributes[:id] = id
+      hole.attributes[:n] = properties[:n] if properties.has_key?(:n)
+      properties[:hole] = hole
+      holes << hole
+    end
   end
   holes
 end
@@ -985,16 +1001,22 @@ end
 # @return [Array] Returns a 1D array of 3D Topolys parent holes, i.e. wires
 def populateTBDdads(model, dads)
   tbd_holes = {}
-  raise "Invalid model (TBD dads)" unless model
-  raise "Invalid kids (TBD dads)" unless dads
-  cl = Topolys::Model
-  cl2 = model.class
-  raise "#{cl2}? expected #{cl} (TBD dads)" unless model.is_a?(cl)
-  cl2 = dads.class
-  raise "#{cl2}? expected surface hash (TBD dads)" unless dads.is_a?(Hash)
+  unless model && dads
+    TBD.logs(TBD::DEBUG, "Invalid arguments - TBD dads")
+    return tbd_holes
+  end
+  unless model.is_a?(Topolys::Model)
+    TBD.log(TBD::DEBUG, "#{model.class}? expected Topolys model - TBD dads")
+    return tbd_holes
+  end
+  unless dads.is_a?(Hash)
+    TBD.log(TBD::DEBUG, "#{dads.class}? expected surface Hash - TBD dads")
+    return tbd_holes
+  end
 
   dads.each do |id, properties|
     vertices, wire = topolysObjects(model, properties[:points])
+    next if vertices.nil? || wire.nil?
 
     # Create surface holes for kids.
     holes = []
@@ -1009,14 +1031,17 @@ def populateTBDdads(model, dads)
     end
 
     face = model.get_face(wire, holes)
-    raise "Cannot build face for #{id}" if face.nil?
+    if face.nil?
+      TBD.log(TBD::DEBUG, "Unable to retrieve valid face - TBD dads")
+      next
+    end
 
     face.attributes[:id] = id
     face.attributes[:n] = properties[:n] if properties.has_key?(:n)
     properties[:face] = face
 
     # Populate hash of created holes (to return).
-    holes.each do |h| tbd_holes[h.attributes[:id]] = h; end
+    holes.each { |h| tbd_holes[h.attributes[:id]] = h }
   end
   tbd_holes
 end
@@ -1026,18 +1051,26 @@ end
 #
 # @param [Hash] surfaces A collection of TBD surfaces
 # @param [Hash] edges A collection TBD edges
+#
+# @return [Bool] Returns true if successful
 def tbdSurfaceEdges(surfaces, edges)
-  raise "Invalid surfaces (TBD edges)" unless surfaces
-  raise "Invalid edges (TBD edges)" unless edges
-  cl = Hash
-  cl2 = surfaces.class
-  raise "#{cl2}? expected surfaces hash (TBD edges)" unless surfaces.is_a?(cl)
-  cl2 = edges.class
-  raise "#{cl2}? expected edges hash (TBD edges)" unless edges.is_a?(cl)
+  unless surfaces && edges
+    TBD.log(TBD::DEBUG, "Invalid arguments - TBD edges")
+    return false
+  end
+  unless surfaces.is_a?(Hash)
+    TBD.log(TBD::DEBUG, "#{surfaces.class}? expected surfaces Hash - TBD edges")
+    return false
+  end
+  unless edges.is_a?(Hash)
+    TBD.log(TBD::DEBUG, "#{edges.class}? expected edges Hash - TBD edges")
+    return false
+  end
 
   surfaces.each do |id, properties|
     unless properties.has_key?(:face)
-      raise "Missing Topolys face for #{id} (TBD edges)"
+      TBD.log(TBD::DEBUG, "Missing Topolys face for #{id} - TBD edges")
+      next
     end
     properties[:face].wires.each do |wire|
       wire.edges.each do |e|
@@ -1053,32 +1086,45 @@ def tbdSurfaceEdges(surfaces, edges)
       end
     end
   end
+  true
 end
 
 ##
 # Generate OSM Kiva settings and objects if model surfaces have 'foundation'
 # boundary conditions.
 #
-# @param [OpenStudio::Model::Model] os_model An OS model
+# @param [OpenStudio::Model::Model] model An OS model
 # @param [Hash] floors TBD-generated floors
 # @param [Hash] walls TBD-generated walls
 # @param [Hash] edges TBD-generated edges (many linking floors & walls
 #
 # @return [Bool] Returns true if Kiva foundations are successfully generated.
-def generateKiva(os_model, walls, floors, edges)
-  raise "Invalid OS model (gen KIVA)" unless os_model
-  raise "Invalid walls (gen KIVA)" unless walls
-  raise "Invalid floors (gen KIVA)" unless floors
-  raise "Invalid edges (gen KIVA)" unless edges
+def generateKiva(model, walls, floors, edges)
+  unless model && walls && floors && edges
+    TBD.log(TBD::DEBUG, "Invalid OpenStudio model - gen KIVA")
+    return false
+  end
   cl = OpenStudio::Model::Model
-  cl2 = os_model.class
-  raise "#{cl2}? expected #{cl} (gen KIVA)" unless os_model.is_a?(cl)
+  cl2 = model.class
+  unless model.is_a?(cl)
+    TBD.log(TBD::DEBUG, "#{cl2}? expected #{cl} - gen KIVA")
+    return false
+  end
   cl2 = walls.class
-  raise "#{cl2}? expected walls hash (gen KIVA)" unless walls.is_a?(Hash)
+  unless walls.is_a?(Hash)
+    TBD.log(TBD::DEBUG, "#{cl2}? expected walls Hash - gen KIVA")
+    return false
+  end
   cl2 = floors.class
-  raise "#{cl2}? expected floors hash (gen KIVA)" unless floors.is_a?(Hash)
+  unless floors.is_a?(Hash)
+    TBD.log(TBD::DEBUG, "#{cl2}? expected floors Hash - gen KIVA")
+    return false
+  end
   cl2 = edges.class
-  raise "#{cl2}? expected edges hash (gen KIVA)" unless edges.is_a?(Hash)
+  unless edges.is_a?(Hash)
+    TBD.log(TBD::DEBUG, "#{cl2}? expected edges Hash - gen KIVA")
+    return false
+  end
 
   # Strictly rely on Kiva's total exposed perimeter approach.
   arg = "TotalExposedPerimeter"
@@ -1095,14 +1141,14 @@ def generateKiva(os_model, walls, floors, edges)
   # simulation results w/w/o explcit inclusion of the KIVA settings template
   # in the OSM. TO-DO: Check in.idf vs in.osm for any deviation from default
   # values as specified in the IO Reference Manual.
-  foundation_kiva_settings = os_model.getFoundationKivaSettings
+  foundation_kiva_settings = model.getFoundationKivaSettings
 
   # One way to expose in-built default parameters (in the future), e.g.:
   # soil_k = foundation_kiva_settings.soilConductivity
   # foundation_kiva_settings.setSoilConductivity(soil_k)
 
   # Generic 1" XPS insulation (for slab-on-grade setup) - unused if basement.
-  xps25mm = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
+  xps25mm = OpenStudio::Model::StandardOpaqueMaterial.new(model)
   xps25mm.setRoughness("Rough")
   xps25mm.setThickness(0.0254)
   xps25mm.setConductivity(0.029)
@@ -1160,7 +1206,7 @@ def generateKiva(os_model, walls, floors, edges)
       next unless floors[id].has_key?(:kiva)
       next if floors[id].has_key?(:foundation)
 
-      floors[id][:foundation] = OpenStudio::Model::FoundationKiva.new(os_model)
+      floors[id][:foundation] = OpenStudio::Model::FoundationKiva.new(model)
 
       # It's assumed that generated foundation walls have insulated
       # constructions. Perimeter insulation for slabs-on-grade.
@@ -1172,7 +1218,7 @@ def generateKiva(os_model, walls, floors, edges)
 
       # Locate OSM surface and assign Kiva foundation & perimeter objects.
       found = false
-      os_model.getSurfaces.each do |s|
+      model.getSurfaces.each do |s|
         next unless s.nameString == id
         next unless s.outsideBoundaryCondition.downcase == "foundation"
         found = true
@@ -1221,7 +1267,7 @@ def generateKiva(os_model, walls, floors, edges)
       next unless floors[id].has_key?(:foundation)
 
       # Locate OSM wall.
-      os_model.getSurfaces.each do |s|
+      model.getSurfaces.each do |s|
         next unless s.nameString == i
         s.setAdjacentFoundation(floors[id][:foundation])
         s.setConstruction(s.construction.get)
@@ -1240,16 +1286,15 @@ end
 # @return [Symbol] Returns type of insulating material (:standard or :massless)
 # @return [Float] Returns insulating layer thermal resistance [m2.K/W]
 def deratableLayer(construction)
-  raise "Invalid construction (layer)" unless construction
-  cl = OpenStudio::Model::Construction
-  cl2 = construction.class
-  raise "#{cl2}? expected #{cl} (layer)" unless construction.is_a?(cl)
+  r                = 0.0                        # R-value of insulating material
+  index            = nil                        # index of insulating material
+  type             = nil                        # nil, :massless; or :standard
+  i                = 0                          # iterator
 
-  # Identify insulating material (and key attributes) within a construction.
-  r                = 0.0         # R-value of insulating material
-  index            = nil         # index of insulating material
-  type             = nil         # nil, :massless; or :standard
-  i                = 0           # iterator
+  unless construction && construction.is_a?(OpenStudio::Model::Construction)
+    TBD.log(TBD::DEBUG, "Invalid deratable construction")
+    return index, type, r
+  end
 
   construction.layers.each do |m|
     unless m.to_MasslessOpaqueMaterial.empty?
@@ -1298,91 +1343,91 @@ def derate(model, id, surface, c)
 
   unless model && id && surface && c
     TBD.log(TBD::DEBUG, "Invalid arguments - derate")
-    m
+    return m
   end
   unless model.is_a?(cl1)
     TBD.log(TBD::DEBUG, "#{model.class}? expected #{cl1} - derate")
-    m
+    return m
   end
   unless id.is_a?(String)
     TBD.log(TBD::DEBUG, "#{id.class}? expected a String - derate")
-    m
+    return m
   end
   unless surface.is_a?(Hash)
     TBD.log(TBD::DEBUG, "#{surface.class}? expected a Hash - derate")
-    m
+    return m
   end
   unless c.is_a?(cl2)
     TBD.log(TBD::DEBUG, "#{c.class}? expected #{cl2} (derate)")
-    m
+    return m
   end
   unless surface.has_key?(:heatloss)
     TBD.log(TBD::WARN, "Can't derate #{id} - no calculated heatloss")
-    m
+    return m
   end
   unless surface[:heatloss].is_a?(Numeric)
     TBD.log(TBD::ERROR, "Can't derate #{id} - non-numeric heatloss")
-    m
+    return m
   end
   if surface[:heatloss].abs < TOL
     TBD.log(TBD::WARN, "Can't derate #{id} - calculated heatloss below #{TOL}")
-    m
+    return m
   end
   unless surface.has_key?(:net)
     TBD.log(TBD::ERROR, "Can't derate #{id} - missing surface net area")
-    m
+    return m
   end
   unless surface[:net].is_a?(Numeric)
     TBD.log(TBD::ERROR, "Can't derate #{id} - non-numeric surface net area")
-    m
+    return m
   end
   if surface[:net] < TOL
     TBD.log(TBD::WARN, "Can't derate #{id} - surface net area below #{TOL}")
-    m
+    return m
   end
   unless surface.has_key?(:ltype)
     TBD.log(TBD::ERROR, "Can't derate #{id} - missing material type")
-    m
+    return m
   end
   unless surface[:ltype] == :massless || surface[:ltype] == :standard
     TBD.log(TBD::ERROR, "Can't derate #{id} - must be Standard or Massless")
-    m
+    return m
   end
   unless surface.has_key?(:construction)
     TBD.log(TBD::ERROR, "Can't derate #{id} - missing parent construction")
-    m
+    return m
   end
   unless surface.has_key?(:index)
     TBD.log(TBD::ERROR, "Can't derate #{id} - missing material index")
-    m
+    return m
   end
   if surface[:index].nil?
     TBD.log(TBD::ERROR, "Can't derate #{id} - invalid material index")
-    m
+    return m
   end
   unless surface[:index].is_a?(Integer)
     TBD.log(TBD::ERROR, "Can't derate #{id} - non-integer material index")
-    m
+    return m
   end
   if surface[:index] < 0
     TBD.log(TBD::ERROR, "Can't derate #{id} - material index < 0 ")
-    m
+    return m
   end
   unless surface.has_key?(:r)
     TBD.log(TBD::ERROR, "Can't derate #{id} - invalid material RSi value")
-    m
+    return m
   end
   unless surface[:r].is_a?(Numeric)
     TBD.log(TBD::ERROR, "Can't derate #{id} - non-numeric material RSi value")
-    m
+    return m
   end
   if surface[:r] < 0.001
     TBD.log(TBD::WARN, "Can't derate #{id} - material RSi value below MIN")
-    m
+    return m
   end
   unless / tbd/i.match(c.nameString) == nil
     TBD.log(TBD::WARN, "Can't derate #{id} - material already derated")
-    m
+    return m
   end
 
   index          = surface[:index]
@@ -1462,11 +1507,19 @@ end
 # @return [Hash] Returns TBD collection of objects for JSON serialization
 # @return [Hash] Returns collection of derated TBD surfaces
 def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
-  raise "Invalid OS model (process TBD)" unless os_model
+  unless os_model && psi_set
+    TBD.log(TBD::DEBUG, "Invalid arguments - process TBD")
+    return nil, nil
+  end
   cl = OpenStudio::Model::Model
-  raise "#{os_model.class}? expected OS model" unless os_model.is_a?(cl)
-  a = g_kiva == true || g_kiva == false
-  raise "#{g_kiva.class}? expected true or false (process TBD)" unless a
+  unless os_model.is_a?(cl)
+    TBD.log(TBD::DEBUG, "#{os_model.class}? expected #{cl} - process TBD")
+    return nil, nil
+  end
+  unless g_kiva == true || g_kiva == false
+    TBD.log(TBD::DEBUG, "#{g_kiva.class}? expected true or false - process TBD")
+    return nil, nil
+  end
 
   os_building = os_model.getBuilding
 
@@ -1490,10 +1543,15 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     ground   = s.isGroundSurface
     boundary = s.outsideBoundaryCondition
     if boundary.downcase == "surface"
-      raise "#{id}: adjacent surface?" if s.adjacentSurface.empty?
+      if s.adjacentSurface.empty?
+        TBD.log(TBD::ERROR, "#{id}: adjacent surface? - skipping")
+        next
+      end
       adjacent = s.adjacentSurface.get.nameString
-      test = os_model.getSurfaceByName(adjacent)
-      raise "mismatch #{id} vs #{adjacent}" if test.empty?
+      if os_model.getSurfaceByName(adjacent).empty?
+        TBD.log(TBD::ERROR, "mismatch #{id} vs #{adjacent} - skipping")
+        next
+      end
       boundary = adjacent
     end
 
@@ -1585,6 +1643,11 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     end
   end
 
+  if surfaces.empty?
+    TBD.log(TBD::ERROR, "Unable to identify surfaces to derate - exiting")
+    return nil, nil
+  end
+
   # Fetch OpenStudio subsurfaces & key attributes.
   os_model.getSubSurfaces.each do |s|
     next if s.space.empty?
@@ -1594,6 +1657,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     id    = s.nameString
 
     gross, pts = opening(os_model, id)
+    next if pts.nil?
 
     # Site-specific (or absolute, or true) surface normal.
     t, r = transforms(os_model, space)
@@ -1656,7 +1720,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
   walls = walls.sort_by{ |i, p| [p[:minz], p[:space]] }.to_h
 
   # Remove ":type" (now redundant).
-  surfaces.values.each do |p| p.delete_if { |ii, _| ii == :type }; end
+  surfaces.values.each { |p| p.delete_if { |ii, _| ii == :type } }
 
   # Fetch OpenStudio shading surfaces & key attributes.
   shades = {}
@@ -1711,13 +1775,13 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
   surfaces.values.each do |p|
     subarea = 0
     if p.has_key?(:windows)
-      p[:windows].values.each   do |o| subarea += o[:gross]; end
+      p[:windows].values.each { |o| subarea += o[:gross] }
     end
     if p.has_key?(:doors)
-      p[:doors].values.each     do |o| subarea += o[:gross]; end
+      p[:doors].values.each { |o| subarea += o[:gross] }
     end
     if p.has_key?(:skylights)
-      p[:skylights].values.each do |o| subarea += o[:gross]; end
+      p[:skylights].values.each { |o| subarea += o[:gross] }
     end
     p[:net] = p[:gross] - subarea
   end
@@ -2155,7 +2219,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
           ii = ""
           ii = i if deratables.include?(i)                     # exposed floor
           if ii.empty?
-            deratables.each do |j| ii = j unless j == id; end
+            deratables.each { |j| ii = j unless j == id }
           end
           next if ii.empty?
 

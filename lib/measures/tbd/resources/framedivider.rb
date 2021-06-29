@@ -1,22 +1,22 @@
 require "openstudio"
 
-
 ##
 # Flatten OpenStudio 3D points vs Z-axis (Z=0).
 #
-# @param [Array] pts Point3D array
+# @param [Array] pts OpenStudio Point3D array/vector
 #
 # @return [Array] Flattened OS 3D points array
 def flatZ(pts)
-  raise "Invalid pts (flatZ)" unless pts
+  unless pts && (pts.is_a?(OpenStudio::Point3dVector) || pts.is_a?(Array))
+    TBD.log(TBD::DEBUG, "Invalid pts - flatZ")
+    return pts
+  end
 
-  cl = OpenStudio::Point3dVector
-  valid = pts.is_a?(cl) || pts.is_a?(Array)
-  raise "#{pts.class}? expected #{cl} (flatZ)" unless valid
-
-  cl = OpenStudio::Point3d
   pts.each do |pt|
-    raise "#{pt.class}? expected OS 3D points (flatZ)" unless pt.class == cl
+    unless pt.class == OpenStudio::Point3d
+      TBD.log(TBD::DEBUG, "#{pt.class}? expected OS 3D points - flatZ")
+      next
+    end
     pt = OpenStudio::Point3d.new(pt.x, pt.y, 0)
   end
   pts
@@ -31,29 +31,42 @@ end
 #
 # @return [Bool] Returns true if subsurface can fit in.
 def fit?(model, id, pts)
-  raise "Invalid model (fit?)" unless model
-  raise "Invalid ID (fit?)" unless id
-  raise "Invalid pts (fit?)" unless pts
+  cl1 = OpenStudio::Model::Model
+  cl2 = OpenStudio::Point3dVector
+  cl3 = OpenStudio::Point3d
 
-  cl = OpenStudio::Model::Model
-  raise "#{model.class}? expected #{cl} (fit?)" unless model.is_a?(cl)
+  unless model && id && pts && model.is_a?(cl1) &&
+         (pts.is_a?(cl2) || pts.is_a?(Array))
+    TBD.log(TBD::DEBUG, "Invalid arguments - fit?")
+    return false
+  end
 
-  cl = OpenStudio::Point3dVector
-  valid = pts.is_a?(cl) || pts.is_a?(Array)
-  raise "#{pts.class}? expected #{cl} (flatZ)" unless valid
-
-  cl = OpenStudio::Point3d
+  cl3 = OpenStudio::Point3d
   pts.each do |pt|
-    raise "#{pt.class}? expected OS 3D points (fit?)" unless pt.class == cl
+    unless pt.class == cl3
+      TBD.log(TBD::DEBUG, "#{pt.class}? expected #{cl3} - fit?")
+      return false
+    end
   end
 
   s = model.getSubSurfaceByName(id)
-  raise "#{id} subSurface missmatch (fit?)" if s.empty?
-  s = s.get
+  if s.empty?
+    TBD.log(TBD::DEBUG, "#{id} subSurface missmatch - fit?")
+    return false
+  end
 
-  raise "Invalid parent surface (fit?)" if s.surface.empty?
+  s = s.get
+  if s.surface.empty?
+    TBD.log(TBD::DEBUG, "Invalid parent surface - fit?")
+    return false
+  end
+
   parent = model.getSurfaceByName(s.surface.get.nameString)
-  raise "#{id} missing parent surface (fit?)" if parent.empty?
+  if parent.empty?
+    TBD.log(TBD::DEBUG, "#{id} missing parent surface - fit?")
+    return false
+  end
+
   parent = parent.get
   ft = OpenStudio::Transformation::alignFace(parent.vertices).inverse
   ft_parent = (ft * parent.vertices).reverse
@@ -74,6 +87,7 @@ def fit?(model, id, pts)
       return false if OpenStudio::pointInPolygon(ft_pt, sibling, TOL)
     end
   end
+  true
 end
 
 ##
@@ -84,13 +98,17 @@ end
 # @return [Float] triangle area (m2)
 # @return [Array] subsurface rough opening sorted Topolys 3D points
 def areaHeron(pts)
-  raise "Invalid pts (areaHeron)" unless pts
-  raise "#{pts.class}? expected Array (areaHeron)" unless pts.is_a?(Array)
-  raise "3x points please - got #{pts.size} (areaHeron)" unless pts.size == 3
+  unless pts && pts.is_a?(Array) && pts.size == 3
+    TBD.log(TBD::DEBUG, "Invalid pts - areaHeron")
+    return 0
+  end
 
   cl = Topolys::Point3D
   pts.each do |pt|
-    raise "Topolys 3D points = got #{pt.class}" unless pt.class == cl
+    unless pt.class == cl
+      TBD.log(TBD::DEBUG, "Topolys 3D points - got #{pt.class} - areaHeron")
+      return 0
+    end
   end
 
   e = []
@@ -98,19 +116,18 @@ def areaHeron(pts)
   e << { v0: pts[1], v1: pts[2], mag: (pts[2] - pts[1]).magnitude }
   e << { v0: pts[2], v1: pts[0], mag: (pts[0] - pts[2]).magnitude }
 
-  raise "Unique triangle edges (areaHeron)" if matches?(e[0], e[1])
-  raise "Unique triangle edges (areaHeron)" if matches?(e[1], e[2])
-  raise "Unique triangle edges (areaHeron)" if matches?(e[2], e[0])
-
+  if matches?(e[0], e[1]) || matches?(e[1], e[2]) || matches?(e[2], e[0])
+    TBD.log(TBD::DEBUG, "Unique triangle edges - areaHeron")
+    return 0
+  end
   e = e.sort_by{ |p| p[:mag] }
 
-  area = 0
   # Kahan's stable implementation of Heron's formula for triangle area.
   # area = 1/4 sqrt( (a+(b+c)) (c-(a-b)) (c+(a-b)) (a+(b-c)) ) ... a > b > c
   a = e[0][:mag]
   b = e[1][:mag]
   c = e[2][:mag]
-  return 0.25 * Math.sqrt( (a+(b+c)) * (c-(a-b)) * (c+(a-b)) * (a+(b-c)) )
+  0.25 * Math.sqrt( (a+(b+c)) * (c-(a-b)) * (c+(a-b)) * (a+(b-c)) )
 end
 
 ##
@@ -122,21 +139,29 @@ end
 # @return [Float] Returns subsurface rough opening area (m2)
 # @return [Array] Returns subsurface rough opening OpenStudio 3D points
 def opening(model, id)
-  raise "Invalid model (opening)" unless model
-  raise "Invalid ID (opening)" unless id
-
-  cl = OpenStudio::Model::Model
-  raise "#{model.class}? expected #{cl} (opening)" unless model.is_a?(cl)
+  unless model && id && model.is_a?(OpenStudio::Model::Model)
+    TBD.log(TBD::DEBUG, "Invalid inputs - opening")
+    return 0, nil
+  end
 
   s = model.getSubSurfaceByName(id)
-  raise "#{id} SubSurface missmatch (opening)" if s.empty?
+  if s.empty?
+    TBD.log(TBD::DEBUG, "#{id} SubSurface missmatch - opening")
+    return 0, nil
+  end
+
   s = s.get
   points = s.vertices
-  n = points.size
-  raise "#{id} vertex count, 3 or 4 (opening)" unless n == 3 || n == 4
+  unless points.size == 3 || points.size == 4
+    TBD.log(TBD::DEBUG, "#{id} vertex count (3 or 4) - opening")
+    return 0, points
+  end
 
   area = s.grossArea
-  raise "#{id} gross area < 0 m2 (opening)?" unless area > TOL
+  if area < TOL
+    TBD.log(TBD::DEBUG, "#{id} gross area < TOL - opening")
+    return 0, points
+  end
 
   # Should verify convexity of vertex wire/face ...
   #

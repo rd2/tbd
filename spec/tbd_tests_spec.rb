@@ -671,6 +671,8 @@ RSpec.describe TBD do
       id    = s.nameString
 
       gross, pts = opening(os_model, id)
+      expect(gross).to be_a(Numeric)
+      expect(pts.nil?).to be(false)
 
       # Site-specific (or absolute, or true) surface normal.
       t, r = transforms(os_model, space)
@@ -745,7 +747,7 @@ RSpec.describe TBD do
     expect(walls.size).to eq(17)
 
     # Remove ":type" (now redundant).
-    surfaces.values.each do |p| p.delete_if { |ii, _| ii == :type }; end
+    surfaces.values.each { |p| p.delete_if { |ii, _| ii == :type } }
 
     # Fetch OpenStudio shading surfaces & key attributes.
     shades = {}
@@ -817,13 +819,13 @@ RSpec.describe TBD do
     surfaces.values.each do |p|
       subarea = 0
       if p.has_key?(:windows)
-        p[:windows].values.each   do |o| subarea += o[:gross]; end
+        p[:windows].values.each { |o| subarea += o[:gross] }
       end
       if p.has_key?(:doors)
-        p[:doors].values.each     do |o| subarea += o[:gross]; end
+        p[:doors].values.each { |o| subarea += o[:gross] }
       end
       if p.has_key?(:skylights)
-        p[:skylights].values.each do |o| subarea += o[:gross]; end
+        p[:skylights].values.each { |o| subarea += o[:gross] }
       end
       p[:net] = p[:gross] - subarea
     end
@@ -3284,7 +3286,7 @@ RSpec.describe TBD do
       valid = edge[:surfaces].include?(nom1) || edge[:surfaces].include?(nom2)
       next unless valid
       s = {}
-      io[:psis].each do |set| s = set if set[:id] == edge[:psi]; end
+      io[:psis].each { |set| s = set if set[:id] == edge[:psi] }
       next if s.empty?
       expect(s.is_a?(Hash)).to be(true)
 
@@ -3347,7 +3349,7 @@ RSpec.describe TBD do
       valid = edge[:surfaces].include?(nom1) || edge[:surfaces].include?(nom2)
       next unless valid
       s = {}
-      io[:psis].each do |set| s = set if set[:id] == edge[:psi]; end
+      io[:psis].each { |set| s = set if set[:id] == edge[:psi] }
       next unless s.empty?
       expect edge[:psi] == psi_set
 
@@ -3408,7 +3410,7 @@ RSpec.describe TBD do
       valid = edge[:surfaces].include?(nom1) || edge[:surfaces].include?(nom2)
       next unless valid
       s = {}
-      io[:psis].each do |set| s = set if set[:id] == edge[:psi]; end
+      io[:psis].each { |set| s = set if set[:id] == edge[:psi] }
       next if s.empty?
       expect(s.is_a?(Hash)).to be(true)
 
@@ -4605,6 +4607,8 @@ RSpec.describe TBD do
 
     # The following "opening" function is standalone - does not change OSM.
     opening_area, opening_vertices = opening(os_model_FD, name)
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.01).of(5.89)                   # vs 5.58
     expect(opening_vertices.size).to eq(4)
     opening_vertices = t * opening_vertices
@@ -4703,6 +4707,8 @@ RSpec.describe TBD do
 
     # Without Frame & Divider objects linked to subsurface.
     opening_area, opening_vertices = opening(fd_model, "w1")
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(1.5)
     expect(opening_vertices.size).to eq(3)
 
@@ -4717,6 +4723,8 @@ RSpec.describe TBD do
     expect(width).to be_within(0.001).of(0.200)                # good so far ...
 
     opening_area, opening_vertices = opening(fd_model, "w1")
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(3.75)
     expect(opening_vertices.size).to eq(3)
     opening_vertices = t * opening_vertices
@@ -4741,6 +4749,8 @@ RSpec.describe TBD do
     expect(width).to be_within(0.001).of(0.200)
 
     opening_area, opening_vertices = opening(fd_model, "w2")
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(8.64)
     expect(opening_vertices.size).to eq(4)
     opening_vertices = t * opening_vertices
@@ -4766,6 +4776,8 @@ RSpec.describe TBD do
     expect(width).to be_within(0.001).of(0.200)
 
     opening_area, opening_vertices = opening(fd_model, "w3")
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(1.1)
     expect(opening_vertices.size).to eq(3)
     opening_vertices = t * opening_vertices
@@ -4830,6 +4842,8 @@ RSpec.describe TBD do
 
     # Without Frame & Divider objects linked to subsurface.
     opening_area, opening_vertices = opening(fd2_model, "w1")
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(1.5)
     expect(opening_vertices.size).to eq(3)
 
@@ -4844,6 +4858,8 @@ RSpec.describe TBD do
     expect(width).to be_within(0.001).of(0.200)                # good so far ...
 
     opening_area, opening_vertices = opening(fd2_model, "w1")
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(3.75)
     expect(opening_vertices.size).to eq(3)
     opening_vertices = t * opening_vertices
@@ -4868,6 +4884,8 @@ RSpec.describe TBD do
     expect(width).to be_within(0.001).of(0.200)
 
     opening_area, opening_vertices = opening(fd2_model, "w2")
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(8.64)
     expect(opening_vertices.size).to eq(4)
     opening_vertices = t * opening_vertices
@@ -4893,6 +4911,8 @@ RSpec.describe TBD do
     expect(width).to be_within(0.001).of(0.200)
 
     opening_area, opening_vertices = opening(fd2_model, "w3")
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(1.1)
     expect(opening_vertices.size).to eq(3)
     opening_vertices = t * opening_vertices
@@ -4956,6 +4976,8 @@ RSpec.describe TBD do
 
     # Without Frame & Divider objects linked to subsurface.
     opening_area, opening_vertices = opening(fd3_model, "w1")
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(1.5)
     expect(opening_vertices.size).to eq(3)
 
@@ -4970,6 +4992,8 @@ RSpec.describe TBD do
     expect(width).to be_within(0.001).of(0.200)                # good so far ...
 
     opening_area, opening_vertices = opening(fd3_model, "w1")
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(3.75)
     expect(opening_vertices.size).to eq(3)
     opening_vertices = t * opening_vertices
@@ -4995,6 +5019,8 @@ RSpec.describe TBD do
     expect(width).to be_within(0.001).of(0.200)
 
     opening_area, opening_vertices = opening(fd3_model, "w2")
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(8.64)
     expect(opening_vertices.size).to eq(4)
     opening_vertices = t * opening_vertices
@@ -5020,6 +5046,8 @@ RSpec.describe TBD do
     expect(width).to be_within(0.001).of(0.200)
 
     opening_area, opening_vertices = opening(fd3_model, "w3")
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(1.1)
     expect(opening_vertices.size).to eq(3)
     opening_vertices = t * opening_vertices
@@ -5086,11 +5114,6 @@ RSpec.describe TBD do
     expect(io.empty?).to be(false)
     expect(surfaces.nil?).to be(false)
     expect(surfaces.is_a?(Hash)).to be(true)
-
-    # out = JSON.pretty_generate(io)
-    # outP = File.dirname(__FILE__) + "/../json/tbd_5Zone_2.out.json"
-    # File.open(outP, "w") do |outP| outP.puts out; end
-
     expect(io.has_key?(:edges))
     expect(io[:edges].size).to eq(47)
     expect(surfaces.size).to eq(40)
