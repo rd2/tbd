@@ -16,7 +16,6 @@ require_relative "log.rb"
 
 # Set 10mm tolerance for edge (thermal bridge) vertices.
 TOL = 0.01
-TOL2 = 0.1
 
 # Sources for thermal bridge types and/or linked default KHI & PSI values/sets:
 
@@ -223,7 +222,10 @@ class PSI
   #
   # @return [Bool] Returns true if successful in generating PSI set shorthands
   def genShorthands(p)
-    return false unless @set.has_key?(p)
+    unless @set.has_key?(p)
+      TBD.log(TBD::DEBUG, "Can't generate PSI type shorthands with #{p}")
+      return false
+    end
 
     h = {}
     h[:joint]           = @set[p].has_key?(:joint)
@@ -424,7 +426,10 @@ class PSI
   #
   # @return [Bool] Returns true if stored and has a complete PSI set
   def complete?(p)
-    return false unless @set.has_key?(p) && @has.has_key?(p) && @val.has_key?(p)
+    unless @set.has_key?(p) && @has.has_key?(p) && @val.has_key?(p)
+      TBD.log(TBD::DEBUG, "Invalid 'complete?' arguments")
+      return false
+    end
 
     holes = []
     holes << :head if @has[p][:head]
@@ -488,18 +493,28 @@ end
 #
 # @return [Bool] Returns true if edges share vertex pairs
 def matches?(e1, e2)
-  return false unless e1 && e2
-  return false unless e1.has_key?(:v0) && e1.has_key?(:v1)
-  return false unless e2.has_key?(:v0) && e2.has_key?(:v1)
-
+  unless e1 && e2
+    TBD.log(TBD::DEBUG, "Invalid matching edge arguments")
+    return false
+  end
+  unless e1.has_key?(:v0) && e1.has_key?(:v1) &&
+         e2.has_key?(:v0) && e2.has_key?(:v1)
+    TBD.log(TBD::DEBUG, "Missing vertices for matching edge(s)")
+    return false
+  end
   cl = Topolys::Point3D
-  return false unless e1[:v0].is_a?(cl) && e1[:v1].is_a?(cl)
-  return false unless e2[:v0].is_a?(cl) && e2[:v1].is_a?(cl)
+  unless e1[:v0].is_a?(cl) && e1[:v1].is_a?(cl) &&
+         e2[:v0].is_a?(cl) && e2[:v1].is_a?(cl)
+    TBD.log(TBD::DEBUG, "Invalid vertex class for matching edge(s)")
+    return false
+  end
 
   e1_vector = e1[:v1] - e1[:v0]
   e2_vector = e2[:v1] - e2[:v0]
-  return false if e1_vector.magnitude < TOL
-  return false if e2_vector.magnitude < TOL
+  if e1_vector.magnitude < TOL || e2_vector.magnitude < TOL
+    TBD.log(TBD::DEBUG, "Matching edge lengths below TOL")
+    return false
+  end
 
   return true if
   (
@@ -546,27 +561,23 @@ end
 # @return [Hash] Returns a new PSI library, enriched with optional sets on file
 # @return [Hash] Returns a new KHI library, enriched with optional pairs on file
 def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
-  # In the near future, the bulk of the "raises" in processTBDinputs will
-  # be logged as mild or severe warnings, possibly halting all TBD processes
-  # The OpenStudio/EnergyPlus model would remain unaltered (or un-derated).
-
-  # JSON validation relies on case-senitive string comparisons (e.g. OpenStudio
-  # space or surface names, vs corresponding TBD JSON identifiers). So "Space-1"
-  # would not match "SPACE-1". A head's up ...
   io  = {}
   psi = PSI.new                  # PSI hash, initially holding built-in defaults
   khi = KHI.new                  # KHI hash, initially holding built-in defaults
 
-  return io, psi, khi unless surfaces
-  return io, psi, khi unless edges
-  return io, psi, khi unless surfaces.class == Hash
-  return io, psi, khi unless edges.class == Hash
+  unless surfaces && edges && surfaces.class == Hash && edges.class == Hash
+    TBD.log(TBD::DEBUG, "Can't process inputs - invalid arguments")
+    return io, psi, khi
+  end
 
   if ioP && File.size?(ioP)         # optional input file exists and is non-zero
     ioC = File.read(ioP)
     io = JSON.parse(ioC, symbolize_names: true)
 
     # Schema validation is not yet supported in the OpenStudio Application.
+    # JSON validation relies on case-senitive string comparisons (e.g.
+    # OpenStudio space or surface names, vs corresponding TBD JSON identifiers).
+    # So "Space-1" would not match "SPACE-1".Head's up for a future user guide.
     if schemaP
       require "json-schema"
       if File.exist?(schemaP)
@@ -578,9 +589,10 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
             return nil, psi, khi
           end
         else
-          TBD.log(TBD::DEBUG, "Can't locate/open TBD schema file")
+          TBD.log(TBD::FATAL, "Empty TBD schema file - stopping")
         end
-        TBD.log(TBD::DEBUG, "Empty TBD schema file")
+      else
+        TBD.log(TBD::FATAL, "Can't locate/open TBD schema file - stopping")
       end
     end
 
@@ -627,7 +639,7 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
             TBD.log(TBD::WARN, "Story #{i} PSI mismatch - skipping")
           end
         else
-          TBD.log(TBD::WARN, "Invalid story PSI entry file - skipping")
+          TBD.log(TBD::ERROR, "Invalid story PSI entry file - skipping")
         end
       end
     end
@@ -651,7 +663,7 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
             TBD.log(TBD::WARN, "Spacetype #{i} PSI mismatch - skipping")
           end
         else
-          TBD.log(TBD::WARN, "Invalid spacetype entry on file - skipping")
+          TBD.log(TBD::ERROR, "Invalid spacetype entry on file - skipping")
         end
       end
     end
@@ -675,7 +687,7 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
             TBD.log(TBD::WARN, "Space #{i} PSI mismatch - skipping")
           end
         else
-          TBD.log(TBD::WARN, "Invalid space entry on file - skipping")
+          TBD.log(TBD::ERROR, "Invalid space entry on file - skipping")
         end
       end
     end
@@ -705,7 +717,7 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
             end
           end
         else
-          TBD.log(TBD::WARN, "Invalid surface entry on file - skipping")
+          TBD.log(TBD::ERROR, "Invalid surface entry on file - skipping")
         end
       end
     end
@@ -748,7 +760,7 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
                        edge.has_key?(:v1x) &&
                        edge.has_key?(:v1y) &&
                        edge.has_key?(:v1z)
-                  TBD.log(TBD::WARN, "Edge vertices come in pairs - skipping")
+                  TBD.log(TBD::ERROR, "Edge vertices come in pairs - skipping")
                 end
                 e1 = {}
                 e2 = {}
@@ -764,7 +776,7 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
               end
 
               next unless match
-              e[:io_type] = t        # sucess: matching edge - setting edge type
+              e[:io_type] = t       # success: matching edge - setting edge type
               n += 1
 
               if edge.has_key?(:psi)                                  # optional
@@ -784,7 +796,7 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
           end
           TBD.log(TBD::WARN, "Edge: OpenStudio mimatch - skipping") if n == 0
         else
-          TBD.log(TBD::WARN, "Invalid edge entry on file - skipping")
+          TBD.log(TBD::ERROR, "Invalid edge entry on file - skipping")
         end
       end
     end
@@ -810,12 +822,12 @@ end
 # @return [OpenStudio::Transformation] Returns group/site transformation
 # @return [Float] Returns site + group rotation angle [0,2PI) radians
 def transforms(model, group)
-  return nil, nil unless model
-  return nil, nil unless group
-  return nil, nil unless model.is_a?(OpenStudio::Model::Model)
-  gr = group.is_a?(OpenStudio::Model::Space)
-  gr = group.is_a?(OpenStudio::Model::ShadingSurfaceGroup) || gr
-  return nil, nil unless gr
+  unless model && group && model.is_a?(OpenStudio::Model::Model) &&
+        (group.is_a?(OpenStudio::Model::Space) ||
+         group.is_a?(OpenStudio::Model::ShadingSurfaceGroup))
+    TBD.log(TBD::DEBUG, "Invalid arguments for transformation/rotation")
+    return nil, nil
+  end
 
   t = group.siteTransformation
   r = group.directionofRelativeNorth + model.getBuilding.northAxis
@@ -830,10 +842,10 @@ end
 #
 # @return [OpenStudio::Vector3D] Returns normal vector <x,y,z> of s
 def trueNormal(s, r)
-  return nil unless s
-  return nil unless r
-  return nil unless s.is_a?(OpenStudio::Model::PlanarSurface)
-  return nil unless r.is_a?(Numeric)
+  unless s && r && s.is_a?(OpenStudio::Model::PlanarSurface) && r.is_a?(Numeric)
+    TBD.log(TBD::DEBUG, "Invalid arguments for true normals")
+    return nil
+  end
 
   r = -r * Math::PI / 180.0
   n = Topolys::Vector3D.new(s.outwardNormal.x * Math.cos(r) -
@@ -849,19 +861,18 @@ end
 # @param [Surface] s1 A first TBD surface
 # @param [Surface] s2 A second TBD surface
 #
-# @return [Bool] Returns true if angle between surfaces is concave
+# @return [Bool] Returns true if angle between surfaces is concave; nil if fail.
 def concave?(s1, s2)
   concave = false
-  raise "#{s1.class}? expected Hash (concave?)" unless s1.is_a?(Hash)
-  raise "#{s2.class}? expected Hash (concave?)" unless s2.is_a?(Hash)
-  raise "Missing angle from s1 (concave?)" unless s1.has_key?(:angle)
-  raise "Missing angle from s2 (concave?)" unless s2.has_key?(:angle)
-  raise "Numeric s1 angle please (concave?)" unless s1[:angle].is_a?(Numeric)
-  raise "Numeric s2 angle please (concave?)" unless s2[:angle].is_a?(Numeric)
-  raise "Missing normal from s1 (concave?)" unless s1.has_key?(:normal)
-  raise "Missing normal from s2 (concave?)" unless s2.has_key?(:normal)
-  raise "Missing polar angle from s1 (concave?)" unless s1.has_key?(:polar)
-  raise "Missing polar angle from s2 (concave?)" unless s2.has_key?(:polar)
+  unless s1.is_a?(Hash)            && s2.is_a?(Hash)            &&
+         s1.has_key?(:angle)       && s2.has_key?(:angle)       &&
+         s1[:angle].is_a?(Numeric) && s2[:angle].is_a?(Numeric) &&
+         s1.has_key?(:normal)      && s2.has_key?(:normal)      &&
+         s1.has_key?(:polar)       && s2.has_key?(:polar)
+
+    TBD.log(TBD::DEBUG, "Invalid arguments determining concavity")
+    return false
+  end
 
   angle = 0
   angle = s2[:angle] - s1[:angle] if s2[:angle] > s1[:angle]
@@ -885,16 +896,15 @@ end
 # @return [Bool] Returns true if angle between surfaces is convex
 def convex?(s1, s2)
   convex = false
-  raise "#{s1.class}? expected Hash (convex?)" unless s1.is_a?(Hash)
-  raise "#{s2.class}? expected Hash (convex?)" unless s2.is_a?(Hash)
-  raise "Missing angle from s1 (convex?)" unless s1.has_key?(:angle)
-  raise "Missing angle from s2 (convex?)" unless s2.has_key?(:angle)
-  raise "Numeric s1 angle please (concave?)" unless s1[:angle].is_a?(Numeric)
-  raise "Numeric s2 angle please (concave?)" unless s2[:angle].is_a?(Numeric)
-  raise "Missing normal from s1 (convex?)" unless s1.has_key?(:normal)
-  raise "Missing normal from s2 (convex?)" unless s2.has_key?(:normal)
-  raise "Missing polar angle from s1 (convex?)" unless s1.has_key?(:polar)
-  raise "Missing polar angle from s2 (convex?)" unless s2.has_key?(:polar)
+  unless s1.is_a?(Hash)            && s2.is_a?(Hash)            &&
+         s1.has_key?(:angle)       && s2.has_key?(:angle)       &&
+         s1[:angle].is_a?(Numeric) && s2[:angle].is_a?(Numeric) &&
+         s1.has_key?(:normal)      && s2.has_key?(:normal)      &&
+         s1.has_key?(:polar)       && s2.has_key?(:polar)
+
+    TBD.log(TBD::DEBUG, "Invalid arguments determining concavity")
+    return false
+  end
 
   angle = 0
   angle = s2[:angle] - s1[:angle] if s2[:angle] > s1[:angle]
@@ -1275,105 +1285,165 @@ end
 ##
 # Thermally derate insulating material within construction.
 #
-# @param [OpenStudio::Model::Model] os_model An OS model
+# @param [OpenStudio::Model::Model] model An OS model
 # @param [String] id Insulating material identifier
 # @param [Hash] surface A TBD surface
 # @param [OpenStudio::Model::Construction] c An OS construction
 #
 # @return [OpenStudio::Model::Material] Returns derated (cloned) material
-def derate(os_model, id, surface, c)
-  raise "Invalid OS model (derate)" unless os_model
-  raise "Invalid ID (derate)" unless id
-  raise "Invalid surface (derate)" unless surface
-  raise "Invalid construction (derate)" unless c
-  cl = OpenStudio::Model::Model
-  cl2 = os_model.class
-  raise "#{cl2}? expected #{cl} (derate)" unless os_model.is_a?(cl)
-  cl = Hash
-  cl2 = surface.class
-  raise "#{cl2}? expected #{cl} (derate)" unless surface.is_a?(cl)
-  cl = OpenStudio::Model::Construction
-  raise "#{c.class}? expected #{cl} (derate)" unless c.is_a?(cl)
-
+def derate(model, id, surface, c)
   m = nil
-  if surface.has_key?(:heatloss)                                    &&
-    surface[:heatloss].is_a?(Numeric)                               &&
-    surface[:heatloss].abs > TOL                                    &&
-    surface.has_key?(:net)                                          &&
-    surface[:net].is_a?(Numeric)                                    &&
-    surface[:net] > TOL                                             &&
-    surface.has_key?(:construction)                                 &&
-    surface.has_key?(:index)                                        &&
-    surface[:index] != nil                                          &&
-    surface[:index].is_a?(Integer)                                  &&
-    surface[:index] >= 0                                            &&
-    surface.has_key?(:ltype)                                        &&
-    (surface[:ltype] == :massless || surface[:ltype] == :standard)  &&
-    surface.has_key?(:r)                                            &&
-    surface[:r].is_a?(Numeric)                                      &&
-    surface[:r] >= 0.001                                            &&
-    / tbd/i.match(c.nameString) == nil                 # skip if already derated
+  cl1 = OpenStudio::Model::Model
+  cl2 = OpenStudio::Model::Construction
 
-    index          = surface[:index]
-    ltype          = surface[:ltype]
-    r              = surface[:r]
-    u              = surface[:heatloss] / surface[:net]
-    loss           = 0.0
-    de_u           = 1.0 / r + u                                     # derated U
-    de_r           = 1.0 / de_u                                      # derated R
+  unless model && id && surface && c
+    TBD.log(TBD::DEBUG, "Invalid arguments - derate")
+    m
+  end
+  unless model.is_a?(cl1)
+    TBD.log(TBD::DEBUG, "#{model.class}? expected #{cl1} - derate")
+    m
+  end
+  unless id.is_a?(String)
+    TBD.log(TBD::DEBUG, "#{id.class}? expected a String - derate")
+    m
+  end
+  unless surface.is_a?(Hash)
+    TBD.log(TBD::DEBUG, "#{surface.class}? expected a Hash - derate")
+    m
+  end
+  unless c.is_a?(cl2)
+    TBD.log(TBD::DEBUG, "#{c.class}? expected #{cl2} (derate)")
+    m
+  end
+  unless surface.has_key?(:heatloss)
+    TBD.log(TBD::WARN, "Can't derate #{id} - no calculated heatloss")
+    m
+  end
+  unless surface[:heatloss].is_a?(Numeric)
+    TBD.log(TBD::ERROR, "Can't derate #{id} - non-numeric heatloss")
+    m
+  end
+  if surface[:heatloss].abs < TOL
+    TBD.log(TBD::WARN, "Can't derate #{id} - calculated heatloss below #{TOL}")
+    m
+  end
+  unless surface.has_key?(:net)
+    TBD.log(TBD::ERROR, "Can't derate #{id} - missing surface net area")
+    m
+  end
+  unless surface[:net].is_a?(Numeric)
+    TBD.log(TBD::ERROR, "Can't derate #{id} - non-numeric surface net area")
+    m
+  end
+  if surface[:net] < TOL
+    TBD.log(TBD::WARN, "Can't derate #{id} - surface net area below #{TOL}")
+    m
+  end
+  unless surface.has_key?(:ltype)
+    TBD.log(TBD::ERROR, "Can't derate #{id} - missing material type")
+    m
+  end
+  unless surface[:ltype] == :massless || surface[:ltype] == :standard
+    TBD.log(TBD::ERROR, "Can't derate #{id} - must be Standard or Massless")
+    m
+  end
+  unless surface.has_key?(:construction)
+    TBD.log(TBD::ERROR, "Can't derate #{id} - missing parent construction")
+    m
+  end
+  unless surface.has_key?(:index)
+    TBD.log(TBD::ERROR, "Can't derate #{id} - missing material index")
+    m
+  end
+  if surface[:index].nil?
+    TBD.log(TBD::ERROR, "Can't derate #{id} - invalid material index")
+    m
+  end
+  unless surface[:index].is_a?(Integer)
+    TBD.log(TBD::ERROR, "Can't derate #{id} - non-integer material index")
+    m
+  end
+  if surface[:index] < 0
+    TBD.log(TBD::ERROR, "Can't derate #{id} - material index < 0 ")
+    m
+  end
+  unless surface.has_key?(:r)
+    TBD.log(TBD::ERROR, "Can't derate #{id} - invalid material RSi value")
+    m
+  end
+  unless surface[:r].is_a?(Numeric)
+    TBD.log(TBD::ERROR, "Can't derate #{id} - non-numeric material RSi value")
+    m
+  end
+  if surface[:r] < 0.001
+    TBD.log(TBD::WARN, "Can't derate #{id} - material RSi value below MIN")
+    m
+  end
+  unless / tbd/i.match(c.nameString) == nil
+    TBD.log(TBD::WARN, "Can't derate #{id} - material already derated")
+    m
+  end
 
-    if ltype == :massless
-      m            = c.getLayer(index).to_MasslessOpaqueMaterial
+  index          = surface[:index]
+  ltype          = surface[:ltype]
+  r              = surface[:r]
+  u              = surface[:heatloss] / surface[:net]
+  loss           = 0.0
+  de_u           = 1.0 / r + u                                       # derated U
+  de_r           = 1.0 / de_u                                        # derated R
 
-      unless m.empty?
-        m          = m.get
-        m          = m.clone(os_model)
-        m          = m.to_MasslessOpaqueMaterial.get
-                     m.setName("#{id} m tbd")
+  if ltype == :massless
+    m            = c.getLayer(index).to_MasslessOpaqueMaterial
 
-        unless de_r > 0.001
-          de_r     = 0.001
-          de_u     = 1.0 / de_r
-          loss     = (de_u - 1.0 / r) / surface[:net]
-        end
-        m.setThermalResistance(de_r)
+    unless m.empty?
+      m          = m.get
+      m          = m.clone(model)
+      m          = m.to_MasslessOpaqueMaterial.get
+                   m.setName("#{id} m tbd")
+
+      unless de_r > 0.001
+        de_r     = 0.001
+        de_u     = 1.0 / de_r
+        loss     = (de_u - 1.0 / r) / surface[:net]
       end
-
-    else                                                    # ltype == :standard
-      m            = c.getLayer(index).to_StandardOpaqueMaterial
-      unless m.empty?
-        m          = m.get
-        m          = m.clone(os_model)
-        m          = m.to_StandardOpaqueMaterial.get
-                     m.setName("#{id} m tbd")
-        k          = m.thermalConductivity
-        if de_r > 0.001
-          d        = de_r * k
-          unless d > 0.003
-            d      = 0.003
-            k      = d / de_r
-            unless k < 3.0
-              k    = 3.0
-              loss = (k / d - 1.0 / r) / surface[:net]
-            end
-          end
-        else                                               # de_r < 0.001 m2.K/W
-          d        = 0.001 * k
-          unless d > 0.003
-            d      = 0.003
-            k      = d / 0.001
-          end
-          loss     = (k / d - 1.0 / r) / surface[:net]
-        end
-
-        m.setThickness(d)
-        m.setThermalConductivity(k)
-      end
+      m.setThermalResistance(de_r)
     end
 
-    unless m.nil?
-      surface[:r_heatloss] = loss if loss > 0
+  else                                                      # ltype == :standard
+    m            = c.getLayer(index).to_StandardOpaqueMaterial
+    unless m.empty?
+      m          = m.get
+      m          = m.clone(model)
+      m          = m.to_StandardOpaqueMaterial.get
+                   m.setName("#{id} m tbd")
+      k          = m.thermalConductivity
+      if de_r > 0.001
+        d        = de_r * k
+        unless d > 0.003
+          d      = 0.003
+          k      = d / de_r
+          unless k < 3.0
+            k    = 3.0
+            loss = (k / d - 1.0 / r) / surface[:net]
+          end
+        end
+      else                                                 # de_r < 0.001 m2.K/W
+        d        = 0.001 * k
+        unless d > 0.003
+          d      = 0.003
+          k      = d / 0.001
+        end
+        loss     = (k / d - 1.0 / r) / surface[:net]
+      end
+
+      m.setThickness(d)
+      m.setThermalConductivity(k)
     end
+  end
+
+  unless m.nil?
+    surface[:r_heatloss] = loss if loss > 0
   end
   m
 end

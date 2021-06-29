@@ -1639,6 +1639,11 @@ RSpec.describe TBD do
 
     psi_set = "poor (BETBG)"
     io, surfaces = processTBD(os_model, psi_set)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(43)
 
     # Testing attic surfaces.
@@ -1815,6 +1820,11 @@ RSpec.describe TBD do
 
     psi_set = "poor (BETBG)"
     io, surfaces = processTBD(os_model, psi_set)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(43)
 
     # Testing attic surfaces.
@@ -1968,6 +1978,11 @@ RSpec.describe TBD do
 
     psi_set = "poor (BETBG)"
     io, surfaces = processTBD(os_model, psi_set)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
 
     ids = { a: "Office Front Wall",
@@ -2066,6 +2081,11 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
 
     ids = { a: "Office Front Wall",
@@ -2146,6 +2166,11 @@ RSpec.describe TBD do
 
     ioP2 = File.dirname(__FILE__) + "/../json/tbd_warehouse.out.json"
     io2, surfaces = processTBD(os_model2, psi_set, ioP2, schemaP)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
 
     # Testing (again).
@@ -2245,6 +2270,11 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse1.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
 
     ids = { a: "Office Front Wall",
@@ -2325,6 +2355,11 @@ RSpec.describe TBD do
 
     ioP2 = File.dirname(__FILE__) + "/../json/tbd_warehouse1.out.json"
     io2, surfaces = processTBD(os_model2, psi_set, ioP2, schemaP)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
 
     surfaces.each do |id, surface|
@@ -2402,6 +2437,11 @@ RSpec.describe TBD do
 
     psi_set = "poor (BETBG)"
     io, surfaces = processTBD(os_model, psi_set)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
 
     ids = { a: "Entryway  Wall 4",
@@ -2599,6 +2639,11 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse6.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
 
     ids = { a: "Office Front Wall",
@@ -2686,6 +2731,11 @@ RSpec.describe TBD do
 
     psi_set = "(non thermal bridging)"
     io, surfaces = processTBD(os_model, psi_set)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
 
     # Since all PSI values = 0, we're not expecting any derated surfaces
@@ -2705,6 +2755,11 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_seb.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
 
     # As the :building PSI set on file remains "(non thermal bridging)", one
@@ -2725,6 +2780,11 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n0.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
 
     ids = { a: "Entryway  Wall 4",
@@ -2862,6 +2922,11 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n0.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
 
     ids = { a: "Entryway  Wall 4",
@@ -2993,6 +3058,11 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n1.json" # no :building
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
 
     ids = { a: "Entryway  Wall 4",
@@ -3123,6 +3193,11 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n2.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
 
     # As the :building PSI set on file remains "(non thermal bridging)", one
@@ -3146,6 +3221,11 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n3.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
     expect(io.has_key?(:building)).to be(true) # despite no being on file - good
     expect(io[:building].first.has_key?(:psi)).to be(true)
@@ -3381,6 +3461,11 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n4.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
 
     # As the :building PSI set on file == "(non thermal bridgin)", derating
@@ -3407,6 +3492,11 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n5.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
 
     # As above, yet the KHI points are now set @0.5 W/K per m (instead of 0)
@@ -3430,6 +3520,11 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n6.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
 
     # As above, with a "good" surface PSI set
@@ -3453,6 +3548,11 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n7.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
 
     # In the JSON file, the "Entry way 1" space "compliant" PSI set supersedes
@@ -3491,6 +3591,11 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse4.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
 
     ids = { a: "Office Front Wall",
@@ -3812,6 +3917,11 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse5.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
 
     sTyp1 = "Warehouse Office"
@@ -3857,6 +3967,11 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_smalloffice.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(43)
 
     expect(io.has_key?(:stories)).to be(true)
@@ -3888,6 +4003,11 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/midrise.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(180)
 
     st1 = "Building Story 1"
@@ -3991,6 +4111,11 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n8.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
 
     ids = { a: "Entryway  Wall 4",
@@ -4085,6 +4210,11 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_smalloffice.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(43)
 
     # Check derating of attic floor (5x surfaces)
@@ -4142,6 +4272,11 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse7.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
 
     nom = "Bulk Storage Roof"
@@ -4339,6 +4474,11 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse8.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
 
     nom = "Office Front Wall"
@@ -4490,6 +4630,11 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse8.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model_FD, psi_set, ioP, schemaP)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
 
     # TBD calling on framedivider.rb workarounds.
@@ -4936,15 +5081,18 @@ RSpec.describe TBD do
 
     psi_set = "poor (BETBG)"
     io, surfaces = processTBD(os_model, psi_set)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
 
     # out = JSON.pretty_generate(io)
     # outP = File.dirname(__FILE__) + "/../json/tbd_5Zone_2.out.json"
     # File.open(outP, "w") do |outP| outP.puts out; end
 
-    expect(io.nil?).to be(false)
     expect(io.has_key?(:edges))
     expect(io[:edges].size).to eq(47)
-    expect(surfaces.nil?).to be(false)
     expect(surfaces.size).to eq(40)
 
     ids = { a: "LEFT-1",
@@ -5119,6 +5267,11 @@ RSpec.describe TBD do
 
     psi_set = "poor (BETBG)"
     io, surfaces = processTBD(os_model2, psi_set, nil, nil, true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
 
     surfaces.each do |id, surface|
@@ -5145,6 +5298,11 @@ RSpec.describe TBD do
 
     psi_set = "poor (BETBG)"
     io, surfaces = processTBD(os_model, psi_set, nil, nil, true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(180)
 
     # Validate.
@@ -5185,6 +5343,11 @@ RSpec.describe TBD do
 
     psi_set = "poor (BETBG)"
     io, surfaces = processTBD(os_model, psi_set, nil, nil, true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(180)
 
     # Validate.
@@ -5238,6 +5401,11 @@ RSpec.describe TBD do
     #psi_set = "poor (BETBG)"
     psi_set = "(non thermal bridging)"
     io, surfaces = processTBD(os_model, psi_set, nil, nil, true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
 
     # Validate.
