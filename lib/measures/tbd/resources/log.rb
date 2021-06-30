@@ -41,7 +41,7 @@ module TBD
 
   # Highest log level reached so far in TBD process sequence. Setting this to
   # lower than WARN (i.e., below minimal level triggering a "tbd.log" file).
-  @@log_status = INFO
+  @@log_status = 0
 
   def self.logs
     @@logs
@@ -83,5 +83,11 @@ module TBD
       # May go from INFO to WARN, or to ERROR, or to FATAL
       @@log_status = log_level if log_level > @@log_status
     end
+  end
+
+  def self.clean!
+    @@log_level = WARN
+    @@log_status = 0
+    @@logs = []
   end
 end

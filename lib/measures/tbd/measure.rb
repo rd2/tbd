@@ -18,9 +18,12 @@ rescue LoadError
   require_relative "resources/log.rb"
 end
 
-# TBD exit strategy when faced with warnings/errors.
-def exitTBD(runner, out_dir)
-  unless TBD.logs.empty? && TBD.status < TBD::WARN
+# TBD exit strategy when faced with warnings/errors. The generated file targets
+# a design context ( >= WARN ) ... change TBD log_level for debugging purposes.
+# By default, log_status is set below DEBUG while log_level is set @WARN.
+def exitTBD(runner, out_dir, io)
+  # TBD.set_log_level(TBD::DEBUG)
+  unless TBD.logs.empty? || TBD.status < TBD.log_level
     msgs = []
     TBD.logs.each do |l|
       msg = "#{l[:time]} (#{TBD.tag(l[:level])}) #{l[:msg]}"
@@ -39,6 +42,8 @@ def exitTBD(runner, out_dir)
         l.flush
       end
     end
+
+    io[:logs] = msgs if io
   end
 end
 
@@ -52,7 +57,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
 
   # human readable description
   def description
-    return "Thermally derates opaque constructions from major thermal bridges"
+    return "Thermally derates opaque constructions from major thermal bridges."
   end
 
   # human readable description of modeling approach
@@ -65,8 +70,8 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args = OpenStudio::Measure::OSArgumentVector.new
 
     load_tbd_json = OpenStudio::Measure::OSArgument.makeBoolArgument("load_tbd_json", true, false)
-    load_tbd_json.setDisplayName("Load tbd.json")
-    load_tbd_json.setDescription("Loads existing tbd.json from model files directory, overrides other arguments if true.")
+    load_tbd_json.setDisplayName("Load 'tbd.json'")
+    load_tbd_json.setDescription("Loads existing 'tbd.json' file from model 'files' directory, may override 'default thermal bridge' pull-down option.")
     load_tbd_json.setDefaultValue(false)
     args << load_tbd_json
 
@@ -74,26 +79,26 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     psi = PSI.new
     psi.set.keys.each do |k| choices << k.to_s; end
     option = OpenStudio::Measure::OSArgument.makeChoiceArgument("option", choices, true)
-    option.setDisplayName("Default thermal bridge option to use if not reading tbd.json")
-    option.setDescription("e.g. poor, regular, efficient, code")
+    option.setDisplayName("Default thermal bridge option")
+    option.setDescription("e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by 'tbd.json' file).")
     option.setDefaultValue("poor (BETBG)")
     args << option
 
     write_tbd_json = OpenStudio::Measure::OSArgument.makeBoolArgument("write_tbd_json", true, false)
-    write_tbd_json.setDisplayName("Write tbd.out.json")
-    write_tbd_json.setDescription("Write tbd.out.json to customize for subsequent runs. Edit and place in model files directory as tbd.json")
+    write_tbd_json.setDisplayName("Write 'tbd.out.json'")
+    write_tbd_json.setDescription("Write 'tbd.out.json' file to customize for subsequent runs. Edit and place in model 'files' directory as 'tbd.json'.")
     write_tbd_json.setDefaultValue(false)
     args << write_tbd_json
 
     gen_kiva = OpenStudio::Measure::OSArgument.makeBoolArgument("gen_kiva", true, false)
     gen_kiva.setDisplayName("Generate Kiva inputs")
-    gen_kiva.setDescription("Generate OSM Kiva settings and objects if model surfaces have 'foundation' boundary conditions")
+    gen_kiva.setDescription("Generate Kiva settings & objects if any model surfaces have 'foundation' boundary conditions ('ground' facing surfaces are ignored).")
     gen_kiva.setDefaultValue(false)
     args << gen_kiva
 
     gen_kiva_force = OpenStudio::Measure::OSArgument.makeBoolArgument("gen_kiva_force", true, false)
     gen_kiva_force.setDisplayName("Force-generate Kiva inputs")
-    gen_kiva_force.setDescription("Overwrites all 'ground' boundary conditions as 'foundation' before generating OSM Kiva inputs")
+    gen_kiva_force.setDescription("Overwrites all 'ground' boundary conditions as 'foundation' before generating Kiva inputs (preferred solution).")
     gen_kiva_force.setDefaultValue(false)
     args << gen_kiva_force
 
@@ -130,11 +135,13 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     io_path = nil
     schema_path = nil
 
+    TBD.clean!
+
     if load_tbd_json
       io_path = runner.workflow.findFile('tbd.json')
       if io_path.empty?
         TBD.log(TBD::FATAL, "Cannot find 'tbd.json' - simulation halted")
-        exitTBD(runner, out_dir)
+        exitTBD(runner, out_dir, nil)
         return false
       else
         io_path = io_path.get.to_s
@@ -154,17 +161,14 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     end
 
     io, surfaces = processTBD(model, option, io_path, schema_path, gen_kiva)
-
-    if io.nil? || surfaces.nil?
-      TBD.log(TBD::ERROR, "Error(s) - halting TBD processes")
-    end
+    TBD.log(TBD::ERROR, "Error(s) - halting TBD processes") unless io && surfaces
 
     if TBD.fatal?
-      exitTBD(runner, out_dir)
+      exitTBD(runner, out_dir, nil)
       return false
     end
 
-    unless surfaces.nil?
+    if surfaces
       surfaces.each do |id, surface|
         if surface.has_key?(:ratio)
           ratio  = format "%3.1f", surface[:ratio]
@@ -175,10 +179,11 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
       end
     end
 
-    unless io.nil?
+    if io
       if write_tbd_json
         out_path = File.join(out_dir, 'tbd.out.json')
         # runner.registerInfo("Writing #{out_path} in #{Dir.pwd}") # for debugging
+        exitTBD(runner, out_dir, io)
 
         File.open(out_path, 'w') do |file|
           file.puts JSON::pretty_generate(io)
@@ -190,10 +195,13 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
             file.flush
           end
         end
+      else
+        exitTBD(runner, out_dir, nil)
       end
+    else
+      exitTBD(runner, out_dir, nil)
     end
 
-    exitTBD(runner, out_dir)
     return true
   end
 end

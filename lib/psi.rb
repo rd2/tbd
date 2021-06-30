@@ -786,7 +786,7 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
                 p = edge[:psi]
                 if psi.set.has_key?(p)
                   tt = psi.safeType(p, t)
-                  unless tt.nil?
+                  if tt
                     e[:io_set] = p
                   else
                     TBD.log(TBD::WARN, "#{p} missing PSI type #{t} - skipping")
@@ -980,7 +980,7 @@ def populateTBDkids(model, kids)
 
   kids.each do |id, properties|
     vtx, hole = topolysObjects(model, properties[:points])
-    unless vtx.nil? || hole.nil?
+    if vtx && hole
       hole.attributes[:id] = id
       hole.attributes[:n] = properties[:n] if properties.has_key?(:n)
       properties[:hole] = hole
@@ -1016,7 +1016,7 @@ def populateTBDdads(model, dads)
 
   dads.each do |id, properties|
     vertices, wire = topolysObjects(model, properties[:points])
-    next if vertices.nil? || wire.nil?
+    next unless vertices && wire
 
     # Create surface holes for kids.
     holes = []
@@ -1031,7 +1031,7 @@ def populateTBDdads(model, dads)
     end
 
     face = model.get_face(wire, holes)
-    if face.nil?
+    unless face
       TBD.log(TBD::DEBUG, "Unable to retrieve valid face - TBD dads")
       next
     end
@@ -1401,7 +1401,7 @@ def derate(model, id, surface, c)
     TBD.log(TBD::ERROR, "Can't derate #{id} - missing material index")
     return m
   end
-  if surface[:index].nil?
+  unless surface[:index]
     TBD.log(TBD::ERROR, "Can't derate #{id} - invalid material index")
     return m
   end
@@ -1487,9 +1487,7 @@ def derate(model, id, surface, c)
     end
   end
 
-  unless m.nil?
-    surface[:r_heatloss] = loss if loss > 0
-  end
+  surface[:r_heatloss] = loss if m && loss > 0
   m
 end
 
@@ -1571,12 +1569,12 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
 
     # Site-specific (or absolute, or true) surface normal.
     t, r = transforms(os_model, space)
-    if t.nil? || r.nil?
+    unless t && r
       TBD.log(TBD::FATAL, "Unable to process OS surface transformation")
       return nil, nil
     end
     n = trueNormal(s, r)
-    if n.nil?
+    unless n
       TBD.log(TBD::FATAL, "Unable to process OS surface true normal")
       return nil, nil
     end
@@ -1616,7 +1614,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       index = nil unless index.is_a?(Numeric)
       index = nil unless index >= 0
       index = nil unless index < construction.layers.size
-      unless index.nil?
+      if index
         surfaces[id][:construction] = construction
         surfaces[id][:index]        = index
         surfaces[id][:ltype]        = ltype
@@ -1657,16 +1655,16 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     id    = s.nameString
 
     gross, pts = opening(os_model, id)
-    next if pts.nil?
+    next unless pts
 
     # Site-specific (or absolute, or true) surface normal.
     t, r = transforms(os_model, space)
-    if t.nil? || r.nil?
+    unless t && r
       TBD.log(TBD::FATAL, "Unable to process OS subsurface transformation")
       return nil, nil
     end
     n = trueNormal(s, r)
-    if n.nil?
+    unless n
       TBD.log(TBD::FATAL, "Unable to process OS subsurface true normal")
       return nil, nil
     end
@@ -1732,7 +1730,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     # Site-specific (or absolute, or true) surface normal. Shading surface
     # groups may also be linked to (rotated) spaces.
     t, r = transforms(os_model, group)
-    if t.nil? || r.nil?
+    unless t && r
       TBD.log(TBD::FATAL, "Unable to process OS shading surface transformation")
       return nil, nil
     end
@@ -1743,7 +1741,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       end
     end
     n = trueNormal(s, r)
-    if n.nil?
+    unless n
       TBD.log(TBD::FATAL, "Unable to process OS shading surface true normal")
       return nil, nil
     end
@@ -1991,7 +1989,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
 
     if edge.has_key?(:io_type)
       tt = io_p.safeType(p, edge[:io_type])
-      unless tt.nil?
+      if tt
         edge[:sets] = {} unless edge.has_key?(:sets)
         edge[:sets][edge[:io_type]] = val[tt]     # default to :building PSI set
         psi[edge[:io_type]] = val[tt]
@@ -2314,11 +2312,11 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
             psi = {}
             if edge.has_key?(:io_type)
               tt = io_p.safeType(p, edge[:io_type])
-              psi[edge[:io_type]] = values[tt] unless tt.nil?
+              psi[edge[:io_type]] = values[tt] if tt
             else
               edge[:psi].keys.each do |t|
                 tt = io_p.safeType(p, t)
-                psi[t] = values[tt] unless tt.nil?
+                psi[t] = values[tt] if tt
               end
             end
             edge[:stories][p] = psi unless psi.empty?
@@ -2341,7 +2339,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
             next if holds.empty?
             next if values.empty?
             tt = io_p.safeType(p, t)
-            vals[p] = values[tt] unless tt.nil?
+            vals[p] = values[tt] if tt
           end
           next if vals.empty?
           edge[:psi][t] = vals.values.max
@@ -2376,11 +2374,11 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
             psi = {}
             if edge.has_key?(:io_type)
               tt = io_p.safeType(p, edge[:io_type])
-              psi[edge[:io_type]] = values[tt] unless tt.nil?
+              psi[edge[:io_type]] = values[tt] if tt
             else
               edge[:psi].keys.each do |t|
                 tt = io_p.safeType(p, t)
-                psi[t] = values[tt] unless tt.nil?
+                psi[t] = values[tt] if tt
               end
             end
             edge[:spacetypes][p] = psi unless psi.empty?
@@ -2403,7 +2401,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
             next if holds.empty?
             next if values.empty?
             tt = io_p.safeType(p, t)
-            vals[p] = values[tt] unless tt.nil?
+            vals[p] = values[tt] if tt
           end
           next if vals.empty?
           edge[:psi][t] = vals.values.max
@@ -2438,11 +2436,11 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
             psi = {}
             if edge.has_key?(:io_type)
               tt = io_p.safeType(p, edge[:io_type])
-              psi[edge[:io_type]] = values[tt] unless tt.nil?
+              psi[edge[:io_type]] = values[tt] if tt
             else
               edge[:psi].keys.each do |t|
                 tt = io_p.safeType(p, t)
-                psi[t] = values[tt] unless tt.nil?
+                psi[t] = values[tt] if tt
               end
             end
             edge[:spaces][p] = psi unless psi.empty?
@@ -2465,7 +2463,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
             next if holds.empty?
             next if values.empty?
             tt = io_p.safeType(p, t)
-            vals[p] = values[tt] unless tt.nil?
+            vals[p] = values[tt] if tt
           end
           next if vals.empty?
           edge[:psi][t] = vals.values.max
@@ -2496,11 +2494,11 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
             psi = {}
             if edge.has_key?(:io_type)
               tt = io_p.safeType(p, edge[:io_type])
-              psi[:io_type] = values[tt] unless tt.nil?
+              psi[:io_type] = values[tt] if tt
             else
               edge[:psi].keys.each do |t|
                 tt = io_p.safeType(p, t)
-                psi[t] = values[tt] unless tt.nil?
+                psi[t] = values[tt] if tt
               end
             end
             s[:psi] = psi unless psi.empty?
@@ -2526,7 +2524,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
             next if holds.empty?
             next if values.empty?
             tt = io_p.safeType(s[:set], t)
-            vals[s[:set]] = values[tt] unless tt.nil?
+            vals[s[:set]] = values[tt] if tt
           end
           next if vals.empty?
           edge[:psi][t] = vals.values.max
@@ -2553,7 +2551,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       next if holds.empty?
       next if values.empty?
       tt = io_p.safeType(set, edge[:io_type])
-      next if tt.nil?
+      next unless tt
       if edge.has_key?(:io_set)
         edge[:psi] = {}
         edge[:set] = edge[:io_set]
@@ -2694,12 +2692,12 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       c = current_c.clone(os_model).to_Construction.get
 
       m = nil
-      m = derate(os_model, id, surface, c) unless index.nil?
+      m = derate(os_model, id, surface, c) if index
       # m may be nilled simply because the targeted construction has already
       # been derated, i.e. holds " tbd" in its name. Names of cloned/derated
       # constructions (due to TBD) include the surface name (since derated
       # constructions are now unique to each surface) and the suffix " c tbd".
-      unless m.nil?
+      if m
         c.setLayer(index, m)
         c.setName("#{id} c tbd")
 
