@@ -146,20 +146,20 @@ def opening(model, id)
 
   s = model.getSubSurfaceByName(id)
   if s.empty?
-    TBD.log(TBD::DEBUG, "#{id} SubSurface missmatch - opening")
+    TBD.log(TBD::ERROR, "'#{id}' SubSurface missmatch")
     return 0, nil
   end
 
   s = s.get
   points = s.vertices
   unless points.size == 3 || points.size == 4
-    TBD.log(TBD::DEBUG, "#{id} vertex count (3 or 4) - opening")
+    TBD.log(TBD::ERROR, "'#{id}' vertex count (3 or 4)")
     return 0, points
   end
 
   area = s.grossArea
   if area < TOL
-    TBD.log(TBD::DEBUG, "#{id} gross area < TOL - opening")
+    TBD.log(TBD::ERROR, "'#{id}' gross area < TOL - opening")
     return 0, points
   end
 

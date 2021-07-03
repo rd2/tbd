@@ -1369,23 +1369,23 @@ def derate(model, id, surface, c)
     return m
   end
   unless surface.has_key?(:heatloss)
-    TBD.log(TBD::WARN, "Can't derate '#{id}' - no calculated heatloss")
+    TBD.log(TBD::DEBUG, "Can't derate '#{id}' - no calculated heatloss")
     return m
   end
   unless surface[:heatloss].is_a?(Numeric)
-    TBD.log(TBD::ERROR, "Can't derate '#{id}' - non-numeric heatloss")
+    TBD.log(TBD::DEBUG, "Can't derate '#{id}' - non-numeric heatloss")
     return m
   end
   if surface[:heatloss].abs < TOL
-    TBD.log(TBD::WARN, "Can't derate '#{id}' - heatloss below #{TOL}")
+    TBD.log(TBD::WARN, "Won't bother derating '#{id}' - heatloss below #{TOL}")
     return m
   end
   unless surface.has_key?(:net)
-    TBD.log(TBD::ERROR, "Can't derate '#{id}' - missing surface net area")
+    TBD.log(TBD::DEBUG, "Can't derate '#{id}' - missing surface net area")
     return m
   end
   unless surface[:net].is_a?(Numeric)
-    TBD.log(TBD::ERROR, "Can't derate '#{id}' - non-numeric surface net area")
+    TBD.log(TBD::DEBUG, "Can't derate '#{id}' - non-numeric surface net area")
     return m
   end
   if surface[:net] < TOL
@@ -1393,39 +1393,39 @@ def derate(model, id, surface, c)
     return m
   end
   unless surface.has_key?(:ltype)
-    TBD.log(TBD::ERROR, "Can't derate '#{id}' - missing material type")
+    TBD.log(TBD::DEBUG, "Can't derate '#{id}' - missing material type")
     return m
   end
   unless surface[:ltype] == :massless || surface[:ltype] == :standard
-    TBD.log(TBD::ERROR, "Can't derate '#{id}' - must be Standard or Massless")
+    TBD.log(TBD::DEBUG, "Can't derate '#{id}' - must be Standard or Massless")
     return m
   end
   unless surface.has_key?(:construction)
-    TBD.log(TBD::ERROR, "Can't derate '#{id}' - missing parent construction")
+    TBD.log(TBD::DEBUG, "Can't derate '#{id}' - missing parent construction")
     return m
   end
   unless surface.has_key?(:index)
-    TBD.log(TBD::ERROR, "Can't derate '#{id}' - missing material index")
+    TBD.log(TBD::DEBUG, "Can't derate '#{id}' - missing material index")
     return m
   end
   unless surface[:index]
-    TBD.log(TBD::ERROR, "Can't derate '#{id}' - invalid material index")
+    TBD.log(TBD::DEBUG, "Can't derate '#{id}' - invalid material index")
     return m
   end
   unless surface[:index].is_a?(Integer)
-    TBD.log(TBD::ERROR, "Can't derate '#{id}' - non-integer material index")
+    TBD.log(TBD::DEBUG, "Can't derate '#{id}' - non-integer material index")
     return m
   end
   if surface[:index] < 0
-    TBD.log(TBD::ERROR, "Can't derate '#{id}' - material index < 0 ")
+    TBD.log(TBD::DEBUG, "Can't derate '#{id}' - material index < 0 ")
     return m
   end
   unless surface.has_key?(:r)
-    TBD.log(TBD::ERROR, "Can't derate '#{id}' - invalid material RSi value")
+    TBD.log(TBD::DEBUG, "Can't derate '#{id}' - invalid material RSi value")
     return m
   end
   unless surface[:r].is_a?(Numeric)
-    TBD.log(TBD::ERROR, "Can't derate '#{id}' - non-numeric material RSi value")
+    TBD.log(TBD::DEBUG, "Can't derate '#{id}' - non-numeric material RSi value")
     return m
   end
   if surface[:r] < 0.001
@@ -1663,6 +1663,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
 
     gross, pts = opening(os_model, id)
     next unless pts
+    next if gross < TOL
 
     # Site-specific (or absolute, or true) surface normal.
     t, r = transforms(os_model, space)

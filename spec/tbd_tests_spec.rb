@@ -5163,6 +5163,28 @@ RSpec.describe TBD do
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
+    front_office_wall = os_model.getSurfaceByName("Office Front Wall")
+    expect(front_office_wall.empty?).to be(false)
+    front_office_wall = front_office_wall.get
+    expect(front_office_wall.nameString).to eq("Office Front Wall")
+    expect(front_office_wall.surfaceType).to eq("Wall")
+
+    # Adding a small, 5-sided window to the "Office Front Wall" (above door).
+    os_v = OpenStudio::Point3dVector.new
+    os_v << OpenStudio::Point3d.new( 12.96, 0.00, 4.00)
+    os_v << OpenStudio::Point3d.new( 12.04, 0.00, 3.50)
+    os_v << OpenStudio::Point3d.new( 12.04, 0.00, 2.50)
+    os_v << OpenStudio::Point3d.new( 13.87, 0.00, 2.50)
+    os_v << OpenStudio::Point3d.new( 13.87, 0.00, 3.50)
+    clerestory = OpenStudio::Model::SubSurface.new(os_v, os_model)
+    clerestory.setName("clerestory")
+    clerestory.setSurface(front_office_wall)
+    clerestory.setSubSurfaceType("FixedWindow")
+    # ... reminder: set subsurface type AFTER setting its parent surface
+
+    subs = front_office_wall.subSurfaces
+    expect(subs.empty?).to be(false)
+    expect(subs.size).to eq(4)
 
     psi_set = "poor (BETBG)"
     ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse9.json"
@@ -5216,10 +5238,13 @@ RSpec.describe TBD do
     expect(surfaces.nil?).to be(false)
     expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
+    expect(surfaces.has_key?("Office Front Wall")).to be(true)
+    expect(surfaces["Office Front Wall"].has_key?(:edges)).to be(true)
 
     expect(TBD.status).to eq(TBD::ERROR)
-    expect(TBD.logs.size).to eq(3)
+    expect(TBD.logs.size).to eq(4)
     # TBD.logs.each { |log| puts log[:msg] }
+    #   'clerestory' vertex count (3 or 4) - opening
     #   Can't override 'regular (BETBG)' PSI set  - skipping
     #   'Office Front Wall' KHI 'beam' mismatch
     #   'Office Front Wall' edge PSI set mismatch - skipping
@@ -5227,17 +5252,27 @@ RSpec.describe TBD do
     # Despite input file (non-fatal) errors, TBD successfully processes thermal
     # bridges and derates OSM construction materials by falling back on defaults
     # in the case of errors.
-    #
+
+    # For the 5-sided window, TBD will entirely ignore all edges/bridges linked
+    # to 'clerestory' subsurface.
+    io[:edges].each do |edge|
+      expect(edge.has_key?(:surfaces)).to be(true)
+      edge[:surfaces].each { |s| expect(s).to_not eq("clerestory") }
+    end
+    expect(surfaces["Office Front Wall"][:edges].size).to eq(17)
+    sills = 0
+    surfaces["Office Front Wall"][:edges].values.each do |e|
+      expect(e.has_key?(:type)).to be(true)
+      sills += 1 if e[:type] == :sill
+    end
+    expect(sills).to eq(2)                                               # not 3
+
     # Fallback to ERROR # 1: not really a fallback, more a demonstration that
     # "regular (BETBG)" isn't referred to by any edge linked derated surfaces.
-    # &
-    # # Fallback to ERROR # 3: no edge relying 'detailed' PSI set.
-    io[:edges].each do |edge|
-      expect(edge[:psi]).to eq("poor (BETBG)")
-    end
+    # ... & fallback to ERROR # 3: no edge relying on 'detailed' PSI set.
+    io[:edges].each { |edge| expect(edge[:psi]).to eq("poor (BETBG)") }
 
     # Fallback to ERROR # 2: no KHI for "Office Front Wall".
-    expect(surfaces.has_key?("Office Front Wall")).to be(true)
     expect(io.has_key?(:khis)).to be(true)
     expect(io[:khis].size).to eq(1)
     expect(surfaces["Office Front Wall"].has_key?(:khis)).to be(false)
@@ -5257,6 +5292,12 @@ RSpec.describe TBD do
       outP.puts out
     end
     # Should contain a 'logs' entry at the end of the JSON output file.
+
+    # Next ...
+    # TBD.log(TBD::WARN, "Won't bother derating '#{id}' - heatloss below #{TOL}")
+    # TBD.log(TBD::WARN, "Can't derate '#{id}' - surface net area below #{TOL}")
+    # TBD.log(TBD::WARN, "Can't derate '#{id}' - material RSi value below MIN")
+    # TBD.log(TBD::WARN, "Can't derate '#{id}' - material already derated")
   end
 
   it "can process an OSM converted from an IDF (with rotation)" do
