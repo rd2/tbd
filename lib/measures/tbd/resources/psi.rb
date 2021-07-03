@@ -68,7 +68,7 @@ class KHI
       return false
     end
     if @point.has_key?(k[:id])
-      TBD.log(TBD::ERROR, "Can't override #{k[:id]} KHI pair - skipping")
+      TBD.log(TBD::ERROR, "Can't override '#{k[:id]}' KHI pair - skipping")
       return false
     end
     @point[k[:id]] = k[:point]
@@ -223,7 +223,7 @@ class PSI
   # @return [Bool] Returns true if successful in generating PSI set shorthands
   def genShorthands(p)
     unless @set.has_key?(p)
-      TBD.log(TBD::DEBUG, "Can't generate PSI type shorthands with #{p}")
+      TBD.log(TBD::DEBUG, "Can't generate PSI type shorthands with '#{p}'")
       return false
     end
 
@@ -353,7 +353,7 @@ class PSI
       return false
     end
     if @set.has_key?(p[:id])
-      TBD.log(TBD::ERROR, "Can't override #{p[:id]} PSI set  - skipping")
+      TBD.log(TBD::ERROR, "Can't override '#{p[:id]}' PSI set  - skipping")
       return false
     end
 
@@ -598,13 +598,9 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
       end
     end
 
-    if io.has_key?(:psis)                    # library of linear thermal bridges
-      io[:psis].each { |p| return nil, psi, khi unless psi.append(p) }
-    end
-
-    if io.has_key?(:khis)                     # library of point thermal bridges
-      io[:khis].each { |k| return nil, psi, khi unless khi.append(k) }
-    end
+    # Append to library of linear & point thermal bridges
+    io[:psis].each { |p| psi.append(p) } if io.has_key?(:psis)
+    io[:khis].each { |k| khi.append(k) } if io.has_key?(:khis)
 
     if io.has_key?(:building)
       unless io[:building].first.has_key?(:psi)
@@ -618,7 +614,7 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
 
     p = io[:building].first[:psi]
     unless psi.complete?(p)
-      TBD.log(TBD::FATAL, "Incomplete building PSI set #{p} - stopping")
+      TBD.log(TBD::FATAL, "Incomplete building PSI set '#{p}' - stopping")
       return nil, psi, khi
     end
 
@@ -626,7 +622,6 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
       io[:stories].each do |story|
         if story.has_key?(:id) && story.has_key?(:psi)
           i = story[:id]
-          p = story[:psi]
           match = false
           surfaces.values.each do |properties|
             next if match
@@ -635,13 +630,14 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
             match = true if i = st.nameString
           end
           unless match
-            TBD.log(TBD::WARN, "OpenStudio story mismatch #{i} - skipping")
+            TBD.log(TBD::ERROR, "OpenStudio story mismatch '#{i}' - skipping")
           end
-          unless psi.set.has_key?(p)
-            TBD.log(TBD::WARN, "Story #{i} PSI mismatch - skipping")
+          unless psi.set.has_key?(story[:psi])
+            TBD.log(TBD::ERROR, "Story '#{i}' PSI mismatch - skipping")
           end
         else
-          TBD.log(TBD::ERROR, "Invalid story PSI entry file - skipping")
+          TBD.log(TBD::FATAL, "Invalid story PSI entry file - skipping")
+          return nil, psi, khi
         end
       end
     end
@@ -650,7 +646,6 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
       io[:spacetypes].each do |stype|
         if stype.has_key?(:id) && stype.has_key?(:psi)
           i = stype[:id]
-          p = stype[:psi]
           match = false
           surfaces.values.each do |properties|
             next if match
@@ -659,13 +654,14 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
             match = true if i = spt.nameString
           end
           unless match
-            TBD.log(TBD::WARN, "OpenStudio spacetype mismatch #{i} - skipping")
+            TBD.log(TBD::ERROR, "OpenStudio spacetype mismatch '#{i}' - skipping")
           end
-          unless psi.set.has_key?(p)
-            TBD.log(TBD::WARN, "Spacetype #{i} PSI mismatch - skipping")
+          unless psi.set.has_key?(stype[:psi])
+            TBD.log(TBD::ERROR, "Spacetype '#{i}' PSI mismatch - skipping")
           end
         else
-          TBD.log(TBD::ERROR, "Invalid spacetype entry on file - skipping")
+          TBD.log(TBD::FATAL, "Invalid spacetype entry on file - skipping")
+          return nil, psi, khi
         end
       end
     end
@@ -674,7 +670,6 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
       io[:spaces].each do |space|
         if space.has_key?(:id) && space.has_key?(:psi)
           i = space[:id]
-          p = space[:psi]
           match = false
           surfaces.values.each do |properties|
             next if match
@@ -683,13 +678,14 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
             match = true if i == sp.nameString
           end
           unless match
-            TBD.log(TBD::WARN, "OpenStudio space mismatch #{i} - skipping")
+            TBD.log(TBD::ERROR, "OpenStudio space mismatch '#{i}' - skipping")
           end
-          unless psi.set.has_key?(p)
-            TBD.log(TBD::WARN, "Space #{i} PSI mismatch - skipping")
+          unless psi.set.has_key?(space[:psi])
+            TBD.log(TBD::ERROR, "Space '#{i}' PSI mismatch - skipping")
           end
         else
-          TBD.log(TBD::ERROR, "Invalid space entry on file - skipping")
+          TBD.log(TBD::FATAL, "Invalid space entry on file - skipping")
+          return nil, psi, khi
         end
       end
     end
@@ -699,14 +695,13 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
         if surface.has_key?(:id)
           i = surface[:id]
           unless surfaces.has_key?(i)
-            TBD.log(TBD::WARN, "OpenStudio surface mismatch #{i} - skipping")
+            TBD.log(TBD::ERROR, "OpenStudio surface mismatch '#{i}' - skipping")
           end
 
           # surfaces can optionally hold custom PSI sets and/or KHI data
           if surface.has_key?(:psi)
-            p = surface[:psi]
-            unless psi.set.has_key?(p)
-              TBD.log(TBD::WARN, "Surface #{i} PSI mismatch - skipping")
+            unless psi.set.has_key?(surface[:psi])
+              TBD.log(TBD::ERROR, "Surface '#{i}' PSI mismatch - skipping")
             end
           end
           if surface.has_key?(:khis)
@@ -714,12 +709,13 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
               next unless k.has_key?(:id)
               ii = k[:id]
               unless khi.point.has_key?(ii)
-                TBD.log(TBD::WARN, "#{i} KHI #{ii} mismatch")
+                TBD.log(TBD::ERROR, "'#{i}' KHI '#{ii}' mismatch")
               end
             end
           end
         else
-          TBD.log(TBD::ERROR, "Invalid surface entry on file - skipping")
+          TBD.log(TBD::FATAL, "Invalid surface entry on file - skipping")
+          return nil, psi, khi
         end
       end
     end
@@ -728,26 +724,34 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
       io[:edges].each do |edge|
         if edge.has_key?(:type) && edge.has_key?(:surfaces)
           t = edge[:type].to_sym
+          tt = psi.safeType(p, t)    # 'complete' building PSI set as a fallback
+          unless tt
+            TBD.log(TBD::ERROR, "Invalid edge PSI type '#{t}' - skipping")
+            next
+          end
           # One or more edges on file are valid if all their listed surfaces
           # together connect at least one or more edges in TBD/Topolys (in
           # memory). The latter may connect e.g. 3x TBD/Topolys surfaces, but
           # the list of surfaces on file may be shorter, e.g. only 2x surfaces.
-          n = 0
+          valid = true
           edge[:surfaces].each do |s|                     # JSON objects on file
             edges.values.each do |e|             # TBD/Topolys objects in memory
-              next if e.has_key?(:io_type)         # type already set - skipping
+              next unless valid                   # if previous anomaly detected
+              next if e.has_key?(:io_type)        # validated from previous loop
               match = false
               next unless e.has_key?(:surfaces)
               next unless e[:surfaces].has_key?(s)
+
               match = true # ... yet all JSON surfaces must be linked in Topolys
               edge[:surfaces].each do |ss|
                 match = false unless e[:surfaces].has_key?(ss)
               end
-
               next unless match
+
               if edge.has_key?(:length)  # optional, narrows down search (~10mm)
                 match = false unless (e[:length] - edge[:length]).abs < TOL
               end
+              next unless match
 
               if edge.has_key?(:v0x) ||     # optional, narrows down to vertices
                  edge.has_key?(:v0y) ||
@@ -762,7 +766,8 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
                        edge.has_key?(:v1x) &&
                        edge.has_key?(:v1y) &&
                        edge.has_key?(:v1z)
-                  TBD.log(TBD::ERROR, "Edge vertices come in pairs - skipping")
+                  TBD.log(TBD::ERROR, "'#{s}' edge vertices in pairs - skipping")
+                  valid = false
                   next
                 end
                 e1 = {}
@@ -775,31 +780,33 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
                                                edge[:v1z].to_f)
                 e2[:v0] = e[:v0].point
                 e2[:v1] = e[:v1].point
-                match = matches?(e1, e2)
+                next unless matches?(e1, e2)
               end
-
-              next unless match
-              e[:io_type] = t       # success: matching edge - setting edge type
-              n += 1
 
               if edge.has_key?(:psi)                                  # optional
-                p = edge[:psi]
-                if psi.set.has_key?(p)
-                  tt = psi.safeType(p, t)
-                  if tt
-                    e[:io_set] = p
+                pp = edge[:psi]
+                if psi.set.has_key?(pp)
+                  ttt = psi.safeType(pp, t)
+                  if ttt
+                    e[:io_set] = pp
+                    e[:io_type] = t    # success - matching type with custom PSI
                   else
-                    TBD.log(TBD::WARN, "#{p} missing PSI type #{t} - skipping")
+                    TBD.log(TBD::ERROR, "'#{s}' '#{p}' type '#{t}'? - skipping")
+                    valid = false
                   end
                 else
-                  TBD.log(TBD::WARN, "Edge PSI set mismatch - skipping")
+                  TBD.log(TBD::ERROR, "'#{s}' edge PSI set mismatch - skipping")
+                  valid = false
                 end
+              else
+                e[:io_type] = t     # success: matching edge - setting edge type
               end
+
             end
           end
-          TBD.log(TBD::WARN, "Edge: OpenStudio mimatch - skipping") if n == 0
         else
-          TBD.log(TBD::ERROR, "Invalid edge entry on file - skipping")
+          TBD.log(TBD::FATAL, "Invalid edge entry on file - skipping")
+          return nil, psi, khi
         end
       end
     end
@@ -809,7 +816,7 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
     if psi.complete?(set)
       io[:building] = [{ psi: set }]           # i.e. default PSI set & no KHI's
     else
-      TBD.log(TBD::FATAL, "Incomplete building PSI set #{set} - stopping")
+      TBD.log(TBD::FATAL, "Incomplete building PSI set '#{set}' - stopping")
       return nil, psi, khi
     end
   end
@@ -1069,7 +1076,7 @@ def tbdSurfaceEdges(surfaces, edges)
 
   surfaces.each do |id, properties|
     unless properties.has_key?(:face)
-      TBD.log(TBD::DEBUG, "Missing Topolys face for #{id} - TBD edges")
+      TBD.log(TBD::DEBUG, "Missing Topolys face for '#{id}' - TBD edges")
       next
     end
     properties[:face].wires.each do |wire|
@@ -1362,71 +1369,71 @@ def derate(model, id, surface, c)
     return m
   end
   unless surface.has_key?(:heatloss)
-    TBD.log(TBD::WARN, "Can't derate #{id} - no calculated heatloss")
+    TBD.log(TBD::WARN, "Can't derate '#{id}' - no calculated heatloss")
     return m
   end
   unless surface[:heatloss].is_a?(Numeric)
-    TBD.log(TBD::ERROR, "Can't derate #{id} - non-numeric heatloss")
+    TBD.log(TBD::ERROR, "Can't derate '#{id}' - non-numeric heatloss")
     return m
   end
   if surface[:heatloss].abs < TOL
-    TBD.log(TBD::WARN, "Can't derate #{id} - calculated heatloss below #{TOL}")
+    TBD.log(TBD::WARN, "Can't derate '#{id}' - heatloss below #{TOL}")
     return m
   end
   unless surface.has_key?(:net)
-    TBD.log(TBD::ERROR, "Can't derate #{id} - missing surface net area")
+    TBD.log(TBD::ERROR, "Can't derate '#{id}' - missing surface net area")
     return m
   end
   unless surface[:net].is_a?(Numeric)
-    TBD.log(TBD::ERROR, "Can't derate #{id} - non-numeric surface net area")
+    TBD.log(TBD::ERROR, "Can't derate '#{id}' - non-numeric surface net area")
     return m
   end
   if surface[:net] < TOL
-    TBD.log(TBD::WARN, "Can't derate #{id} - surface net area below #{TOL}")
+    TBD.log(TBD::WARN, "Can't derate '#{id}' - surface net area below #{TOL}")
     return m
   end
   unless surface.has_key?(:ltype)
-    TBD.log(TBD::ERROR, "Can't derate #{id} - missing material type")
+    TBD.log(TBD::ERROR, "Can't derate '#{id}' - missing material type")
     return m
   end
   unless surface[:ltype] == :massless || surface[:ltype] == :standard
-    TBD.log(TBD::ERROR, "Can't derate #{id} - must be Standard or Massless")
+    TBD.log(TBD::ERROR, "Can't derate '#{id}' - must be Standard or Massless")
     return m
   end
   unless surface.has_key?(:construction)
-    TBD.log(TBD::ERROR, "Can't derate #{id} - missing parent construction")
+    TBD.log(TBD::ERROR, "Can't derate '#{id}' - missing parent construction")
     return m
   end
   unless surface.has_key?(:index)
-    TBD.log(TBD::ERROR, "Can't derate #{id} - missing material index")
+    TBD.log(TBD::ERROR, "Can't derate '#{id}' - missing material index")
     return m
   end
   unless surface[:index]
-    TBD.log(TBD::ERROR, "Can't derate #{id} - invalid material index")
+    TBD.log(TBD::ERROR, "Can't derate '#{id}' - invalid material index")
     return m
   end
   unless surface[:index].is_a?(Integer)
-    TBD.log(TBD::ERROR, "Can't derate #{id} - non-integer material index")
+    TBD.log(TBD::ERROR, "Can't derate '#{id}' - non-integer material index")
     return m
   end
   if surface[:index] < 0
-    TBD.log(TBD::ERROR, "Can't derate #{id} - material index < 0 ")
+    TBD.log(TBD::ERROR, "Can't derate '#{id}' - material index < 0 ")
     return m
   end
   unless surface.has_key?(:r)
-    TBD.log(TBD::ERROR, "Can't derate #{id} - invalid material RSi value")
+    TBD.log(TBD::ERROR, "Can't derate '#{id}' - invalid material RSi value")
     return m
   end
   unless surface[:r].is_a?(Numeric)
-    TBD.log(TBD::ERROR, "Can't derate #{id} - non-numeric material RSi value")
+    TBD.log(TBD::ERROR, "Can't derate '#{id}' - non-numeric material RSi value")
     return m
   end
   if surface[:r] < 0.001
-    TBD.log(TBD::WARN, "Can't derate #{id} - material RSi value below MIN")
+    TBD.log(TBD::WARN, "Can't derate '#{id}' - material RSi value below MIN")
     return m
   end
   unless / tbd/i.match(c.nameString) == nil
-    TBD.log(TBD::WARN, "Can't derate #{id} - material already derated")
+    TBD.log(TBD::WARN, "Can't derate '#{id}' - material already derated")
     return m
   end
 
@@ -1445,7 +1452,7 @@ def derate(model, id, surface, c)
       m          = m.get
       m          = m.clone(model)
       m          = m.to_MasslessOpaqueMaterial.get
-                   m.setName("#{id} m tbd")
+                   m.setName("'#{id}' m tbd")
 
       unless de_r > 0.001
         de_r     = 0.001
@@ -1461,7 +1468,7 @@ def derate(model, id, surface, c)
       m          = m.get
       m          = m.clone(model)
       m          = m.to_StandardOpaqueMaterial.get
-                   m.setName("#{id} m tbd")
+                   m.setName("'#{id}' m tbd")
       k          = m.thermalConductivity
       if de_r > 0.001
         d        = de_r * k
@@ -1511,7 +1518,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
   end
   cl = OpenStudio::Model::Model
   unless os_model.is_a?(cl)
-    TBD.log(TBD::DEBUG, "#{os_model.class}? expected #{cl} - process TBD")
+    TBD.log(TBD::DEBUG, "#{os_model.class}? expected '#{cl}' - process TBD")
     return nil, nil
   end
   unless g_kiva == true || g_kiva == false
@@ -1542,12 +1549,12 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     boundary = s.outsideBoundaryCondition
     if boundary.downcase == "surface"
       if s.adjacentSurface.empty?
-        TBD.log(TBD::ERROR, "#{id}: adjacent surface? - skipping")
+        TBD.log(TBD::ERROR, "'#{id}': adjacent surface? - skipping")
         next
       end
       adjacent = s.adjacentSurface.get.nameString
       if os_model.getSurfaceByName(adjacent).empty?
-        TBD.log(TBD::ERROR, "mismatch #{id} vs #{adjacent} - skipping")
+        TBD.log(TBD::ERROR, "mismatch '#{id}' vs '#{adjacent}' - skipping")
         next
       end
       boundary = adjacent
@@ -1989,13 +1996,16 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
 
     if edge.has_key?(:io_type)
       tt = io_p.safeType(p, edge[:io_type])
-      if tt
-        edge[:sets] = {} unless edge.has_key?(:sets)
-        edge[:sets][edge[:io_type]] = val[tt]     # default to :building PSI set
-        psi[edge[:io_type]] = val[tt]
-        edge[:psi] = psi
-        match = true
+      edge[:sets] = {} unless edge.has_key?(:sets)
+      edge[:sets][edge[:io_type]] = val[tt]     # default to :building PSI set
+      psi[edge[:io_type]] = val[tt]
+      edge[:psi] = psi
+      #edge[:set] = p
+      if edge.has_key?(:io_set) && io_p.set.has_key?(edge[:io_set])
+        ttt = io_p.safeType(edge[:io_set], edge[:io_type])
+        edge[:set] = edge[:io_set] if ttt
       end
+      match = true
     end
 
     edge[:surfaces].keys.each do |id|
@@ -2560,17 +2570,6 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
         edge[:sets][edge[:io_type]] = values[tt]
       end
       edge[:psi][edge[:io_type]] = values[tt]
-    end
-  end
-
-  # Frame & Divider cases. Loop through all openings (holes). Adjust opening
-  # :gross area if opening subsurface has a Frame & Divider object.
-  surfaces.each do |id, surface|
-    next unless surface.has_key?(:windows)
-    surface[:windows].each do |i, window|
-      # puts "#{id} has window #{i}: #{window[:net]} vs #{window[:gross]} m2" if i == "Office Front Wall Window 1"
-      # puts "#{window[:width]} m" if window.has_key?(:width)
-      # ... reset window gross area
     end
   end
 

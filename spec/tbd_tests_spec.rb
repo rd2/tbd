@@ -1582,10 +1582,10 @@ RSpec.describe TBD do
         expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
       end
     end
-
   end # can process thermal bridging and derating : LoScrigno
 
   it "can process TB & D : DOE Prototype test_smalloffice.osm" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_smalloffice.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -1789,6 +1789,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : DOE prototype test_smalloffice.osm (hardset)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_smalloffice.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -1954,6 +1955,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : DOE Prototype test_warehouse.osm" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_warehouse.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -2061,6 +2063,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : DOE Prototype test_warehouse.osm + JSON I/O" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_warehouse.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -2243,10 +2246,11 @@ RSpec.describe TBD do
     # cmd = "diff #{outP} #{outP2}"
     # expect(system( cmd )).to be(true)
     # expect(FileUtils).to be_identical(outP, outP2)
-    expect(FileUtils.identical?(outP, outP2)).to be(true) ###
+    expect(FileUtils.identical?(outP, outP2)).to be(true)
   end
 
   it "can process TB & D : DOE Prototype test_warehouse.osm + JSON I/O (2)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_warehouse.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -2406,6 +2410,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : test_seb.osm" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -2601,6 +2606,7 @@ RSpec.describe TBD do
   end
 
   it "can take in custom (expansion) joints as thermal bridges" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_warehouse.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -2745,6 +2751,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : test_seb.osm (0 W/K per m)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -2769,6 +2776,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : test_seb.osm (0 W/K per m) with JSON" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -2796,6 +2804,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : test_seb.osm (0 W/K per m) with JSON (non-0)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -2939,6 +2948,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : test_seb.osm (0 W/K per m) with JSON (non-0) 2" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -3077,6 +3087,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : test_seb.osm (0 W/K per m) with JSON (non-0) 3" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -3215,6 +3226,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : testing JSON surface KHI entries" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -3245,6 +3257,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : testing JSON surface KHI & PSI entries" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -3322,6 +3335,7 @@ RSpec.describe TBD do
       s = {}
       io[:psis].each { |set| s = set if set[:id] == edge[:psi] }
       next if s.empty?
+
       expect(s.is_a?(Hash)).to be(true)
 
       t = edge[:type]
@@ -3487,6 +3501,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : JSON surface KHI & PSI entries + building & edge" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -3520,6 +3535,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : JSON surface KHI & PSI + building & edge (2)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -3550,6 +3566,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : JSON surface KHI & PSI + building & edge (3)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -3580,6 +3597,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : JSON surface KHI & PSI + building & edge (4)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -3624,6 +3642,7 @@ RSpec.describe TBD do
   end
 
   it "can factor in negative PSI values (JSON input)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_warehouse.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -3697,6 +3716,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : JSON file read/validate" do
+    TBD.clean!
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     expect(File.exist?(schemaP)).to be(true)
     schemaC = File.read(schemaP)
@@ -3952,6 +3972,7 @@ RSpec.describe TBD do
   end
 
   it "can factor in spacetype-specific PSI sets (JSON input)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_warehouse.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -4004,6 +4025,7 @@ RSpec.describe TBD do
   end
 
   it "can factor in story-specific PSI sets (JSON input)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_smalloffice.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -4042,6 +4064,7 @@ RSpec.describe TBD do
   end
 
   it "can sort multiple story-specific PSI sets (JSON input)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/midrise_KIVA.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -4136,6 +4159,7 @@ RSpec.describe TBD do
   end
 
   it "can handle parties" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -4249,6 +4273,7 @@ RSpec.describe TBD do
   end
 
   it "can factor in unenclosed space such as attics" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_smalloffice.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -4317,6 +4342,7 @@ RSpec.describe TBD do
   end
 
   it "can factor in heads, sills and jambs" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_warehouse.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -4382,6 +4408,7 @@ RSpec.describe TBD do
   end
 
   it "has a PSI class" do
+    TBD.clean!
     psi = PSI.new
     expect(psi.set.has_key?("poor (BETBG)")).to be(true)
     expect(psi.complete?("poor (BETBG)")).to be(true)
@@ -4521,12 +4548,10 @@ RSpec.describe TBD do
     expect(vals[:sill]).to        be_within(0.001).of(0.391)
     expect(vals[:sillconcave]).to be_within(0.001).of(0.391)
     expect(vals[:sillconvex]).to  be_within(0.001).of(0.391)     # :fenestration
-
-    TBD.clean!
-    puts TBD.logs
   end
 
   it "can factor-in Frame & Divider objects" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_warehouse.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -4538,9 +4563,8 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse8.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
-    #expect(TBD.status).to eq(0)
-    #expect(TBD.logs.empty?).to be(true)
-    puts TBD.logs
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
     expect(io.nil?).to be(false)
     expect(io.is_a?(Hash)).to be(true)
     expect(io.empty?).to be(false)
@@ -5131,7 +5155,112 @@ RSpec.describe TBD do
     expect(opening_vertices[2].z).to be_within(0.01).of(10.92)
   end
 
+  it "can flag errors and integrate TBD logs in JSON output" do
+    TBD.clean!
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    file = "/files/test_warehouse.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    psi_set = "poor (BETBG)"
+    ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse9.json"
+    # {
+    #   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
+    #   "description": "testing error detection",
+    #   "psis": [
+    #     {
+    #       "id": "detailed_2",
+    #       "fenestration": 0.600
+    #     },
+    #     {
+    #       "id": "regular (BETBG)",                    <<<< non-fatal ERROR # 1
+    #       "fenestration": 0.700
+    #     }
+    #   ],
+    #   "khis": [
+    #     {
+    #       "id": "cantilevered beam",
+    #       "point": 0.6
+    #     }
+    #   ],
+    #   "surfaces": [
+    #     {
+    #       "id": "Office Front Wall",
+    #       "khis": [
+    #         {
+    #           "id": "beam",                           <<<< non-fatal ERROR # 2
+    #           "count": 3
+    #         }
+    #       ]
+    #     }
+    #   ],
+    #   "edges": [
+    #     {
+    #       "psi": "detailed",                          <<<< non-fatal ERROR # 3
+    #       "type": "fenestration",
+    #       "surfaces": [
+    #         "Office Front Wall",
+    #         "Office Front Wall Window 1"
+    #       ]
+    #     }
+    #   ]
+    # }
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(io.has_key?(:edges))
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
+    expect(surfaces.size).to eq(23)
+
+    expect(TBD.status).to eq(TBD::ERROR)
+    expect(TBD.logs.size).to eq(3)
+    # TBD.logs.each { |log| puts log[:msg] }
+    #   Can't override 'regular (BETBG)' PSI set  - skipping
+    #   'Office Front Wall' KHI 'beam' mismatch
+    #   'Office Front Wall' edge PSI set mismatch - skipping
+
+    # Despite input file (non-fatal) errors, TBD successfully processes thermal
+    # bridges and derates OSM construction materials by falling back on defaults
+    # in the case of errors.
+    #
+    # Fallback to ERROR # 1: not really a fallback, more a demonstration that
+    # "regular (BETBG)" isn't referred to by any edge linked derated surfaces.
+    # &
+    # # Fallback to ERROR # 3: no edge relying 'detailed' PSI set.
+    io[:edges].each do |edge|
+      expect(edge[:psi]).to eq("poor (BETBG)")
+    end
+
+    # Fallback to ERROR # 2: no KHI for "Office Front Wall".
+    expect(surfaces.has_key?("Office Front Wall")).to be(true)
+    expect(io.has_key?(:khis)).to be(true)
+    expect(io[:khis].size).to eq(1)
+    expect(surfaces["Office Front Wall"].has_key?(:khis)).to be(false)
+
+    # Mimics TBD 'measure.rb' method 'exitTBD()'
+    unless TBD.logs.empty? || TBD.status < TBD.log_level
+      msgs = []
+      TBD.logs.each do |l|
+        msgs << "#{l[:time]} (#{TBD.tag(l[:level])}) #{l[:msg]}"
+      end
+      io[:logs] = msgs
+    end
+
+    out = JSON.pretty_generate(io)
+    outP = File.dirname(__FILE__) + "/../json/tbd_warehouse9.out.json"
+    File.open(outP, "w") do |outP|
+      outP.puts out
+    end
+    # Should contain a 'logs' entry at the end of the JSON output file.
+  end
+
   it "can process an OSM converted from an IDF (with rotation)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/5Zone_2.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -5253,6 +5382,7 @@ RSpec.describe TBD do
   end
 
   it "can generate and access KIVA inputs (seb)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -5383,6 +5513,7 @@ RSpec.describe TBD do
   end
 
   it "can generate and access KIVA inputs (midrise apts - variant)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/midrise_KIVA.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -5422,6 +5553,7 @@ RSpec.describe TBD do
   end
 
   it "can generate multiple KIVA exposed perimeters (midrise apts - variant)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/midrise_KIVA.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -5477,6 +5609,7 @@ RSpec.describe TBD do
   end
 
   it "can generate KIVA exposed perimeters (warehouse)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_warehouse.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
