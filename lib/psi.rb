@@ -1338,7 +1338,7 @@ end
 # Thermally derate insulating material within construction.
 #
 # @param [OpenStudio::Model::Model] model An OS model
-# @param [String] id Insulating material identifier
+# @param [String] id Surface identifier
 # @param [Hash] surface A TBD surface
 # @param [OpenStudio::Model::Construction] c An OS construction
 #
@@ -1456,8 +1456,7 @@ def derate(model, id, surface, c)
 
       unless de_r > 0.001
         de_r     = 0.001
-        de_u     = 1.0 / de_r
-        loss     = (de_u - 1.0 / r) / surface[:net]
+        loss     = (de_u - 1.0 / de_r) * surface[:net]
       end
       m.setThermalResistance(de_r)
     end
@@ -1477,7 +1476,8 @@ def derate(model, id, surface, c)
           k      = d / de_r
           unless k < 3.0
             k    = 3.0
-            loss = (k / d - 1.0 / r) / surface[:net]
+
+            loss = (de_u - k / d) * surface[:net]
           end
         end
       else                                                 # de_r < 0.001 m2.K/W
@@ -1486,7 +1486,7 @@ def derate(model, id, surface, c)
           d      = 0.003
           k      = d / 0.001
         end
-        loss     = (k / d - 1.0 / r) / surface[:net]
+        loss     = (de_u - k / d) * surface[:net]
       end
 
       m.setThickness(d)
@@ -1494,7 +1494,10 @@ def derate(model, id, surface, c)
     end
   end
 
-  surface[:r_heatloss] = loss if m && loss > 0
+  if m && loss > TOL
+    surface[:r_heatloss] = loss
+    TBD.log(TBD::WARN, "Can't assign #{loss} W/K to '#{id}' - too conductive")
+  end
   m
 end
 
@@ -1639,12 +1642,20 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     next if surface[:ground]
     b = surface[:boundary]
     if b.downcase == "outdoors"
-      surface[:deratable] = true
+      if surface.has_key?(:index)
+        surface[:deratable] = true
+      else
+        TBD.log(TBD::ERROR, "Can't derate exterior '#{id}' - too conductive")
+      end
     else
       next unless surfaces.has_key?(b)
       next unless surfaces[b].has_key?(:conditioned)
       next if surfaces[b][:conditioned]
-      surface[:deratable] = true
+      if surface.has_key?(:index)
+        surface[:deratable] = true
+      else
+        TBD.log(TBD::ERROR, "Can't derate interior '#{id}' - too conductive")
+      end
     end
   end
 
@@ -1998,10 +2009,9 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     if edge.has_key?(:io_type)
       tt = io_p.safeType(p, edge[:io_type])
       edge[:sets] = {} unless edge.has_key?(:sets)
-      edge[:sets][edge[:io_type]] = val[tt]     # default to :building PSI set
+      edge[:sets][edge[:io_type]] = val[tt]       # default to :building PSI set
       psi[edge[:io_type]] = val[tt]
       edge[:psi] = psi
-      #edge[:set] = p
       if edge.has_key?(:io_set) && io_p.set.has_key?(edge[:io_set])
         ttt = io_p.safeType(edge[:io_set], edge[:io_type])
         edge[:set] = edge[:io_set] if ttt
@@ -2685,6 +2695,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     next unless surface.has_key?(:edges)
     next unless surface.has_key?(:heatloss)
     next unless surface[:heatloss].abs > TOL
+
     os_model.getSurfaces.each do |s|
       next unless id == s.nameString
       index = surface[:index]

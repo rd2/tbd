@@ -26,6 +26,15 @@
           "count": 3
         }
       ]
+    },
+    {
+      "id": "Office Left Wall",
+      "khis": [
+        {
+          "id": "cantilevered beam",
+          "count": 300
+        }
+      ]
     }
   ],
   "edges": [

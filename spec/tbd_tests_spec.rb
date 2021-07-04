@@ -5163,11 +5163,27 @@ RSpec.describe TBD do
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
+
+    office = os_model.getSpaceByName("Zone1 Office")
+    expect(office.empty?).to be(false)
+
     front_office_wall = os_model.getSurfaceByName("Office Front Wall")
     expect(front_office_wall.empty?).to be(false)
     front_office_wall = front_office_wall.get
     expect(front_office_wall.nameString).to eq("Office Front Wall")
     expect(front_office_wall.surfaceType).to eq("Wall")
+
+    left_office_wall = os_model.getSurfaceByName("Office Left Wall")
+    expect(left_office_wall.empty?).to be(false)
+    left_office_wall = left_office_wall.get
+    expect(left_office_wall.nameString).to eq("Office Left Wall")
+    expect(left_office_wall.surfaceType).to eq("Wall")
+
+    right_fine_wall = os_model.getSurfaceByName("Fine Storage Right Wall")
+    expect(right_fine_wall.empty?).to be(false)
+    right_fine_wall = right_fine_wall.get
+    expect(right_fine_wall.nameString).to eq("Fine Storage Right Wall")
+    expect(right_fine_wall.surfaceType).to eq("Wall")
 
     # Adding a small, 5-sided window to the "Office Front Wall" (above door).
     os_v = OpenStudio::Point3dVector.new
@@ -5180,7 +5196,58 @@ RSpec.describe TBD do
     clerestory.setName("clerestory")
     clerestory.setSurface(front_office_wall)
     clerestory.setSubSurfaceType("FixedWindow")
-    # ... reminder: set subsurface type AFTER setting its parent surface
+    # ... reminder: set subsurface type AFTER setting its parent surface.
+
+    # A new, highly-conductive material (RSi = 0.001 m2.K/W) - the OS min.
+    material = OpenStudio::Model::MasslessOpaqueMaterial.new(os_model)
+    material.setName("poor material")
+    expect(material.nameString).to eq("poor material")
+    expect(material.setThermalResistance(0.001)).to be(true)
+    expect(material.thermalResistance).to be_within(0.0001).of(0.001)
+    mat = OpenStudio::Model::MaterialVector.new
+    mat << material
+
+    # A 'standard' variant (also gives RSi = 0.001 m2.K/W)
+    material2 = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
+    material2.setName("poor material2")
+    expect(material2.nameString).to eq("poor material2")
+    expect(material2.setThermalConductivity(3.0)).to be(true)
+    expect(material2.thermalConductivity).to be_within(0.01).of(3.0)
+    expect(material2.setThickness(0.003)).to be(true)
+    expect(material2.thickness).to be_within(0.001).of(0.003)
+    mat2 = OpenStudio::Model::MaterialVector.new
+    mat2 << material2
+
+    # Another 'massless' material, whose name already includes " tbd".
+    material3 = OpenStudio::Model::MasslessOpaqueMaterial.new(os_model)
+    material3.setName("poor material m tbd")
+    expect(material3.nameString).to eq("poor material m tbd")
+    expect(material3.setThermalResistance(1.0)).to be(true)
+    expect(material3.thermalResistance).to be_within(0.1).of(1.0)
+    mat3 = OpenStudio::Model::MaterialVector.new
+    mat3 << material3
+
+    # Assign highly-conductive material to a new construction.
+    construction = OpenStudio::Model::Construction.new(os_model)
+    construction.setName("poor construction")
+    expect(construction.nameString).to eq("poor construction")
+    expect(construction.layers.size).to eq(0)
+    expect(construction.setLayers(mat2)).to be(true) # or switch with 'mat'
+    expect(construction.layers.size).to eq(1)
+
+    # Assign " tbd" massless material to a new construction.
+    construction2 = OpenStudio::Model::Construction.new(os_model)
+    construction2.setName("poor construction tbd")
+    expect(construction2.nameString).to eq("poor construction tbd")
+    expect(construction2.layers.size).to eq(0)
+    expect(construction2.setLayers(mat3)).to be(true)
+    expect(construction2.layers.size).to eq(1)
+
+    # Assign construction to the "Office Left Wall".
+    expect(left_office_wall.setConstruction(construction)).to be(true)
+
+    # Assign construction2 to the "Fine Storage Right Wall".
+    expect(right_fine_wall.setConstruction(construction2)).to be(true)
 
     subs = front_office_wall.subSurfaces
     expect(subs.empty?).to be(false)
@@ -5216,6 +5283,15 @@ RSpec.describe TBD do
     #           "count": 3
     #         }
     #       ]
+    #     },
+    #     {
+    #       "id": "Office Left Wall",
+    #       "khis": [
+    #         {
+    #           "id": "cantilevered beam",
+    #           "count": 300                           <<<< triggers WARNING # 1
+    #         }
+    #       ]
     #     }
     #   ],
     #   "edges": [
@@ -5240,21 +5316,27 @@ RSpec.describe TBD do
     expect(surfaces.size).to eq(23)
     expect(surfaces.has_key?("Office Front Wall")).to be(true)
     expect(surfaces["Office Front Wall"].has_key?(:edges)).to be(true)
+    expect(surfaces.has_key?("Office Left Wall")).to be(true)
+    expect(surfaces["Office Left Wall"].has_key?(:edges)).to be(true)
+    expect(surfaces.has_key?("Fine Storage Right Wall")).to be(true)
+    expect(surfaces["Fine Storage Right Wall"].has_key?(:edges)).to be(true)
 
     expect(TBD.status).to eq(TBD::ERROR)
-    expect(TBD.logs.size).to eq(4)
+    expect(TBD.logs.size).to eq(6)
     # TBD.logs.each { |log| puts log[:msg] }
-    #   'clerestory' vertex count (3 or 4) - opening
+    #   'clerestory' vertex count (3 or 4)
     #   Can't override 'regular (BETBG)' PSI set  - skipping
     #   'Office Front Wall' KHI 'beam' mismatch
     #   'Office Front Wall' edge PSI set mismatch - skipping
+    #   Can't assign 180.007 W/K to 'Office Left Wall' - too conductive
+    #   Can't derate 'Fine Storage Right Wall' - material already derated
 
     # Despite input file (non-fatal) errors, TBD successfully processes thermal
     # bridges and derates OSM construction materials by falling back on defaults
     # in the case of errors.
 
-    # For the 5-sided window, TBD will entirely ignore all edges/bridges linked
-    # to 'clerestory' subsurface.
+    # For the 5-sided window, TBD will simply ignore all edges/bridges linked to
+    # the 'clerestory' subsurface.
     io[:edges].each do |edge|
       expect(edge.has_key?(:surfaces)).to be(true)
       edge[:surfaces].each { |s| expect(s).to_not eq("clerestory") }
@@ -5268,7 +5350,7 @@ RSpec.describe TBD do
     expect(sills).to eq(2)                                               # not 3
 
     # Fallback to ERROR # 1: not really a fallback, more a demonstration that
-    # "regular (BETBG)" isn't referred to by any edge linked derated surfaces.
+    # "regular (BETBG)" isn't referred to by any edge-linked derated surfaces.
     # ... & fallback to ERROR # 3: no edge relying on 'detailed' PSI set.
     io[:edges].each { |edge| expect(edge[:psi]).to eq("poor (BETBG)") }
 
@@ -5276,6 +5358,44 @@ RSpec.describe TBD do
     expect(io.has_key?(:khis)).to be(true)
     expect(io[:khis].size).to eq(1)
     expect(surfaces["Office Front Wall"].has_key?(:khis)).to be(false)
+
+    # ... concerning the "Office Left Wall" (underatable material).
+    left_office_wall = os_model.getSurfaceByName("Office Left Wall")
+    expect(left_office_wall.empty?).to be(false)
+    left_office_wall = left_office_wall.get
+    c = left_office_wall.construction.get.to_Construction.get
+    expect(c.numLayers).to eq(1)
+    #layer = c.getLayer(0).to_MasslessOpaqueMaterial
+    layer = c.getLayer(0).to_StandardOpaqueMaterial
+    expect(layer.empty?).to be(false)
+    layer = layer.get
+    expect(layer.name.get).to eq("'Office Left Wall' m tbd")
+    #expect(layer.thermalResistance).to be_within(0.001).of(0.001)
+    expect(layer.thermalConductivity).to be_within(0.1).of(3.0)
+    expect(layer.thickness).to be_within(0.001).of(0.003)
+    # Regardless of the targetted material type ('standard' vs 'massless'), TBD
+    # will ensure a minimal RSi value of 0.001 m2.K/W, i.e. no derating despite
+    # the surface having thermal bridges.
+    expect(surfaces["Office Left Wall"].has_key?(:heatloss)).to be(true)
+    expect(surfaces["Office Left Wall"][:heatloss]).to be_within(0.1).of(180)
+    expect(surfaces["Office Left Wall"].has_key?(:r_heatloss)).to be(true)
+    expect(surfaces["Office Left Wall"][:r_heatloss]).to be_within(0.1).of(180)
+
+    expect(surfaces["Fine Storage Right Wall"].has_key?(:heatloss)).to be(true)
+    expect(surfaces["Fine Storage Right Wall"].has_key?(:r_heatloss)).to be(false)
+    # ... concerning the new material (with a name already including " tbd").
+    # TBD ignores all such materials (a safeguard against iterative TBD
+    # runs). Contrary to the previous critical cases of highly conductive
+    # materials, TBD doesn't even try to set the :r_heatloss hash value - tough!
+    right_fine_wall = os_model.getSurfaceByName("Fine Storage Right Wall")
+    expect(right_fine_wall.empty?).to be(false)
+    right_fine_wall = right_fine_wall.get
+    c = right_fine_wall.construction.get.to_Construction.get
+    layer = c.getLayer(0).to_MasslessOpaqueMaterial
+    expect(layer.empty?).to be(false)
+    layer = layer.get
+    expect(layer.name.get).to eq("poor material m tbd")
+    expect(layer.thermalResistance).to be_within(0.1).of(1.0)
 
     # Mimics TBD 'measure.rb' method 'exitTBD()'
     unless TBD.logs.empty? || TBD.status < TBD.log_level
@@ -5291,13 +5411,7 @@ RSpec.describe TBD do
     File.open(outP, "w") do |outP|
       outP.puts out
     end
-    # Should contain a 'logs' entry at the end of the JSON output file.
-
-    # Next ...
-    # TBD.log(TBD::WARN, "Won't bother derating '#{id}' - heatloss below #{TOL}")
-    # TBD.log(TBD::WARN, "Can't derate '#{id}' - surface net area below #{TOL}")
-    # TBD.log(TBD::WARN, "Can't derate '#{id}' - material RSi value below MIN")
-    # TBD.log(TBD::WARN, "Can't derate '#{id}' - material already derated")
+    # ... should contain a 'logs' entry at the end of the JSON output file.
   end
 
   it "can process an OSM converted from an IDF (with rotation)" do
