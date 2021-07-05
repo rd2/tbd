@@ -29,7 +29,7 @@ module TBD
   # index.html#example-error-messages-for-the-input-processor
 
   @@logs = []
-  @@log_level = WARN
+  @@log_level = INFO
 
   @@tag = []
   @@tag[0]     = ""
@@ -38,6 +38,14 @@ module TBD
   @@tag[WARN]  = "WARNING"
   @@tag[ERROR] = "ERROR"
   @@tag[FATAL] = "FATAL"
+
+  @@msg = []
+  @@msg[0]     = ""
+  @@msg[DEBUG] = "For debugging"
+  @@msg[INFO]  = "No errors, no warnings"
+  @@msg[WARN]  = "Non-fatal warnings"
+  @@msg[ERROR] = "Non-fatal errors"
+  @@msg[FATAL] = "Fatal errors"
 
   # Highest log level reached so far in TBD process sequence. Setting this to
   # lower than WARN (i.e., below minimal level triggering a "tbd.log" file).
@@ -72,13 +80,18 @@ module TBD
     return ""
   end
 
+  def self.msg(log_status)
+    return @@msg[log_status] if log_level >= DEBUG && log_level <= FATAL
+    return ""
+  end
+
   def self.set_log_level(log_level)
     @@log_level = log_level
   end
 
   def self.log(log_level, message)
     if log_level >= @@log_level
-      @@logs << { time: Time.now, level: log_level, msg: message }
+      @@logs << { level: log_level, message: message }
 
       # May go from INFO to WARN, or to ERROR, or to FATAL
       @@log_status = log_level if log_level > @@log_status

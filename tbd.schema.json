@@ -67,11 +67,9 @@
       },
       "uniqueItems": true
     },
-    "logs": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/Log"
-      }
+    "log": {
+      "type": "object",
+      "$ref": "#/definitions/Log"
     }
   },
   "additionalProperties": false,
@@ -435,8 +433,41 @@
       ]
     },
     "Log": {
+      "description": "TBD log",
+      "type": "object",
+      "properties": {
+        "date": {
+          "title": "Timestamp",
+          "type": "string"
+        },
+        "status": {
+          "title": "Global state",
+          "type": "string"
+        },
+        "messages": {
+          "title": "Logged messages",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Logs"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "Logs": {
       "description": "TBD log messages",
-      "type": "string"
+      "type": "object",
+      "properties":{
+        "level": {
+          "title": "Severity of logged message (e.g. WARN)",
+          "type": "string"
+        },
+        "message": {
+          "title": "Logged message",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
     }
   }
 }
