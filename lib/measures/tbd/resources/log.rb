@@ -41,11 +41,11 @@ module TBD
 
   @@msg = []
   @@msg[0]     = ""
-  @@msg[DEBUG] = "For debugging"
-  @@msg[INFO]  = "No errors, no warnings"
-  @@msg[WARN]  = "Non-fatal warnings"
-  @@msg[ERROR] = "Non-fatal errors"
-  @@msg[FATAL] = "Fatal errors"
+  @@msg[DEBUG] = "Debugging ..."
+  @@msg[INFO]  = "Success! No errors, no warnings"
+  @@msg[WARN]  = "Partial success, raised non-fatal warnings"
+  @@msg[ERROR] = "Partial success, encountered non-fatal errors"
+  @@msg[FATAL] = "Failure, triggered fatal errors"
 
   # Highest log level reached so far in TBD process sequence. Setting this to
   # lower than WARN (i.e., below minimal level triggering a "tbd.log" file).
