@@ -1,5 +1,5 @@
 {
-  "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
+  "schema": "https://github.com/rd2/tbd/blob/logger/tbd.schema.json",
   "description": "testing TBD JSON for seb.osm",
   "psis": [
     {
@@ -63,9 +63,7 @@
       "psi": "compliant"
     }
   ],
-  "building": [
-    {
-      "psi": "(non thermal bridging)"
-    }
-  ]
+  "building": {
+    "psi": "(non thermal bridging)"
+  }
 }

@@ -1033,7 +1033,8 @@ RSpec.describe TBD do
     expect(io.nil?).to be(false)
     expect(io.empty?).to be(false)
     expect(io.has_key?(:building)).to be(true)
-    p = io[:building].first[:psi]
+    expect(io[:building].has_key?(:psi)).to be(true)
+    p = io[:building][:psi]
     has, val = io_p.shorthands(p)
     expect(has.empty?).to be(false)
     expect(val.empty?).to be(false)
@@ -1311,7 +1312,7 @@ RSpec.describe TBD do
       psi = {}
       psi[:transition] = 0.000
       edge[:psi] = psi
-      edge[:set] = io[:building].first[:psi]
+      edge[:set] = io[:building][:psi]
 
       tr = []
       edge[:surfaces].keys.each do |id|
@@ -3277,8 +3278,8 @@ RSpec.describe TBD do
     expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
     expect(io.has_key?(:building)).to be(true) # despite no being on file - good
-    expect(io[:building].first.has_key?(:psi)).to be(true)
-    expect(io[:building].first[:psi]).to eq("(non thermal bridging)")
+    expect(io[:building].has_key?(:psi)).to be(true)
+    expect(io[:building][:psi]).to eq("(non thermal bridging)")
 
     # As the :building PSI set on file remains "(non thermal bridging)", one
     # should not expect differences in results, i.e. derating shouldn't occur
@@ -3772,9 +3773,9 @@ RSpec.describe TBD do
     expect(khi.point["support"]).to eq(0.5)
 
     expect(io.has_key?(:building)).to be(true)
-    expect(io[:building].first.has_key?(:psi)).to be(true)
-    expect(io[:building].first[:psi]).to eq("compliant")
-    expect(psi.set.has_key?(io[:building].first[:psi])).to be(true)
+    expect(io[:building].has_key?(:psi)).to be(true)
+    expect(io[:building][:psi]).to eq("compliant")
+    expect(psi.set.has_key?(io[:building][:psi])).to be(true)
 
     expect(io.has_key?(:surfaces)).to be(true)
     io[:surfaces].each do |surface|
@@ -3824,7 +3825,6 @@ RSpec.describe TBD do
     expect(io.has_key?(:building)).to be(true)
     expect(io.has_key?(:logs)).to be(false)
     expect(io[:spaces].size).to eq(1)
-    expect(io[:building].size).to eq(1)
 
     # Loop through input psis to ensure uniqueness vs PSI defaults.
     psi = PSI.new
@@ -3843,9 +3843,9 @@ RSpec.describe TBD do
     expect(psi.set["Awesome"][:rimjoist]).to eq(0.2)
 
     expect(io.has_key?(:building)).to be (true)
-    expect(io[:building].first.has_key?(:psi)).to be(true)
-    expect(io[:building].first[:psi]).to eq("Awesome")
-    expect(psi.set.has_key?(io[:building].first[:psi])).to be(true)
+    expect(io[:building].has_key?(:psi)).to be(true)
+    expect(io[:building][:psi]).to eq("Awesome")
+    expect(psi.set.has_key?(io[:building][:psi])).to be(true)
 
     expect(io.has_key?(:spaces)).to be(true)
     io[:spaces].each do |space|
@@ -3873,7 +3873,6 @@ RSpec.describe TBD do
     expect(io.has_key?(:logs)).to be(false)
     expect(io[:edges].size).to eq(1)
     expect(io[:surfaces].size).to eq(1)
-    expect(io[:building].size).to eq(1)
 
     # Loop through input psis to ensure uniqueness vs PSI defaults
     psi = PSI.new
@@ -3893,9 +3892,9 @@ RSpec.describe TBD do
     expect(psi.set["Party wall edge"][:party]).to eq(0.4)
 
     expect(io.has_key?(:building)).to be(true)
-    expect(io[:building].first.has_key?(:psi)).to be(true)
-    expect(io[:building].first[:psi]).to eq("Awesome")
-    expect(psi.set.has_key?(io[:building].first[:psi])).to be(true)
+    expect(io[:building].has_key?(:psi)).to be(true)
+    expect(io[:building][:psi]).to eq("Awesome")
+    expect(psi.set.has_key?(io[:building][:psi])).to be(true)
 
     expect(io.has_key?(:surfaces)).to be(true)
     io[:surfaces].each do |surface|

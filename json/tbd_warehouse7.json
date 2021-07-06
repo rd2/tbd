@@ -26,10 +26,7 @@
       "psi": "detailed"
     }
   ],
-  "building":
-  [
-    {
-      "psi": "compliant"
-    }
-  ]
+  "building": {
+    "psi": "compliant"
+  }
 }

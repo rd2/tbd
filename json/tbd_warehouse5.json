@@ -1,5 +1,5 @@
 {
-  "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
+  "schema": "https://github.com/rd2/tbd/blob/logger/tbd.schema.json",
   "description": "test_warehouse.osm with spacetype PSI values",
   "psis": [
     {
@@ -23,11 +23,9 @@
       "grade": 0.500
     }
   ],
-  "building": [
-    {
-      "psi": "regular (BETBG)"
-    }
-  ],
+  "building": {
+    "psi": "regular (BETBG)"
+  },
   "spacetypes": [
     {
       "id": "Warehouse Office",

@@ -1,5 +1,5 @@
 {
-  "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
+  "schema": "https://github.com/rd2/tbd/blob/logger/tbd.schema.json",
   "description": "test_smalloffice.osm with building story PSI set",
   "psis": [
     {
@@ -14,11 +14,10 @@
       "grade": 0.370
     }
   ],
-  "building": [
-    {
-      "psi": "regular (BETBG)"
-    }
-  ],
+  "building":
+  {
+    "psi": "regular (BETBG)"
+  },
   "stories": [
     {
       "id": "Building Story 1",

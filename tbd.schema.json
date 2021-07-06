@@ -61,11 +61,8 @@
       "uniqueItems": true
     },
     "building": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/Building"
-      },
-      "uniqueItems": true
+      "type": "object",
+      "$ref": "#/definitions/Building"
     },
     "log": {
       "type": "object",

@@ -603,16 +603,16 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
     io[:khis].each { |k| khi.append(k) } if io.has_key?(:khis)
 
     if io.has_key?(:building)
-      unless io[:building].first.has_key?(:psi)
+      unless io[:building].has_key?(:psi)
         TBD.log(TBD::FATAL, "File input: building PSI? - stopping")
         return nil, psi, khi
       end
     else
       # No building PSI on file - "set" must default to a built-in PSI set.
-      io[:building] = [{ psi: set }]           # i.e. default PSI set & no KHI's
+      io[:building] = { psi: set }             # i.e. default PSI set & no KHI's
     end
 
-    p = io[:building].first[:psi]
+    p = io[:building][:psi]
     unless psi.complete?(p)
       TBD.log(TBD::FATAL, "Incomplete building PSI set '#{p}' - stopping")
       return nil, psi, khi
@@ -814,7 +814,7 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
     # No (optional) user-defined TBD JSON input file.
     # In such cases, "set" must refer to a valid PSI set
     if psi.complete?(set)
-      io[:building] = [{ psi: set }]           # i.e. default PSI set & no KHI's
+      io[:building] = { psi: set }             # i.e. default PSI set & no KHI's
     else
       TBD.log(TBD::FATAL, "Incomplete building PSI set '#{set}' - stopping")
       return nil, psi, khi
@@ -1987,7 +1987,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
   # EnergyPlus simulation). This is similar to accessing an invalid .osm file.
   return nil, nil if TBD.fatal?
 
-  p = io[:building].first[:psi]                           # default building PSI
+  p = io[:building][:psi]                                 # default building PSI
   has, val = io_p.shorthands(p)
 
   if has.empty? || val.empty?
@@ -2291,7 +2291,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     psi = {}
     psi[:transition] = 0.000
     edge[:psi] = psi
-    edge[:set] = io[:building].first[:psi]
+    edge[:set] = io[:building][:psi]
   end
 
   # A priori, TBD applies (default) :building PSI types and values to individual

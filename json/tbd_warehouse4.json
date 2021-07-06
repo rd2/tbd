@@ -1,5 +1,5 @@
 {
-  "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
+  "schema": "https://github.com/rd2/tbd/blob/logger/tbd.schema.json",
   "description": "test_warehouse.osm with negative PSI values",
   "psis": [
     {
@@ -13,9 +13,7 @@
       "grade": 0.0
     }
   ],
-  "building": [
-    {
-      "psi": "BETBG Detail 7.6.2"
-    }
-  ]
+  "building": {
+    "psi": "BETBG Detail 7.6.2"
+  }
 }

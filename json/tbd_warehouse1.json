@@ -1,5 +1,5 @@
 {
-  "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
+  "schema": "https://github.com/rd2/tbd/blob/logger/tbd.schema.json",
   "description": "testing custom edges for test_warehouse.osm",
   "psis": [
     {
@@ -33,9 +33,7 @@
       "v1z": 0.914355407629293
     }
   ],
-  "building": [
-    {
-      "psi": "compliant"
-    }
-  ]
+  "building": {
+    "psi": "compliant"
+  }
 }

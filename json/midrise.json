@@ -1,5 +1,5 @@
 {
-  "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
+  "schema": "https://github.com/rd2/tbd/blob/logger/tbd.schema.json",
   "description": "sorting out multiple story PSI sets (midrise)",
   "psis": [
     {
@@ -60,9 +60,7 @@
       "psi": "Building Story 3"
     }
   ],
-  "building": [
-    {
-      "psi": "compliant"
-    }
-  ]
+  "building": {
+    "psi": "compliant"
+  }
 }
