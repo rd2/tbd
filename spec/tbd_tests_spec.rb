@@ -2171,9 +2171,7 @@ RSpec.describe TBD do
     # Now mimic the export functionality of the measure
     out = JSON.pretty_generate(io)
     outP = File.dirname(__FILE__) + "/../json/tbd_warehouse.out.json"
-    File.open(outP, "w") do |outP|
-      outP.puts out
-    end
+    File.open(outP, "w") { |outP| outP.puts out }
 
     # 2. Re-use the exported file as input for another warehouse
     os_model2 = translator.loadModel(path)
@@ -2239,9 +2237,7 @@ RSpec.describe TBD do
     # Now mimic (again) the export functionality of the measure
     out2 = JSON.pretty_generate(io2)
     outP2 = File.dirname(__FILE__) + "/../json/tbd_warehouse2.out.json"
-    File.open(outP2, "w") do |outP2|
-      outP2.puts out2
-    end
+    File.open(outP2, "w") { |outP2| outP2.puts out2 }
 
     # Both output files should be the same ...
     # cmd = "diff #{outP} #{outP2}"
@@ -2365,9 +2361,7 @@ RSpec.describe TBD do
     # Now mimic the export functionality of the measure
     out = JSON.pretty_generate(io)
     outP = File.dirname(__FILE__) + "/../json/tbd_warehouse1.out.json"
-    File.open(outP, "w") do |outP|
-      outP.puts out
-    end
+    File.open(outP, "w") { |outP| outP.puts out }
 
     # 2. Re-use the exported file as input for another warehouse
     os_model2 = translator.loadModel(path)
@@ -2399,9 +2393,7 @@ RSpec.describe TBD do
     # Now mimic (again) the export functionality of the measure
     out2 = JSON.pretty_generate(io2)
     outP2 = File.dirname(__FILE__) + "/../json/tbd_warehouse3.out.json"
-    File.open(outP2, "w") do |outP2|
-      outP2.puts out2
-    end
+    File.open(outP2, "w") { |outP2| outP2.puts out2 }
 
     # Both output files should be the same ...
     # cmd = "diff #{outP} #{outP2}"
@@ -4411,9 +4403,14 @@ RSpec.describe TBD do
     psi = PSI.new
     expect(psi.set.has_key?("poor (BETBG)")).to be(true)
     expect(psi.complete?("poor (BETBG)")).to be(true)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.size).to eq(0)
 
     expect(psi.set.has_key?("new set")).to be(false)
     expect(psi.complete?("new set")).to be(false)
+    expect(TBD.status).to eq(TBD::ERROR)
+    expect(TBD.logs.size).to eq(1)
+    TBD.clean!
     new_set =
     {
       id:            "new set",
@@ -4429,11 +4426,12 @@ RSpec.describe TBD do
     expect(psi.append(new_set)).to be(true)
     expect(psi.set.has_key?("new set")).to be(true)
     expect(psi.complete?("new set")).to be(true)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.size).to eq(0)
 
     expect(psi.set["new set"][:grade]).to eq(0)
     new_set[:grade] = 1.0
-    expect(TBD.status).to eq(0)
-    expect(psi.append(new_set)).to be(false) # does not override existing value
+    expect(psi.append(new_set)).to be(false)  # does not override existing value
     expect(TBD.status).to eq(TBD::ERROR)
     expect(TBD.logs.size).to eq(1)
     expect(psi.set["new set"][:grade]).to eq(0)
@@ -5259,11 +5257,11 @@ RSpec.describe TBD do
     #   "description": "testing error detection",
     #   "psis": [
     #     {
-    #       "id": "detailed_2",
+    #       "id": "detailed 2",
     #       "fenestration": 0.600
     #     },
     #     {
-    #       "id": "regular (BETBG)",                    <<<< non-fatal ERROR # 1
+    #       "id": "regular (BETBG)",   <<<< ERROR #1 - can't reset built-in sets
     #       "fenestration": 0.700
     #     }
     #   ],
@@ -5278,7 +5276,7 @@ RSpec.describe TBD do
     #       "id": "Office Front Wall",
     #       "khis": [
     #         {
-    #           "id": "beam",                           <<<< non-fatal ERROR # 2
+    #           "id": "beam",      <<<< ERROR #2 - 'beam' not previously defined
     #           "count": 3
     #         }
     #       ]
@@ -5288,14 +5286,14 @@ RSpec.describe TBD do
     #       "khis": [
     #         {
     #           "id": "cantilevered beam",
-    #           "count": 300                           <<<< triggers WARNING # 1
+    #           "count": 300      <<<< WARNING #1 - heat loss too great (for m2)
     #         }
     #       ]
     #     }
     #   ],
     #   "edges": [
     #     {
-    #       "psi": "detailed",                          <<<< non-fatal ERROR # 3
+    #       "psi": "detailed", <<<< ERROR #3 - 'detailed' not previously defined
     #       "type": "fenestration",
     #       "surfaces": [
     #         "Office Front Wall",
@@ -5396,21 +5394,48 @@ RSpec.describe TBD do
     expect(layer.name.get).to eq("poor material m tbd")
     expect(layer.thermalResistance).to be_within(0.1).of(1.0)
 
-    # Mimics TBD 'measure.rb' method 'exitTBD()'
-    unless TBD.logs.empty? || TBD.status < TBD.log_level
-      msgs = []
-      TBD.logs.each do |l|
-        msgs << "#{l[:time]} (#{TBD.tag(l[:level])}) #{l[:msg]}"
+    # Mimics (somewhat) the TBD 'measure.rb' method 'exitTBD()'
+    # ... should generate a 'logs' entry at the  of the JSON output file.
+    status = TBD.msg(TBD.status)
+    status = TBD.msg(TBD::INFO) if TBD.status.zero?
+
+    if surfaces
+      surfaces.each do |id, surface|
+        next if TBD.fatal?
+        next unless surface.has_key?(:ratio)
+        ratio  = format "%3.1f", surface[:ratio]
+        name   = id.rjust(15, " ")
+        output = "#{name} RSi derated by #{ratio}%"
+        TBD.log(TBD::INFO, output)
       end
-      io[:logs] = msgs
     end
+
+    tbd_log = { date: Time.now, status: status }
+
+    tbd_msgs = []
+    TBD.logs.each do |l|
+      tbd_msgs << { level: TBD.tag(l[:level]), message: l[:message] }
+    end
+    tbd_log[:messages] = tbd_msgs unless tbd_msgs.empty?
+    io[:log] = tbd_log
+
+    # Deterministic sorting
+    io[:schema]       = io.delete(:schema)      if io.has_key?(:schema)
+    io[:description]  = io.delete(:description) if io.has_key?(:description)
+    io[:log]          = io.delete(:log)         if io.has_key?(:log)
+    io[:psis]         = io.delete(:psis)        if io.has_key?(:psis)
+    io[:khis]         = io.delete(:khis)        if io.has_key?(:khis)
+    io[:building]     = io.delete(:building)    if io.has_key?(:building)
+    io[:stories]      = io.delete(:stories)     if io.has_key?(:stories)
+    io[:spacetypes]   = io.delete(:spacetypes)  if io.has_key?(:spacetypes)
+    io[:spaces]       = io.delete(:spaces)      if io.has_key?(:spaces)
+    io[:surfaces]     = io.delete(:surfaces)    if io.has_key?(:surfaces)
+    io[:edges]        = io.delete(:edges)       if io.has_key?(:edges)
 
     out = JSON.pretty_generate(io)
     outP = File.dirname(__FILE__) + "/../json/tbd_warehouse9.out.json"
-    File.open(outP, "w") do |outP|
-      outP.puts out
-    end
-    # ... should contain a 'logs' entry at the end of the JSON output file.
+    File.open(outP, "w") { |outP| outP.puts out }
+    # ... should contain 'log' entries at the start of the JSON output file.
   end
 
   it "can process an OSM converted from an IDF (with rotation)" do

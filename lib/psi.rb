@@ -223,7 +223,8 @@ class PSI
   # @return [Bool] Returns true if successful in generating PSI set shorthands
   def genShorthands(p)
     unless @set.has_key?(p)
-      TBD.log(TBD::DEBUG, "Can't generate PSI type shorthands with '#{p}'")
+      TBD.log(TBD::DEBUG,
+        "Can't generate PSI type shorthands with '#{p}' - skipping")
       return false
     end
 
@@ -427,7 +428,8 @@ class PSI
   # @return [Bool] Returns true if stored and has a complete PSI set
   def complete?(p)
     unless @set.has_key?(p) && @has.has_key?(p) && @val.has_key?(p)
-      TBD.log(TBD::DEBUG, "Invalid 'complete?' arguments")
+      TBD.log(TBD::ERROR,
+        "Can't find #{p} PSI set (and assess if complete) - skipping")
       return false
     end
 
@@ -494,25 +496,29 @@ end
 # @return [Bool] Returns true if edges share vertex pairs
 def matches?(e1, e2)
   unless e1 && e2
-    TBD.log(TBD::DEBUG, "Invalid matching edge arguments")
+    TBD.log(TBD::DEBUG,
+      "Invalid matching edge arguments - skipping")
     return false
   end
   unless e1.has_key?(:v0) && e1.has_key?(:v1) &&
          e2.has_key?(:v0) && e2.has_key?(:v1)
-    TBD.log(TBD::DEBUG, "Missing vertices for matching edge(s)")
+    TBD.log(TBD::DEBUG,
+      "Missing vertices for matching edge(s) - skipping")
     return false
   end
   cl = Topolys::Point3D
   unless e1[:v0].is_a?(cl) && e1[:v1].is_a?(cl) &&
          e2[:v0].is_a?(cl) && e2[:v1].is_a?(cl)
-    TBD.log(TBD::DEBUG, "Invalid vertex class for matching edge(s)")
+    TBD.log(TBD::DEBUG,
+      "#{cl}? Expecting Topolys 3D points for matching edge(s) - skipping")
     return false
   end
 
   e1_vector = e1[:v1] - e1[:v0]
   e2_vector = e2[:v1] - e2[:v0]
   if e1_vector.magnitude < TOL || e2_vector.magnitude < TOL
-    TBD.log(TBD::DEBUG, "Matching edge lengths below TOL")
+    TBD.log(TBD::DEBUG,
+      "Matching edge lengths below TOL - skipping")
     return false
   end
 
@@ -566,7 +572,8 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
   khi = KHI.new                  # KHI hash, initially holding built-in defaults
 
   unless surfaces && edges && surfaces.class == Hash && edges.class == Hash
-    TBD.log(TBD::DEBUG, "Can't process inputs - invalid arguments")
+    TBD.log(TBD::DEBUG,
+      "Can't process JSON TBD inputs - invalid arguments")
     return io, psi, khi
   end
 
@@ -585,15 +592,15 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
           schemaC = File.read(schemaP)
           schema = JSON.parse(schemaC, symbolize_names: true)
           unless JSON::Validator.validate!(schema, io)
-            TBD.log(TBD::FATAL, "Invalid TBD (JSON) input file - stopping")
+            TBD.log(TBD::FATAL, "Invalid TBD JSON input file (vs schema)")
             return nil, psi, khi
           end
         else
-          TBD.log(TBD::FATAL, "Empty TBD schema file - stopping")
+          TBD.log(TBD::FATAL, "Empty TBD JSON schema file")
           return nil, psi, khi
         end
       else
-        TBD.log(TBD::FATAL, "Can't locate/open TBD schema file - stopping")
+        TBD.log(TBD::FATAL, "Can't locate/open TBD JSON schema file")
         return nil, psi, khi
       end
     end
@@ -604,7 +611,7 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
 
     if io.has_key?(:building)
       unless io[:building].has_key?(:psi)
-        TBD.log(TBD::FATAL, "File input: building PSI? - stopping")
+        TBD.log(TBD::FATAL, "Invalid building PSI set (TBD JSON file)")
         return nil, psi, khi
       end
     else
@@ -614,7 +621,7 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
 
     p = io[:building][:psi]
     unless psi.complete?(p)
-      TBD.log(TBD::FATAL, "Incomplete building PSI set '#{p}' - stopping")
+      TBD.log(TBD::FATAL, "Incomplete building PSI set '#{p}'")
       return nil, psi, khi
     end
 
@@ -630,13 +637,13 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
             match = true if i = st.nameString
           end
           unless match
-            TBD.log(TBD::ERROR, "OpenStudio story mismatch '#{i}' - skipping")
+            TBD.log(TBD::ERROR, "Missing OSM story '#{i}' - skipping")
           end
           unless psi.set.has_key?(story[:psi])
-            TBD.log(TBD::ERROR, "Story '#{i}' PSI mismatch - skipping")
+            TBD.log(TBD::ERROR, "Missing story '#{i}' PSI set - skipping")
           end
         else
-          TBD.log(TBD::FATAL, "Invalid story PSI entry file - skipping")
+          TBD.log(TBD::FATAL, "Invalid story entry (TBD JSON file)")
           return nil, psi, khi
         end
       end
@@ -654,13 +661,13 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
             match = true if i = spt.nameString
           end
           unless match
-            TBD.log(TBD::ERROR, "OpenStudio spacetype mismatch '#{i}' - skipping")
+            TBD.log(TBD::ERROR, "Missing OSM spacetype '#{i}' - skipping")
           end
           unless psi.set.has_key?(stype[:psi])
-            TBD.log(TBD::ERROR, "Spacetype '#{i}' PSI mismatch - skipping")
+            TBD.log(TBD::ERROR, "Missing spacetype '#{i}' PSI set - skipping")
           end
         else
-          TBD.log(TBD::FATAL, "Invalid spacetype entry on file - skipping")
+          TBD.log(TBD::FATAL, "Invalid spacetype entry (TBD JSON file)")
           return nil, psi, khi
         end
       end
@@ -678,13 +685,13 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
             match = true if i == sp.nameString
           end
           unless match
-            TBD.log(TBD::ERROR, "OpenStudio space mismatch '#{i}' - skipping")
+            TBD.log(TBD::ERROR, "Missing OSM space '#{i}' - skipping")
           end
           unless psi.set.has_key?(space[:psi])
-            TBD.log(TBD::ERROR, "Space '#{i}' PSI mismatch - skipping")
+            TBD.log(TBD::ERROR, "Missing space '#{i}' PSI set - skipping")
           end
         else
-          TBD.log(TBD::FATAL, "Invalid space entry on file - skipping")
+          TBD.log(TBD::FATAL, "Invalid space entry (TBD JSON file")
           return nil, psi, khi
         end
       end
@@ -695,13 +702,13 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
         if surface.has_key?(:id)
           i = surface[:id]
           unless surfaces.has_key?(i)
-            TBD.log(TBD::ERROR, "OpenStudio surface mismatch '#{i}' - skipping")
+            TBD.log(TBD::ERROR, "Missing TBD surface '#{i}' - skipping")
           end
 
           # surfaces can optionally hold custom PSI sets and/or KHI data
           if surface.has_key?(:psi)
             unless psi.set.has_key?(surface[:psi])
-              TBD.log(TBD::ERROR, "Surface '#{i}' PSI mismatch - skipping")
+              TBD.log(TBD::ERROR, "Missing surface '#{i}' PSI set - skipping")
             end
           end
           if surface.has_key?(:khis)
@@ -709,12 +716,12 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
               next unless k.has_key?(:id)
               ii = k[:id]
               unless khi.point.has_key?(ii)
-                TBD.log(TBD::ERROR, "'#{i}' KHI '#{ii}' mismatch")
+                TBD.log(TBD::ERROR, "Missing surface '#{i}' KHI pair '#{ii}'")
               end
             end
           end
         else
-          TBD.log(TBD::FATAL, "Invalid surface entry on file - skipping")
+          TBD.log(TBD::FATAL, "Invalid surface entry (TBD JSON file)")
           return nil, psi, khi
         end
       end
@@ -766,7 +773,7 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
                        edge.has_key?(:v1x) &&
                        edge.has_key?(:v1y) &&
                        edge.has_key?(:v1z)
-                  TBD.log(TBD::ERROR, "'#{s}' edge vertices in pairs - skipping")
+                  TBD.log(TBD::ERROR, "Missing '#{s}' edge vertices - skipping")
                   valid = false
                   next
                 end
@@ -791,11 +798,13 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
                     e[:io_set] = pp
                     e[:io_type] = t    # success - matching type with custom PSI
                   else
-                    TBD.log(TBD::ERROR, "'#{s}' '#{p}' type '#{t}'? - skipping")
+                    TBD.log(TBD::ERROR,
+                      "Invalid '#{s}' '#{p}' type '#{t}' - skipping")
                     valid = false
                   end
                 else
-                  TBD.log(TBD::ERROR, "'#{s}' edge PSI set mismatch - skipping")
+                  TBD.log(TBD::ERROR,
+                    "Missing '#{s}' edge PSI set - skipping")
                   valid = false
                 end
               else
@@ -805,7 +814,7 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
             end
           end
         else
-          TBD.log(TBD::FATAL, "Invalid edge entry on file - skipping")
+          TBD.log(TBD::FATAL, "Invalid edge entry (TBD JSON file)")
           return nil, psi, khi
         end
       end
@@ -816,7 +825,7 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
     if psi.complete?(set)
       io[:building] = { psi: set }             # i.e. default PSI set & no KHI's
     else
-      TBD.log(TBD::FATAL, "Incomplete building PSI set '#{set}' - stopping")
+      TBD.log(TBD::FATAL, "Incomplete building PSI set '#{set}'")
       return nil, psi, khi
     end
   end
@@ -836,7 +845,8 @@ def transforms(model, group)
   gr2 = OpenStudio::Model::ShadingSurfaceGroup
   unless model && group && model.is_a?(OpenStudio::Model::Model) &&
         (group.is_a?(gr1) || group.is_a?(gr2))
-    TBD.log(TBD::DEBUG, "Invalid arguments for transformation/rotation")
+    TBD.log(TBD::DEBUG,
+      "Invalid arguments for transformation/rotation - skipping")
     return nil, nil
   end
 
@@ -854,7 +864,8 @@ end
 # @return [OpenStudio::Vector3D] Returns normal vector <x,y,z> of s
 def trueNormal(s, r)
   unless s && r && s.is_a?(OpenStudio::Model::PlanarSurface) && r.is_a?(Numeric)
-    TBD.log(TBD::DEBUG, "Invalid arguments for true normals")
+    TBD.log(TBD::DEBUG,
+      "Invalid arguments for true normals - skipping")
     return nil
   end
 
@@ -880,7 +891,8 @@ def concave?(s1, s2)
          s1.has_key?(:normal)      && s2.has_key?(:normal)      &&
          s1.has_key?(:polar)       && s2.has_key?(:polar)
 
-    TBD.log(TBD::DEBUG, "Invalid arguments determining concavity")
+    TBD.log(TBD::DEBUG,
+      "Invalid arguments determining concavity - skipping")
     return false
   end
 
@@ -911,7 +923,8 @@ def convex?(s1, s2)
          s1.has_key?(:normal)      && s2.has_key?(:normal)      &&
          s1.has_key?(:polar)       && s2.has_key?(:polar)
 
-    TBD.log(TBD::DEBUG, "Invalid arguments determining convexity")
+    TBD.log(TBD::DEBUG,
+      "Invalid arguments determining convexity - skipping")
     return false
   end
 
@@ -940,19 +953,23 @@ end
 # @return [Topolys::Wire] Returns a corresponding Topolys wire
 def topolysObjects(model, points)
   unless model && points
-    TBD.log(TBD::DEBUG, "Invalid arguments - Topolys obj")
+    TBD.log(TBD::DEBUG,
+      "Invalid Topolys (objects) arguments - skipping")
     return nil, nil
   end
   unless model.is_a?(Topolys::Model)
-    TBD.log(TBD::DEBUG, "#{model.class}? expected Topolys model - Topolys obj")
+    TBD.log(TBD::DEBUG,
+      "#{model.class}? expected Topolys model (objects) - skipping")
     return nil, nil
   end
   unless points.is_a?(Array)
-    TBD.log(TBD::DEBUG, "#{points.class}? expected Array - Topolys obj")
+    TBD.log(TBD::DEBUG,
+      "#{points.class}? expected Topolys points Array (objects) - skipping")
     return nil, nil
   end
   unless points.size > 2
-    TBD.log(TBD::DEBUG, "#{points.size}? expected +2 points - Topolys obj")
+    TBD.log(TBD::DEBUG,
+      "#{points.size}? expected +2 Topolys points (objects) - skipping")
     return nil, nil
   end
 
@@ -973,15 +990,18 @@ end
 def populateTBDkids(model, kids)
   holes = []
   unless model && kids
-    TBD.log(TBD::DEBUG, "Invalid arguments - TBD kids")
+    TBD.log(TBD::DEBUG,
+      "Invalid TBD (kids) arguments - skipping")
     return holes
   end
   unless model.is_a?(Topolys::Model)
-    TBD.log(TBD::DEBUG, "#{model.class}? expected Topolys model - TBD kids")
+    TBD.log(TBD::DEBUG,
+      "#{model.class}? expected Topolys model (kids) - skipping")
     return holes
   end
   unless kids.is_a?(Hash)
-    TBD.log(TBD::DEBUG, "#{kids.class}? expected surface Hash - TBD kids")
+    TBD.log(TBD::DEBUG,
+      "#{kids.class}? expected surface Hash (kids) - skipping")
     return holes
   end
 
@@ -1009,15 +1029,18 @@ end
 def populateTBDdads(model, dads)
   tbd_holes = {}
   unless model && dads
-    TBD.logs(TBD::DEBUG, "Invalid arguments - TBD dads")
+    TBD.logs(TBD::DEBUG,
+      "Invalid TBD (dads) arguments - skipping")
     return tbd_holes
   end
   unless model.is_a?(Topolys::Model)
-    TBD.log(TBD::DEBUG, "#{model.class}? expected Topolys model - TBD dads")
+    TBD.log(TBD::DEBUG,
+      "#{model.class}? expected Topolys model (dads) - skipping")
     return tbd_holes
   end
   unless dads.is_a?(Hash)
-    TBD.log(TBD::DEBUG, "#{dads.class}? expected surface Hash - TBD dads")
+    TBD.log(TBD::DEBUG,
+      "#{dads.class}? expected surface Hash (dads) - skipping")
     return tbd_holes
   end
 
@@ -1039,7 +1062,8 @@ def populateTBDdads(model, dads)
 
     face = model.get_face(wire, holes)
     unless face
-      TBD.log(TBD::DEBUG, "Unable to retrieve valid face - TBD dads")
+      TBD.log(TBD::DEBUG,
+        "Unable to retrieve valid face (dads) - skipping")
       next
     end
 
@@ -1062,21 +1086,25 @@ end
 # @return [Bool] Returns true if successful
 def tbdSurfaceEdges(surfaces, edges)
   unless surfaces && edges
-    TBD.log(TBD::DEBUG, "Invalid arguments - TBD edges")
+    TBD.log(TBD::DEBUG,
+      "Invalid TBD (edges) arguments - skipping")
     return false
   end
   unless surfaces.is_a?(Hash)
-    TBD.log(TBD::DEBUG, "#{surfaces.class}? expected surfaces Hash - TBD edges")
+    TBD.log(TBD::DEBUG,
+      "#{surfaces.class}? expected TBD surfaces Hash (edges) - skipping")
     return false
   end
   unless edges.is_a?(Hash)
-    TBD.log(TBD::DEBUG, "#{edges.class}? expected edges Hash - TBD edges")
+    TBD.log(TBD::DEBUG,
+      "#{edges.class}? expected TBD edges Hash (edges) - skipping")
     return false
   end
 
   surfaces.each do |id, properties|
     unless properties.has_key?(:face)
-      TBD.log(TBD::DEBUG, "Missing Topolys face for '#{id}' - TBD edges")
+      TBD.log(TBD::DEBUG,
+        "Missing Topolys face for '#{id}' (edges) - skipping")
       next
     end
     properties[:face].wires.each do |wire|
@@ -1108,28 +1136,33 @@ end
 # @return [Bool] Returns true if Kiva foundations are successfully generated.
 def generateKiva(model, walls, floors, edges)
   unless model && walls && floors && edges
-    TBD.log(TBD::DEBUG, "Invalid OpenStudio model - gen KIVA")
+    TBD.log(TBD::DEBUG,
+      "Invalid OpenStudio model, can't generate KIVA inputs - skipping")
     return false
   end
   cl = OpenStudio::Model::Model
   cl2 = model.class
   unless model.is_a?(cl)
-    TBD.log(TBD::DEBUG, "#{cl2}? expected #{cl} - gen KIVA")
+    TBD.log(TBD::DEBUG,
+      "#{cl2}? expected #{cl}, can't generate KIVA inputs - skipping")
     return false
   end
   cl2 = walls.class
   unless walls.is_a?(Hash)
-    TBD.log(TBD::DEBUG, "#{cl2}? expected walls Hash - gen KIVA")
+    TBD.log(TBD::DEBUG,
+      "#{cl2}? expected walls Hash, can't generate KIVA inputs - skipping")
     return false
   end
   cl2 = floors.class
   unless floors.is_a?(Hash)
-    TBD.log(TBD::DEBUG, "#{cl2}? expected floors Hash - gen KIVA")
+    TBD.log(TBD::DEBUG,
+      "#{cl2}? expected floors Hash, can't generate KIVA inputs - skipping")
     return false
   end
   cl2 = edges.class
   unless edges.is_a?(Hash)
-    TBD.log(TBD::DEBUG, "#{cl2}? expected edges Hash - gen KIVA")
+    TBD.log(TBD::DEBUG,
+      "#{cl2}? expected edges Hash, can't generate KIVA inputs - skipping")
     return false
   end
 
@@ -1299,7 +1332,8 @@ def deratableLayer(construction)
   i                = 0                          # iterator
 
   unless construction && construction.is_a?(OpenStudio::Model::Construction)
-    TBD.log(TBD::DEBUG, "Invalid deratable construction")
+    TBD.log(TBD::DEBUG,
+      "Invalid construction, can't ID insulation layer - skipping")
     return index, type, r
   end
 
@@ -1349,91 +1383,113 @@ def derate(model, id, surface, c)
   cl2 = OpenStudio::Model::Construction
 
   unless model && id && surface && c
-    TBD.log(TBD::DEBUG, "Invalid arguments - derate")
-    return m
-  end
-  unless model.is_a?(cl1)
-    TBD.log(TBD::DEBUG, "#{model.class}? expected #{cl1} - derate")
+    TBD.log(TBD::DEBUG,
+      "Can't derate insulation, invalid arguments - skipping")
     return m
   end
   unless id.is_a?(String)
-    TBD.log(TBD::DEBUG, "#{id.class}? expected a String - derate")
+    TBD.log(TBD::DEBUG,
+      "Can't derate insulation, #{id.class}? expected an ID String - skipping")
+    return m
+  end
+  unless model.is_a?(cl1)
+    TBD.log(TBD::DEBUG,
+      "Can't derate '#{id}', #{model.class}? expected #{cl1} - skipping")
     return m
   end
   unless surface.is_a?(Hash)
-    TBD.log(TBD::DEBUG, "#{surface.class}? expected a Hash - derate")
+    TBD.log(TBD::DEBUG,
+      "Can't derate '#{id}', #{surface.class}? expected a Hash - skipping")
     return m
   end
   unless c.is_a?(cl2)
-    TBD.log(TBD::DEBUG, "#{c.class}? expected #{cl2} (derate)")
+    TBD.log(TBD::DEBUG,
+      "Can't derate '#{id}', #{c.class}? expected #{cl2} - skipping")
     return m
   end
   unless surface.has_key?(:heatloss)
-    TBD.log(TBD::DEBUG, "Can't derate '#{id}' - no calculated heatloss")
+    TBD.log(TBD::DEBUG,
+      "Can't derate '#{id}', no calculated heatloss - skipping")
     return m
   end
   unless surface[:heatloss].is_a?(Numeric)
-    TBD.log(TBD::DEBUG, "Can't derate '#{id}' - non-numeric heatloss")
+    TBD.log(TBD::DEBUG,
+      "Can't derate '#{id}', non-numeric heatloss - skipping")
     return m
   end
   if surface[:heatloss].abs < TOL
-    TBD.log(TBD::WARN, "Won't bother derating '#{id}' - heatloss below #{TOL}")
+    TBD.log(TBD::WARN,
+      "Won't derate '#{id}', heatloss below #{TOL} - skipping")
     return m
   end
   unless surface.has_key?(:net)
-    TBD.log(TBD::DEBUG, "Can't derate '#{id}' - missing surface net area")
+    TBD.log(TBD::DEBUG,
+      "Can't derate '#{id}', missing surface net area - skipping")
     return m
   end
   unless surface[:net].is_a?(Numeric)
-    TBD.log(TBD::DEBUG, "Can't derate '#{id}' - non-numeric surface net area")
+    TBD.log(TBD::DEBUG,
+      "Can't derate '#{id}', non-numeric surface net area - skipping")
     return m
   end
   if surface[:net] < TOL
-    TBD.log(TBD::WARN, "Can't derate '#{id}' - surface net area below #{TOL}")
+    TBD.log(TBD::WARN,
+      "Won't derate '#{id}', surface net area below #{TOL} - skipping")
     return m
   end
   unless surface.has_key?(:ltype)
-    TBD.log(TBD::DEBUG, "Can't derate '#{id}' - missing material type")
+    TBD.log(TBD::DEBUG,
+      "Can't derate '#{id}', missing material type - skipping")
     return m
   end
   unless surface[:ltype] == :massless || surface[:ltype] == :standard
-    TBD.log(TBD::DEBUG, "Can't derate '#{id}' - must be Standard or Massless")
+    TBD.log(TBD::DEBUG,
+      "Can't derate '#{id}', must be Standard or Massless - skipping")
     return m
   end
   unless surface.has_key?(:construction)
-    TBD.log(TBD::DEBUG, "Can't derate '#{id}' - missing parent construction")
+    TBD.log(TBD::DEBUG,
+      "Can't derate '#{id}', missing parent construction - skipping")
     return m
   end
   unless surface.has_key?(:index)
-    TBD.log(TBD::DEBUG, "Can't derate '#{id}' - missing material index")
+    TBD.log(TBD::DEBUG,
+      "Can't derate '#{id}', missing material index - skipping")
     return m
   end
   unless surface[:index]
-    TBD.log(TBD::DEBUG, "Can't derate '#{id}' - invalid material index")
+    TBD.log(TBD::DEBUG,
+      "Can't derate '#{id}', invalid material index - skipping")
     return m
   end
   unless surface[:index].is_a?(Integer)
-    TBD.log(TBD::DEBUG, "Can't derate '#{id}' - non-integer material index")
+    TBD.log(TBD::DEBUG,
+      "Can't derate '#{id}', non-integer material index - skipping")
     return m
   end
   if surface[:index] < 0
-    TBD.log(TBD::DEBUG, "Can't derate '#{id}' - material index < 0 ")
+    TBD.log(TBD::DEBUG,
+      "Can't derate '#{id}', material index < 0 - skipping")
     return m
   end
   unless surface.has_key?(:r)
-    TBD.log(TBD::DEBUG, "Can't derate '#{id}' - invalid material RSi value")
+    TBD.log(TBD::DEBUG,
+      "Can't derate '#{id}', invalid material RSi value - skipping")
     return m
   end
   unless surface[:r].is_a?(Numeric)
-    TBD.log(TBD::DEBUG, "Can't derate '#{id}' - non-numeric material RSi value")
+    TBD.log(TBD::DEBUG,
+      "Can't derate '#{id}', non-numeric material RSi value - skipping")
     return m
   end
   if surface[:r] < 0.001
-    TBD.log(TBD::WARN, "Can't derate '#{id}' - material RSi value below MIN")
+    TBD.log(TBD::WARN,
+      "Won't derate '#{id}', material RSi value below MIN - skipping")
     return m
   end
   unless / tbd/i.match(c.nameString) == nil
-    TBD.log(TBD::WARN, "Can't derate '#{id}' - material already derated")
+    TBD.log(TBD::WARN,
+      "Won't derate '#{id}', material already derated - skipping")
     return m
   end
 
@@ -1496,7 +1552,9 @@ def derate(model, id, surface, c)
 
   if m && loss > TOL
     surface[:r_heatloss] = loss
-    TBD.log(TBD::WARN, "Can't assign #{loss} W/K to '#{id}' - too conductive")
+    h_loss  = format "%.3f", surface[:r_heatloss]
+    TBD.log(TBD::WARN,
+      "Won't assign #{h_loss} W/K to '#{id}', too conductive - skipping")
   end
   m
 end
@@ -1516,16 +1574,19 @@ end
 # @return [Hash] Returns collection of derated TBD surfaces
 def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
   unless os_model && psi_set
-    TBD.log(TBD::DEBUG, "Invalid arguments - process TBD")
+    TBD.log(TBD::DEBUG,
+      "Can't process TBD, invalid arguments")
     return nil, nil
   end
   cl = OpenStudio::Model::Model
   unless os_model.is_a?(cl)
-    TBD.log(TBD::DEBUG, "#{os_model.class}? expected '#{cl}' - process TBD")
+    TBD.log(TBD::DEBUG,
+      "Can't process TBD, #{os_model.class}? expected '#{cl}' - skipping")
     return nil, nil
   end
   unless g_kiva == true || g_kiva == false
-    TBD.log(TBD::DEBUG, "#{g_kiva.class}? expected true or false - process TBD")
+    TBD.log(TBD::DEBUG,
+      "Can't process TBD, #{g_kiva.class}? expected true or false - skipping")
     return nil, nil
   end
 
@@ -1552,12 +1613,14 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     boundary = s.outsideBoundaryCondition
     if boundary.downcase == "surface"
       if s.adjacentSurface.empty?
-        TBD.log(TBD::ERROR, "'#{id}': adjacent surface? - skipping")
+        TBD.log(TBD::ERROR,
+          "'#{id}' adjacent surface? - skipping")
         next
       end
       adjacent = s.adjacentSurface.get.nameString
       if os_model.getSurfaceByName(adjacent).empty?
-        TBD.log(TBD::ERROR, "mismatch '#{id}' vs '#{adjacent}' - skipping")
+        TBD.log(TBD::ERROR,
+          "'#{id}' vs '#{adjacent}' mismatch - skipping")
         next
       end
       boundary = adjacent
@@ -1565,27 +1628,29 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
 
     conditioned = true
     if setpoints
-      unless space.thermalZone.empty?
+      if space.thermalZone.empty?
+        conditioned = false unless plenum?(space, airloops, setpoints)
+      else
         zone = space.thermalZone.get
         heating, _ = maxHeatScheduledSetpoint(zone)
         cooling, _ = minCoolScheduledSetpoint(zone)
         unless heating || cooling
           conditioned = false unless plenum?(space, airloops, setpoints)
         end
-      else
-        conditioned = false unless plenum?(space, airloops, setpoints)
       end
     end
 
     # Site-specific (or absolute, or true) surface normal.
     t, r = transforms(os_model, space)
     unless t && r
-      TBD.log(TBD::FATAL, "Unable to process OS surface transformation")
+      TBD.log(TBD::FATAL,
+        "Unable to process OSM surface transformation")
       return nil, nil
     end
     n = trueNormal(s, r)
     unless n
-      TBD.log(TBD::FATAL, "Unable to process OS surface true normal")
+      TBD.log(TBD::FATAL,
+        "Unable to process OSM surface true normal")
       return nil, nil
     end
 
@@ -1645,7 +1710,8 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       if surface.has_key?(:index)
         surface[:deratable] = true
       else
-        TBD.log(TBD::ERROR, "Can't derate exterior '#{id}' - too conductive")
+        TBD.log(TBD::ERROR,
+          "Can't derate '#{id}', too conductive - skipping")
       end
     else
       next unless surfaces.has_key?(b)
@@ -1654,23 +1720,33 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       if surface.has_key?(:index)
         surface[:deratable] = true
       else
-        TBD.log(TBD::ERROR, "Can't derate interior '#{id}' - too conductive")
+        TBD.log(TBD::ERROR,
+          "Can't derate '#{id}', too conductive - skipping")
       end
     end
   end
 
   if surfaces.empty?
-    TBD.log(TBD::ERROR, "Unable to identify surfaces to derate - exiting")
+    TBD.log(TBD::ERROR,
+      "Can't identify any surfaces to derate")
     return nil, nil
   end
 
   # Fetch OpenStudio subsurfaces & key attributes.
   os_model.getSubSurfaces.each do |s|
-    next if s.space.empty?
-    next if s.surface.empty?
+    id = s.nameString
+    if s.space.empty?
+      TBD.log(TBD::ERROR,
+        "OSM subsurface '#{id}' (missing OSM space) - skipping")
+      next
+    end
     space = s.space.get
-    dad   = s.surface.get.nameString
-    id    = s.nameString
+    if s.surface.empty?
+      TBD.log(TBD::ERROR,
+        "OSM subsurface '#{id}' (missing OSM parent surface) - skipping")
+      next
+    end
+    dad = s.surface.get.nameString
 
     gross, pts = opening(os_model, id)
     next unless pts
@@ -1679,12 +1755,14 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     # Site-specific (or absolute, or true) surface normal.
     t, r = transforms(os_model, space)
     unless t && r
-      TBD.log(TBD::FATAL, "Unable to process OS subsurface transformation")
+      TBD.log(TBD::FATAL,
+        "Unable to process OS subsurface transformation")
       return nil, nil
     end
     n = trueNormal(s, r)
     unless n
-      TBD.log(TBD::FATAL, "Unable to process OS subsurface true normal")
+      TBD.log(TBD::FATAL,
+        "Unable to process OS subsurface true normal")
       return nil, nil
     end
 
@@ -1750,7 +1828,8 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     # groups may also be linked to (rotated) spaces.
     t, r = transforms(os_model, group)
     unless t && r
-      TBD.log(TBD::FATAL, "Unable to process OS shading surface transformation")
+      TBD.log(TBD::FATAL,
+        "Unable to process OS shading surface transformation")
       return nil, nil
     end
     shading = group.to_ShadingSurfaceGroup
@@ -1761,7 +1840,8 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     end
     n = trueNormal(s, r)
     unless n
-      TBD.log(TBD::FATAL, "Unable to process OS shading surface true normal")
+      TBD.log(TBD::FATAL,
+        "Unable to process OS shading surface true normal")
       return nil, nil
     end
 
@@ -1991,7 +2071,8 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
   has, val = io_p.shorthands(p)
 
   if has.empty? || val.empty?
-    TBD.log(TBD::FATAL, "Invalid or incomplete building set - stopping")
+    TBD.log(TBD::FATAL,
+      "Invalid or incomplete building PSI set")
     return nil, nil
   end
 

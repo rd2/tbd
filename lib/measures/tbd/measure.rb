@@ -96,6 +96,7 @@ def exitTBD(runner, out = false, io = nil, surfaces = nil)
   io[:stories]      = io.delete(:stories)     if io.has_key?(:stories)
   io[:spacetypes]   = io.delete(:spacetypes)  if io.has_key?(:spacetypes)
   io[:spaces]       = io.delete(:spaces)      if io.has_key?(:spaces)
+  io[:surfaces]     = io.delete(:surfaces)    if io.has_key?(:surfaces)
   io[:edges]        = io.delete(:edges)       if io.has_key?(:edges)
 
   out_dir = '.'
@@ -163,7 +164,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
 
     choices = OpenStudio::StringVector.new
     psi = PSI.new
-    psi.set.keys.each do |k| choices << k.to_s; end
+    psi.set.keys.each { |k| choices << k.to_s }
     option = OpenStudio::Measure::OSArgument.makeChoiceArgument("option", choices, true)
     option.setDisplayName("Default thermal bridge option")
     option.setDescription("e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by 'tbd.json' file).")
@@ -211,7 +212,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     if load_tbd_json
       io_path = runner.workflow.findFile('tbd.json')
       if io_path.empty?
-        TBD.log(TBD::FATAL, "Cannot find 'tbd.json' - simulation halted")
+        TBD.log(TBD::FATAL, "Can't find 'tbd.json' - simulation halted")
         return exitTBD(runner)
       else
         io_path = io_path.get.to_s

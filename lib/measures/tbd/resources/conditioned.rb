@@ -102,7 +102,8 @@ def scheduleRulesetMinMax(sched)
   # standards/Standards.ScheduleRuleset.rb#L124
   result = { min: nil, max: nil }
   unless sched && sched.is_a?(OpenStudio::Model::ScheduleRuleset)
-    TBD.log(TBD::DEBUG, "Invalid sched - ruleset MinMax")
+    TBD.log(TBD::DEBUG,
+      "Invalid ruleset MinMax schedule (argument) - skipping")
     return result
   end
 
@@ -149,7 +150,8 @@ def scheduleConstantMinMax(sched)
   # standards/Standards.ScheduleConstant.rb#L21
   result = { min: nil, max: nil }
   unless sched && sched.is_a?(OpenStudio::Model::ScheduleConstant)
-    TBD.log(TBD::DEBUG, "Invalid sched - constant MinMax")
+    TBD.log(TBD::DEBUG,
+      "Invalid constant MinMax schedule (argument) - skipping")
     return result
   end
 
@@ -177,7 +179,8 @@ def scheduleCompactMinMax(sched)
   # standards/Standards.ScheduleCompact.rb#L8
   result = { min: nil, max: nil }
   unless sched && sched.is_a?(OpenStudio::Model::ScheduleCompact)
-    TBD.log(TBD::DEBUG, "Invalid sched - compact MinMax")
+    TBD.log(TBD::DEBUG,
+      "Invalid compact MinMax schedule (argument) - skipping")
     return result
   end
 
@@ -223,7 +226,8 @@ def maxHeatScheduledSetpoint(zone)
   setpoint = nil
   dual = false
   unless zone && zone.is_a?(OpenStudio::Model::ThermalZone)
-    TBD.log(TBD::DEBUG, "Invalid zone - max T")
+    TBD.log(TBD::DEBUG,
+      "Invalid max heat setpoint thermal zone (argument) - skipping")
     return setpoint, dual
   end
 
@@ -394,7 +398,8 @@ end
 def heatingTemperatureSetpoints?(model)
   answer = false
   unless model && model.is_a?(OpenStudio::Model::Model)
-    TBD.log(TBD::DEBUG, "Invalid model - heat setpoints?")
+    TBD.log(TBD::DEBUG,
+      "Can't find or validate OSM (argument) for heating setpoints - skipping")
     return answer
   end
 
@@ -422,7 +427,8 @@ def minCoolScheduledSetpoint(zone)
   setpoint = nil
   dual = false
   unless zone && zone.is_a?(OpenStudio::Model::ThermalZone)
-    TBD.log(TBD::DEBUG, "Invalid zone - minT")
+    TBD.log(TBD::DEBUG,
+      "Invalid min cool setpoint thermal zone (argument) - skipping")
     return setpoint, dual
   end
 
@@ -579,7 +585,8 @@ end
 def coolingTemperatureSetpoints?(model)
   answer = false
   unless model && model.is_a?(OpenStudio::Model::Model)
-    TBD.log(TBD::DEBUG, "Invalid model - cool setpoints?")
+    TBD.log(TBD::DEBUG,
+      "Can't find or validate OSM (argument) for cooling setpoints - skipping")
     return answer
   end
 
@@ -600,7 +607,8 @@ end
 def airLoopsHVAC?(model)
   answer = false
   unless model && model.is_a?(OpenStudio::Model::Model)
-    TBD.log(TBD::DEBUG, "Invalid model - loops?")
+    TBD.log(TBD::DEBUG,
+      "Can't find or validate OSM (argument) for HVAC air loops - skipping")
     return answer
   end
 
@@ -636,10 +644,19 @@ def plenum?(space, loops, setpoints)
   #           "inactive" thermostat (i.e., can't extract valid setpoints); or
   #   case C. spacetype is "plenum".
   cl = OpenStudio::Model::Space
-  unless space && loops && setpoints && space.is_a?(cl) &&
-         (loops == true || loops == false ) &&
-         (setpoints == true || setpoints == false)
-    TBD.log(TBD::DEBUG, "Invalid arguments - plenum?")
+  unless space && space.is_a?(cl)
+    TBD.log(TBD::DEBUG,
+      "Invalid plenum space (argument) - skipping")
+    return false
+  end
+  unless loops == true || loops == false
+    TBD.log(TBD::DEBUG,
+      "Invalid plenum loops (argument) - skipping")
+    return false
+  end
+  unless setpoints == true || setpoints == false
+    TBD.log(TBD::DEBUG,
+      "Invalid plenum setpoints (argument) - skipping")
     return false
   end
 

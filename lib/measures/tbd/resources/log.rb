@@ -8,8 +8,8 @@
 # project 'files' folder should be interpreted as 'bad' - something to look into
 # and/or remediate.
 module TBD
-  DEBUG = 1 # placeholder
-  INFO  = 2 # placeholder
+  DEBUG = 1 # for debugging
+  INFO  = 2 # informative e.g. derating successful for a given surface
   WARN  = 3 # very few ...
   ERROR = 4 # e.g. out-of-range material conductivity, 5-sided window, TBD file
   FATAL = 5 # e.g. fail to find/open OSM file, fail to translate file to OSM
@@ -90,6 +90,7 @@ module TBD
   end
 
   def self.log(log_level, message)
+    # puts "TBD: (#{TBD.tag(log_level)} vs #{TBD.tag(@@log_level)}) '#{message}'"
     if log_level >= @@log_level
       @@logs << { level: log_level, message: message }
 
@@ -99,7 +100,7 @@ module TBD
   end
 
   def self.clean!
-    @@log_level = WARN
+    @@log_level = INFO
     @@log_status = 0
     @@logs = []
   end

@@ -445,13 +445,13 @@
           "title": "Logged messages",
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Logs"
+            "$ref": "#/definitions/LogMessages"
           }
         }
       },
       "additionalProperties": false
     },
-    "Logs": {
+    "LogMessages": {
       "description": "TBD log messages",
       "type": "object",
       "properties":{

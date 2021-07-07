@@ -8,13 +8,15 @@ require "openstudio"
 # @return [Array] Flattened OS 3D points array
 def flatZ(pts)
   unless pts && (pts.is_a?(OpenStudio::Point3dVector) || pts.is_a?(Array))
-    TBD.log(TBD::DEBUG, "Invalid pts - flatZ")
+    TBD.log(TBD::DEBUG,
+      "Invalid pts to flatten (argument) - skipping")
     return pts
   end
 
   pts.each do |pt|
     unless pt.class == OpenStudio::Point3d
-      TBD.log(TBD::DEBUG, "#{pt.class}? expected OS 3D points - flatZ")
+      TBD.log(TBD::DEBUG,
+        "#{pt.class}? expected OSM 3D points to flatten - skipping")
       next
     end
     pt = OpenStudio::Point3d.new(pt.x, pt.y, 0)
@@ -31,39 +33,44 @@ end
 #
 # @return [Bool] Returns true if subsurface can fit in.
 def fit?(model, id, pts)
-  cl1 = OpenStudio::Model::Model
-  cl2 = OpenStudio::Point3dVector
-  cl3 = OpenStudio::Point3d
-
-  unless model && id && pts && model.is_a?(cl1) &&
-         (pts.is_a?(cl2) || pts.is_a?(Array))
-    TBD.log(TBD::DEBUG, "Invalid arguments - fit?")
+  unless model && model.is_a?(OpenStudio::Model::Model)
+    TBD.log(TBD::DEBUG,
+      "Can't find or validate OSM (argument) for subsurface fit - skipping")
+    return false
+  end
+  unless pts && (pts.is_a?(OpenStudio::Point3dVector) || pts.is_a?(Array))
+    TBD.log(TBD::DEBUG,
+      "Invalid subsurface pts to fit (argument) - skipping")
     return false
   end
 
-  cl3 = OpenStudio::Point3d
   pts.each do |pt|
-    unless pt.class == cl3
-      TBD.log(TBD::DEBUG, "#{pt.class}? expected #{cl3} - fit?")
+    unless pt.class == OpenStudio::Point3d
+      TBD.log(TBD::DEBUG,
+        "#{pt.class}? expected OSM 3D points to fit - skipping")
       return false
     end
   end
 
   s = model.getSubSurfaceByName(id)
   if s.empty?
-    TBD.log(TBD::DEBUG, "#{id} subSurface missmatch - fit?")
+    TBD.log(TBD::DEBUG,
+      "Can't find '#{id}' OSM subsurface to fit - skipping")
     return false
   end
 
   s = s.get
   if s.surface.empty?
-    TBD.log(TBD::DEBUG, "Invalid parent surface - fit?")
+    TBD.log(TBD::DEBUG,
+      "Missing subsurface '#{id}' OSM parent surface entry - skipping")
     return false
   end
 
-  parent = model.getSurfaceByName(s.surface.get.nameString)
+  nom = s.surface.get.nameString
+  parent = model.getSurfaceByName(nom)
   if parent.empty?
-    TBD.log(TBD::DEBUG, "#{id} missing parent surface - fit?")
+    TBD.log(TBD::DEBUG,
+      "Can't find subsurface '#{id}' OSM parent surface '#{nom}' - skipping")
     return false
   end
 
@@ -99,14 +106,15 @@ end
 # @return [Array] subsurface rough opening sorted Topolys 3D points
 def areaHeron(pts)
   unless pts && pts.is_a?(Array) && pts.size == 3
-    TBD.log(TBD::DEBUG, "Invalid pts - areaHeron")
+    TBD.log(TBD::DEBUG,
+      "Invalid subsurface pts (argument) to calculate area - skipping")
     return 0
   end
 
-  cl = Topolys::Point3D
   pts.each do |pt|
-    unless pt.class == cl
-      TBD.log(TBD::DEBUG, "Topolys 3D points - got #{pt.class} - areaHeron")
+    unless pt.class == Topolys::Point3D
+      TBD.log(TBD::DEBUG,
+        "#{pt.class}? expected OSM 3D points to calculate area - skipping")
       return 0
     end
   end
@@ -117,7 +125,8 @@ def areaHeron(pts)
   e << { v0: pts[2], v1: pts[0], mag: (pts[0] - pts[2]).magnitude }
 
   if matches?(e[0], e[1]) || matches?(e[1], e[2]) || matches?(e[2], e[0])
-    TBD.log(TBD::DEBUG, "Unique triangle edges - areaHeron")
+    TBD.log(TBD::DEBUG,
+      "Unique triangle edges to calculate area - skipping")
     return 0
   end
   e = e.sort_by{ |p| p[:mag] }
@@ -139,27 +148,31 @@ end
 # @return [Float] Returns subsurface rough opening area (m2)
 # @return [Array] Returns subsurface rough opening OpenStudio 3D points
 def opening(model, id)
-  unless model && id && model.is_a?(OpenStudio::Model::Model)
-    TBD.log(TBD::DEBUG, "Invalid inputs - opening")
+  unless model && model.is_a?(OpenStudio::Model::Model)
+    TBD.log(TBD::DEBUG,
+      "Can't find or validate OSM (argument) for area & vertices - skipping")
     return 0, nil
   end
 
   s = model.getSubSurfaceByName(id)
   if s.empty?
-    TBD.log(TBD::ERROR, "'#{id}' SubSurface missmatch")
+    TBD.log(TBD::ERROR,
+      "Can't find OSM '#{id}' subsurface for area & vertices - skipping")
     return 0, nil
   end
 
   s = s.get
   points = s.vertices
   unless points.size == 3 || points.size == 4
-    TBD.log(TBD::ERROR, "'#{id}' vertex count (3 or 4)")
+    TBD.log(TBD::ERROR,
+      "OSM subsurface '#{id}' vertex count (must be 3 or 4) - skipping")
     return 0, points
   end
 
   area = s.grossArea
   if area < TOL
-    TBD.log(TBD::ERROR, "'#{id}' gross area < TOL - opening")
+    TBD.log(TBD::ERROR,
+      "OSM subsurface '#{id}' gross area (< TOL) - skipping")
     return 0, points
   end
 
@@ -359,6 +372,7 @@ def opening(model, id)
   tr1 << pts[:B][:p]
   tr1 << pts[:C][:p]
   area1 = areaHeron(tr1)
+
   area2 = 0
   if four
     tr2 = []
