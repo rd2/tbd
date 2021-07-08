@@ -1,8 +1,7 @@
 {
   "schema": "https://github.com/rd2/tbd/blob/logger/tbd.schema.json",
   "description": "testing custom edges for test_warehouse.osm",
-  "psis": [
-    {
+  "psis": [{
       "id": "bad",
       "fenestration": 0.9
     },
@@ -17,23 +16,21 @@
       "grade": 0.45
     }
   ],
-  "edges": [
-    {
-      "psi": "bad",
-      "type": "fenestration",
-      "surfaces": [
-        "Office Left Wall Window1",
-        "Office Left Wall"
-      ],
-      "v0x": 0.0,
-      "v0y": 7.51904930207155,
-      "v0z": 0.914355407629293,
-      "v1x": 0.0,
-      "v1y": 5.38555335093654,
-      "v1z": 0.914355407629293
-    }
-  ],
   "building": {
     "psi": "compliant"
-  }
+  },
+  "edges": [{
+    "psi": "bad",
+    "type": "fenestration",
+    "surfaces": [
+      "Office Left Wall Window1",
+      "Office Left Wall"
+    ],
+    "v0x": 0.0,
+    "v0y": 7.51904930207155,
+    "v0z": 0.914355407629293,
+    "v1x": 0.0,
+    "v1y": 5.38555335093654,
+    "v1z": 0.914355407629293
+  }]
 }

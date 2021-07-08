@@ -5399,6 +5399,9 @@ RSpec.describe TBD do
     status = TBD.msg(TBD.status)
     status = TBD.msg(TBD::INFO) if TBD.status.zero?
 
+    tbd_log = { date: Time.now, status: status }
+
+    results = []
     if surfaces
       surfaces.each do |id, surface|
         next if TBD.fatal?
@@ -5406,17 +5409,17 @@ RSpec.describe TBD do
         ratio  = format "%3.1f", surface[:ratio]
         name   = id.rjust(15, " ")
         output = "#{name} RSi derated by #{ratio}%"
-        TBD.log(TBD::INFO, output)
+        results << output
       end
     end
-
-    tbd_log = { date: Time.now, status: status }
+    tbd_log[:results] = results unless results.empty?
 
     tbd_msgs = []
     TBD.logs.each do |l|
       tbd_msgs << { level: TBD.tag(l[:level]), message: l[:message] }
     end
     tbd_log[:messages] = tbd_msgs unless tbd_msgs.empty?
+    
     io[:log] = tbd_log
 
     # Deterministic sorting

@@ -1,8 +1,7 @@
 {
   "schema": "https://github.com/rd2/tbd/blob/logger/tbd.schema.json",
   "description": "testing error detection",
-  "psis": [
-    {
+  "psis": [{
       "id": "detailed_2",
       "fenestration": 0.600
     },
@@ -11,40 +10,31 @@
       "fenestration": 0.700
     }
   ],
-  "khis": [
-    {
-      "id": "cantilevered beam",
-      "point": 0.6
-    }
-  ],
-  "surfaces": [
-    {
+  "khis": [{
+    "id": "cantilevered beam",
+    "point": 0.6
+  }],
+  "surfaces": [{
       "id": "Office Front Wall",
-      "khis": [
-        {
-          "id": "beam",
-          "count": 3
-        }
-      ]
+      "khis": [{
+        "id": "beam",
+        "count": 3
+      }]
     },
     {
       "id": "Office Left Wall",
-      "khis": [
-        {
-          "id": "cantilevered beam",
-          "count": 300
-        }
-      ]
+      "khis": [{
+        "id": "cantilevered beam",
+        "count": 300
+      }]
     }
   ],
-  "edges": [
-    {
-      "psi": "detailed",
-      "type": "fenestration",
-      "surfaces": [
-        "Office Front Wall",
-        "Office Front Wall Window 1"
-      ]
-    }
-  ]
+  "edges": [{
+    "psi": "detailed",
+    "type": "fenestration",
+    "surfaces": [
+      "Office Front Wall",
+      "Office Front Wall Window 1"
+    ]
+  }]
 }

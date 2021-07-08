@@ -1,8 +1,7 @@
 {
   "schema": "https://github.com/rd2/tbd/blob/logger/tbd.schema.json",
   "description": "testing TBD JSON for seb.osm",
-  "psis": [
-    {
+  "psis": [{
       "id": "good",
       "parapet": 0.5,
       "party": 0.9
@@ -18,8 +17,10 @@
       "grade": 0.45
     }
   ],
-  "khis": [
-    {
+  "building": {
+    "psi": "(non thermal bridging)"
+  },
+  "khis": [{
       "id": "column",
       "point": 0.5
     },
@@ -27,8 +28,5 @@
       "id": "support",
       "point": 0.5
     }
-  ],
-  "building": {
-    "psi": "(non thermal bridging)"
-  }
+  ]
 }

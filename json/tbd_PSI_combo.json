@@ -1,8 +1,7 @@
 {
-  "description": "TBD JSON example - combining building vs space PSI sets",
   "schema": "https://github.com/rd2/tbd/blob/logger/tbd.schema.json",
-  "psis": [
-    {
+  "description": "TBD JSON example - combining building vs space PSI sets",
+  "psis": [{
       "id": "OK",
       "rimjoist": 0.7,
       "parapet": 0.7,
@@ -26,10 +25,8 @@
   "building": {
     "psi": "Awesome"
   },
-  "spaces": [
-    {
-      "id": "ground-floor restaurant",
-      "psi": "OK"
-    }
-  ]
+  "spaces": [{
+    "id": "ground-floor restaurant",
+    "psi": "OK"
+  }]
 }

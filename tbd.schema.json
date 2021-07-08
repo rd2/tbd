@@ -441,6 +441,13 @@
           "title": "Global state",
           "type": "string"
         },
+        "results": {
+          "title": "Thermal derating results",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "messages": {
           "title": "Logged messages",
           "type": "array",
@@ -454,7 +461,7 @@
     "LogMessages": {
       "description": "TBD log messages",
       "type": "object",
-      "properties":{
+      "properties": {
         "level": {
           "title": "Severity of logged message (e.g. WARN)",
           "type": "string"

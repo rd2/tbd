@@ -1,8 +1,7 @@
 {
   "schema": "https://github.com/rd2/tbd/blob/logger/tbd.schema.json",
   "description": "testing basic JSON validation",
-  "psis": [
-    {
+  "psis": [{
       "id": "good",
       "parapet": 0.5,
       "party": 0.9
@@ -18,8 +17,7 @@
       "grade": 0.45
     }
   ],
-  "khis": [
-    {
+  "khis": [{
       "id": "column",
       "point": 0.5
     },
@@ -28,33 +26,28 @@
       "point": 0.5
     }
   ],
-  "edges": [
-    {
-      "psi": "compliant",
-      "type": "party",
-      "length": 2.5,
-      "surfaces": [
-        "front wall"
-      ]
-    }
-  ],
-  "surfaces": [
-    {
-      "id": "front wall",
-      "khis": [
-        {
-          "id": "column",
-          "count": 3
-        },
-        {
-          "id": "support",
-          "count": 4
-        }
-      ],
-      "psi": "good"
-    }
-  ],
   "building": {
     "psi": "compliant"
-  }
+  },
+  "surfaces": [{
+    "id": "front wall",
+    "khis": [{
+        "id": "column",
+        "count": 3
+      },
+      {
+        "id": "support",
+        "count": 4
+      }
+    ],
+    "psi": "good"
+  }],
+  "edges": [{
+    "psi": "compliant",
+    "type": "party",
+    "length": 2.5,
+    "surfaces": [
+      "front wall"
+    ]
+  }]
 }

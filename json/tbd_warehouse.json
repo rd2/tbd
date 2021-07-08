@@ -1,8 +1,7 @@
 {
   "schema": "https://github.com/rd2/tbd/blob/logger/tbd.schema.json",
   "description": "testing TBD JSON for test_warehouse.osm",
-  "psis": [
-    {
+  "psis": [{
       "id": "bad",
       "fenestration": 0.9
     },
@@ -17,17 +16,15 @@
       "grade": 0.45
     }
   ],
-  "edges": [
-    {
-      "psi": "bad",
-      "type": "fenestration",
-      "surfaces": [
-        "Office Left Wall Window1",
-        "Office Left Wall"
-      ]
-    }
-  ],
   "building": {
     "psi": "compliant"
-  }
+  },
+  "edges": [{
+    "psi": "bad",
+    "type": "fenestration",
+    "surfaces": [
+      "Office Left Wall Window1",
+      "Office Left Wall"
+    ]
+  }]
 }

@@ -31,9 +31,7 @@ end
 def exitTBD(runner, out = false, io = nil, surfaces = nil)
   # Generated files target a design context ( >= WARN ) ... change TBD log_level
   # for debugging purposes. By default, log_status is set below DEBUG while
-  # log_level is set @WARN.
-  #
-  # TBD.set_log_level(TBD::DEBUG)
+  # log_level is set @WARN. Example: "TBD.set_log_level(TBD::DEBUG)".
 
   status = TBD.msg(TBD.status)
   status = TBD.msg(TBD::INFO) if TBD.status.zero?
@@ -43,13 +41,20 @@ def exitTBD(runner, out = false, io = nil, surfaces = nil)
   end
 
   io = {} unless io
-  description = "Thermal Bridging and Derating (TBD) - see github.com/rd2/tbd"
+
+  seed_file = runner.workflow.seedFile
+  seed_file = seed_file.get.to_s unless seed_file.empty?
+  description = "Thermal Bridging and Derating"
+  description += " - #{seed_file}" unless seed_file.empty?
   io[:description] = description unless io.has_key?(:description)
 
   unless io.has_key?(:schema)
     io[:schema] = "https://github.com/rd2/tbd/blob/logger/tbd.schema.json"
   end
 
+  tbd_log = { date: Time.now, status: status }
+
+  results = []
   if surfaces
     surfaces.each do |id, surface|
       next if TBD.fatal?
@@ -57,12 +62,11 @@ def exitTBD(runner, out = false, io = nil, surfaces = nil)
       ratio  = format "%3.1f", surface[:ratio]
       name   = id.rjust(15, " ")
       output = "#{name} RSi derated by #{ratio}%"
-      TBD.log(TBD::INFO, output)
+      results << output
       runner.registerInfo(output)
     end
   end
-
-  tbd_log = { date: Time.now, status: status }
+  tbd_log[:results] = results unless results.empty?
 
   tbd_msgs = []
   TBD.logs.each do |l|
@@ -74,6 +78,7 @@ def exitTBD(runner, out = false, io = nil, surfaces = nil)
     end
   end
   tbd_log[:messages] = tbd_msgs unless tbd_msgs.empty?
+
   io[:log] = tbd_log
 
   # User's may not be requesting detailed output - delete non-essential items.

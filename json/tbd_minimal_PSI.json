@@ -1,10 +1,8 @@
 {
-  "description": "TBD JSON example - bare bones PSI-only",
   "schema": "https://github.com/rd2/tbd/blob/logger/tbd.schema.json",
-  "psis": [
-    {
-      "id": "OK",
-      "parapet": 0.8
-    }
-  ]
+  "description": "TBD JSON example - bare bones PSI-only",
+  "psis": [{
+    "id": "OK",
+    "parapet": 0.8
+  }]
 }
