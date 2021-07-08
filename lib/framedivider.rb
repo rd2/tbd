@@ -156,7 +156,7 @@ def opening(model, id)
 
   s = model.getSubSurfaceByName(id)
   if s.empty?
-    TBD.log(TBD::ERROR,
+    TBD.log(TBD::DEBUG,
       "Can't find OSM '#{id}' subsurface for area & vertices - skipping")
     return 0, nil
   end

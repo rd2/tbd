@@ -37,7 +37,11 @@ def exitTBD(runner, out = false, io = nil, surfaces = nil)
   status = TBD.msg(TBD::INFO) if TBD.status.zero?
 
   unless io && surfaces
-    status = "Halting all TBD processes - running OpenStudio" unless TBD.fatal?
+    if TBD.fatal?
+      status = "Halting all TBD processes, halting OpenStudio"
+    else
+      status = "Halting all TBD processes, yet running OpenStudio"
+    end
   end
 
   io = {} unless io
@@ -45,7 +49,7 @@ def exitTBD(runner, out = false, io = nil, surfaces = nil)
   seed_file = runner.workflow.seedFile
   seed_file = seed_file.get.to_s unless seed_file.empty?
   description = "Thermal Bridging and Derating"
-  description += " - #{seed_file}" unless seed_file.empty?
+  description += " - '#{seed_file}'" unless seed_file.empty?
   io[:description] = description unless io.has_key?(:description)
 
   unless io.has_key?(:schema)

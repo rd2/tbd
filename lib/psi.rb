@@ -429,7 +429,7 @@ class PSI
   def complete?(p)
     unless @set.has_key?(p) && @has.has_key?(p) && @val.has_key?(p)
       TBD.log(TBD::ERROR,
-        "Can't find #{p} PSI set (and assess if complete) - skipping")
+        "Can't find #{p} PSI set (and assess if it's 'complete') - skipping")
       return false
     end
 
@@ -1333,7 +1333,7 @@ def deratableLayer(construction)
 
   unless construction && construction.is_a?(OpenStudio::Model::Construction)
     TBD.log(TBD::DEBUG,
-      "Invalid construction, can't ID insulation layer - skipping")
+      "Invalid construction, can't derate insulation layer - skipping")
     return index, type, r
   end
 
@@ -1573,20 +1573,20 @@ end
 # @return [Hash] Returns TBD collection of objects for JSON serialization
 # @return [Hash] Returns collection of derated TBD surfaces
 def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
-  unless os_model && psi_set
+  unless os_model
     TBD.log(TBD::DEBUG,
-      "Can't process TBD, invalid arguments")
+      "Can't process TBD, unable to find or open OSM (argument) - exiting")
     return nil, nil
   end
   cl = OpenStudio::Model::Model
   unless os_model.is_a?(cl)
     TBD.log(TBD::DEBUG,
-      "Can't process TBD, #{os_model.class}? expected '#{cl}' - skipping")
+      "Can't process TBD, #{os_model.class}? expected '#{cl}' - exiting")
     return nil, nil
   end
   unless g_kiva == true || g_kiva == false
     TBD.log(TBD::DEBUG,
-      "Can't process TBD, #{g_kiva.class}? expected true or false - skipping")
+      "Can't process TBD, #{g_kiva.class}? expected true or false - exiting")
     return nil, nil
   end
 
@@ -1595,37 +1595,50 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
   # Create the Topolys Model.
   t_model = Topolys::Model.new
 
-  # "true" if any OSM space/zone holds setpoint temperatures.
+  # "true" if any OSM space/zone holds setpoint temperatures. If OSM holds
+  # invalid inputs, the function(s) will log DEBUG errors yet simply exit with
+  # "false", ignoring any setpoint-based logic (e.g., semi-heated spaces).
   setpoints = heatingTemperatureSetpoints?(os_model)
   setpoints = coolingTemperatureSetpoints?(os_model) || setpoints
 
-  # "true" if any OSM space/zone is part of an HVAC air loop.
+  # "true" if any OSM space/zone is part of an HVAC air loop. If OSM holds
+  # invalid inputs, the function will simply return "false", and so TBD will
+  # ignore any air-loop related logic (e.g., plenum zones as HVAC objects).
   airloops = airLoopsHVAC?(os_model)
 
   # Fetch OpenStudio (opaque) surfaces & key attributes.
   surfaces = {}
   os_model.getSurfaces.each do |s|
-    next if s.space.empty?
+    id = s.nameString
+
+    if s.space.empty?
+      TBD.log(TBD::ERROR,
+        "Processing TBD, can't find space holding surface '#{id}' - skipping")
+      next
+    end
     space = s.space.get
-    id    = s.nameString
 
     ground   = s.isGroundSurface
     boundary = s.outsideBoundaryCondition
     if boundary.downcase == "surface"
       if s.adjacentSurface.empty?
         TBD.log(TBD::ERROR,
-          "'#{id}' adjacent surface? - skipping")
+          "Processing TBD, can't find adjacent surface to '#{id}'  - skipping")
         next
       end
       adjacent = s.adjacentSurface.get.nameString
       if os_model.getSurfaceByName(adjacent).empty?
         TBD.log(TBD::ERROR,
-          "'#{id}' vs '#{adjacent}' mismatch - skipping")
+          "Processing TBD, '#{id}' vs '#{adjacent}' mismatch - skipping")
         next
       end
       boundary = adjacent
     end
 
+    # Similar to "setpoints?" functions above, the boolean functions below will
+    # also return "false" when encountering invalid OSM inputs, ignoring any
+    # space conditioning-based logic (e.g., semi-heated spaces, mislabelling a
+    # plenum as an unconditioned zone).
     conditioned = true
     if setpoints
       if space.thermalZone.empty?
@@ -1644,13 +1657,13 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     t, r = transforms(os_model, space)
     unless t && r
       TBD.log(TBD::FATAL,
-        "Unable to process OSM surface transformation")
+        "Can't process '#{id}' transformation")
       return nil, nil
     end
     n = trueNormal(s, r)
     unless n
       TBD.log(TBD::FATAL,
-        "Unable to process OSM surface true normal")
+        "Can't process '#{id}' true normal")
       return nil, nil
     end
 
@@ -1658,8 +1671,8 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     type = :ceiling if /ceiling/i.match(s.surfaceType)
     type = :wall    if /wall/i.match(s.surfaceType)
 
-    points   = (t * s.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
-    minz     = (points.map{ |p| p.z }).min
+    points = (t * s.vertices).map { |v| Topolys::Point3D.new(v.x, v.y, v.z) }
+    minz   = (points.map{ |p| p.z }).min
 
     # Content of the hash will evolve over the next few hundred lines.
     surfaces[id] = {
@@ -1705,6 +1718,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     next unless surface.has_key?(:conditioned)
     next unless surface[:conditioned]
     next if surface[:ground]
+
     b = surface[:boundary]
     if b.downcase == "outdoors"
       if surface.has_key?(:index)
@@ -1735,19 +1749,24 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
   # Fetch OpenStudio subsurfaces & key attributes.
   os_model.getSubSurfaces.each do |s|
     id = s.nameString
+
     if s.space.empty?
       TBD.log(TBD::ERROR,
-        "OSM subsurface '#{id}' (missing OSM space) - skipping")
+        "Can't process '#{id}', can't find its host space - skipping")
       next
     end
     space = s.space.get
+
     if s.surface.empty?
       TBD.log(TBD::ERROR,
-        "OSM subsurface '#{id}' (missing OSM parent surface) - skipping")
+        "Can't process '#{id}', can't find its parent surface - skipping")
       next
     end
     dad = s.surface.get.nameString
 
+    # The function will throw 2 possible (non-fatal) errors:
+    #   - number of subsurfaces vertices isn't 3 or 4 (EnergyPlus limitation)
+    #   - subsurface gross area is below threshold TOL (not worth the effort)
     gross, pts = opening(os_model, id)
     next unless pts
     next if gross < TOL
@@ -1756,18 +1775,19 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     t, r = transforms(os_model, space)
     unless t && r
       TBD.log(TBD::FATAL,
-        "Unable to process OS subsurface transformation")
-      return nil, nil
-    end
-    n = trueNormal(s, r)
-    unless n
-      TBD.log(TBD::FATAL,
-        "Unable to process OS subsurface true normal")
+        "Can't process '#{id}' transformation")
       return nil, nil
     end
 
-    points = (t * pts).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
-    minz = (points.map{ |p| p.z }).min
+    n = trueNormal(s, r)
+    unless n
+      TBD.log(TBD::FATAL,
+        "Can't process '#{id}' true normal")
+      return nil, nil
+    end
+
+    points = (t * pts).map { |v| Topolys::Point3D.new(v.x, v.y, v.z) }
+    minz = ( points.map { |p| p.z } ).min
 
     type = :skylight
     type = :window if /window/i.match(s.subSurfaceType)
@@ -1794,25 +1814,25 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
   # Sort kids.
   surfaces.values.each do |p|
     if p.has_key?(:windows)
-      p[:windows] = p[:windows].sort_by{ |_, pp| pp[:minz] }.to_h
+      p[:windows] = p[:windows].sort_by { |_, pp| pp[:minz] }.to_h
     end
     if p.has_key?(:doors)
-      p[:doors] = p[:doors].sort_by{ |_, pp| pp[:minz] }.to_h
+      p[:doors] = p[:doors].sort_by { |_, pp| pp[:minz] }.to_h
     end
     if p.has_key?(:skylights)
-      p[:skylights] = p[:skylights].sort_by{ |_, pp| pp[:minz] }.to_h
+      p[:skylights] = p[:skylights].sort_by { |_, pp| pp[:minz] }.to_h
     end
   end
 
   # Split "surfaces" hash into "floors", "ceilings" and "walls" hashes.
-  floors = surfaces.select{ |i, p| p[:type] == :floor }
-  floors = floors.sort_by{ |i, p| [p[:minz], p[:space]] }.to_h
+  floors = surfaces.select { |i, p| p[:type] == :floor }
+  floors = floors.sort_by { |i, p| [p[:minz], p[:space]] }.to_h
 
-  ceilings = surfaces.select{ |i, p| p[:type] == :ceiling }
-  ceilings = ceilings.sort_by{ |i, p| [p[:minz], p[:space]] }.to_h
+  ceilings = surfaces.select { |i, p| p[:type] == :ceiling }
+  ceilings = ceilings.sort_by { |i, p| [p[:minz], p[:space]] }.to_h
 
-  walls = surfaces.select{|i, p| p[:type] == :wall }
-  walls = walls.sort_by{ |i, p| [p[:minz], p[:space]] }.to_h
+  walls = surfaces.select { |i, p| p[:type] == :wall }
+  walls = walls.sort_by { |i, p| [p[:minz], p[:space]] }.to_h
 
   # Remove ":type" (now redundant).
   surfaces.values.each { |p| p.delete_if { |ii, _| ii == :type } }
@@ -1820,33 +1840,40 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
   # Fetch OpenStudio shading surfaces & key attributes.
   shades = {}
   os_model.getShadingSurfaces.each do |s|
-    next if s.shadingSurfaceGroup.empty?
-    group = s.shadingSurfaceGroup.get
     id = s.nameString
+
+    if s.shadingSurfaceGroup.empty?
+      TBD.log(TBD::ERROR,
+        "Can't process '#{id}' transformation")
+      next
+    end
+    group = s.shadingSurfaceGroup.get
 
     # Site-specific (or absolute, or true) surface normal. Shading surface
     # groups may also be linked to (rotated) spaces.
     t, r = transforms(os_model, group)
     unless t && r
       TBD.log(TBD::FATAL,
-        "Unable to process OS shading surface transformation")
+        "Can't process '#{id}' transformation")
       return nil, nil
     end
+
     shading = group.to_ShadingSurfaceGroup
     unless shading.empty?
       unless shading.get.space.empty?
         r += shading.get.space.get.directionofRelativeNorth
       end
     end
+
     n = trueNormal(s, r)
     unless n
       TBD.log(TBD::FATAL,
-        "Unable to process OS shading surface true normal")
+        "Can't process '#{id}' true normal")
       return nil, nil
     end
 
-    points = (t * s.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
-    minz = (points.map{ |p| p.z }).min
+    points = (t * s.vertices).map { |v| Topolys::Point3D.new(v.x, v.y, v.z) }
+    minz = ( points.map { |p| p.z } ).min
 
     shades[id] = {
       group:  group,
@@ -2072,7 +2099,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
 
   if has.empty? || val.empty?
     TBD.log(TBD::FATAL,
-      "Invalid or incomplete building PSI set")
+      "Can't process an invalid or incomplete building PSI set")
     return nil, nil
   end
 
