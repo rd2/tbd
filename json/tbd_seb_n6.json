@@ -1,8 +1,7 @@
 {
-  "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
+  "schema": "https://github.com/rd2/tbd/blob/logger/tbd.schema.json",
   "description": "testing TBD JSON for seb.osm",
-  "psis": [
-    {
+  "psis": [{
       "id": "bad",
       "fenestration": 1.1
     },
@@ -12,8 +11,7 @@
       "rimjoist": 0.9
     }
   ],
-  "khis": [
-    {
+  "khis": [{
       "id": "column",
       "point": 0.5
     },
@@ -22,35 +20,28 @@
       "point": 0.5
     }
   ],
-  "edges": [
-    {
-      "psi": "bad",
-      "type": "fenestration",
-      "surfaces": [
-        "Entryway  Wall 5",
-        "Sub Surface 8"
-      ]
-    }
-  ],
-  "surfaces": [
-    {
-      "id": "Entryway  Wall 5",
-      "khis": [
-        {
-          "id": "column",
-          "count": 3
-        },
-        {
-          "id": "support",
-          "count": 4
-        }
-      ],
-      "psi": "good"
-    }
-  ],
-  "building": [
-    {
-      "psi": "(non thermal bridging)"
-    }
-  ]
+  "building": {
+    "psi": "(non thermal bridging)"
+  },
+  "surfaces": [{
+    "id": "Entryway  Wall 5",
+    "khis": [{
+        "id": "column",
+        "count": 3
+      },
+      {
+        "id": "support",
+        "count": 4
+      }
+    ],
+    "psi": "good"
+  }],
+  "edges": [{
+    "psi": "bad",
+    "type": "fenestration",
+    "surfaces": [
+      "Entryway  Wall 5",
+      "Sub Surface 8"
+    ]
+  }]
 }

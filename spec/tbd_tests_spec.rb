@@ -591,7 +591,10 @@ RSpec.describe TBD do
       end
 
       t, r = transforms(os_model, space)
+      expect(t.nil?).to be(false)
+      expect(r.nil?).to be(false)
       n = trueNormal(s, r)
+      expect(n.nil?).to be(false)
 
       type = :floor
       type = :ceiling if /ceiling/i.match(s.surfaceType)
@@ -668,10 +671,15 @@ RSpec.describe TBD do
       id    = s.nameString
 
       gross, pts = opening(os_model, id)
+      expect(gross).to be_a(Numeric)
+      expect(pts.nil?).to be(false)
 
       # Site-specific (or absolute, or true) surface normal.
       t, r = transforms(os_model, space)
+      expect(t.nil?).to be(false)
+      expect(r.nil?).to be(false)
       n = trueNormal(s, r)
+      expect(n.nil?).to be(false)
 
       points = (t * pts).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
       minz = (points.map{ |p| p.z }).min
@@ -739,7 +747,7 @@ RSpec.describe TBD do
     expect(walls.size).to eq(17)
 
     # Remove ":type" (now redundant).
-    surfaces.values.each do |p| p.delete_if { |ii, _| ii == :type }; end
+    surfaces.values.each { |p| p.delete_if { |ii, _| ii == :type } }
 
     # Fetch OpenStudio shading surfaces & key attributes.
     shades = {}
@@ -751,6 +759,8 @@ RSpec.describe TBD do
       # Site-specific (or absolute, or true) surface normal. Shading surface
       # groups may also be linked to (rotated) spaces.
       t, r = transforms(os_model, group)
+      expect(t.nil?).to be(false)
+      expect(r.nil?).to be(false)
       shading = group.to_ShadingSurfaceGroup
       unless shading.empty?
         unless shading.get.space.empty?
@@ -758,6 +768,7 @@ RSpec.describe TBD do
         end
       end
       n = trueNormal(s, r)
+      expect(n.nil?).to be(false)
 
       points = (t * s.vertices).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
       minz = (points.map{ |p| p.z }).min
@@ -808,13 +819,13 @@ RSpec.describe TBD do
     surfaces.values.each do |p|
       subarea = 0
       if p.has_key?(:windows)
-        p[:windows].values.each   do |o| subarea += o[:gross]; end
+        p[:windows].values.each { |o| subarea += o[:gross] }
       end
       if p.has_key?(:doors)
-        p[:doors].values.each     do |o| subarea += o[:gross]; end
+        p[:doors].values.each { |o| subarea += o[:gross] }
       end
       if p.has_key?(:skylights)
-        p[:skylights].values.each do |o| subarea += o[:gross]; end
+        p[:skylights].values.each { |o| subarea += o[:gross] }
       end
       p[:net] = p[:gross] - subarea
     end
@@ -1017,8 +1028,16 @@ RSpec.describe TBD do
 
     psi_set = "poor (BETBG)"
     io, io_p, io_k = processTBDinputs(surfaces, edges, psi_set)
-    p = io[:building].first[:psi]
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.empty?).to be(false)
+    expect(io.has_key?(:building)).to be(true)
+    expect(io[:building].has_key?(:psi)).to be(true)
+    p = io[:building][:psi]
     has, val = io_p.shorthands(p)
+    expect(has.empty?).to be(false)
+    expect(val.empty?).to be(false)
 
     edges.values.each do |edge|
       next unless edge.has_key?(:surfaces)
@@ -1293,7 +1312,7 @@ RSpec.describe TBD do
       psi = {}
       psi[:transition] = 0.000
       edge[:psi] = psi
-      edge[:set] = io[:building].first[:psi]
+      edge[:set] = io[:building][:psi]
 
       tr = []
       edge[:surfaces].keys.each do |id|
@@ -1564,10 +1583,10 @@ RSpec.describe TBD do
         expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
       end
     end
-
   end # can process thermal bridging and derating : LoScrigno
 
   it "can process TB & D : DOE Prototype test_smalloffice.osm" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_smalloffice.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -1625,6 +1644,13 @@ RSpec.describe TBD do
 
     psi_set = "poor (BETBG)"
     io, surfaces = processTBD(os_model, psi_set)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(43)
 
     # Testing attic surfaces.
@@ -1764,6 +1790,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : DOE prototype test_smalloffice.osm (hardset)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_smalloffice.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -1801,6 +1828,13 @@ RSpec.describe TBD do
 
     psi_set = "poor (BETBG)"
     io, surfaces = processTBD(os_model, psi_set)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(43)
 
     # Testing attic surfaces.
@@ -1922,6 +1956,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : DOE Prototype test_warehouse.osm" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_warehouse.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -1954,6 +1989,13 @@ RSpec.describe TBD do
 
     psi_set = "poor (BETBG)"
     io, surfaces = processTBD(os_model, psi_set)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
 
     ids = { a: "Office Front Wall",
@@ -2022,6 +2064,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : DOE Prototype test_warehouse.osm + JSON I/O" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_warehouse.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -2052,6 +2095,13 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
 
     ids = { a: "Office Front Wall",
@@ -2121,9 +2171,7 @@ RSpec.describe TBD do
     # Now mimic the export functionality of the measure
     out = JSON.pretty_generate(io)
     outP = File.dirname(__FILE__) + "/../json/tbd_warehouse.out.json"
-    File.open(outP, "w") do |outP|
-      outP.puts out
-    end
+    File.open(outP, "w") { |outP| outP.puts out }
 
     # 2. Re-use the exported file as input for another warehouse
     os_model2 = translator.loadModel(path)
@@ -2132,6 +2180,13 @@ RSpec.describe TBD do
 
     ioP2 = File.dirname(__FILE__) + "/../json/tbd_warehouse.out.json"
     io2, surfaces = processTBD(os_model2, psi_set, ioP2, schemaP)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
 
     # Testing (again).
@@ -2182,18 +2237,17 @@ RSpec.describe TBD do
     # Now mimic (again) the export functionality of the measure
     out2 = JSON.pretty_generate(io2)
     outP2 = File.dirname(__FILE__) + "/../json/tbd_warehouse2.out.json"
-    File.open(outP2, "w") do |outP2|
-      outP2.puts out2
-    end
+    File.open(outP2, "w") { |outP2| outP2.puts out2 }
 
     # Both output files should be the same ...
     # cmd = "diff #{outP} #{outP2}"
     # expect(system( cmd )).to be(true)
     # expect(FileUtils).to be_identical(outP, outP2)
-    expect(FileUtils.identical?(outP, outP2)).to be(true) ###
+    expect(FileUtils.identical?(outP, outP2)).to be(true)
   end
 
   it "can process TB & D : DOE Prototype test_warehouse.osm + JSON I/O (2)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_warehouse.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -2231,6 +2285,13 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse1.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
 
     ids = { a: "Office Front Wall",
@@ -2300,9 +2361,7 @@ RSpec.describe TBD do
     # Now mimic the export functionality of the measure
     out = JSON.pretty_generate(io)
     outP = File.dirname(__FILE__) + "/../json/tbd_warehouse1.out.json"
-    File.open(outP, "w") do |outP|
-      outP.puts out
-    end
+    File.open(outP, "w") { |outP| outP.puts out }
 
     # 2. Re-use the exported file as input for another warehouse
     os_model2 = translator.loadModel(path)
@@ -2311,6 +2370,13 @@ RSpec.describe TBD do
 
     ioP2 = File.dirname(__FILE__) + "/../json/tbd_warehouse1.out.json"
     io2, surfaces = processTBD(os_model2, psi_set, ioP2, schemaP)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
 
     surfaces.each do |id, surface|
@@ -2327,9 +2393,7 @@ RSpec.describe TBD do
     # Now mimic (again) the export functionality of the measure
     out2 = JSON.pretty_generate(io2)
     outP2 = File.dirname(__FILE__) + "/../json/tbd_warehouse3.out.json"
-    File.open(outP2, "w") do |outP2|
-      outP2.puts out2
-    end
+    File.open(outP2, "w") { |outP2| outP2.puts out2 }
 
     # Both output files should be the same ...
     # cmd = "diff #{outP} #{outP2}"
@@ -2339,6 +2403,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : test_seb.osm" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -2388,6 +2453,13 @@ RSpec.describe TBD do
 
     psi_set = "poor (BETBG)"
     io, surfaces = processTBD(os_model, psi_set)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
 
     ids = { a: "Entryway  Wall 4",
@@ -2527,6 +2599,7 @@ RSpec.describe TBD do
   end
 
   it "can take in custom (expansion) joints as thermal bridges" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_warehouse.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -2585,6 +2658,13 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse6.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
 
     ids = { a: "Office Front Wall",
@@ -2664,6 +2744,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : test_seb.osm (0 W/K per m)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -2672,6 +2753,13 @@ RSpec.describe TBD do
 
     psi_set = "(non thermal bridging)"
     io, surfaces = processTBD(os_model, psi_set)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
 
     # Since all PSI values = 0, we're not expecting any derated surfaces
@@ -2681,6 +2769,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : test_seb.osm (0 W/K per m) with JSON" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -2691,6 +2780,13 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_seb.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
 
     # As the :building PSI set on file remains "(non thermal bridging)", one
@@ -2701,6 +2797,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : test_seb.osm (0 W/K per m) with JSON (non-0)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -2711,6 +2808,13 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n0.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
 
     ids = { a: "Entryway  Wall 4",
@@ -2837,6 +2941,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : test_seb.osm (0 W/K per m) with JSON (non-0) 2" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -2848,6 +2953,13 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n0.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
 
     ids = { a: "Entryway  Wall 4",
@@ -2968,6 +3080,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : test_seb.osm (0 W/K per m) with JSON (non-0) 3" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -2979,6 +3092,13 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n1.json" # no :building
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
 
     ids = { a: "Entryway  Wall 4",
@@ -3099,6 +3219,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : testing JSON surface KHI entries" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -3109,6 +3230,13 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n2.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
 
     # As the :building PSI set on file remains "(non thermal bridging)", one
@@ -3122,6 +3250,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : testing JSON surface KHI & PSI entries" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -3132,10 +3261,17 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n3.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
     expect(io.has_key?(:building)).to be(true) # despite no being on file - good
-    expect(io[:building].first.has_key?(:psi)).to be(true)
-    expect(io[:building].first[:psi]).to eq("(non thermal bridging)")
+    expect(io[:building].has_key?(:psi)).to be(true)
+    expect(io[:building][:psi]).to eq("(non thermal bridging)")
 
     # As the :building PSI set on file remains "(non thermal bridging)", one
     # should not expect differences in results, i.e. derating shouldn't occur
@@ -3190,8 +3326,9 @@ RSpec.describe TBD do
       valid = edge[:surfaces].include?(nom1) || edge[:surfaces].include?(nom2)
       next unless valid
       s = {}
-      io[:psis].each do |set| s = set if set[:id] == edge[:psi]; end
+      io[:psis].each { |set| s = set if set[:id] == edge[:psi] }
       next if s.empty?
+
       expect(s.is_a?(Hash)).to be(true)
 
       t = edge[:type]
@@ -3253,7 +3390,7 @@ RSpec.describe TBD do
       valid = edge[:surfaces].include?(nom1) || edge[:surfaces].include?(nom2)
       next unless valid
       s = {}
-      io[:psis].each do |set| s = set if set[:id] == edge[:psi]; end
+      io[:psis].each { |set| s = set if set[:id] == edge[:psi] }
       next unless s.empty?
       expect edge[:psi] == psi_set
 
@@ -3314,7 +3451,7 @@ RSpec.describe TBD do
       valid = edge[:surfaces].include?(nom1) || edge[:surfaces].include?(nom2)
       next unless valid
       s = {}
-      io[:psis].each do |set| s = set if set[:id] == edge[:psi]; end
+      io[:psis].each { |set| s = set if set[:id] == edge[:psi] }
       next if s.empty?
       expect(s.is_a?(Hash)).to be(true)
 
@@ -3357,6 +3494,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : JSON surface KHI & PSI entries + building & edge" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -3367,6 +3505,13 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n4.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
 
     # As the :building PSI set on file == "(non thermal bridgin)", derating
@@ -3383,6 +3528,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : JSON surface KHI & PSI + building & edge (2)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -3393,6 +3539,13 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n5.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
 
     # As above, yet the KHI points are now set @0.5 W/K per m (instead of 0)
@@ -3406,6 +3559,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : JSON surface KHI & PSI + building & edge (3)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -3416,6 +3570,13 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n6.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
 
     # As above, with a "good" surface PSI set
@@ -3429,6 +3590,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : JSON surface KHI & PSI + building & edge (4)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -3439,6 +3601,13 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n7.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
 
     # In the JSON file, the "Entry way 1" space "compliant" PSI set supersedes
@@ -3466,6 +3635,7 @@ RSpec.describe TBD do
   end
 
   it "can factor in negative PSI values (JSON input)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_warehouse.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -3477,6 +3647,13 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse4.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
 
     ids = { a: "Office Front Wall",
@@ -3532,6 +3709,7 @@ RSpec.describe TBD do
   end
 
   it "can process TB & D : JSON file read/validate" do
+    TBD.clean!
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     expect(File.exist?(schemaP)).to be(true)
     schemaC = File.read(schemaP)
@@ -3557,7 +3735,7 @@ RSpec.describe TBD do
     # Loop through input psis to ensure uniqueness vs PSI defaults
     psi = PSI.new
     expect(io.has_key?(:psis)).to be(true)
-    io[:psis].each do |p| psi.append(p); end
+    io[:psis].each { |p| expect(psi.append(p)).to be(true) }
     expect(psi.set.size).to eq(9)
     expect(psi.set.has_key?("poor (BETBG)")).to be(true)
     expect(psi.set.has_key?("regular (BETBG)")).to be(true)
@@ -3572,7 +3750,7 @@ RSpec.describe TBD do
     # Similar treatment for khis
     khi = KHI.new
     expect(io.has_key?(:khis)).to be(true)
-    io[:khis].each do |k| khi.append(k); end
+    io[:khis].each { |k| expect(khi.append(k)).to be(true) }
     expect(khi.point.size).to eq(7)
     expect(khi.point.has_key?("poor (BETBG)")).to be(true)
     expect(khi.point.has_key?("regular (BETBG)")).to be(true)
@@ -3587,9 +3765,9 @@ RSpec.describe TBD do
     expect(khi.point["support"]).to eq(0.5)
 
     expect(io.has_key?(:building)).to be(true)
-    expect(io[:building].first.has_key?(:psi)).to be(true)
-    expect(io[:building].first[:psi]).to eq("compliant")
-    expect(psi.set.has_key?(io[:building].first[:psi])).to be(true)
+    expect(io[:building].has_key?(:psi)).to be(true)
+    expect(io[:building][:psi]).to eq("compliant")
+    expect(psi.set.has_key?(io[:building][:psi])).to be(true)
 
     expect(io.has_key?(:surfaces)).to be(true)
     io[:surfaces].each do |surface|
@@ -3639,12 +3817,11 @@ RSpec.describe TBD do
     expect(io.has_key?(:building)).to be(true)
     expect(io.has_key?(:logs)).to be(false)
     expect(io[:spaces].size).to eq(1)
-    expect(io[:building].size).to eq(1)
 
     # Loop through input psis to ensure uniqueness vs PSI defaults.
     psi = PSI.new
     expect(io.has_key?(:psis)).to be(true)
-    io[:psis].each do |p| psi.append(p); end
+    io[:psis].each { |p| expect(psi.append(p)).to be(true) }
     expect(psi.set.size).to eq(9)
     expect(psi.set.has_key?("poor (BETBG)")).to be(true)
     expect(psi.set.has_key?("regular (BETBG)")).to be(true)
@@ -3658,9 +3835,9 @@ RSpec.describe TBD do
     expect(psi.set["Awesome"][:rimjoist]).to eq(0.2)
 
     expect(io.has_key?(:building)).to be (true)
-    expect(io[:building].first.has_key?(:psi)).to be(true)
-    expect(io[:building].first[:psi]).to eq("Awesome")
-    expect(psi.set.has_key?(io[:building].first[:psi])).to be(true)
+    expect(io[:building].has_key?(:psi)).to be(true)
+    expect(io[:building][:psi]).to eq("Awesome")
+    expect(psi.set.has_key?(io[:building][:psi])).to be(true)
 
     expect(io.has_key?(:spaces)).to be(true)
     io[:spaces].each do |space|
@@ -3688,12 +3865,11 @@ RSpec.describe TBD do
     expect(io.has_key?(:logs)).to be(false)
     expect(io[:edges].size).to eq(1)
     expect(io[:surfaces].size).to eq(1)
-    expect(io[:building].size).to eq(1)
 
     # Loop through input psis to ensure uniqueness vs PSI defaults
     psi = PSI.new
     expect(io.has_key?(:psis)).to be(true)
-    io[:psis].each do |p| psi.append(p); end
+    io[:psis].each { |p| expect(psi.append(p)).to be(true) }
     expect(psi.set.size).to eq(10)
     expect(psi.set.has_key?("poor (BETBG)")).to be(true)
     expect(psi.set.has_key?("regular (BETBG)")).to be(true)
@@ -3708,9 +3884,9 @@ RSpec.describe TBD do
     expect(psi.set["Party wall edge"][:party]).to eq(0.4)
 
     expect(io.has_key?(:building)).to be(true)
-    expect(io[:building].first.has_key?(:psi)).to be(true)
-    expect(io[:building].first[:psi]).to eq("Awesome")
-    expect(psi.set.has_key?(io[:building].first[:psi])).to be(true)
+    expect(io[:building].has_key?(:psi)).to be(true)
+    expect(io[:building][:psi]).to eq("Awesome")
+    expect(psi.set.has_key?(io[:building][:psi])).to be(true)
 
     expect(io.has_key?(:surfaces)).to be(true)
     io[:surfaces].each do |surface|
@@ -3760,7 +3936,7 @@ RSpec.describe TBD do
     # Loop through input psis to ensure uniqueness vs PSI defaults
     psi = PSI.new
     expect(io.has_key?(:psis)).to be(true)
-    io[:psis].each do |p| psi.append(p); end
+    io[:psis].each { |p| expect(psi.append(p)).to be(true) }
     expect(psi.set.size).to eq(8)
     expect(psi.set.has_key?("poor (BETBG)")).to be(true)
     expect(psi.set.has_key?("regular (BETBG)")).to be(true)
@@ -3787,6 +3963,7 @@ RSpec.describe TBD do
   end
 
   it "can factor in spacetype-specific PSI sets (JSON input)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_warehouse.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -3798,6 +3975,13 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse5.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
 
     sTyp1 = "Warehouse Office"
@@ -3832,6 +4016,7 @@ RSpec.describe TBD do
   end
 
   it "can factor in story-specific PSI sets (JSON input)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_smalloffice.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -3843,6 +4028,13 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_smalloffice.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(43)
 
     expect(io.has_key?(:stories)).to be(true)
@@ -3863,6 +4055,7 @@ RSpec.describe TBD do
   end
 
   it "can sort multiple story-specific PSI sets (JSON input)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/midrise_KIVA.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -3874,6 +4067,13 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/midrise.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(180)
 
     st1 = "Building Story 1"
@@ -3950,6 +4150,7 @@ RSpec.describe TBD do
   end
 
   it "can handle parties" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -3977,6 +4178,13 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n8.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
 
     ids = { a: "Entryway  Wall 4",
@@ -4056,6 +4264,7 @@ RSpec.describe TBD do
   end
 
   it "can factor in unenclosed space such as attics" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_smalloffice.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -4071,6 +4280,13 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_smalloffice.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(43)
 
     # Check derating of attic floor (5x surfaces)
@@ -4117,6 +4333,7 @@ RSpec.describe TBD do
   end
 
   it "can factor in heads, sills and jambs" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_warehouse.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -4128,6 +4345,13 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse7.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
 
     nom = "Bulk Storage Roof"
@@ -4175,12 +4399,18 @@ RSpec.describe TBD do
   end
 
   it "has a PSI class" do
+    TBD.clean!
     psi = PSI.new
     expect(psi.set.has_key?("poor (BETBG)")).to be(true)
     expect(psi.complete?("poor (BETBG)")).to be(true)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.size).to eq(0)
 
     expect(psi.set.has_key?("new set")).to be(false)
     expect(psi.complete?("new set")).to be(false)
+    expect(TBD.status).to eq(TBD::ERROR)
+    expect(TBD.logs.size).to eq(1)
+    TBD.clean!
     new_set =
     {
       id:            "new set",
@@ -4193,13 +4423,17 @@ RSpec.describe TBD do
       party:         0.000,
       grade:         0.000
     }
-    psi.append(new_set)
+    expect(psi.append(new_set)).to be(true)
     expect(psi.set.has_key?("new set")).to be(true)
     expect(psi.complete?("new set")).to be(true)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.size).to eq(0)
 
     expect(psi.set["new set"][:grade]).to eq(0)
     new_set[:grade] = 1.0
-    psi.append(new_set) # does not override existing value
+    expect(psi.append(new_set)).to be(false)  # does not override existing value
+    expect(TBD.status).to eq(TBD::ERROR)
+    expect(TBD.logs.size).to eq(1)
     expect(psi.set["new set"][:grade]).to eq(0)
 
     expect(psi.set.has_key?("incomplete set")).to be(false)
@@ -4209,7 +4443,7 @@ RSpec.describe TBD do
       id:           "incomplete set",
       grade:        0.000  #
     }
-    psi.append(incomplete_set)
+    expect(psi.append(incomplete_set)).to be(true)
     expect(psi.set.has_key?("incomplete set")).to be(true)
     expect(psi.complete?("incomplete set")).to be(false)
 
@@ -4235,7 +4469,7 @@ RSpec.describe TBD do
       party:         0.005,
       grade:         0.006
     }
-    psi.append(all_sills)
+    expect(psi.append(all_sills)).to be(true)
     expect(psi.set.has_key?("all sills")).to be(true)
     expect(psi.complete?("all sills")).to be(true)
     holds, vals = psi.shorthands("all sills")
@@ -4267,7 +4501,7 @@ RSpec.describe TBD do
       party:         0.005,
       grade:         0.006
     }
-    psi.append(partial_sills)
+    expect(psi.append(partial_sills)).to be(true)
     expect(psi.set.has_key?("partial sills")).to be(true)
     expect(psi.complete?("partial sills")).to be(true)   # can be a building set
     holds, vals = psi.shorthands("partial sills")
@@ -4299,7 +4533,7 @@ RSpec.describe TBD do
       party:         0.005,
       grade:         0.006
     }
-    psi.append(no_sills)
+    expect(psi.append(no_sills)).to be(true)
     expect(psi.set.has_key?("no sills")).to be(true)
     expect(psi.complete?("no sills")).to be(true)        # can be a building set
     holds, vals = psi.shorthands("no sills")
@@ -4314,6 +4548,7 @@ RSpec.describe TBD do
   end
 
   it "can factor-in Frame & Divider objects" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_warehouse.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -4325,6 +4560,13 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse8.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
 
     nom = "Office Front Wall"
@@ -4446,9 +4688,13 @@ RSpec.describe TBD do
     expect(front_FD.space.empty?).to be(false)
     space = front_FD.space.get
     t, r = transforms(os_model_FD, space)
+    expect(t.nil?).to be(false)
+    expect(r.nil?).to be(false)
 
     # The following "opening" function is standalone - does not change OSM.
     opening_area, opening_vertices = opening(os_model_FD, name)
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.01).of(5.89)                   # vs 5.58
     expect(opening_vertices.size).to eq(4)
     opening_vertices = t * opening_vertices
@@ -4474,6 +4720,13 @@ RSpec.describe TBD do
     ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse8.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
     io, surfaces = processTBD(os_model_FD, psi_set, ioP, schemaP)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
 
     # TBD calling on framedivider.rb workarounds.
@@ -4500,6 +4753,8 @@ RSpec.describe TBD do
     space = OpenStudio::Model::Space.new(fd_model)
     space.setName("FD space")
     t, r = transforms(fd_model, space)
+    expect(t.nil?).to be(false)
+    expect(r.nil?).to be(false)
 
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new(  0.00,  0.00, 10.00)
@@ -4540,6 +4795,8 @@ RSpec.describe TBD do
 
     # Without Frame & Divider objects linked to subsurface.
     opening_area, opening_vertices = opening(fd_model, "w1")
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(1.5)
     expect(opening_vertices.size).to eq(3)
 
@@ -4554,6 +4811,8 @@ RSpec.describe TBD do
     expect(width).to be_within(0.001).of(0.200)                # good so far ...
 
     opening_area, opening_vertices = opening(fd_model, "w1")
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(3.75)
     expect(opening_vertices.size).to eq(3)
     opening_vertices = t * opening_vertices
@@ -4578,6 +4837,8 @@ RSpec.describe TBD do
     expect(width).to be_within(0.001).of(0.200)
 
     opening_area, opening_vertices = opening(fd_model, "w2")
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(8.64)
     expect(opening_vertices.size).to eq(4)
     opening_vertices = t * opening_vertices
@@ -4603,6 +4864,8 @@ RSpec.describe TBD do
     expect(width).to be_within(0.001).of(0.200)
 
     opening_area, opening_vertices = opening(fd_model, "w3")
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(1.1)
     expect(opening_vertices.size).to eq(3)
     opening_vertices = t * opening_vertices
@@ -4625,6 +4888,8 @@ RSpec.describe TBD do
     space2 = OpenStudio::Model::Space.new(fd2_model)
     space2.setName("FD 2 space")
     t, r = transforms(fd2_model, space2)
+    expect(t.nil?).to be(false)
+    expect(r.nil?).to be(false)
 
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new(  0.00,  0.00, 10.00)
@@ -4665,6 +4930,8 @@ RSpec.describe TBD do
 
     # Without Frame & Divider objects linked to subsurface.
     opening_area, opening_vertices = opening(fd2_model, "w1")
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(1.5)
     expect(opening_vertices.size).to eq(3)
 
@@ -4679,6 +4946,8 @@ RSpec.describe TBD do
     expect(width).to be_within(0.001).of(0.200)                # good so far ...
 
     opening_area, opening_vertices = opening(fd2_model, "w1")
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(3.75)
     expect(opening_vertices.size).to eq(3)
     opening_vertices = t * opening_vertices
@@ -4703,6 +4972,8 @@ RSpec.describe TBD do
     expect(width).to be_within(0.001).of(0.200)
 
     opening_area, opening_vertices = opening(fd2_model, "w2")
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(8.64)
     expect(opening_vertices.size).to eq(4)
     opening_vertices = t * opening_vertices
@@ -4728,6 +4999,8 @@ RSpec.describe TBD do
     expect(width).to be_within(0.001).of(0.200)
 
     opening_area, opening_vertices = opening(fd2_model, "w3")
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(1.1)
     expect(opening_vertices.size).to eq(3)
     opening_vertices = t * opening_vertices
@@ -4749,6 +5022,8 @@ RSpec.describe TBD do
     space3 = OpenStudio::Model::Space.new(fd3_model)
     space3.setName("FD 3 space")
     t, r = transforms(fd3_model, space3)
+    expect(t.nil?).to be(false)
+    expect(r.nil?).to be(false)
 
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new( -2.17,  4.33,  8.75)
@@ -4789,6 +5064,8 @@ RSpec.describe TBD do
 
     # Without Frame & Divider objects linked to subsurface.
     opening_area, opening_vertices = opening(fd3_model, "w1")
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(1.5)
     expect(opening_vertices.size).to eq(3)
 
@@ -4803,6 +5080,8 @@ RSpec.describe TBD do
     expect(width).to be_within(0.001).of(0.200)                # good so far ...
 
     opening_area, opening_vertices = opening(fd3_model, "w1")
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(3.75)
     expect(opening_vertices.size).to eq(3)
     opening_vertices = t * opening_vertices
@@ -4828,6 +5107,8 @@ RSpec.describe TBD do
     expect(width).to be_within(0.001).of(0.200)
 
     opening_area, opening_vertices = opening(fd3_model, "w2")
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(8.64)
     expect(opening_vertices.size).to eq(4)
     opening_vertices = t * opening_vertices
@@ -4853,6 +5134,8 @@ RSpec.describe TBD do
     expect(width).to be_within(0.001).of(0.200)
 
     opening_area, opening_vertices = opening(fd3_model, "w3")
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(1.1)
     expect(opening_vertices.size).to eq(3)
     opening_vertices = t * opening_vertices
@@ -4869,7 +5152,297 @@ RSpec.describe TBD do
     expect(opening_vertices[2].z).to be_within(0.01).of(10.92)
   end
 
+  it "can flag errors and integrate TBD logs in JSON output" do
+    TBD.clean!
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    file = "/files/test_warehouse.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    office = os_model.getSpaceByName("Zone1 Office")
+    expect(office.empty?).to be(false)
+
+    front_office_wall = os_model.getSurfaceByName("Office Front Wall")
+    expect(front_office_wall.empty?).to be(false)
+    front_office_wall = front_office_wall.get
+    expect(front_office_wall.nameString).to eq("Office Front Wall")
+    expect(front_office_wall.surfaceType).to eq("Wall")
+
+    left_office_wall = os_model.getSurfaceByName("Office Left Wall")
+    expect(left_office_wall.empty?).to be(false)
+    left_office_wall = left_office_wall.get
+    expect(left_office_wall.nameString).to eq("Office Left Wall")
+    expect(left_office_wall.surfaceType).to eq("Wall")
+
+    right_fine_wall = os_model.getSurfaceByName("Fine Storage Right Wall")
+    expect(right_fine_wall.empty?).to be(false)
+    right_fine_wall = right_fine_wall.get
+    expect(right_fine_wall.nameString).to eq("Fine Storage Right Wall")
+    expect(right_fine_wall.surfaceType).to eq("Wall")
+
+    # Adding a small, 5-sided window to the "Office Front Wall" (above door).
+    os_v = OpenStudio::Point3dVector.new
+    os_v << OpenStudio::Point3d.new( 12.96, 0.00, 4.00)
+    os_v << OpenStudio::Point3d.new( 12.04, 0.00, 3.50)
+    os_v << OpenStudio::Point3d.new( 12.04, 0.00, 2.50)
+    os_v << OpenStudio::Point3d.new( 13.87, 0.00, 2.50)
+    os_v << OpenStudio::Point3d.new( 13.87, 0.00, 3.50)
+    clerestory = OpenStudio::Model::SubSurface.new(os_v, os_model)
+    clerestory.setName("clerestory")
+    clerestory.setSurface(front_office_wall)
+    clerestory.setSubSurfaceType("FixedWindow")
+    # ... reminder: set subsurface type AFTER setting its parent surface.
+
+    # A new, highly-conductive material (RSi = 0.001 m2.K/W) - the OS min.
+    material = OpenStudio::Model::MasslessOpaqueMaterial.new(os_model)
+    material.setName("poor material")
+    expect(material.nameString).to eq("poor material")
+    expect(material.setThermalResistance(0.001)).to be(true)
+    expect(material.thermalResistance).to be_within(0.0001).of(0.001)
+    mat = OpenStudio::Model::MaterialVector.new
+    mat << material
+
+    # A 'standard' variant (also gives RSi = 0.001 m2.K/W)
+    material2 = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
+    material2.setName("poor material2")
+    expect(material2.nameString).to eq("poor material2")
+    expect(material2.setThermalConductivity(3.0)).to be(true)
+    expect(material2.thermalConductivity).to be_within(0.01).of(3.0)
+    expect(material2.setThickness(0.003)).to be(true)
+    expect(material2.thickness).to be_within(0.001).of(0.003)
+    mat2 = OpenStudio::Model::MaterialVector.new
+    mat2 << material2
+
+    # Another 'massless' material, whose name already includes " tbd".
+    material3 = OpenStudio::Model::MasslessOpaqueMaterial.new(os_model)
+    material3.setName("poor material m tbd")
+    expect(material3.nameString).to eq("poor material m tbd")
+    expect(material3.setThermalResistance(1.0)).to be(true)
+    expect(material3.thermalResistance).to be_within(0.1).of(1.0)
+    mat3 = OpenStudio::Model::MaterialVector.new
+    mat3 << material3
+
+    # Assign highly-conductive material to a new construction.
+    construction = OpenStudio::Model::Construction.new(os_model)
+    construction.setName("poor construction")
+    expect(construction.nameString).to eq("poor construction")
+    expect(construction.layers.size).to eq(0)
+    expect(construction.setLayers(mat2)).to be(true) # or switch with 'mat'
+    expect(construction.layers.size).to eq(1)
+
+    # Assign " tbd" massless material to a new construction.
+    construction2 = OpenStudio::Model::Construction.new(os_model)
+    construction2.setName("poor construction tbd")
+    expect(construction2.nameString).to eq("poor construction tbd")
+    expect(construction2.layers.size).to eq(0)
+    expect(construction2.setLayers(mat3)).to be(true)
+    expect(construction2.layers.size).to eq(1)
+
+    # Assign construction to the "Office Left Wall".
+    expect(left_office_wall.setConstruction(construction)).to be(true)
+
+    # Assign construction2 to the "Fine Storage Right Wall".
+    expect(right_fine_wall.setConstruction(construction2)).to be(true)
+
+    subs = front_office_wall.subSurfaces
+    expect(subs.empty?).to be(false)
+    expect(subs.size).to eq(4)
+
+    psi_set = "poor (BETBG)"
+    ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse9.json"
+    # {
+    #   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
+    #   "description": "testing error detection",
+    #   "psis": [
+    #     {
+    #       "id": "detailed 2",
+    #       "fenestration": 0.600
+    #     },
+    #     {
+    #       "id": "regular (BETBG)",   <<<< ERROR #1 - can't reset built-in sets
+    #       "fenestration": 0.700
+    #     }
+    #   ],
+    #   "khis": [
+    #     {
+    #       "id": "cantilevered beam",
+    #       "point": 0.6
+    #     }
+    #   ],
+    #   "surfaces": [
+    #     {
+    #       "id": "Office Front Wall",
+    #       "khis": [
+    #         {
+    #           "id": "beam",      <<<< ERROR #2 - 'beam' not previously defined
+    #           "count": 3
+    #         }
+    #       ]
+    #     },
+    #     {
+    #       "id": "Office Left Wall",
+    #       "khis": [
+    #         {
+    #           "id": "cantilevered beam",
+    #           "count": 300      <<<< WARNING #1 - heat loss too great (for m2)
+    #         }
+    #       ]
+    #     }
+    #   ],
+    #   "edges": [
+    #     {
+    #       "psi": "detailed", <<<< ERROR #3 - 'detailed' not previously defined
+    #       "type": "fenestration",
+    #       "surfaces": [
+    #         "Office Front Wall",
+    #         "Office Front Wall Window 1"
+    #       ]
+    #     }
+    #   ]
+    # }
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(io.has_key?(:edges))
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
+    expect(surfaces.size).to eq(23)
+    expect(surfaces.has_key?("Office Front Wall")).to be(true)
+    expect(surfaces["Office Front Wall"].has_key?(:edges)).to be(true)
+    expect(surfaces.has_key?("Office Left Wall")).to be(true)
+    expect(surfaces["Office Left Wall"].has_key?(:edges)).to be(true)
+    expect(surfaces.has_key?("Fine Storage Right Wall")).to be(true)
+    expect(surfaces["Fine Storage Right Wall"].has_key?(:edges)).to be(true)
+
+    expect(TBD.status).to eq(TBD::ERROR)
+    expect(TBD.logs.size).to eq(6)
+    # TBD.logs.each { |log| puts log[:msg] }
+    #   'clerestory' vertex count (3 or 4)
+    #   Can't override 'regular (BETBG)' PSI set  - skipping
+    #   'Office Front Wall' KHI 'beam' mismatch
+    #   'Office Front Wall' edge PSI set mismatch - skipping
+    #   Can't assign 180.007 W/K to 'Office Left Wall' - too conductive
+    #   Can't derate 'Fine Storage Right Wall' - material already derated
+
+    # Despite input file (non-fatal) errors, TBD successfully processes thermal
+    # bridges and derates OSM construction materials by falling back on defaults
+    # in the case of errors.
+
+    # For the 5-sided window, TBD will simply ignore all edges/bridges linked to
+    # the 'clerestory' subsurface.
+    io[:edges].each do |edge|
+      expect(edge.has_key?(:surfaces)).to be(true)
+      edge[:surfaces].each { |s| expect(s).to_not eq("clerestory") }
+    end
+    expect(surfaces["Office Front Wall"][:edges].size).to eq(17)
+    sills = 0
+    surfaces["Office Front Wall"][:edges].values.each do |e|
+      expect(e.has_key?(:type)).to be(true)
+      sills += 1 if e[:type] == :sill
+    end
+    expect(sills).to eq(2)                                               # not 3
+
+    # Fallback to ERROR # 1: not really a fallback, more a demonstration that
+    # "regular (BETBG)" isn't referred to by any edge-linked derated surfaces.
+    # ... & fallback to ERROR # 3: no edge relying on 'detailed' PSI set.
+    io[:edges].each { |edge| expect(edge[:psi]).to eq("poor (BETBG)") }
+
+    # Fallback to ERROR # 2: no KHI for "Office Front Wall".
+    expect(io.has_key?(:khis)).to be(true)
+    expect(io[:khis].size).to eq(1)
+    expect(surfaces["Office Front Wall"].has_key?(:khis)).to be(false)
+
+    # ... concerning the "Office Left Wall" (underatable material).
+    left_office_wall = os_model.getSurfaceByName("Office Left Wall")
+    expect(left_office_wall.empty?).to be(false)
+    left_office_wall = left_office_wall.get
+    c = left_office_wall.construction.get.to_Construction.get
+    expect(c.numLayers).to eq(1)
+    #layer = c.getLayer(0).to_MasslessOpaqueMaterial
+    layer = c.getLayer(0).to_StandardOpaqueMaterial
+    expect(layer.empty?).to be(false)
+    layer = layer.get
+    expect(layer.name.get).to eq("'Office Left Wall' m tbd")
+    #expect(layer.thermalResistance).to be_within(0.001).of(0.001)
+    expect(layer.thermalConductivity).to be_within(0.1).of(3.0)
+    expect(layer.thickness).to be_within(0.001).of(0.003)
+    # Regardless of the targetted material type ('standard' vs 'massless'), TBD
+    # will ensure a minimal RSi value of 0.001 m2.K/W, i.e. no derating despite
+    # the surface having thermal bridges.
+    expect(surfaces["Office Left Wall"].has_key?(:heatloss)).to be(true)
+    expect(surfaces["Office Left Wall"][:heatloss]).to be_within(0.1).of(180)
+    expect(surfaces["Office Left Wall"].has_key?(:r_heatloss)).to be(true)
+    expect(surfaces["Office Left Wall"][:r_heatloss]).to be_within(0.1).of(180)
+
+    expect(surfaces["Fine Storage Right Wall"].has_key?(:heatloss)).to be(true)
+    expect(surfaces["Fine Storage Right Wall"].has_key?(:r_heatloss)).to be(false)
+    # ... concerning the new material (with a name already including " tbd").
+    # TBD ignores all such materials (a safeguard against iterative TBD
+    # runs). Contrary to the previous critical cases of highly conductive
+    # materials, TBD doesn't even try to set the :r_heatloss hash value - tough!
+    right_fine_wall = os_model.getSurfaceByName("Fine Storage Right Wall")
+    expect(right_fine_wall.empty?).to be(false)
+    right_fine_wall = right_fine_wall.get
+    c = right_fine_wall.construction.get.to_Construction.get
+    layer = c.getLayer(0).to_MasslessOpaqueMaterial
+    expect(layer.empty?).to be(false)
+    layer = layer.get
+    expect(layer.name.get).to eq("poor material m tbd")
+    expect(layer.thermalResistance).to be_within(0.1).of(1.0)
+
+    # Mimics (somewhat) the TBD 'measure.rb' method 'exitTBD()'
+    # ... should generate a 'logs' entry at the  of the JSON output file.
+    status = TBD.msg(TBD.status)
+    status = TBD.msg(TBD::INFO) if TBD.status.zero?
+
+    tbd_log = { date: Time.now, status: status }
+
+    results = []
+    if surfaces
+      surfaces.each do |id, surface|
+        next if TBD.fatal?
+        next unless surface.has_key?(:ratio)
+        ratio  = format "%3.1f", surface[:ratio]
+        name   = id.rjust(15, " ")
+        output = "#{name} RSi derated by #{ratio}%"
+        results << output
+      end
+    end
+    tbd_log[:results] = results unless results.empty?
+
+    tbd_msgs = []
+    TBD.logs.each do |l|
+      tbd_msgs << { level: TBD.tag(l[:level]), message: l[:message] }
+    end
+    tbd_log[:messages] = tbd_msgs unless tbd_msgs.empty?
+    
+    io[:log] = tbd_log
+
+    # Deterministic sorting
+    io[:schema]       = io.delete(:schema)      if io.has_key?(:schema)
+    io[:description]  = io.delete(:description) if io.has_key?(:description)
+    io[:log]          = io.delete(:log)         if io.has_key?(:log)
+    io[:psis]         = io.delete(:psis)        if io.has_key?(:psis)
+    io[:khis]         = io.delete(:khis)        if io.has_key?(:khis)
+    io[:building]     = io.delete(:building)    if io.has_key?(:building)
+    io[:stories]      = io.delete(:stories)     if io.has_key?(:stories)
+    io[:spacetypes]   = io.delete(:spacetypes)  if io.has_key?(:spacetypes)
+    io[:spaces]       = io.delete(:spaces)      if io.has_key?(:spaces)
+    io[:surfaces]     = io.delete(:surfaces)    if io.has_key?(:surfaces)
+    io[:edges]        = io.delete(:edges)       if io.has_key?(:edges)
+
+    out = JSON.pretty_generate(io)
+    outP = File.dirname(__FILE__) + "/../json/tbd_warehouse9.out.json"
+    File.open(outP, "w") { |outP| outP.puts out }
+    # ... should contain 'log' entries at the start of the JSON output file.
+  end
+
   it "can process an OSM converted from an IDF (with rotation)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/5Zone_2.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -4914,15 +5487,15 @@ RSpec.describe TBD do
 
     psi_set = "poor (BETBG)"
     io, surfaces = processTBD(os_model, psi_set)
-
-    # out = JSON.pretty_generate(io)
-    # outP = File.dirname(__FILE__) + "/../json/tbd_5Zone_2.out.json"
-    # File.open(outP, "w") do |outP| outP.puts out; end
-
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
     expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(io.has_key?(:edges))
     expect(io[:edges].size).to eq(47)
-    expect(surfaces.nil?).to be(false)
     expect(surfaces.size).to eq(40)
 
     ids = { a: "LEFT-1",
@@ -4991,6 +5564,7 @@ RSpec.describe TBD do
   end
 
   it "can generate and access KIVA inputs (seb)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
     os_model = translator.loadModel(path)
@@ -5097,6 +5671,13 @@ RSpec.describe TBD do
 
     psi_set = "poor (BETBG)"
     io, surfaces = processTBD(os_model2, psi_set, nil, nil, true)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
 
     surfaces.each do |id, surface|
@@ -5114,6 +5695,7 @@ RSpec.describe TBD do
   end
 
   it "can generate and access KIVA inputs (midrise apts - variant)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/midrise_KIVA.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -5123,6 +5705,13 @@ RSpec.describe TBD do
 
     psi_set = "poor (BETBG)"
     io, surfaces = processTBD(os_model, psi_set, nil, nil, true)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(180)
 
     # Validate.
@@ -5146,6 +5735,7 @@ RSpec.describe TBD do
   end
 
   it "can generate multiple KIVA exposed perimeters (midrise apts - variant)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/midrise_KIVA.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -5163,6 +5753,13 @@ RSpec.describe TBD do
 
     psi_set = "poor (BETBG)"
     io, surfaces = processTBD(os_model, psi_set, nil, nil, true)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(180)
 
     # Validate.
@@ -5194,6 +5791,7 @@ RSpec.describe TBD do
   end
 
   it "can generate KIVA exposed perimeters (warehouse)" do
+    TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_warehouse.osm"
     path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
@@ -5216,6 +5814,13 @@ RSpec.describe TBD do
     #psi_set = "poor (BETBG)"
     psi_set = "(non thermal bridging)"
     io, surfaces = processTBD(os_model, psi_set, nil, nil, true)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
 
     # Validate.

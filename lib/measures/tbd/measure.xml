@@ -2,18 +2,18 @@
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>d4d6b455-5b82-4ea2-b6af-3019d50d6616</version_id>
-  <version_modified>20210622T134315Z</version_modified>
+  <version_id>4be13f86-d5b5-42b3-ab82-40019e9663ea</version_id>
+  <version_modified>20210708T171323Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
-  <description>Thermally derates opaque constructions from major thermal bridges</description>
+  <description>Thermally derates opaque constructions from major thermal bridges.</description>
   <modeler_description>(see github.com/rd2/tbd)</modeler_description>
   <arguments>
     <argument>
       <name>load_tbd_json</name>
-      <display_name>Load tbd.json</display_name>
-      <description>Loads existing tbd.json from model files directory, overrides other arguments if true.</description>
+      <display_name>Load 'tbd.json'</display_name>
+      <description>Loads existing 'tbd.json' file from model 'files' directory, may override 'default thermal bridge' pull-down option.</description>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -31,8 +31,8 @@
     </argument>
     <argument>
       <name>option</name>
-      <display_name>Default thermal bridge option to use if not reading tbd.json</display_name>
-      <description>e.g. poor, regular, efficient, code</description>
+      <display_name>Default thermal bridge option</display_name>
+      <description>e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by 'tbd.json' file).</description>
       <type>Choice</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -70,8 +70,8 @@
     </argument>
     <argument>
       <name>write_tbd_json</name>
-      <display_name>Write tbd.out.json</display_name>
-      <description>Write tbd.out.json to customize for subsequent runs. Edit and place in model files directory as tbd.json</description>
+      <display_name>Write 'tbd.out.json'</display_name>
+      <description>Write 'tbd.out.json' file to customize for subsequent runs. Edit and place in model 'files' directory as 'tbd.json'.</description>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -90,7 +90,7 @@
     <argument>
       <name>gen_kiva</name>
       <display_name>Generate Kiva inputs</display_name>
-      <description>Generate OSM Kiva settings and objects if model surfaces have 'foundation' boundary conditions</description>
+      <description>Generate Kiva settings &amp; objects if any model surfaces have 'foundation' boundary conditions ('ground' facing surfaces are ignored).</description>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -109,7 +109,7 @@
     <argument>
       <name>gen_kiva_force</name>
       <display_name>Force-generate Kiva inputs</display_name>
-      <description>Overwrites all 'ground' boundary conditions as 'foundation' before generating OSM Kiva inputs</description>
+      <description>Overwrites all 'ground' boundary conditions as 'foundation' before generating Kiva inputs (preferred solution).</description>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -234,6 +234,36 @@
       <checksum>4AB09951</checksum>
     </file>
     <file>
+      <filename>tbd_full_PSI.json</filename>
+      <filetype>json</filetype>
+      <usage_type>test</usage_type>
+      <checksum>0AAEA490</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>48ABC0B9</checksum>
+    </file>
+    <file>
+      <filename>conditioned.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>6EE3A84D</checksum>
+    </file>
+    <file>
+      <filename>log.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>B30A86EF</checksum>
+    </file>
+    <file>
+      <filename>framedivider.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>8B762D7C</checksum>
+    </file>
+    <file>
       <version>
         <software_program>OpenStudio</software_program>
         <identifier>2.9.1</identifier>
@@ -242,37 +272,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>3973E546</checksum>
-    </file>
-    <file>
-      <filename>README.md</filename>
-      <filetype>md</filetype>
-      <usage_type>readme</usage_type>
-      <checksum>54C6A3C1</checksum>
-    </file>
-    <file>
-      <filename>framedivider.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>4FC09FD7</checksum>
-    </file>
-    <file>
-      <filename>tbd_full_PSI.json</filename>
-      <filetype>json</filetype>
-      <usage_type>test</usage_type>
-      <checksum>0AAEA490</checksum>
-    </file>
-    <file>
-      <filename>conditioned.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>4F6B1483</checksum>
+      <checksum>7BACBF08</checksum>
     </file>
     <file>
       <filename>psi.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>10B284B8</checksum>
+      <checksum>61B97E15</checksum>
     </file>
   </files>
 </measure>

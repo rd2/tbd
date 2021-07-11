@@ -1,20 +1,16 @@
 {
-  "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
+  "schema": "https://github.com/rd2/tbd/blob/logger/tbd.schema.json",
   "description": "testing frame & divider option for test_warehouse.osm",
-  "psis": [
-    {
-      "id": "detailed",
-      "fenestration": 0.500
-    }
-  ],
-  "edges": [
-    {
-      "psi": "detailed",
-      "type": "fenestration",
-      "surfaces": [
-        "Office Front Wall",
-        "Office Front Wall Window 1"
-      ]
-    }
-  ]
+  "psis": [{
+    "id": "detailed",
+    "fenestration": 0.500
+  }],
+  "edges": [{
+    "psi": "detailed",
+    "type": "fenestration",
+    "surfaces": [
+      "Office Front Wall",
+      "Office Front Wall Window 1"
+    ]
+  }]
 }

@@ -101,16 +101,16 @@ def scheduleRulesetMinMax(sched)
   # 99cf713750661fe7d2082739f251269c2dfd9140/lib/openstudio-standards/
   # standards/Standards.ScheduleRuleset.rb#L124
   result = { min: nil, max: nil }
-  raise "Invalid sched (ruleset MinMax)" unless sched
-  cl = OpenStudio::Model::ScheduleRuleset
-  raise "#{sched.class}? expected #{cl} (ruleset)" unless sched.is_a?(cl)
+  unless sched && sched.is_a?(OpenStudio::Model::ScheduleRuleset)
+    TBD.log(TBD::DEBUG,
+      "Invalid ruleset MinMax schedule (argument) - skipping")
+    return result
+  end
 
   profiles = []
   profiles << sched.defaultDaySchedule
   rules = sched.scheduleRules
-  rules.each do |rule|
-    profiles << rule.daySchedule
-  end
+  rules.each { |rule| profiles << rule.daySchedule }
 
   min = nil
   max = nil
@@ -149,9 +149,11 @@ def scheduleConstantMinMax(sched)
   # 99cf713750661fe7d2082739f251269c2dfd9140/lib/openstudio-standards/
   # standards/Standards.ScheduleConstant.rb#L21
   result = { min: nil, max: nil }
-  raise "Invalid sched (constant MinMax)" unless sched
-  cl = OpenStudio::Model::ScheduleConstant
-  raise "#{sched.class}? expected #{cl} (constant)" unless sched.is_a?(cl)
+  unless sched && sched.is_a?(OpenStudio::Model::ScheduleConstant)
+    TBD.log(TBD::DEBUG,
+      "Invalid constant MinMax schedule (argument) - skipping")
+    return result
+  end
 
   min = nil
   min = sched.value if sched.value.is_a?(Numeric)
@@ -176,9 +178,11 @@ def scheduleCompactMinMax(sched)
   # 99cf713750661fe7d2082739f251269c2dfd9140/lib/openstudio-standards/
   # standards/Standards.ScheduleCompact.rb#L8
   result = { min: nil, max: nil }
-  raise "Invalid sched (compact MinMax)" unless sched
-  cl = OpenStudio::Model::ScheduleCompact
-  raise "#{sched.class}? expected #{cl} (compact)" unless sched.is_a?(cl)
+  unless sched && sched.is_a?(OpenStudio::Model::ScheduleCompact)
+    TBD.log(TBD::DEBUG,
+      "Invalid compact MinMax schedule (argument) - skipping")
+    return result
+  end
 
   min = nil
   max = nil
@@ -221,9 +225,11 @@ def maxHeatScheduledSetpoint(zone)
   # standards/Standards.ThermalZone.rb#L910
   setpoint = nil
   dual = false
-  raise "Invalid zone (max T)" unless zone
-  cl = OpenStudio::Model::ThermalZone
-  raise "#{zone.class}? expected #{cl} (max T)" unless zone.is_a?(cl)
+  unless zone && zone.is_a?(OpenStudio::Model::ThermalZone)
+    TBD.log(TBD::DEBUG,
+      "Invalid max heat setpoint thermal zone (argument) - skipping")
+    return setpoint, dual
+  end
 
   # Zone radiant heating? Get schedule from radiant system.
   zone.equipment.each do |equip|
@@ -391,9 +397,11 @@ end
 # @return [Bool] Returns true if valid heating temperature setpoints
 def heatingTemperatureSetpoints?(model)
   answer = false
-  raise "Invalid model (heat T?)" unless model
-  cl = OpenStudio::Model::Model
-  raise "#{model.class}? expected #{cl} (heat T?)" unless model.is_a?(cl)
+  unless model && model.is_a?(OpenStudio::Model::Model)
+    TBD.log(TBD::DEBUG,
+      "Can't find or validate OSM (argument) for heating setpoints - skipping")
+    return answer
+  end
 
   model.getThermalZones.each do |zone|
     next if answer
@@ -418,9 +426,11 @@ def minCoolScheduledSetpoint(zone)
   # standards/Standards.ThermalZone.rb#L1058
   setpoint = nil
   dual = false
-  raise "Invalid zone (minT)" unless zone
-  cl = OpenStudio::Model::ThermalZone
-  raise "#{zone.class}? expected #{cl} (minT)" unless zone.is_a?(cl)
+  unless zone && zone.is_a?(OpenStudio::Model::ThermalZone)
+    TBD.log(TBD::DEBUG,
+      "Invalid min cool setpoint thermal zone (argument) - skipping")
+    return setpoint, dual
+  end
 
   # Zone radiant cooling? Get schedule from radiant system.
   zone.equipment.each do |equip|
@@ -574,9 +584,11 @@ end
 # @return [Bool] Returns true if valid cooling temperature setpoints
 def coolingTemperatureSetpoints?(model)
   answer = false
-  raise "Invalid model (cool T?)" unless model
-  cl = OpenStudio::Model::Model
-  raise "#{model.class}? expected #{cl} (cool T?)" unless model.is_a?(cl)
+  unless model && model.is_a?(OpenStudio::Model::Model)
+    TBD.log(TBD::DEBUG,
+      "Can't find or validate OSM (argument) for cooling setpoints - skipping")
+    return answer
+  end
 
   model.getThermalZones.each do |zone|
     next if answer
@@ -594,9 +606,11 @@ end
 # @return [Bool] Returns true if HVAC air loops
 def airLoopsHVAC?(model)
   answer = false
-  raise "Invalid model (loops?)" unless model
-  cl = OpenStudio::Model::Model
-  raise "#{model.class}? expected #{cl} (loops?)" unless model.is_a?(cl)
+  unless model && model.is_a?(OpenStudio::Model::Model)
+    TBD.log(TBD::DEBUG,
+      "Can't find or validate OSM (argument) for HVAC air loops - skipping")
+    return answer
+  end
 
   model.getThermalZones.each do |zone|
     next if answer
@@ -629,18 +643,22 @@ def plenum?(space, loops, setpoints)
   #   case B. space excluded from building's total floor area, yet zone holds an
   #           "inactive" thermostat (i.e., can't extract valid setpoints); or
   #   case C. spacetype is "plenum".
-  raise "Invalid space (plenum?)" unless space
-  raise "Invalid loops (plenum?)" unless loops == true || loops == false
-  raise "Invalid setpoints (plenum?)" unless setpoints
   cl = OpenStudio::Model::Space
-  cl2 = space.class
-  raise "#{cl2}? expected #{cl} (plenum?)" unless space.is_a?(cl)
-  a = loops == true || loops == false
-  cl2 = loops.class
-  raise "#{cl2}? expected true/false (loops in plenum?)" unless a
-  a = setpoints == true || setpoints == false
-  cl2 = setpoints.class
-  raise "#{cl2}? expected true/false (setpoints in plenum?)" unless a
+  unless space && space.is_a?(cl)
+    TBD.log(TBD::DEBUG,
+      "Invalid plenum space (argument) - skipping")
+    return false
+  end
+  unless loops == true || loops == false
+    TBD.log(TBD::DEBUG,
+      "Invalid plenum loops (argument) - skipping")
+    return false
+  end
+  unless setpoints == true || setpoints == false
+    TBD.log(TBD::DEBUG,
+      "Invalid plenum setpoints (argument) - skipping")
+    return false
+  end
 
   unless space.thermalZone.empty?
     zone = space.thermalZone.get

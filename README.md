@@ -12,7 +12,7 @@ Within the context of building energy simulation (and as required by recent buil
 4. adding point conductances - _completed_
 5. generating building-level clear-field R-values
 6. dealing with multipliers and spanners
-7. logging warnings and errors
+7. logging warnings and errors - _completed_
 8. guide material, case examples, how-to's
 
 Submit [here](https://github.com/automaticmagic/topolys/issues) issues or desired enhancements more closely linked to Topolys.

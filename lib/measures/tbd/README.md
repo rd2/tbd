@@ -5,7 +5,7 @@
 # Thermal Bridging and Derating - TBD
 
 ## Description
-Thermally derates opaque constructions from major thermal bridges
+Thermally derates opaque constructions from major thermal bridges.
 
 ## Modeler Description
 (see github.com/rd2/tbd)
@@ -19,24 +19,24 @@ ModelMeasure
 ## Arguments
 
 
-### Load tbd.json
-Loads existing tbd.json from model files directory, overrides other arguments if true.
+### Load 'tbd.json'
+Loads existing 'tbd.json' file from model 'files' directory, may override 'default thermal bridge' pull-down option.
 **Name:** load_tbd_json,
 **Type:** Boolean,
 **Units:** ,
 **Required:** true,
 **Model Dependent:** false
 
-### Default thermal bridge option to use if not reading tbd.json
-e.g. poor, regular, efficient, code
+### Default thermal bridge option
+e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by 'tbd.json' file).
 **Name:** option,
 **Type:** Choice,
 **Units:** ,
 **Required:** true,
 **Model Dependent:** false
 
-### Write tbd.out.json
-Write tbd.out.json to customize for subsequent runs. Edit and place in model files directory as tbd.json
+### Write 'tbd.out.json'
+Write 'tbd.out.json' file to customize for subsequent runs. Edit and place in model 'files' directory as 'tbd.json'.
 **Name:** write_tbd_json,
 **Type:** Boolean,
 **Units:** ,
@@ -44,7 +44,7 @@ Write tbd.out.json to customize for subsequent runs. Edit and place in model fil
 **Model Dependent:** false
 
 ### Generate Kiva inputs
-Generate OSM Kiva settings and objects if model surfaces have 'foundation' boundary conditions
+Generate Kiva settings & objects if any model surfaces have 'foundation' boundary conditions ('ground' facing surfaces are ignored).
 **Name:** gen_kiva,
 **Type:** Boolean,
 **Units:** ,
@@ -52,7 +52,7 @@ Generate OSM Kiva settings and objects if model surfaces have 'foundation' bound
 **Model Dependent:** false
 
 ### Force-generate Kiva inputs
-Overwrites all 'ground' boundary conditions as 'foundation' before generating OSM Kiva inputs
+Overwrites all 'ground' boundary conditions as 'foundation' before generating Kiva inputs (preferred solution).
 **Name:** gen_kiva_force,
 **Type:** Boolean,
 **Units:** ,
