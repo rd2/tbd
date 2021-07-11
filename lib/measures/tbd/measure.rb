@@ -53,7 +53,7 @@ def exitTBD(runner, out = false, io = nil, surfaces = nil)
   io[:description] = description unless io.has_key?(:description)
 
   unless io.has_key?(:schema)
-    io[:schema] = "https://github.com/rd2/tbd/blob/logger/tbd.schema.json"
+    io[:schema] = "https://github.com/rd2/tbd/blob/master/tbd.schema.json"
   end
 
   tbd_log = { date: Time.now, status: status }

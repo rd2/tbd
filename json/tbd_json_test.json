@@ -1,5 +1,5 @@
 {
-  "schema": "https://github.com/rd2/tbd/blob/logger/tbd.schema.json",
+  "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
   "description": "testing basic JSON validation",
   "psis": [{
       "id": "good",
