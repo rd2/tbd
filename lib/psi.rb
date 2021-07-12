@@ -1568,11 +1568,21 @@ end
 # @param [String] psi_set Default PSI set identifier, can be "" (empty)
 # @param [String] ioP Path to a user-set TBD JSON input file (optional)
 # @param [String] schemaP Path to a TBD JSON schema file (optional)
+# @param [Bool] g_UA Have TBD generate UA' report (optional)
+# @param [String] ref U & PSI reference (optional)
 # @param [Bool] g_kiva Have TBD generate Kiva objects
 #
 # @return [Hash] Returns TBD collection of objects for JSON serialization
 # @return [Hash] Returns collection of derated TBD surfaces
-def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
+def processTBD(
+  os_model,
+  psi_set,
+  ioP     = nil,
+  schemaP = nil,
+  g_UA    = false,
+  ref     = "",
+  g_kiva  = false)
+
   unless os_model
     TBD.log(TBD::DEBUG,
       "Can't process TBD, unable to find or open OSM (argument) - exiting")
@@ -1582,6 +1592,11 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
   unless os_model.is_a?(cl)
     TBD.log(TBD::DEBUG,
       "Can't process TBD, #{os_model.class}? expected '#{cl}' - exiting")
+    return nil, nil
+  end
+  unless g_UA == true || g_UA == false
+    TBD.log(TBD::DEBUG,
+      "Can't process TBD (UA), #{g_UA.class}? expected true or false - exiting")
     return nil, nil
   end
   unless g_kiva == true || g_kiva == false
@@ -2081,7 +2096,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
   # thermal bridge instead of a "mild transition") yet TBD is unable to match
   # it against OpenStudio and/or Topolys edges (or surfaces), then TBD
   # will log this as an error while simply 'skipping' the anomaly (TBD will
-  # otherwise ignore the requested change and puruse its processes).
+  # otherwise ignore the requested change and pursue its processes).
   #
   # There are 2 errors that are considered FATAL when processing user-defined
   # TBD JSON input files:

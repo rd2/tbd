@@ -5419,7 +5419,7 @@ RSpec.describe TBD do
       tbd_msgs << { level: TBD.tag(l[:level]), message: l[:message] }
     end
     tbd_log[:messages] = tbd_msgs unless tbd_msgs.empty?
-    
+
     io[:log] = tbd_log
 
     # Deterministic sorting
@@ -5670,7 +5670,8 @@ RSpec.describe TBD do
     expect(settings.soilConductivity).to be_within(0.01).of(1.73)
 
     psi_set = "poor (BETBG)"
-    io, surfaces = processTBD(os_model2, psi_set, nil, nil, true)
+    io, surfaces = processTBD(os_model2, psi_set, nil, nil, false, "", true)
+
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
     expect(io.nil?).to be(false)
@@ -5704,7 +5705,8 @@ RSpec.describe TBD do
     os_model = os_model.get
 
     psi_set = "poor (BETBG)"
-    io, surfaces = processTBD(os_model, psi_set, nil, nil, true)
+    io, surfaces = processTBD(os_model, psi_set, nil, nil, false, "", true)
+
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
     expect(io.nil?).to be(false)
@@ -5752,7 +5754,8 @@ RSpec.describe TBD do
     end
 
     psi_set = "poor (BETBG)"
-    io, surfaces = processTBD(os_model, psi_set, nil, nil, true)
+    io, surfaces = processTBD(os_model, psi_set, nil, nil, false, "", true)
+
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
     expect(io.nil?).to be(false)
@@ -5813,7 +5816,8 @@ RSpec.describe TBD do
 
     #psi_set = "poor (BETBG)"
     psi_set = "(non thermal bridging)"
-    io, surfaces = processTBD(os_model, psi_set, nil, nil, true)
+    io, surfaces = processTBD(os_model, psi_set, nil, nil, false, "", true)
+
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
     expect(io.nil?).to be(false)

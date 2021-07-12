@@ -5,7 +5,7 @@
 # Thermal Bridging and Derating - TBD
 
 ## Description
-Thermally derates opaque constructions from major thermal bridges.
+Derates opaque constructions from major thermal bridges.
 
 ## Modeler Description
 (see github.com/rd2/tbd)
@@ -39,6 +39,22 @@ e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by 'tbd.json' fil
 Write 'tbd.out.json' file to customize for subsequent runs. Edit and place in model 'files' directory as 'tbd.json'.
 **Name:** write_tbd_json,
 **Type:** Boolean,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+### gen_UA_report
+
+**Name:** gen_UA_report,
+**Type:** Boolean,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+### ua_reference
+
+**Name:** ua_reference,
+**Type:** Choice,
 **Units:** ,
 **Required:** true,
 **Model Dependent:** false

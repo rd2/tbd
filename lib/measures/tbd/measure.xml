@@ -2,12 +2,12 @@
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>017cce62-e0fc-42d5-9f84-b30fb3e5192a</version_id>
-  <version_modified>20210711T094412Z</version_modified>
+  <version_id>d5ba9772-eec7-4256-9323-e6704895b023</version_id>
+  <version_modified>20210712T133833Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
-  <description>Thermally derates opaque constructions from major thermal bridges.</description>
+  <description>Derates opaque constructions from major thermal bridges.</description>
   <modeler_description>(see github.com/rd2/tbd)</modeler_description>
   <arguments>
     <argument>
@@ -84,6 +84,60 @@
         <choice>
           <value>false</value>
           <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>gen_UA_report</name>
+      <display_name>gen_UA_report</display_name>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>ua_reference</name>
+      <display_name>ua_reference</display_name>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <choices>
+        <choice>
+          <value>poor (BETBG)</value>
+          <display_name>poor (BETBG)</display_name>
+        </choice>
+        <choice>
+          <value>regular (BETBG)</value>
+          <display_name>regular (BETBG)</display_name>
+        </choice>
+        <choice>
+          <value>efficient (BETBG)</value>
+          <display_name>efficient (BETBG)</display_name>
+        </choice>
+        <choice>
+          <value>spandrel (BETBG)</value>
+          <display_name>spandrel (BETBG)</display_name>
+        </choice>
+        <choice>
+          <value>spandrel HP (BETBG)</value>
+          <display_name>spandrel HP (BETBG)</display_name>
+        </choice>
+        <choice>
+          <value>code (Quebec)</value>
+          <display_name>code (Quebec)</display_name>
+        </choice>
+        <choice>
+          <value>(non thermal bridging)</value>
+          <display_name>(non thermal bridging)</display_name>
         </choice>
       </choices>
     </argument>
@@ -240,12 +294,6 @@
       <checksum>0AAEA490</checksum>
     </file>
     <file>
-      <filename>README.md</filename>
-      <filetype>md</filetype>
-      <usage_type>readme</usage_type>
-      <checksum>48ABC0B9</checksum>
-    </file>
-    <file>
       <filename>conditioned.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
@@ -264,12 +312,6 @@
       <checksum>8B762D7C</checksum>
     </file>
     <file>
-      <filename>psi.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>61B97E15</checksum>
-    </file>
-    <file>
       <version>
         <software_program>OpenStudio</software_program>
         <identifier>2.9.1</identifier>
@@ -278,7 +320,19 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>EA793312</checksum>
+      <checksum>A32808DF</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>EC6A6693</checksum>
+    </file>
+    <file>
+      <filename>psi.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>8008FF3D</checksum>
     </file>
   </files>
 </measure>

@@ -153,7 +153,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
 
   # human readable description
   def description
-    return "Thermally derates opaque constructions from major thermal bridges."
+    return "Derates opaque constructions from major thermal bridges."
   end
 
   # human readable description of modeling approach
@@ -186,6 +186,18 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     write_tbd_json.setDefaultValue(false)
     args << write_tbd_json
 
+    gen_UA_report = OpenStudio::Measure::OSArgument.makeBoolArgument("gen_UA_report", true, false)
+    write_tbd_json.setDisplayName("Generate UA' report")
+    write_tbd_json.setDescription("Generate compliance report (UA sum + major thermal bridges), based on pull-down reference below")
+    write_tbd_json.setDefaultValue(false)
+    args << gen_UA_report
+
+    ua_reference = OpenStudio::Measure::OSArgument.makeChoiceArgument("ua_reference", choices, true)
+    option.setDisplayName("UA' reference")
+    option.setDescription("e.g. 'poor', 'regular', 'efficient', 'code'.")
+    option.setDefaultValue("code (Quebec)")
+    args << ua_reference
+
     gen_kiva = OpenStudio::Measure::OSArgument.makeBoolArgument("gen_kiva", true, false)
     gen_kiva.setDisplayName("Generate Kiva inputs")
     gen_kiva.setDescription("Generate Kiva settings & objects if any model surfaces have 'foundation' boundary conditions ('ground' facing surfaces are ignored).")
@@ -209,6 +221,8 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     load_tbd_json = runner.getBoolArgumentValue("load_tbd_json", user_arguments)
     option = runner.getStringArgumentValue("option", user_arguments)
     write_tbd_json = runner.getBoolArgumentValue("write_tbd_json", user_arguments)
+    gen_UA_report = runner.getBoolArgumentValue("gen_UA_report", user_arguments)
+    ua_reference = runner.getStringArgumentValue("ua_reference", user_arguments)
     gen_kiva = runner.getBoolArgumentValue("gen_kiva", user_arguments)
     gen_kiva_force = runner.getBoolArgumentValue("gen_kiva_force", user_arguments)
 
@@ -242,7 +256,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     end
 
     schema_path = nil
-    io, surfaces = processTBD(model, option, io_path, schema_path, gen_kiva)
+    io, surfaces = processTBD(model, option, io_path, schema_path, gen_UA_report, ua_reference, gen_kiva)
 
     return exitTBD(runner, write_tbd_json, io, surfaces)
   end
