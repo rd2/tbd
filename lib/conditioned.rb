@@ -406,7 +406,7 @@ def heatingTemperatureSetpoints?(model)
   model.getThermalZones.each do |zone|
     next if answer
     max, _ = maxHeatScheduledSetpoint(zone)
-    answer = true unless max
+    return true if max
   end
   answer
 end
@@ -593,7 +593,7 @@ def coolingTemperatureSetpoints?(model)
   model.getThermalZones.each do |zone|
     next if answer
     min, _ = minCoolScheduledSetpoint(zone)
-    answer = true unless min
+    answer = true if min
   end
   answer
 end

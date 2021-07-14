@@ -2098,8 +2098,8 @@ def processTBD(
   # will log this as an error while simply 'skipping' the anomaly (TBD will
   # otherwise ignore the requested change and pursue its processes).
   #
-  # There are 2 errors that are considered FATAL when processing user-defined
-  # TBD JSON input files:
+  # There are 2 types of errors that are considered FATAL when processing
+  # user-defined TBD JSON input files:
   #   - incorrect JSON formatting of the input file (can't parse)
   #   - TBD is unable to identify a 'complete' building-level PSI set
   #     (either a bad argument from the Measure, or bad input on file).

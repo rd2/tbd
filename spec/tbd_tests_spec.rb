@@ -1594,6 +1594,29 @@ RSpec.describe TBD do
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
+    # Testing min/max cooling/heating setpoints
+    setpoints = heatingTemperatureSetpoints?(os_model)
+    setpoints = coolingTemperatureSetpoints?(os_model) || setpoints
+    expect(setpoints).to be(true)
+    airloops = airLoopsHVAC?(os_model)
+    expect(airloops).to be(true)
+
+    os_model.getSpaces.each do |space|
+      expect(space.thermalZone.empty?).to be(false)
+      zone = space.thermalZone.get
+      heating, _ = maxHeatScheduledSetpoint(zone)
+      cooling, _ = minCoolScheduledSetpoint(zone)
+      if zone.nameString == "Attic ZN"
+        expect(plenum?(space, airloops, setpoints)).to be(false)
+        expect(heating.nil?).to be(true)
+        expect(cooling.nil?).to be(true)
+        next
+      end
+      expect(plenum?(space, airloops, setpoints)).to be(false)
+      expect(heating).to be_within(0.1).of(21.1)
+      expect(cooling).to be_within(0.1).of(23.9)
+    end
+
     # Tracking insulated ceiling surfaces below attic.
     os_model.getSurfaces.each do |s|
       next unless s.surfaceType == "RoofCeiling"
@@ -1652,6 +1675,13 @@ RSpec.describe TBD do
     expect(surfaces.nil?).to be(false)
     expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(43)
+
+    surfaces.each do |id, surface|
+      expect(surface.has_key?(:conditioned)).to be(true)
+      next unless surface[:conditioned]
+      expect(surface.has_key?(:heating)).to be(true)
+      expect(surface.has_key?(:cooling)).to be(true)
+    end
 
     # Testing attic surfaces.
     surfaces.each do |id, surface|
@@ -2410,6 +2440,29 @@ RSpec.describe TBD do
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
+    # Testing min/max cooling/heating setpoints (a tad redundant).
+    setpoints = heatingTemperatureSetpoints?(os_model)
+    setpoints = coolingTemperatureSetpoints?(os_model) || setpoints
+    expect(setpoints).to be(true)
+    airloops = airLoopsHVAC?(os_model)
+    expect(airloops).to be(true)
+
+    os_model.getSpaces.each do |space|
+      expect(space.thermalZone.empty?).to be(false)
+      zone = space.thermalZone.get
+      heating, _ = maxHeatScheduledSetpoint(zone)
+      cooling, _ = minCoolScheduledSetpoint(zone)
+      if zone.nameString == "Level 0 Ceiling Plenum Zone"
+        expect(plenum?(space, airloops, setpoints)).to be(false)
+        expect(heating.nil?).to be(true)
+        expect(cooling.nil?).to be(true)
+        next
+      end
+      expect(plenum?(space, airloops, setpoints)).to be(false)
+      expect(heating).to be_within(0.1).of(22.1)
+      expect(cooling).to be_within(0.1).of(22.8)
+    end
+
     os_model.getSurfaces.each do |s|
       expect(s.space.empty?).to be(false)
       expect(s.isConstructionDefaulted).to be(false)
@@ -2461,6 +2514,13 @@ RSpec.describe TBD do
     expect(surfaces.nil?).to be(false)
     expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
+
+    surfaces.each do |id, surface|
+      expect(surface.has_key?(:conditioned)).to be(true)
+      next unless surface[:conditioned]
+      expect(surface.has_key?(:heating)).to be(true)
+      expect(surface.has_key?(:cooling)).to be(true)
+    end
 
     ids = { a: "Entryway  Wall 4",
             b: "Entryway  Wall 5",
@@ -2761,6 +2821,13 @@ RSpec.describe TBD do
     expect(surfaces.nil?).to be(false)
     expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
+
+    surfaces.each do |id, surface|
+      expect(surface.has_key?(:conditioned)).to be(true)
+      next unless surface[:conditioned]
+      expect(surface.has_key?(:heating)).to be(true)
+      expect(surface.has_key?(:cooling)).to be(true)
+    end
 
     # Since all PSI values = 0, we're not expecting any derated surfaces
     surfaces.values.each do |surface|
@@ -4063,6 +4130,28 @@ RSpec.describe TBD do
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
+    # Testing min/max cooling/heating setpoints
+    setpoints = heatingTemperatureSetpoints?(os_model)
+    setpoints = coolingTemperatureSetpoints?(os_model) || setpoints
+    expect(setpoints).to be(true)
+    airloops = airLoopsHVAC?(os_model)
+    expect(airloops).to be(true)
+
+    os_model.getSpaces.each do |space|
+      expect(space.thermalZone.empty?).to be(false)
+      zone = space.thermalZone.get
+      heating, _ = maxHeatScheduledSetpoint(zone)
+      cooling, _ = minCoolScheduledSetpoint(zone)
+      expect(plenum?(space, airloops, setpoints)).to be(false)
+      if zone.nameString == "Office ZN"
+        expect(heating).to be_within(0.1).of(21.1)
+        expect(cooling).to be_within(0.1).of(23.9)
+      else
+        expect(heating).to be_within(0.1).of(21.7)
+        expect(cooling).to be_within(0.1).of(24.4)
+      end
+    end
+
     psi_set = "(non thermal bridging)"                              # overridden
     ioP = File.dirname(__FILE__) + "/../json/midrise.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
@@ -4075,6 +4164,13 @@ RSpec.describe TBD do
     expect(surfaces.nil?).to be(false)
     expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(180)
+
+    surfaces.each do |id, surface|
+      expect(surface.has_key?(:conditioned)).to be(true)
+      next unless surface[:conditioned]
+      expect(surface.has_key?(:heating)).to be(true)
+      expect(surface.has_key?(:cooling)).to be(true)
+    end
 
     st1 = "Building Story 1"
     st2 = "Building Story 2"
@@ -5450,6 +5546,29 @@ RSpec.describe TBD do
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
+    # Testing min/max cooling/heating setpoints
+    setpoints = heatingTemperatureSetpoints?(os_model)
+    setpoints = coolingTemperatureSetpoints?(os_model) || setpoints
+    expect(setpoints).to be(true)
+    airloops = airLoopsHVAC?(os_model)
+    expect(airloops).to be(false)
+
+    os_model.getSpaces.each do |space|
+      expect(space.thermalZone.empty?).to be(false)
+      zone = space.thermalZone.get
+      heating, _ = maxHeatScheduledSetpoint(zone)
+      cooling, _ = minCoolScheduledSetpoint(zone)
+      if zone.nameString == "PLENUM-1 Thermal Zone"
+        expect(plenum?(space, airloops, setpoints)).to be(false)
+        expect(heating.nil?).to be(true)
+        expect(cooling.nil?).to be(true)
+        next
+      end
+      expect(plenum?(space, airloops, setpoints)).to be(false)
+      expect(heating).to be_within(0.1).of(22.2)
+      expect(cooling).to be_within(0.1).of(23.9)
+    end
+
     # Tracking insulated ceiling surfaces below PLENUM.
     os_model.getSurfaces.each do |s|
       next unless s.surfaceType == "RoofCeiling"
@@ -5497,6 +5616,13 @@ RSpec.describe TBD do
     expect(io.has_key?(:edges))
     expect(io[:edges].size).to eq(47)
     expect(surfaces.size).to eq(40)
+
+    surfaces.each do |id, surface|
+      expect(surface.has_key?(:conditioned)).to be(true)
+      next unless surface[:conditioned]
+      expect(surface.has_key?(:heating)).to be(true)
+      expect(surface.has_key?(:cooling)).to be(true)
+    end
 
     ids = { a: "LEFT-1",
             b: "RIGHT-1",
@@ -5560,6 +5686,61 @@ RSpec.describe TBD do
       expect(/ tbd/i.match(s.construction.get.nameString)).to_not eq(nil)
       expect(h).to be_within(0.01).of(0) if id == "C5-1"
       expect(h).to be_within(0.01).of(64.92) if id == "FRONT-1"
+    end
+  end
+
+  it "can pre-process UA parameters" do
+    TBD.clean!
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    file = "/files/test_warehouse.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    setpoints = heatingTemperatureSetpoints?(os_model)
+    setpoints = coolingTemperatureSetpoints?(os_model) || setpoints
+    expect(setpoints).to be(true)
+    airloops = airLoopsHVAC?(os_model)
+    expect(airloops).to be(true)
+
+    os_model.getSpaces.each do |space|
+      expect(space.thermalZone.empty?).to be(false)
+      expect(plenum?(space, airloops, setpoints)).to be(false)
+      zone = space.thermalZone.get
+      heating, _ = maxHeatScheduledSetpoint(zone)
+      cooling, _ = minCoolScheduledSetpoint(zone)
+      if zone.nameString == "Zone1 Office ZN"
+        expect(heating).to be_within(0.1).of(21.1)
+        expect(cooling).to be_within(0.1).of(23.9)
+      elsif zone.nameString == "Zone2 Fine Storage ZN"
+        expect(heating).to be_within(0.1).of(15.6)
+        expect(cooling).to be_within(0.1).of(26.7)
+      else
+        expect(heating).to be_within(0.1).of(10.0)
+        expect(cooling).to be_within(0.1).of(50.0)
+      end
+    end
+
+    psi_set = "poor (BETBG)"
+    io, surfaces = processTBD(os_model, psi_set)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
+    expect(io.has_key?(:edges))
+    expect(io[:edges].size).to eq(300)
+    expect(surfaces.size).to eq(23)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.size).to eq(0)
+
+    surfaces.each do |id, surface|
+      next unless surface.has_key?(:conditioned)
+      expect(surface.has_key?(:heating)).to be(true)
+      expect(surface.has_key?(:cooling)).to be(true)
     end
   end
 
