@@ -2,8 +2,8 @@
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>728fcd8b-fb91-4f25-9cb9-67ea7d4b6122</version_id>
-  <version_modified>20210714T202628Z</version_modified>
+  <version_id>813cd1f5-98ed-43b5-a031-4f32e29afa53</version_id>
+  <version_modified>20210714T214357Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -89,10 +89,12 @@
     </argument>
     <argument>
       <name>gen_UA_report</name>
-      <display_name>gen_UA_report</display_name>
+      <display_name>Generate UA' report</display_name>
+      <description>Generate compliance report (UA sum + major thermal bridges), based on UA' pull-down reference below</description>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
       <choices>
         <choice>
           <value>true</value>
@@ -106,10 +108,12 @@
     </argument>
     <argument>
       <name>ua_reference</name>
-      <display_name>ua_reference</display_name>
+      <display_name>UA' reference</display_name>
+      <description>e.g. 'poor', 'regular', 'efficient', 'code'.</description>
       <type>Choice</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
+      <default_value>code (Quebec)</default_value>
       <choices>
         <choice>
           <value>poor (BETBG)</value>
@@ -306,23 +310,6 @@
       <checksum>8B762D7C</checksum>
     </file>
     <file>
-      <version>
-        <software_program>OpenStudio</software_program>
-        <identifier>2.9.1</identifier>
-        <min_compatible>2.9.1</min_compatible>
-      </version>
-      <filename>measure.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>script</usage_type>
-      <checksum>A32808DF</checksum>
-    </file>
-    <file>
-      <filename>README.md</filename>
-      <filetype>md</filetype>
-      <usage_type>readme</usage_type>
-      <checksum>EC6A6693</checksum>
-    </file>
-    <file>
       <filename>psi.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
@@ -333,6 +320,23 @@
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
       <checksum>9B4F2407</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.9.1</identifier>
+        <min_compatible>2.9.1</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>A1802936</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>FF80996D</checksum>
     </file>
   </files>
 </measure>

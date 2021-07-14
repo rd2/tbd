@@ -187,15 +187,15 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args << write_tbd_json
 
     gen_UA_report = OpenStudio::Measure::OSArgument.makeBoolArgument("gen_UA_report", true, false)
-    write_tbd_json.setDisplayName("Generate UA' report")
-    write_tbd_json.setDescription("Generate compliance report (UA sum + major thermal bridges), based on pull-down reference below")
-    write_tbd_json.setDefaultValue(false)
+    gen_UA_report.setDisplayName("Generate UA' report")
+    gen_UA_report.setDescription("Generate compliance report (UA sum + major thermal bridges), based on UA' pull-down reference below")
+    gen_UA_report.setDefaultValue(false)
     args << gen_UA_report
 
     ua_reference = OpenStudio::Measure::OSArgument.makeChoiceArgument("ua_reference", choices, true)
-    option.setDisplayName("UA' reference")
-    option.setDescription("e.g. 'poor', 'regular', 'efficient', 'code'.")
-    option.setDefaultValue("code (Quebec)")
+    ua_reference.setDisplayName("UA' reference")
+    ua_reference.setDescription("e.g. 'poor', 'regular', 'efficient', 'code'.")
+    ua_reference.setDefaultValue("code (Quebec)")
     args << ua_reference
 
     gen_kiva = OpenStudio::Measure::OSArgument.makeBoolArgument("gen_kiva", true, false)

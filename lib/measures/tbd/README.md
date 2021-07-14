@@ -43,16 +43,16 @@ Write 'tbd.out.json' file to customize for subsequent runs. Edit and place in mo
 **Required:** true,
 **Model Dependent:** false
 
-### gen_UA_report
-
+### Generate UA' report
+Generate compliance report (UA sum + major thermal bridges), based on UA' pull-down reference below
 **Name:** gen_UA_report,
 **Type:** Boolean,
 **Units:** ,
 **Required:** true,
 **Model Dependent:** false
 
-### ua_reference
-
+### UA' reference
+e.g. 'poor', 'regular', 'efficient', 'code'.
 **Name:** ua_reference,
 **Type:** Choice,
 **Units:** ,
