@@ -614,15 +614,15 @@ RSpec.describe TBD do
 
       conditioned = true
       if setpoints
-        unless space.thermalZone.empty?
+        if space.thermalZone.empty?
+          conditioned = false unless plenum?(space, airloops, setpoints)
+        else
           zone = space.thermalZone.get
           heating, _ = maxHeatScheduledSetpoint(zone)
           cooling, _ = minCoolScheduledSetpoint(zone)
           unless heating || cooling
             conditioned = false unless plenum?(space, airloops, setpoints)
           end
-        else
-          conditioned = false unless plenum?(space, airloops, setpoints)
         end
       end
 
@@ -709,6 +709,7 @@ RSpec.describe TBD do
       u, gross, pts = opening(os_model, id)
       expect(gross).to be_a(Numeric)
       expect(pts.nil?).to be(false)
+      next if gross < TOL
 
       # Site-specific (or absolute, or true) surface normal.
       t, r = transforms(os_model, space)
@@ -717,17 +718,22 @@ RSpec.describe TBD do
       n = trueNormal(s, r)
       expect(n.nil?).to be(false)
 
-      points = (t * pts).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
-      minz = (points.map{ |p| p.z }).min
+      points = (t * pts).map { |v| Topolys::Point3D.new(v.x, v.y, v.z) }
+      minz = (points.map { |p| p.z }).min
 
       type = :skylight
       type = :window if /window/i.match(s.subSurfaceType)
       type = :door if /door/i.match(s.subSurfaceType)
 
+      if type == :door
+        glazed = true if /glass/i.match(s.subSurfaceType)
+      end
+
       # For every kid, there's a dad somewhere ...
       surfaces.each do |identifier, properties|
         if identifier == dad
-          sub = { points: points, minz: minz, n: n, gross: gross }
+          sub = { points: points, minz: minz, n: n, gross: gross, u: u }
+          sub[:glazed] = true if glazed
           if type == :window
             properties[:windows] = {} unless properties.has_key?(:windows)
             properties[:windows][id] = sub
@@ -1457,19 +1463,12 @@ RSpec.describe TBD do
         deratables[id] = surface
       end
 
-      # Retrieve linked openings.
-      is = {}
-      is[:head]     = edge[:psi].keys.to_s.include?("head")
-      is[:sill]     = edge[:psi].keys.to_s.include?("sill")
-      is[:jamb]     = edge[:psi].keys.to_s.include?("jamb")
       openings = {}
-      if is[:head] || is[:sill] || is[:jamb]
-        edge[:surfaces].each do |id, surface|
-          next unless holes.has_key?(id)
-          openings[id] = surface
-        end
+      edge[:surfaces].each do |id, surface|
+        next unless holes.has_key?(id)
+        openings[id] = surface
       end
-      next if openings.size > 1 # edge links 2x openings
+      next if openings.size > 1                         # edge links 2x openings
 
       # Prune if edge links an opening and its parent, as well as 1x other
       # opaque surface (i.e. corner window derates neighbour - not parent).
@@ -1566,7 +1565,7 @@ RSpec.describe TBD do
         m = nil
         m = derate(os_model, id, surface, c) unless index.nil?
 
-        unless m.nil?
+        if m
           c.setLayer(index, m)
           c.setName("#{id} c tbd")
           s.setConstruction(c)
@@ -1717,6 +1716,17 @@ RSpec.describe TBD do
       next unless surface[:conditioned]
       expect(surface.has_key?(:heating)).to be(true)
       expect(surface.has_key?(:cooling)).to be(true)
+
+      # Testing glass door detection
+      if surface.has_key?(:doors)
+        surface[:doors].each do |i, door|
+          expect(door.has_key?(:glazed)).to be(true)
+          expect(door[:glazed]).to be(true)
+          expect(door.has_key?(:u)).to be(true)
+          expect(door[:u]).to be_a(Numeric)
+          expect(door[:u]).to be_within(0.01).of(6.40)
+        end
+      end
     end
 
     # Testing attic surfaces.
@@ -5743,6 +5753,17 @@ RSpec.describe TBD do
       next unless surface[:conditioned]
       expect(surface.has_key?(:heating)).to be(true)
       expect(surface.has_key?(:cooling)).to be(true)
+
+      # Testing glass door detection
+      if surface.has_key?(:doors)
+        surface[:doors].each do |i, door|
+          expect(door.has_key?(:glazed)).to be(true)
+          expect(door[:glazed]).to be(true)
+          expect(door.has_key?(:u)).to be(true)
+          expect(door[:u]).to be_a(Numeric)
+          expect(door[:u]).to be_within(0.01).of(6.54)
+        end
+      end
     end
 
     ids = { a: "LEFT-1",
@@ -5871,21 +5892,6 @@ RSpec.describe TBD do
             m: "Overhead Door 6",
             n: "Overhead Door 7" }.freeze
 
-    id3 = { a: "Office Front Door",
-            b: "Office Left Wall Door",
-            c: "Fine Storage Left Door",
-            d: "Fine Storage Right Door",
-            e: "Bulk Storage Door-1",
-            f: "Bulk Storage Door-2",
-            g: "Bulk Storage Door-3",
-            h: "Overhead Door 1",
-            i: "Overhead Door 2",
-            j: "Overhead Door 3",
-            k: "Overhead Door 4",
-            l: "Overhead Door 5",
-            m: "Overhead Door 6",
-            n: "Overhead Door 7" }.freeze
-
     psi_set = "poor (BETBG)"
     io, surfaces = processTBD(os_model, psi_set)
     expect(TBD.status).to eq(0)
@@ -5926,6 +5932,7 @@ RSpec.describe TBD do
       if surface.has_key?(:doors)
         surface[:doors].each do |i, door|
           expect(id2.has_value?(i)).to be(true)
+          expect(door.has_key?(:glazed)).to be(false)
           expect(door.has_key?(:u)).to be(true)
           expect(door[:u]).to be_a(Numeric)
           expect(door[:u]).to be_within(0.01).of(3.98)

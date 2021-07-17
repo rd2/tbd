@@ -1875,10 +1875,15 @@ def processTBD(
     type = :window if /window/i.match(s.subSurfaceType)
     type = :door if /door/i.match(s.subSurfaceType)
 
+    if type == :door
+      glazed = true if /glass/i.match(s.subSurfaceType)
+    end
+
     # For every kid, there's a dad somewhere ...
     surfaces.each do |identifier, properties|
       if identifier == dad
         sub = { points: points, minz: minz, n: n, gross: gross, u: u }
+        sub[:glazed] = true if glazed
         if type == :window
           properties[:windows] = {} unless properties.has_key?(:windows)
           properties[:windows][id] = sub
