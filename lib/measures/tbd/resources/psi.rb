@@ -1318,6 +1318,72 @@ def generateKiva(model, walls, floors, edges)
 end
 
 ##
+# Returns a construction's standard thermal resistance (with air films).
+#
+# @param [OpenStudio::Model::Construction] construction An OS construction
+# @param [Float] film_RSi Thermal resistance of surface air films (m2.K/W)
+# @param [Float] temperature Gas temperature (°C) [optional]
+#
+# @return [Float] Returns construction's calculated RSi; 0 if error
+def rsi(construction, film_RSi, temperature = 0.0)
+  # This is adapted from BTAP's Material Module's "get_conductance" (Phyl Lopez)
+  # https://github.com/NREL/OpenStudio-Prototype-Buildings/blob/
+  # c3d5021d8b7aef43e560544699fb5c559e6b721d/lib/btap/measures/
+  # btap_equest_converter/envelope.rb#L122
+  #
+  # Convert C to K.
+  t =  temperature + 273.0
+
+  rsi = 0
+  unless construction && construction.is_a?(OpenStudio::Model::Construction)
+    TBD.log(TBD::DEBUG,
+      "Invalid construction, can't calculate U-Factor - skipping")
+    return rsi
+  end
+  unless film_RSi && film_RSi.is_a?(Numeric)
+    TBD.log(TBD::DEBUG,
+      "Invalid surface film resistance, can't calculate U-Factor - skipping")
+    return rsi
+  end
+  rsi = film_RSi
+
+  construction.layers.each do |m|
+    # Fenestration materials first (ignoring shades, screens, etc.)
+    unless m.to_SimpleGlazing.empty?
+      return 1.0 / m.to_SimpleGlazing.get.uFactor              # no need to loop
+    end
+    unless m.to_StandardGlazing.empty?
+      rsi += m.to_StandardGlazing.get.thermalResistance
+    end
+    unless m.to_RefractionExtinctionGlazing.empty?
+      rsi += m.to_RefractionExtinctionGlazing.get.thermalResistance
+    end
+    unless m.to_Gas.empty?
+      rsi += m.to_Gas.get.getThermalResistance(t)
+    end
+    unless m.to_GasMixture.empty?
+      rsi += m.to_GasMixture.get.getThermalResistance(t)
+    end
+
+    # Opaque materials next.
+    unless m.to_OpaqueMaterial.empty?
+      rsi += m.to_OpaqueMaterial.get.thermalResistance
+    end
+    unless m.to_MasslessOpaqueMaterial.empty?
+      rsi += m.to_MasslessOpaqueMaterial.get.thermalResistance
+    end
+    unless m.to_RoofVegetation.empty?
+      rsi += m.to_RoofVegetation.get.thermalResistance
+    end
+    unless m.to_AirGap.empty?
+      rsi += m.to_AirGap.get.getThermalResistance
+    end
+  end
+
+  rsi
+end
+
+##
 # Identifies a layered construction's insulating (or deratable) layer.
 #
 # @param [OpenStudio::Model::Construction] construction An OS construction
@@ -1328,7 +1394,7 @@ end
 def deratableLayer(construction)
   r                = 0.0                        # R-value of insulating material
   index            = nil                        # index of insulating material
-  type             = nil                        # nil, :massless; or :standard
+  type             = nil                        # nil, :massless; :standard
   i                = 0                          # iterator
 
   unless construction && construction.is_a?(OpenStudio::Model::Construction)
@@ -1363,6 +1429,7 @@ def deratableLayer(construction)
         type       = :standard
       end
     end
+
     i += 1
   end
   return index, type, r
@@ -1782,7 +1849,7 @@ def processTBD(
     # The function will throw 2 possible (non-fatal) errors:
     #   - number of subsurfaces vertices isn't 3 or 4 (EnergyPlus limitation)
     #   - subsurface gross area is below threshold TOL (not worth the effort)
-    gross, pts = opening(os_model, id)
+    u, gross, pts = opening(os_model, id)
     next unless pts
     next if gross < TOL
 
@@ -1811,7 +1878,7 @@ def processTBD(
     # For every kid, there's a dad somewhere ...
     surfaces.each do |identifier, properties|
       if identifier == dad
-        sub = { points: points, minz: minz, n: n, gross: gross }
+        sub = { points: points, minz: minz, n: n, gross: gross, u: u }
         if type == :window
           properties[:windows] = {} unless properties.has_key?(:windows)
           properties[:windows][id] = sub
@@ -2909,9 +2976,14 @@ def processTBD(
 
         ratio  = -(current_R - updated_R) * 100 / current_R
         surface[:ratio] = ratio if ratio.abs > TOL
+
+        # Storing underated USi value, as well as reference USi (if applicable)
+        surface[:u] = 1/current_R
       end
     end
   end
+
+  # Process edges & surfaces (& subsurfaces) to compute UA' summations.
 
   io[:edges] = []
   # Enrich io with TBD/Topolys edge info before returning:
