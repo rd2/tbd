@@ -4689,7 +4689,7 @@ RSpec.describe TBD do
     expect(vals[:sillconvex]).to  be_within(0.001).of(0.391)     # :fenestration
   end
 
-  it "can factor-in Frame & Divider objects" do
+  it "can factor-in Frame & Divider (F&D) objects" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_warehouse.osm"
@@ -4697,6 +4697,9 @@ RSpec.describe TBD do
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
+
+    nom = "Office Front Wall"
+    name = "Office Front Wall Window 1"
 
     psi_set = "poor (BETBG)"
     ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse8.json"
@@ -4711,8 +4714,6 @@ RSpec.describe TBD do
     expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
 
-    nom = "Office Front Wall"
-    name = "Office Front Wall Window 1"
     n_transitions  = 0
     n_fen_edges    = 0
     n_heads        = 0
@@ -4785,7 +4786,7 @@ RSpec.describe TBD do
     # Adding/validating Frame & Divider object.
     fd = OpenStudio::Model::WindowPropertyFrameAndDivider.new(os_model_FD)
     expect(fd.setFrameWidth(0.030)).to be(true)   # 30mm (narrow) around glazing
-    expect(fd.setFrameConductance(0.500)).to be(true)
+    expect(fd.setFrameConductance(2.500)).to be(true)
     window_FD = os_model_FD.getSubSurfaceByName(name)
     expect(window_FD.empty?).to be(false)
     window_FD = window_FD.get

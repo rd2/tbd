@@ -1337,12 +1337,12 @@ def rsi(construction, film_RSi, temperature = 0.0)
   rsi = 0
   unless construction && construction.is_a?(OpenStudio::Model::Construction)
     TBD.log(TBD::DEBUG,
-      "Invalid construction, can't calculate U-Factor - skipping")
+      "Invalid construction, can't calculate RSi - skipping")
     return rsi
   end
   unless film_RSi && film_RSi.is_a?(Numeric)
     TBD.log(TBD::DEBUG,
-      "Invalid surface film resistance, can't calculate U-Factor - skipping")
+      "Invalid surface film resistance, can't calculate RSi - skipping")
     return rsi
   end
   rsi = film_RSi
