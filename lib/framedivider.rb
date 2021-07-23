@@ -192,21 +192,22 @@ def opening(model, id)
   end
   constr = constr.get.to_Construction.get
 
-  # A subsurfaces may have an overall U-factor set (preferred solution). With
+  # A subsurface may have an overall U-factor set by the user - a less accurate
+  # option, yet easier to process (and often the only option available). With
   # EnergyPlus' "simple window" model, a subsurface's construction has a single
-  # SimpleGlazing material/layer with the overall window's U-factor.
+  # SimpleGlazing material/layer holding the whole product U-factor.
   #
   # https://bigladdersoftware.com/epx/docs/9-5/engineering-reference/
   # window-calculation-module.html#simple-window-model
   #
-  # For other cases, TBD will recover an 'additional property' tagged "uFactor",
-  # assigned either to the individual subsurface (if set) or assigned to its
-  # referenced construction as a (more generic) fallback (again, if set).
+  # In other cases, TBD will recover an 'additional property' tagged "uFactor",
+  # assigned either to the individual subsurface itself, or else assigned to
+  # its referenced construction (a more generic fallback).
   #
-  # If all else fails, TBD will calculate an approximate U-factor by adding up
-  # the subsurface's construction material thermal resistances (while relying on
-  # the subsurface's parent surface film resistances). This is the least
-  # accurate solution, especially if subsurfaces have Frame & Divider objects.
+  # If all else fails, TBD will calculate an approximate whole product U-factor
+  # by adding up the subsurface's construction material thermal resistances (as
+  # well as the subsurface's parent surface film resistances). This is the least
+  # accurate option, especially if subsurfaces have Frame & Divider objects.
   u = s.uFactor
   u = s.additionalProperties.getFeatureAsDouble("uFactor") if u.empty?
   u = constr.additionalProperties.getFeatureAsDouble("uFactor") if u.empty?
