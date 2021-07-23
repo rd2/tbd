@@ -15,9 +15,9 @@ RSpec.describe TBD do
 
     os_model = OpenStudio::Model::Model.new
     os_g = OpenStudio::Model::Space.new(os_model) # gallery "g" & elevator "e"
-    os_g.setName("scrigno_gallery")
+    expect(os_g.setName("scrigno_gallery").to_s).to eq("scrigno_gallery")
     os_p = OpenStudio::Model::Space.new(os_model) # plenum "p" & stairwell "s"
-    os_p.setName("scrigno_plenum")
+    expect(os_p.setName("scrigno_plenum").to_s).to eq("scrigno_plenum")
     os_s = OpenStudio::Model::ShadingSurfaceGroup.new(os_model)
 
     os_building = os_model.getBuilding
@@ -56,6 +56,8 @@ RSpec.describe TBD do
     expect(fenestration.setLayers(layers)).to be(true)
     expect(fenestration.layers.size).to eq(1)
     expect(fenestration.layers[0].handle.to_s).to eq(glazing.handle.to_s)
+    expect(fenestration.uFactor.empty?).to be(false)
+    expect(fenestration.uFactor.get).to be_within(0.1).of(2.0)
 
     exterior = OpenStudio::Model::MasslessOpaqueMaterial.new(os_model)
     expect(exterior.handle.to_s.empty?).to be(false)
@@ -63,11 +65,11 @@ RSpec.describe TBD do
     expect(exterior.nameString).to eq("Material No Mass 1")
     exterior.setName("scrigno_exterior")
     expect(exterior.nameString).to eq("scrigno_exterior")
-    exterior.setRoughness("Rough")
-    exterior.setThermalResistance(0.3626)
-    exterior.setThermalAbsorptance(0.9)
-    exterior.setSolarAbsorptance(0.7)
-    exterior.setVisibleAbsorptance(0.7)
+    expect(exterior.setRoughness("Rough")).to be(true)
+    expect(exterior.setThermalResistance(0.3626)).to be(true)
+    expect(exterior.setThermalAbsorptance(0.9)).to be(true)
+    expect(exterior.setSolarAbsorptance(0.7)).to be(true)
+    expect(exterior.setVisibleAbsorptance(0.7)).to be(true)
     expect(exterior.roughness).to eq("Rough")
     expect(exterior.thermalResistance).to be_within(0.0001).of(0.3626)
     expect(exterior.thermalAbsorptance.empty?).to be(false)
@@ -83,14 +85,14 @@ RSpec.describe TBD do
     expect(insulation.nameString).to eq("Material 1")
     insulation.setName("scrigno_insulation")
     expect(insulation.nameString).to eq("scrigno_insulation")
-    insulation.setRoughness("MediumRough")
-    insulation.setThickness(0.1184)
-    insulation.setConductivity(0.045)
-    insulation.setDensity(265)
-    insulation.setSpecificHeat(836.8)
-    insulation.setThermalAbsorptance(0.9)
-    insulation.setSolarAbsorptance(0.7)
-    insulation.setVisibleAbsorptance(0.7)
+    expect(insulation.setRoughness("MediumRough")).to be(true)
+    expect(insulation.setThickness(0.1184)).to be(true)
+    expect(insulation.setConductivity(0.045)).to be(true)
+    expect(insulation.setDensity(265)).to be(true)
+    expect(insulation.setSpecificHeat(836.8)).to be(true)
+    expect(insulation.setThermalAbsorptance(0.9)).to be(true)
+    expect(insulation.setSolarAbsorptance(0.7)).to be(true)
+    expect(insulation.setVisibleAbsorptance(0.7)).to be(true)
     expect(insulation.roughness.empty?).to be(false)
     expect(insulation.roughness).to eq("MediumRough")
     expect(insulation.thickness).to be_within(0.0001).of(0.1184)
@@ -107,14 +109,14 @@ RSpec.describe TBD do
     expect(interior.nameString.downcase).to eq("material 1")
     interior.setName("scrigno_interior")
     expect(interior.nameString).to eq("scrigno_interior")
-    interior.setRoughness("MediumRough")
-    interior.setThickness(0.0126)
-    interior.setConductivity(0.16)
-    interior.setDensity(784.9)
-    interior.setSpecificHeat(830)
-    interior.setThermalAbsorptance(0.9)
-    interior.setSolarAbsorptance(0.9)
-    interior.setVisibleAbsorptance(0.9)
+    expect(interior.setRoughness("MediumRough")).to be(true)
+    expect(interior.setThickness(0.0126)).to be(true)
+    expect(interior.setConductivity(0.16)).to be(true)
+    expect(interior.setDensity(784.9)).to be(true)
+    expect(interior.setSpecificHeat(830)).to be(true)
+    expect(interior.setThermalAbsorptance(0.9)).to be(true)
+    expect(interior.setSolarAbsorptance(0.9)).to be(true)
+    expect(interior.setVisibleAbsorptance(0.9)).to be(true)
     expect(interior.roughness.downcase).to eq("mediumrough")
     expect(interior.thickness).to be_within(0.0001).of(0.0126)
     expect(interior.conductivity).to be_within(0.0001).of( 0.16)
@@ -156,7 +158,7 @@ RSpec.describe TBD do
     # if one comments out the following, then one can no longer rely on a
     # building-specific, default construction set. If missing, fall back to
     # to model default construction set @index 0.
-    os_building.setDefaultConstructionSet(set)
+    expect(os_building.setDefaultConstructionSet(set)).to be(true)
 
     # 8" XPS massless variant, specific for elevator floor (not defaulted)
     xps8x25mm = OpenStudio::Model::MasslessOpaqueMaterial.new(os_model)
@@ -165,11 +167,11 @@ RSpec.describe TBD do
     expect(xps8x25mm.nameString).to eq("Material No Mass 1")
     xps8x25mm.setName("xps8x25mm")
     expect(xps8x25mm.nameString).to eq("xps8x25mm")
-    xps8x25mm.setRoughness("Rough")
-    xps8x25mm.setThermalResistance(8 * 0.88)
-    xps8x25mm.setThermalAbsorptance(0.9)
-    xps8x25mm.setSolarAbsorptance(0.7)
-    xps8x25mm.setVisibleAbsorptance(0.7)
+    expect(xps8x25mm.setRoughness("Rough")).to be(true)
+    expect(xps8x25mm.setThermalResistance(8 * 0.88)).to be(true)
+    expect(xps8x25mm.setThermalAbsorptance(0.9)).to be(true)
+    expect(xps8x25mm.setSolarAbsorptance(0.7)).to be(true)
+    expect(xps8x25mm.setVisibleAbsorptance(0.7)).to be(true)
     expect(xps8x25mm.roughness).to eq("Rough")
     expect(xps8x25mm.thermalResistance).to be_within(0.0001).of(7.0400)
     expect(xps8x25mm.thermalAbsorptance.empty?).to be(false)
@@ -206,7 +208,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 22.7, 45.0, 50.0)
     os_r1_shade = OpenStudio::Model::ShadingSurface.new(os_v, os_model)
     os_r1_shade.setName("r1_shade")
-    os_r1_shade.setShadingSurfaceGroup(os_s)
+    expect(os_r1_shade.setShadingSurfaceGroup(os_s)).to be(true)
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 22.7, 45.0, 50.0)
@@ -215,7 +217,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 48.7, 45.0, 50.0)
     os_r2_shade = OpenStudio::Model::ShadingSurface.new(os_v, os_model)
     os_r2_shade.setName("r2_shade")
-    os_r2_shade.setShadingSurfaceGroup(os_s)
+    expect(os_r2_shade.setShadingSurfaceGroup(os_s)).to be(true)
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 22.7, 32.5, 50.0)
@@ -224,7 +226,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 48.7, 32.5, 50.0)
     os_r3_shade = OpenStudio::Model::ShadingSurface.new(os_v, os_model)
     os_r3_shade.setName("r3_shade")
-    os_r3_shade.setShadingSurfaceGroup(os_s)
+    expect(os_r3_shade.setShadingSurfaceGroup(os_s)).to be(true)
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 48.7, 45.0, 50.0)
@@ -233,7 +235,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 59.0, 45.0, 50.0)
     os_r4_shade = OpenStudio::Model::ShadingSurface.new(os_v, os_model)
     os_r4_shade.setName("r4_shade")
-    os_r4_shade.setShadingSurfaceGroup(os_s)
+    expect(os_r4_shade.setShadingSurfaceGroup(os_s)).to be(true)
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 47.4, 40.2, 44.0)
@@ -242,7 +244,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 45.7, 40.2, 44.0)
     os_N_balcony = OpenStudio::Model::ShadingSurface.new(os_v, os_model)
     os_N_balcony.setName("N_balcony") # 1.70m as thermal bridge
-    os_N_balcony.setShadingSurfaceGroup(os_s)
+    expect(os_N_balcony.setShadingSurfaceGroup(os_s)).to be(true)
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 28.1, 29.8, 44.0)
@@ -251,7 +253,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 47.4, 29.8, 44.0)
     os_S_balcony = OpenStudio::Model::ShadingSurface.new(os_v, os_model)
     os_S_balcony.setName("S_balcony") # 19.3m as thermal bridge
-    os_S_balcony.setShadingSurfaceGroup(os_s)
+    expect(os_S_balcony.setShadingSurfaceGroup(os_s)).to be(true)
 
     # 1st space: gallery (g) with elevator (e) surfaces
     os_v = OpenStudio::Point3dVector.new
@@ -261,7 +263,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 17.4, 29.8, 49.5) # 10.4m
     os_g_W_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_g_W_wall.setName("g_W_wall")
-    os_g_W_wall.setSpace(os_g)                        #  57.2m2
+    expect(os_g_W_wall.setSpace(os_g)).to be(true)                     #  57.2m2
 
     expect(os_g_W_wall.surfaceType.downcase).to eq("wall")
     expect(os_g_W_wall.isConstructionDefaulted).to be(true)
@@ -277,7 +279,9 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 17.4, 40.2, 49.5) # 36.6m
     os_g_N_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_g_N_wall.setName("g_N_wall")
-    os_g_N_wall.setSpace(os_g)                        # 201.3m2
+    expect(os_g_N_wall.setSpace(os_g)).to be(true)                     # 201.3m2
+    expect(os_g_N_wall.uFactor.empty?).to be(false)
+    expect(os_g_N_wall.uFactor.get).to be_within(0.001).of(0.310)
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 47.4, 40.2, 46.0) #   2.0m
@@ -286,8 +290,10 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 46.4, 40.2, 46.0) #   1.0m
     os_g_N_door = OpenStudio::Model::SubSurface.new(os_v, os_model)
     os_g_N_door.setName("g_N_door")
-    os_g_N_door.setSubSurfaceType("Door")
-    os_g_N_door.setSurface(os_g_N_wall)                #   2.0m2
+    expect(os_g_N_door.setSubSurfaceType("GlassDoor")).to be(true)
+    expect(os_g_N_door.setSurface(os_g_N_wall)).to be(true)            #   2.0m2
+    expect(os_g_N_door.uFactor.empty?).to be(false)
+    expect(os_g_N_door.uFactor.get).to be_within(0.1).of(2.0)
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 54.0, 29.8, 49.5) #  5.5m
@@ -296,7 +302,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 54.0, 40.2, 49.5) # 10.4m
     os_g_E_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_g_E_wall.setName("g_E_wall")
-    os_g_E_wall.setSpace(os_g)                        # 57.2m2
+    expect(os_g_E_wall.setSpace(os_g)).to be(true)                      # 57.2m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 17.4, 29.8, 49.5) #  5.5m
@@ -309,7 +315,9 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 54.0, 29.8, 49.5) # 36.6m
     os_g_S_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_g_S_wall.setName("g_S_wall")
-    os_g_S_wall.setSpace(os_g)                        # 190.48m2
+    expect(os_g_S_wall.setSpace(os_g)).to be(true)                    # 190.48m2
+    expect(os_g_S_wall.uFactor.empty?).to be(false)
+    expect(os_g_S_wall.uFactor.get).to be_within(0.001).of(0.310)
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 46.4, 29.8, 46.0) #  2.0m
@@ -318,8 +326,10 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 47.4, 29.8, 46.0) #  1.0m
     os_g_S_door = OpenStudio::Model::SubSurface.new(os_v, os_model)
     os_g_S_door.setName("g_S_door")
-    os_g_S_door.setSubSurfaceType("Door")
-    os_g_S_door.setSurface(os_g_S_wall)                #   2.0m2
+    expect(os_g_S_door.setSubSurfaceType("GlassDoor")).to be(true)
+    expect(os_g_S_door.setSurface(os_g_S_wall)).to be(true)            #   2.0m2
+    expect(os_g_S_door.uFactor.empty?).to be(false)
+    expect(os_g_S_door.uFactor.get).to be_within(0.1).of(2.0)
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 17.4, 40.2, 49.5) # 10.4m
@@ -328,7 +338,9 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 54.0, 40.2, 49.5) # 36.6m
     os_g_top = OpenStudio::Model::Surface.new(os_v, os_model)
     os_g_top.setName("g_top")
-    os_g_top.setSpace(os_g)                            # 380.64m2
+    expect(os_g_top.setSpace(os_g)).to be(true)                       # 380.64m2
+    expect(os_g_S_wall.uFactor.empty?).to be(false)
+    expect(os_g_S_wall.uFactor.get).to be_within(0.001).of(0.310)
 
     expect(os_g_top.surfaceType.downcase).to eq("roofceiling")
     expect(os_g_top.isConstructionDefaulted).to be(true)
@@ -344,7 +356,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 54.0, 40.2, 49.5) # 36.6m
     os_g_sky = OpenStudio::Model::SubSurface.new(os_v, os_model)
     os_g_sky.setName("g_sky")
-    os_g_sky.setSurface(os_g_top)                      # 380.64m2
+    expect(os_g_sky.setSurface(os_g_top)).to be(true)                 # 380.64m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 24.0, 29.8, 46.7) #  1.5m
@@ -353,7 +365,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 28.0, 29.8, 46.7) #  4.0m
     os_e_top = OpenStudio::Model::Surface.new(os_v, os_model)
     os_e_top.setName("e_top")
-    os_e_top.setSpace(os_g)                            #   6.0m2
+    expect(os_e_top.setSpace(os_g)).to be(true)                        #   6.0m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 24.0, 28.3, 40.8) #  1.5m
@@ -362,8 +374,8 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 28.0, 28.3, 40.8) #  4.0m
     os_e_floor = OpenStudio::Model::Surface.new(os_v, os_model)
     os_e_floor.setName("e_floor")
-    os_e_floor.setSpace(os_g)                          #   6.0m2
-    os_e_floor.setOutsideBoundaryCondition("Outdoors")
+    expect(os_e_floor.setSpace(os_g)).to be(true)                      #   6.0m2
+    expect(os_e_floor.setOutsideBoundaryCondition("Outdoors")).to be(true)
 
     # initially, elevator floor is defaulted ...
     expect(os_e_floor.surfaceType.downcase).to eq("floor")
@@ -388,7 +400,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 24.0, 28.3, 46.7) #  1.5m
     os_e_W_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_e_W_wall.setName("e_W_wall")
-    os_e_W_wall.setSpace(os_g)                         #   8.85m2
+    expect(os_e_W_wall.setSpace(os_g)).to be(true)                    #   8.85m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 24.0, 28.3, 46.7) #  5.9m
@@ -397,7 +409,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 28.0, 28.3, 46.7) #  4.0m
     os_e_S_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_e_S_wall.setName("e_S_wall")
-    os_e_S_wall.setSpace(os_g)                         #  23.6m2
+    expect(os_e_S_wall.setSpace(os_g)).to be(true)                     #  23.6m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 28.0, 28.3, 46.7) #  5.9m
@@ -406,7 +418,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 28.0, 29.8, 46.7) #  1.5m
     os_e_E_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_e_E_wall.setName("e_E_wall")
-    os_e_E_wall.setSpace(os_g)                         #   8.85m2
+    expect(os_e_E_wall.setSpace(os_g)).to be(true)                    #   8.85m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 28.0, 29.8, 42.4) #  1.60m
@@ -415,7 +427,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 24.0, 29.8, 43.0) #  4.04m
     os_e_N_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_e_N_wall.setName("e_N_wall")
-    os_e_N_wall.setSpace(os_g)                         #  ~7.63m2
+    expect(os_e_N_wall.setSpace(os_g)).to be(true)                    #  ~7.63m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 28.0, 29.8, 44.0) #  1.60m
@@ -424,8 +436,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 24.0, 29.8, 44.0) #  4.00m
     os_e_p_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_e_p_wall.setName("e_p_wall")
-    os_e_p_wall.setSpace(os_g)                         #   ~5.2m2
-    os_e_p_wall.setOutsideBoundaryCondition("Surface")
+    expect(os_e_p_wall.setSpace(os_g)).to be(true)                    #   ~5.2m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 17.4, 29.8, 44.0) # 10.4m
@@ -434,9 +445,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 54.0, 29.8, 44.0) # 36.6m
     os_g_floor = OpenStudio::Model::Surface.new(os_v, os_model)
     os_g_floor.setName("g_floor")
-    os_g_floor.setSpace(os_g)                         # 380.64m2
-    os_g_floor.setOutsideBoundaryCondition("Surface")
-
+    expect(os_g_floor.setSpace(os_g) ).to be(true)                    # 380.64m2
 
     # 2nd space: plenum (p) with stairwell (s) surfaces
     os_v = OpenStudio::Point3dVector.new
@@ -446,11 +455,12 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 54.0, 40.2, 44.0) # 36.6m
     os_p_top = OpenStudio::Model::Surface.new(os_v, os_model)
     os_p_top.setName("p_top")
-    os_p_top.setSpace(os_p)                            # 380.64m2
-    os_p_top.setOutsideBoundaryCondition("Surface")
+    expect(os_p_top.setSpace(os_p)).to be(true)                       # 380.64m2
 
-    os_p_top.setAdjacentSurface(os_g_floor)
-    os_g_floor.setAdjacentSurface(os_p_top)
+    expect(os_p_top.setAdjacentSurface(os_g_floor)).to be(true)
+    expect(os_g_floor.setAdjacentSurface(os_p_top)).to be(true)
+    expect(os_p_top.setOutsideBoundaryCondition("Surface")).to be(true)
+    expect(os_g_floor.setOutsideBoundaryCondition("Surface")).to be(true)
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 24.0, 29.8, 44.0) #  1.00m
@@ -459,11 +469,12 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 28.0, 29.8, 44.0) #  4.00m
     os_p_e_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_p_e_wall.setName("p_e_wall")
-    os_p_e_wall.setSpace(os_p)                         #  ~5.2m2
-    os_p_e_wall.setOutsideBoundaryCondition("Surface")
+    expect(os_p_e_wall.setSpace(os_p)).to be(true)                     #  ~5.2m2
 
-    os_e_p_wall.setAdjacentSurface(os_p_e_wall)
-    os_p_e_wall.setAdjacentSurface(os_e_p_wall)
+    expect(os_e_p_wall.setAdjacentSurface(os_p_e_wall)).to be(true)
+    expect(os_p_e_wall.setAdjacentSurface(os_e_p_wall)).to be(true)
+    expect(os_p_e_wall.setOutsideBoundaryCondition("Surface")).to be(true)
+    expect(os_e_p_wall.setOutsideBoundaryCondition("Surface")).to be(true)
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 17.4, 29.8, 44.0) #   6.67m
@@ -471,7 +482,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 24.0, 29.8, 44.0) #   6.60m
     os_p_S1_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_p_S1_wall.setName("p_S1_wall")
-    os_p_S1_wall.setSpace(os_p)                        #  ~3.3m2
+    expect(os_p_S1_wall.setSpace(os_p)).to be(true)                    #  ~3.3m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 28.0, 29.8, 44.0) #   1.60m
@@ -481,7 +492,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 54.0, 29.8, 44.0) #  25.00m
     os_p_S2_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_p_S2_wall.setName("p_S2_wall")
-    os_p_S2_wall.setSpace(os_p)                        #  38.15m2
+    expect(os_p_S2_wall.setSpace(os_p)).to be(true)                   #  38.15m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 54.0, 40.2, 44.0) #  13.45m
@@ -490,7 +501,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 17.4, 40.2, 44.0) #  36.60m
     os_p_N_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_p_N_wall.setName("p_N_wall")
-    os_p_N_wall.setSpace(os_p)                         #  46.61m2
+    expect(os_p_N_wall.setSpace(os_p)).to be(true)                    #  46.61m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 30.7, 29.8, 42.0) # 10.4m
@@ -499,8 +510,8 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 40.7, 29.8, 42.0) # 10.0m
     os_p_floor = OpenStudio::Model::Surface.new(os_v, os_model)
     os_p_floor.setName("p_floor")
-    os_p_floor.setSpace(os_p)                         # 104.00m2
-    os_p_floor.setOutsideBoundaryCondition("Outdoors")
+    expect(os_p_floor.setSpace(os_p)).to be(true)                     # 104.00m2
+    expect(os_p_floor.setOutsideBoundaryCondition("Outdoors")).to be(true)
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 40.7, 29.8, 42.0) # 10.40m
@@ -509,8 +520,8 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 54.0, 29.8, 44.0) # 13.45m
     os_p_E_floor = OpenStudio::Model::Surface.new(os_v, os_model)
     os_p_E_floor.setName("p_E_floor")
-    os_p_E_floor.setSpace(os_p)                        # 139.88m2
-    os_p_E_floor.setSurfaceType("Floor") # slanted floors are walls (default)
+    expect(os_p_E_floor.setSpace(os_p)).to be(true)                   # 139.88m2
+    expect(os_p_E_floor.setSurfaceType("Floor")).to be(true)  # walls by default
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 17.4, 29.8, 44.0) # 10.40m
@@ -519,8 +530,8 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 24.0, 29.8, 43.0) # ~6.68m
     os_p_W1_floor = OpenStudio::Model::Surface.new(os_v, os_model)
     os_p_W1_floor.setName("p_W1_floor")
-    os_p_W1_floor.setSpace(os_p)                       #  69.44m2
-    os_p_W1_floor.setSurfaceType("Floor") # slanted floors are walls (default)
+    expect(os_p_W1_floor.setSpace(os_p)).to be(true)                  #  69.44m2
+    expect(os_p_W1_floor.setSurfaceType("Floor")).to be(true) # walls by default
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 24.0, 29.8, 43.00) #  3.30m D
@@ -533,8 +544,8 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 30.7, 29.8, 42.00) #  6.77m F
     os_p_W2_floor = OpenStudio::Model::Surface.new(os_v, os_model)
     os_p_W2_floor.setName("p_W2_floor")
-    os_p_W2_floor.setSpace(os_p)                        #  51.23m2
-    os_p_W2_floor.setSurfaceType("Floor") # slanted floors are walls (default)
+    expect(os_p_W2_floor.setSpace(os_p)).to be(true)                  #  51.23m2
+    expect(os_p_W2_floor.setSurfaceType("Floor")).to be(true) # walls by default
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 24.0, 36.9, 43.0) #  2.2m
@@ -543,7 +554,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 24.0, 33.1, 43.0) #  3.8m
     os_s_W_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_s_W_wall.setName("s_W_wall")
-    os_s_W_wall.setSpace(os_p)                         #   8.39m2
+    expect(os_s_W_wall.setSpace(os_p)).to be(true)                    #   8.39m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 29.0, 36.9, 42.26) #  1.46m
@@ -552,7 +563,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 24.0, 36.9, 43.00) #  5.06m
     os_s_N_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_s_N_wall.setName("s_N_wall")
-    os_s_N_wall.setSpace(os_p)                          #   9.15m2
+    expect(os_s_N_wall.setSpace(os_p)).to be(true)                    #   9.15m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 29.0, 33.1, 42.26) #  1.46m
@@ -561,7 +572,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 29.0, 36.9, 42.26) #  3.80m
     os_s_E_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_s_E_wall.setName("s_E_wall")
-    os_s_E_wall.setSpace(os_p)                          #   5.55m2
+    expect(os_s_E_wall.setSpace(os_p)).to be(true)                    #   5.55m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 24.0, 33.1, 43.00) #  2.20m
@@ -570,7 +581,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 29.0, 33.1, 42.26) #  5.06m
     os_s_S_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_s_S_wall.setName("s_S_wall")
-    os_s_S_wall.setSpace(os_p)                          #   9.15m2
+    expect(os_s_S_wall.setSpace(os_p)).to be(true)                    #   9.15m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 24.0, 33.1, 40.8) #  3.8m
@@ -579,9 +590,9 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 29.0, 33.1, 40.8) #  5.0m
     os_s_floor = OpenStudio::Model::Surface.new(os_v, os_model)
     os_s_floor.setName("s_floor")
-    os_s_floor.setSpace(os_p)                          #  19.0m2
-    os_s_floor.setSurfaceType("Floor")
-    os_s_floor.setOutsideBoundaryCondition("Outdoors")
+    expect(os_s_floor.setSpace(os_p)).to be(true)                      #  19.0m2
+    expect(os_s_floor.setSurfaceType("Floor")).to be(true)
+    expect(os_s_floor.setOutsideBoundaryCondition("Outdoors")).to be(true)
 
     os_model.save("os_model_test.osm", true)
 
@@ -709,6 +720,7 @@ RSpec.describe TBD do
       u, gross, pts = opening(os_model, id)
       expect(gross).to be_a(Numeric)
       expect(pts.nil?).to be(false)
+      expect(u.zero?).to be(false)
       next if gross < TOL
 
       # Site-specific (or absolute, or true) surface normal.
@@ -4838,7 +4850,9 @@ RSpec.describe TBD do
     u, opening_area, opening_vertices = opening(os_model_FD, name)
     expect(opening_area).to be_a(Numeric)
     expect(opening_vertices.nil?).to be(false)
-    expect(opening_area).to be_within(0.01).of(5.89)                   # vs 5.58
+    expect(opening_area).to be_within(0.01).of(5.89)           # vs 5.58 - good!
+    expect(u).to be_within(0.01).of(2.35)          # ignoring frame conductances
+
     expect(opening_vertices.size).to eq(4)
     opening_vertices = t * opening_vertices
 
@@ -4858,6 +4872,34 @@ RSpec.describe TBD do
     expect(opening_vertices[3].z).to be_within(0.01).of(2.47)
 
     os_model_FD.save("os_model_FD.osm", true)
+
+    # TBD-calculated subsurface U-factors ignore frame conductances (as well as
+    # divider & edge-of-glass conductances, etc.). Optionally, users can set
+    # a subsurface's overall U-factor using additionalProperties, or a
+    # construction's overall U-factor (affecting all subsurfaces).
+    fenestration = window_FD.construction
+    expect(fenestration.empty?).to be(false)
+    fenestration = fenestration.get.to_Construction.get
+    props = fenestration.additionalProperties
+    expect(props.setFeature("uFactor", 3.0)).to be(true)
+    surface_u = props.getFeatureAsDouble("uFactor").get
+    expect(surface_u).to be_within(0.1).of(3.0)
+    u, opening_area, opening_vertices = opening(os_model_FD, name)
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
+    expect(opening_area).to be_within(0.01).of(5.89)
+    expect(u).to be_within(0.01).of(3.0)
+
+    props = window_FD.additionalProperties
+    expect(props.setFeature("uFactor", 4.0)).to be(true)
+    surface_u = props.getFeatureAsDouble("uFactor").get
+    expect(surface_u).to be_within(0.1).of(4.0)
+    u, opening_area, opening_vertices = opening(os_model_FD, name)
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
+    expect(opening_area).to be_within(0.01).of(5.89)
+    expect(u).to be_within(0.01).of(4.0)
+
 
     psi_set = "poor (BETBG)"
     ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse8.json"
@@ -4923,6 +4965,8 @@ RSpec.describe TBD do
     expect(fenestration.setLayers(layers)).to be(true)
     expect(fenestration.layers.size).to eq(1)
     expect(fenestration.layers[0].handle.to_s).to eq(glazing.handle.to_s)
+    expect(fenestration.uFactor.empty?).to be(false)
+    expect(fenestration.uFactor.get).to be_within(0.1).of(2.0)
 
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new(  0.00,  0.00, 10.00)
@@ -4942,6 +4986,8 @@ RSpec.describe TBD do
     expect(w1.setSubSurfaceType("FixedWindow")).to be(true)
     expect(w1.setSurface(dad)).to be(true)
     expect(w1.setConstruction(fenestration)).to be(true)
+    expect(w1.uFactor.empty?).to be(false)
+    expect(w1.uFactor.get).to be_within(0.1).of(2.0)
 
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new(  7.00,  0.00,  4.00)
@@ -4953,6 +4999,8 @@ RSpec.describe TBD do
     expect(w2.setSubSurfaceType("FixedWindow")).to be(true)
     expect(w2.setSurface(dad)).to be(true)
     expect(w2.setConstruction(fenestration)).to be(true)
+    expect(w2.uFactor.empty?).to be(false)
+    expect(w2.uFactor.get).to be_within(0.1).of(2.0)
 
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new(  9.00,  0.00,  9.80)
@@ -4963,12 +5011,15 @@ RSpec.describe TBD do
     expect(w3.setSubSurfaceType("FixedWindow")).to be(true)
     expect(w3.setSurface(dad)).to be(true)
     expect(w3.setConstruction(fenestration)).to be(true)
+    expect(w3.uFactor.empty?).to be(false)
+    expect(w3.uFactor.get).to be_within(0.1).of(2.0)
 
     # Without Frame & Divider objects linked to subsurface.
     u, opening_area, opening_vertices = opening(fd_model, "w1")
     expect(opening_area).to be_a(Numeric)
     expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(1.5)
+    expect(u).to be_within(0.01).of(2.0)
     expect(opening_vertices.size).to eq(3)
 
     # Adding a Frame & Divider object.
@@ -4985,6 +5036,7 @@ RSpec.describe TBD do
     expect(opening_area).to be_a(Numeric)
     expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(3.75)
+    expect(u).to be_within(0.01).of(2.0)
     expect(opening_vertices.size).to eq(3)
     opening_vertices = t * opening_vertices
     # The following X & Z coordinates are all offset by 0.200 (frame width),
@@ -5011,6 +5063,7 @@ RSpec.describe TBD do
     expect(opening_area).to be_a(Numeric)
     expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(8.64)
+    expect(u).to be_within(0.01).of(2.0)
     expect(opening_vertices.size).to eq(4)
     opening_vertices = t * opening_vertices
 
@@ -5038,6 +5091,7 @@ RSpec.describe TBD do
     expect(opening_area).to be_a(Numeric)
     expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(1.1)
+    expect(u).to be_within(0.01).of(2.0)
     expect(opening_vertices.size).to eq(3)
     opening_vertices = t * opening_vertices
 
@@ -5132,6 +5186,7 @@ RSpec.describe TBD do
     expect(opening_area).to be_a(Numeric)
     expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(1.5)
+    expect(u).to be_within(0.01).of(2.0)
     expect(opening_vertices.size).to eq(3)
 
     # Adding a Frame & Divider object.
@@ -5148,6 +5203,7 @@ RSpec.describe TBD do
     expect(opening_area).to be_a(Numeric)
     expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(3.75)
+    expect(u).to be_within(0.01).of(2.0)
     expect(opening_vertices.size).to eq(3)
     opening_vertices = t * opening_vertices
     # The following X & Z coordinates are all offset by 0.200 (frame width),
@@ -5174,6 +5230,7 @@ RSpec.describe TBD do
     expect(opening_area).to be_a(Numeric)
     expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(8.64)
+    expect(u).to be_within(0.01).of(2.0)
     expect(opening_vertices.size).to eq(4)
     opening_vertices = t * opening_vertices
 
@@ -5201,6 +5258,7 @@ RSpec.describe TBD do
     expect(opening_area).to be_a(Numeric)
     expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(1.1)
+    expect(u).to be_within(0.01).of(2.0)
     expect(opening_vertices.size).to eq(3)
     opening_vertices = t * opening_vertices
 
@@ -5295,6 +5353,7 @@ RSpec.describe TBD do
     expect(opening_area).to be_a(Numeric)
     expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(1.5)
+    expect(u).to be_within(0.01).of(2.0)
     expect(opening_vertices.size).to eq(3)
 
     # Adding a Frame & Divider object.
@@ -5311,6 +5370,7 @@ RSpec.describe TBD do
     expect(opening_area).to be_a(Numeric)
     expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(3.75)
+    expect(u).to be_within(0.01).of(2.0)
     expect(opening_vertices.size).to eq(3)
     opening_vertices = t * opening_vertices
 
@@ -5338,6 +5398,7 @@ RSpec.describe TBD do
     expect(opening_area).to be_a(Numeric)
     expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(8.64)
+    expect(u).to be_within(0.01).of(2.0)
     expect(opening_vertices.size).to eq(4)
     opening_vertices = t * opening_vertices
 
@@ -5365,6 +5426,7 @@ RSpec.describe TBD do
     expect(opening_area).to be_a(Numeric)
     expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(1.1)
+    expect(u).to be_within(0.01).of(2.0)
     expect(opening_vertices.size).to eq(3)
     opening_vertices = t * opening_vertices
 
@@ -5832,6 +5894,96 @@ RSpec.describe TBD do
     end
   end
 
+  it "can handle TDDs" do
+    # OpenStudio SDK doesn't (fully) support Tubular Daylighting Devices, as per:
+    # https://bigladdersoftware.com/epx/docs/9-5/input-output-reference/
+    # group-daylighting.html#daylightingdevicetubular
+    methods = OpenStudio::Model::Model.instance_methods.grep(/tubular/i)
+    expect(methods.empty?).to be(true)
+
+    # ... OpenStudio is however able to set/get related subsurface types:
+    types = OpenStudio::Model::SubSurface.validSubSurfaceTypeValues
+    expect(types.is_a?(Array)).to be(true)
+    expect(types.include?("TubularDaylightDome")).to be(true)
+    expect(types.include?("TubularDaylightDiffuser")).to be(true)
+
+    # Assigning a "TubularDaylightDome" subsurface type (previously a skylight).
+    TBD.clean!
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    file = "/files/test_warehouse.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    # Initial skylight.
+    nom = "FineStorage_skylight_5"
+    sky5 = os_model.getSubSurfaceByName(nom)
+    expect(sky5.empty?).to be(false)
+    sky5 = sky5.get
+    expect(sky5.subSurfaceType.downcase).to eq("skylight")
+    name = "U 1.17 SHGC 0.39 Simple Glazing Skylight U-1.17 SHGC 0.39 2"
+    skylight = sky5.construction
+    expect(skylight.empty?).to be(false)
+    expect(skylight.get.nameString).to eq(name)
+
+    # Resetting type ...
+    expect(sky5.setSubSurfaceType("TubularDaylightDome")).to be(true)
+    skylight = sky5.construction
+    expect(skylight.empty?).to be(false)
+    expect(skylight.get.nameString).to eq("Typical Interior Window")
+    # Weird to see "Typical Interior Window" as a suitable construction for a
+    # tubular skylight dome, but that's the assigned default construction in
+    # the DOE prototype warehouse model.
+
+    roof = os_model.getSurfaceByName("Fine Storage Roof")
+    expect(roof.empty?).to be(false)
+    roof = roof.get
+
+    # Testing if TBD recognizes it as a "skylight" (for derating & UA').
+    psi_set = "poor (BETBG)"
+    io, surfaces = processTBD(os_model, psi_set)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
+    expect(io.has_key?(:edges))
+    expect(io[:edges].size).to eq(300)
+    expect(surfaces.size).to eq(23)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.size).to eq(0)
+
+    expect(surfaces.has_key?("Fine Storage Roof")).to be(true)
+    surface = surfaces["Fine Storage Roof"]
+    if surface.has_key?(:skylights)
+      expect(surface[:skylights].has_key?(nom)).to be(true)
+      surface[:skylights].each do |i, skylight|
+        expect(skylight.has_key?(:u)).to be(true)
+        expect(skylight[:u]).to be_a(Numeric)
+        expect(skylight[:u]).to be_within(0.01).of(6.64) unless i == nom
+        expect(skylight[:u]).to be_within(0.01).of(7.18) if i == nom
+        # So TBD will successfully process any subsurface perimeter, whether
+        # skylight, tubular devices, etc. And it will retrieve a calculated
+        # U-factor for TBD's UA' trade-off methodology (see below). A follow-up
+        # OpenStudio-launched EnergyPlus simulation reveals that, despite
+        # having an incomplete TDD setup i.e. dome > tube > diffuser, EnergyPlus
+        # will proceed without warning(s). Results reflect e.g. an expected
+        # increase in heating energy (Climate Zone 7), due to the poor(er)
+        # performance of the dome.
+        #
+        # Note that the effective RSi of the (missing) tube will be ignored.
+        # https://bigladdersoftware.com/epx/docs/9-5/engineering-reference/
+        # daylighting-devices.html#conductiveconvective-gains
+        #
+        # https://bigladdersoftware.com/epx/docs/9-5/input-output-reference/
+        # group-surface-construction-elements.html#field-u-factor
+      end
+    end
+  end
+
   it "can pre-process UA parameters" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
@@ -5956,6 +6108,8 @@ RSpec.describe TBD do
         end
       end
     end
+
+    # (work in progress ...)
   end
 
   it "can generate and access KIVA inputs (seb)" do

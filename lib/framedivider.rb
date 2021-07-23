@@ -143,9 +143,9 @@ end
 # Calculate subsurface rough opening area & vertices.
 #
 # @param [OpenStudio::Model::Model] model An OS model
-# @param [String] id SubSurface identifier
+# @param [String] id A subsurface identifier
 #
-# @return [Float] Returns subsurface calculated Ufactor (W/m2.K)
+# @return [Float] Returns subsurface calculated U-factor (W/m2.K)
 # @return [Float] Returns subsurface rough opening area (m2)
 # @return [Array] Returns subsurface rough opening OpenStudio 3D points
 def opening(model, id)
@@ -172,7 +172,7 @@ def opening(model, id)
 
   if s.surface.empty?
     TBD.log(TBD::ERROR,
-      "Can't find OSM subsurface '#{id}' parent - skipping")
+      "Can't find OSM subsurface '#{id}' parent surface - skipping")
     return 0, 0, points
   end
   dad = s.surface.get
@@ -184,23 +184,41 @@ def opening(model, id)
     return 0, 0, points
   end
 
-  construction = s.construction
-  if construction.empty?
+  constr = s.construction
+  if constr.empty?
     TBD.log(TBD::ERROR,
       "OSM subsurface '#{id}' missing construction - skipping")
     return 0, 0, points
   end
-  construction = construction.get.to_Construction.get
+  constr = constr.get.to_Construction.get
 
+  # A subsurfaces may have an overall U-factor set (preferred solution). With
+  # EnergyPlus' "simple window" model, a subsurface's construction has a single
+  # SimpleGlazing material/layer with the overall window's U-factor.
+  #
+  # https://bigladdersoftware.com/epx/docs/9-5/engineering-reference/
+  # window-calculation-module.html#simple-window-model
+  #
+  # For other cases, TBD will recover an 'additional property' tagged "uFactor",
+  # assigned either to the individual subsurface (if set) or assigned to its
+  # referenced construction as a (more generic) fallback (again, if set).
+  #
+  # If all else fails, TBD will calculate an approximate U-factor by adding up
+  # the subsurface's construction material thermal resistances (while relying on
+  # the subsurface's parent surface film resistances). This is the least
+  # accurate solution, especially if subsurfaces have Frame & Divider objects.
   u = s.uFactor
+  u = s.additionalProperties.getFeatureAsDouble("uFactor") if u.empty?
+  u = constr.additionalProperties.getFeatureAsDouble("uFactor") if u.empty?
   if u.empty?
-    r = rsi(construction, dad.filmResistance)
+    r = rsi(constr, dad.filmResistance)
     if r < TOL
       TBD.log(TBD::ERROR,
         "OSM subsurface '#{id}' U-factor unavailable - skipping")
       return 0, 0, points
+    else
+      u = 1.0 / r
     end
-    u = 1.0 / r
   else
     u = u.get
   end

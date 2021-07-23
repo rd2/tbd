@@ -1318,6 +1318,52 @@ def generateKiva(model, walls, floors, edges)
 end
 
 ##
+# Returns total air film resistance for fenestration (future use)
+#
+# @param [Float] usi A fenestrated construction's U-factor in W/m2.K
+#
+# @return [Float] Returns total air film resistance in m2.K/W (0.1216 if errors)
+def glazingAirFilmRSi(usi = 5.85)
+  # The sum of thermal resistances of calculated exterior and interior film
+  # coefficients under standard winter conditions are taken from:
+  # https://bigladdersoftware.com/epx/docs/9-5/engineering-reference/
+  # window-calculation-module.html#simple-window-model
+  #
+  # These remain acceptable approximations for flat windows, yet likely
+  # unsuitable for subsurfaces with curved or projecting shapes like domed
+  # skylights. Given TBD UA' calculation requirements (i.e. reporting only, not
+  # affecting simulation inputs), the solution (if ever used) would be
+  # considered an adequate fix, awaiting eventual OpenStudio (and EnergyPlus)
+  # upgrades to report NFRC 100 (or ISO) air film resistances under standard
+  # winter conditions.
+  #
+  # For U-factors above 8.0 W/m2.K (or invalid input), the function will return
+  # 0.1216 m2.K/W, which corresponds to a construction with a single glass layer
+  # of thickness 2mm & k = ~0.6 W/m.K, based on the output of the models.
+  #
+  # The EnergyPlus Engineering calculations were designed for vertical windows
+  # - not horizontal, slanted or domed surfaces.
+  unless usi && usi.is_a?(Numeric) && usi > TOL
+    TBD.log(TBD::DEBUG,
+      "Invalid U-factor, can't calculate air film resistance - skipping")
+    return 0.4216
+  end
+  if usi > 8.0
+    TBD.log(TBD::WARN,
+      "'#{id}' U-factor > 8.0 W/m2.K - using airfilm RSi of 0.1216 m2.K/W")
+    return 0.1216
+  end
+
+  rsi = 1.0 / (0.025342 * usi + 29.163853)                        # exterior ...
+
+  if usi < 5.85
+    return rsi + 1.0 / (0.359073 * Math.log(usi) + 6.949915)    # ... + interior
+  else
+    return rsi + 1.0 / (1.788041 * usi - 2.886625)              # ... + interior
+  end
+end
+
+##
 # Returns a construction's standard thermal resistance (with air films).
 #
 # @param [OpenStudio::Model::Construction] construction An OS construction
