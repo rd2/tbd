@@ -32,6 +32,13 @@
       },
       "uniqueItems": true
     },
+    "subsurfaces": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/SubSurface"
+      },
+      "uniqueItems": true
+    },
     "surfaces": {
       "type": "array",
       "items": {
@@ -313,6 +320,27 @@
       "required": [
         "type",
         "surfaces"
+      ]
+    },
+    "SubSurface": {
+      "description": "Suburface(s) U-factors (optional)",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "e.g. OS or E+ surface identifier",
+          "type": "string"
+        },
+        "usi": {
+          "title": "Overall U-factor (optional)",
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 10.0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "usi"
       ]
     },
     "Surface": {

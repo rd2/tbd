@@ -2,8 +2,8 @@
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>3095dc33-edfb-4cfc-b6b7-ccbdb533947b</version_id>
-  <version_modified>20210723T185551Z</version_modified>
+  <version_id>4b213f4d-b577-4106-8fde-8cab25a77867</version_id>
+  <version_modified>20210724T113859Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -327,16 +327,16 @@
       <checksum>FF80996D</checksum>
     </file>
     <file>
-      <filename>psi.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>FCD5109B</checksum>
-    </file>
-    <file>
       <filename>framedivider.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
       <checksum>7A5612C1</checksum>
+    </file>
+    <file>
+      <filename>psi.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>3ED1E16B</checksum>
     </file>
   </files>
 </measure>

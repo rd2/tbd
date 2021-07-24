@@ -6046,7 +6046,9 @@ RSpec.describe TBD do
             n: "Overhead Door 7" }.freeze
 
     psi_set = "poor (BETBG)"
-    io, surfaces = processTBD(os_model, psi_set)
+    ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse10.json"
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
     expect(io.nil?).to be(false)
@@ -6057,8 +6059,6 @@ RSpec.describe TBD do
     expect(io.has_key?(:edges))
     expect(io[:edges].size).to eq(300)
     expect(surfaces.size).to eq(23)
-    expect(TBD.status).to eq(0)
-    expect(TBD.logs.size).to eq(0)
 
     surfaces.each do |id, surface|
       next unless surface.has_key?(:conditioned)
@@ -6100,10 +6100,16 @@ RSpec.describe TBD do
         end
       end
 
+      id3 = { a: "Office Front Wall Window 1",
+              b: "Office Front Wall Window2" }.freeze
+              
       if surface.has_key?(:windows)
         surface[:windows].each do |i, window|
           expect(window.has_key?(:u)).to be(true)
           expect(window[:u]).to be_a(Numeric)
+          expect(window[:u]).to be_within(0.01).of(4.00) if i == id3[:a]
+          expect(window[:u]).to be_within(0.01).of(3.50) if i == id3[:b]
+          next if i == id3[:a] || i == id3[:b]
           expect(window[:u]).to be_within(0.01).of(2.35)
         end
       end

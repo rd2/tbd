@@ -727,6 +727,41 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
       end
     end
 
+    if io.has_key?(:subsurfaces)
+      io[:subsurfaces].each do |sub|
+        if sub.has_key?(:id) && sub.has_key?(:usi)
+          i = sub[:id]
+          match = false
+          surfaces.each do |id, surface|
+            if surface.has_key?(:windows)
+              surface[:windows].each do |ii, window|
+                next if match
+                match = true if i == ii
+              end
+            end
+            if surface.has_key?(:doors)
+              surface[:doors].each do |ii, door|
+                next if match
+                match = true if i == ii
+              end
+            end
+            if surface.has_key?(:skylights)
+              surface[:skylights].each do |ii, skylight|
+                next if match
+                match = true if i == ii
+              end
+            end
+          end
+          unless match
+            TBD.log(TBD::ERROR, "Missing OSM subsurface '#{i}' - skipping")
+          end
+        else
+          TBD.log(TBD::FATAL, "Invalid subsurface entry (TBD JSON file)")
+          return nil, psi, khi
+        end
+      end
+    end
+
     if io.has_key?(:edges)
       io[:edges].each do |edge|
         if edge.has_key?(:type) && edge.has_key?(:surfaces)
@@ -1897,6 +1932,7 @@ def processTBD(
     #   - subsurface gross area is below threshold TOL (not worth the effort)
     u, gross, pts = opening(os_model, id)
     next unless pts
+    next if u < TOL
     next if gross < TOL
 
     # Site-specific (or absolute, or true) surface normal.
@@ -2549,6 +2585,49 @@ def processTBD(
   #   custom :surfaces   PSI sets trump the aforementioned PSI sets
   #   custom :edges      PSI sets trump the aforementioned PSI sets
   if io
+    # First, reset subsurface U-factors (if set on file).
+    if io.has_key?(:subsurfaces)
+      io[:subsurfaces].each do |sub|
+        next unless sub.has_key?(:id)
+        next unless sub.has_key?(:usi)
+        i = sub[:id]
+        match = false
+        surfaces.values.each do |surface|
+          next if match
+          if surface.has_key?(:windows)
+            surface[:windows].each do |ii, window|
+              next unless window.has_key?(:u)
+              next if match
+              if i == ii
+                match = true
+                window[:u] = sub[:usi]
+              end
+            end
+          end
+          if surface.has_key?(:doors)
+            surface[:doors].each do |ii, door|
+              next unless door.has_key?(:u)
+              next if match
+              if i == ii
+                match = true
+                door[:u] = sub[:usi]
+              end
+            end
+          end
+          if surface.has_key?(:skylights)
+            surface[:skylights].each do |ii, skylight|
+              next unless skylight.has_key?(:u)
+              next if match
+              if i == ii
+                match = true
+                skylight[:u] = sub[:usi]
+              end
+            end
+          end
+        end
+      end
+    end
+
     if io.has_key?(:stories)
       io[:stories].each do |story|
         next unless story.has_key?(:id)
