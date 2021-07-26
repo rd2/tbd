@@ -87,7 +87,7 @@ rbenv install 2.7.2
 Install the OpenStudio Application v1.2.0 (or the SDK v3.2.0). Then create the file _~/.rbenv/versions/2.7.2/lib/ruby/site_ruby/openstudio.rb_, and point it to your OpenStudio installation by editing the contents, e.g.:
 
 ```
-require '/Applications/OpenStudio-2.7.2/Ruby/openstudio.rb'
+require '/Applications/OpenStudio-3.2.0/Ruby/openstudio.rb'
 ```
 
 In the Terminal, check the Ruby version:
