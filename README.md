@@ -17,7 +17,7 @@ Within the context of building energy simulation (and as required by recent buil
 
 Submit [here](https://github.com/automaticmagic/topolys/issues) issues or desired enhancements more closely linked to Topolys.
 
-Energy modelers simply interested in using the TBD OpenStudio _measure_ can either download the latest [release](https://github.com/rd2/tbd/releases) or access the measure via NREL's [BCL](https://bcl.nrel.gov) ... search for _bridging_ or _rd2_. The following installation and testing instructions are instead for those interested in exploring/tweaking the source code (cloned or forked versions of TBD).
+Energy modellers simply interested in using the TBD OpenStudio _measure_ can either download the latest [release](https://github.com/rd2/tbd/releases) or access the measure via NREL's [BCL](https://bcl.nrel.gov) ... search for _bridging_ or _rd2_. The following installation and testing instructions are instead for those interested in exploring/tweaking the source code (cloned or forked versions of TBD).
 
 
 ## Windows Instructions
@@ -86,6 +86,10 @@ rbenv install 2.7.2
 
 Install the OpenStudio Application v1.2.0 (or the SDK v3.2.0). Then create the file _~/.rbenv/versions/2.7.2/lib/ruby/site_ruby/openstudio.rb_, and point it to your OpenStudio installation by editing the contents, e.g.:
 
+```
+require '/Applications/OpenStudioApplication-1.2.0/Ruby/openstudio.rb'
+```
+or
 ```
 require '/Applications/OpenStudio-3.2.0/Ruby/openstudio.rb'
 ```
