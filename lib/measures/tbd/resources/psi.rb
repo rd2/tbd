@@ -1853,9 +1853,6 @@ def processTBD(
     surfaces[id][:heating] = heating if heating     # if valid heating setpoints
     surfaces[id][:cooling] = cooling if cooling     # if valid cooling setpoints
 
-    # Initialize UA' tree.
-    # surfaces[id][:ua] = {}
-
     a = space.spaceType.empty?
     surfaces[id][:stype] = space.spaceType.get unless a
     a = space.buildingStory.empty?
@@ -3003,15 +3000,8 @@ def processTBD(
         next unless io_k.point[i] > 0.001
         surface[:heatloss] = 0 unless surface.has_key?(:heatloss)
         surface[:heatloss] += io_k.point[i] * k[:count]
-
-        # next unless surface.has_key?(:ua)
         surface[:pts] = {} unless surface.has_key?(:pts)
         surface[:pts][i] = { val: io_k.point[i], n: k[:count] }
-
-
-        # next unless surface.has_key?(:ua)
-        # surface[:ua][:points] = {} unless surface[:ua].has_key?(:points)
-        # surface[:ua][:points][i] = { val: io_k.point[i], n: k[:count] }
       end
     end
   end
