@@ -24,7 +24,7 @@ Energy modellers simply interested in using the TBD OpenStudio _measure_ can eit
 
 ### Installation
 
-Install Ruby using the [RubyInstaller](https://rubyinstaller.org/downloads/archives/) for [Ruby 2.7.2 (x64)](https://github.com/oneclick/rubyinstaller2/releases/download/RubyInstaller-2.7.2-1/rubyinstaller-devkit-2.7.2-1-x86.exe).
+Install Ruby using the [RubyInstaller](https://rubyinstaller.org/downloads/archives/) for [Ruby 2.7.2 (x64)](https://github.com/oneclick/rubyinstaller2/releases/tag/RubyInstaller-2.7.2-1/rubyinstaller-2.7.2-1-x64.exe).
 
 Check the ruby installation returns the correct Ruby version (v2.7.2):
 ```
@@ -36,10 +36,12 @@ Install bundler from the command line
 gem install bundler -v 2.1
 ```
 
-Install the OpenStudio Application [v1.2.0](https://github.com/openstudiocoalition/OpenStudioApplication/releases/tag/v1.2.0) or the OpenStudio SDK [3.2.0](https://github.com/NREL/OpenStudio/releases/tag/v3.2.0).  Create a file ```C:\ruby-2.7.2-1-x64-mingw32\lib\ruby\site_ruby\openstudio.rb``` and point it to your OpenStudio installation by editing the contents e.g.:
+Install the OpenStudio SDK [3.2.1](https://github.com/NREL/OpenStudio/releases/tag/v3.2.1).
+
+Create a file ```C:\Ruby27-x64\lib\ruby\site_ruby\openstudio.rb```  (path may be different depending on the environment and/or Ruby variant) and point it to your OpenStudio installation by editing the contents e.g.:
 
 ```ruby
-require 'C:\openstudio-3.2.0\Ruby\openstudio.rb'
+require 'C:\openstudio-3.2.1\Ruby\openstudio.rb'
 ```
 
 Verify your OpenStudio and Ruby configuration:
@@ -57,14 +59,14 @@ Install Docker for Windows:
 https://docs.docker.com/docker-for-windows/install/
 ```
 
-Pull the OpenStudio v3.2.0 Docker image:
+Pull the OpenStudio v3.2.1 Docker image:
 ```
-docker pull nrel/openstudio:3.2.0
+docker pull nrel/openstudio:3.2.1
 ```
 
 In the root repository:
 ```
-docker run --name test --rm -d -t -v ${PWD}:/work -w /work nrel/openstudio:3.2.0
+docker run --name test --rm -d -t -v ${PWD}:/work -w /work nrel/openstudio:3.2.1
 docker exec -t test bundle update
 docker exec -t test bundle exec rake update_library_files
 docker exec -t test bundle exec rake
@@ -74,7 +76,7 @@ docker kill test
 
 ## MacOS Instructions
 
-MacOS already comes with Ruby, but maybe not the right Ruby version for the desired OpenStudio measure development [environment](https://github.com/NREL/OpenStudio/wiki/OpenStudio-SDK-Version-Compatibility-Matrix). The instructions here show how to install Ruby v2.7.2 (alongside MacOS's own Ruby version). Ruby v2.7.2 is compatible with OpenStudio [v3.2.0](https://github.com/NREL/OpenStudio/releases/tag/v3.2.0) and the OpenStudio Application [v1.2.0](https://github.com/openstudiocoalition/OpenStudioApplication/releases/tag/v1.2.0). An OpenStudio v2.9.1 setup is described [here](https://github.com/rd2/tbd/blob/ua/v291_MacOS.md).
+MacOS already comes with Ruby, but maybe not the right Ruby version for the desired OpenStudio measure development [environment](https://github.com/NREL/OpenStudio/wiki/OpenStudio-SDK-Version-Compatibility-Matrix). The instructions here show how to install Ruby v2.7.2 (alongside MacOS's own Ruby version). Ruby v2.7.2 is compatible with OpenStudio [v3.2.1](https://github.com/NREL/OpenStudio/releases/tag/v3.2.1) and the OpenStudio Application [v1.2.0](https://github.com/openstudiocoalition/OpenStudioApplication/releases/tag/v1.2.0). An OpenStudio v2.9.1 setup is described [here](https://github.com/rd2/tbd/blob/ua/v291_MacOS.md).
 
 From a Terminal, install [Homebrew](https://brew.sh/index) - nice for package distribution and management. Using Homebrew, install _ruby-build_, _rbenv_ (which allows users to manage multiple Ruby versions) and finally Ruby v2.7.2:
 
@@ -84,14 +86,12 @@ brew install rbenv
 rbenv install 2.7.2
 ```
 
-Install the OpenStudio Application v1.2.0 (or the SDK v3.2.0). Then create the file _~/.rbenv/versions/2.7.2/lib/ruby/site_ruby/openstudio.rb_, and point it to your OpenStudio installation by editing the contents, e.g.:
+Install the OpenStudio SDK [v3.2.1](https://www.openstudio.net/downloads).
+
+Then create the file _~/.rbenv/versions/2.7.2/lib/ruby/site_ruby/openstudio.rb_, and point it to your OpenStudio installation by editing the contents, e.g.:
 
 ```
-require '/Applications/OpenStudioApplication-1.2.0/Ruby/openstudio.rb'
-```
-or
-```
-require '/Applications/OpenStudio-3.2.0/Ruby/openstudio.rb'
+require '/Applications/OpenStudio-3.2.1/Ruby/openstudio.rb'
 ```
 
 In the Terminal, check the Ruby version:
@@ -100,7 +100,7 @@ In the Terminal, check the Ruby version:
 ruby -v
 ```
 
-It should report the current Ruby version used by macOS (e.g. ‘system’, or '2.6'). To ensure Ruby v2.7.2 is used for developing OpenStudio v3.2.0-compatible measures, a safe way is to instruct _rbenv_ to use Ruby v2.7.2 for anything within a user’s OpenStudio directory (the default OpenStudio installation would add a /Users/user/OpenStudio folder, containing a Measures folder):
+It should report the current Ruby version used by macOS (e.g. ‘system’, or '2.6'). To ensure Ruby v2.7.2 is used for developing OpenStudio v3.2.1-compatible measures, a safe way is to instruct _rbenv_ to use Ruby v2.7.2 for anything within a user’s OpenStudio directory (the default OpenStudio installation would add a /Users/user/OpenStudio folder, containing a Measures folder):
 
 ```
 cd ~/OpenStudio

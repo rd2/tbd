@@ -12,6 +12,7 @@ end
 
 require_relative "conditioned.rb"
 require_relative "framedivider.rb"
+require_relative "ua.rb"
 require_relative "log.rb"
 
 # Set 10mm tolerance for edge (thermal bridge) vertices.
@@ -558,7 +559,7 @@ end
 # :io_building = project-wide PSI set, if absent from TBD JSON file
 #
 # @param [Hash] surfaces Preprocessed collection of TBD surfaces
-# @param [Hash] edges Preprocessed collection TBD edges
+# @param [Hash] edges Preprocessed collection of TBD edges
 # @param [String] set Default) PSI set identifier, can be "" (empty)
 # @param [String] ioP Path to a user-set TBD JSON input file (optional)
 # @param [String] schemaP Path to a TBD JSON schema file (optional)
@@ -1851,6 +1852,10 @@ def processTBD(
     }
     surfaces[id][:heating] = heating if heating     # if valid heating setpoints
     surfaces[id][:cooling] = cooling if cooling     # if valid cooling setpoints
+
+    # Initialize UA' tree.
+    # surfaces[id][:ua] = {}
+
     a = space.spaceType.empty?
     surfaces[id][:stype] = space.spaceType.get unless a
     a = space.buildingStory.empty?
@@ -2002,9 +2007,6 @@ def processTBD(
 
   walls = surfaces.select { |i, p| p[:type] == :wall }
   walls = walls.sort_by { |i, p| [p[:minz], p[:space]] }.to_h
-
-  # Remove ":type" (now redundant).
-  surfaces.values.each { |p| p.delete_if { |ii, _| ii == :type } }
 
   # Fetch OpenStudio shading surfaces & key attributes.
   shades = {}
@@ -2909,7 +2911,8 @@ def processTBD(
     next unless edge.has_key?(:psi)
     psi = edge[:psi].values.max
     type = edge[:psi].key(psi)
-    bridge = { psi: psi, type: type, length: edge[:length] }
+    length = edge[:length]
+    bridge = { psi: psi, type: type, length: length }
 
     if edge.has_key?(:sets) && edge[:sets].has_key?(type)
       edge[:set] = edge[:sets][type] unless edge.has_key?(:io_set)
@@ -2964,9 +2967,11 @@ def processTBD(
     # insulating layer thermal resistance
     deratables.each do |id, deratable|
       surfaces[id][:edges] = {} unless surfaces[id].has_key?(:edges)
-      loss = 0
-      loss = bridge[:psi] * surfaces[id][:r] / rsi if rsi > 0.001
-      b = { psi: loss, type: bridge[:type], length: bridge[:length] }
+      ratio = 0
+      ratio = surfaces[id][:r] / rsi if rsi > 0.001
+      loss = bridge[:psi] * ratio
+
+      b = { psi: loss, type: bridge[:type], length: length, ratio: ratio }
       surfaces[id][:edges][identifier] = b
     end
   end
@@ -2992,11 +2997,21 @@ def processTBD(
       next unless id == s[:id]
       s[:khis].each do |k|
         next unless k.has_key?(:id)
+        i = k[:id]
         next unless k.has_key?(:count)
-        next unless io_k.point.has_key?(k[:id])
-        next unless io_k.point[k[:id]] > 0.001
+        next unless io_k.point.has_key?(i)
+        next unless io_k.point[i] > 0.001
         surface[:heatloss] = 0 unless surface.has_key?(:heatloss)
-        surface[:heatloss] += io_k.point[k[:id]] * k[:count]
+        surface[:heatloss] += io_k.point[i] * k[:count]
+
+        # next unless surface.has_key?(:ua)
+        surface[:pts] = {} unless surface.has_key?(:pts)
+        surface[:pts][i] = { val: io_k.point[i], n: k[:count] }
+
+
+        # next unless surface.has_key?(:ua)
+        # surface[:ua][:points] = {} unless surface[:ua].has_key?(:points)
+        # surface[:ua][:points][i] = { val: io_k.point[i], n: k[:count] }
       end
     end
   end
@@ -3107,13 +3122,11 @@ def processTBD(
         ratio  = -(current_R - updated_R) * 100 / current_R
         surface[:ratio] = ratio if ratio.abs > TOL
 
-        # Storing underated USi value, as well as reference USi (if applicable)
+        # Storing underated USi value (UA').
         surface[:u] = 1/current_R
       end
     end
   end
-
-  # Process edges & surfaces (& subsurfaces) to compute UA' summations.
 
   io[:edges] = []
   # Enrich io with TBD/Topolys edge info before returning:
@@ -3140,6 +3153,10 @@ def processTBD(
     io[:edges] << edge
   end
   io.delete(:edges) unless io[:edges].size > 0
+
+  if g_UA
+    qc33(surfaces, io_p) if ref && ref == "code (Quebec)"
+  end
 
   return io, surfaces
 end

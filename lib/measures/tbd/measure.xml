@@ -2,8 +2,8 @@
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>4b213f4d-b577-4106-8fde-8cab25a77867</version_id>
-  <version_modified>20210724T113859Z</version_modified>
+  <version_id>4cdd6b7f-2b94-4db9-9f07-268d00d92519</version_id>
+  <version_modified>20210731T112811Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -90,7 +90,7 @@
     <argument>
       <name>gen_UA_report</name>
       <display_name>Generate UA' report</display_name>
-      <description>Generate compliance report (UA sum + major thermal bridges), based on UA' pull-down reference below</description>
+      <description>Compare ∑U•A + ∑PSI•L + ∑KHI•n, vs UA' reference (pull-down option below)</description>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -310,6 +310,12 @@
       <checksum>9B4F2407</checksum>
     </file>
     <file>
+      <filename>framedivider.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>7A5612C1</checksum>
+    </file>
+    <file>
       <version>
         <software_program>OpenStudio</software_program>
         <identifier>2.9.1</identifier>
@@ -318,25 +324,25 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>A1802936</checksum>
+      <checksum>F6B2C939</checksum>
     </file>
     <file>
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>FF80996D</checksum>
-    </file>
-    <file>
-      <filename>framedivider.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>7A5612C1</checksum>
+      <checksum>2C173082</checksum>
     </file>
     <file>
       <filename>psi.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>3ED1E16B</checksum>
+      <checksum>2714BFAF</checksum>
+    </file>
+    <file>
+      <filename>ua.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>5A4591C6</checksum>
     </file>
   </files>
 </measure>

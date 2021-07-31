@@ -6045,10 +6045,17 @@ RSpec.describe TBD do
             m: "Overhead Door 6",
             n: "Overhead Door 7" }.freeze
 
+    psi = PSI.new
+    ref = "code (Quebec)"
+    has, val = psi.shorthands(ref)
+    expect(has.nil?).to be(false)
+    expect(val.nil?).to be(false)
+
     psi_set = "poor (BETBG)"
     ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse10.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
-    io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
+    io, surfaces = processTBD(os_model, psi_set, ioP, schemaP, true, ref)
+
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
     expect(io.nil?).to be(false)
@@ -6102,7 +6109,7 @@ RSpec.describe TBD do
 
       id3 = { a: "Office Front Wall Window 1",
               b: "Office Front Wall Window2" }.freeze
-              
+
       if surface.has_key?(:windows)
         surface[:windows].each do |i, window|
           expect(window.has_key?(:u)).to be(true)
@@ -6111,6 +6118,25 @@ RSpec.describe TBD do
           expect(window[:u]).to be_within(0.01).of(3.50) if i == id3[:b]
           next if i == id3[:a] || i == id3[:b]
           expect(window[:u]).to be_within(0.01).of(2.35)
+        end
+      end
+
+      if surface.has_key?(:edges)
+        surface[:edges].values.each do |edge|
+          expect(edge.has_key?(:type)).to be(true)
+          expect(edge.has_key?(:ratio)).to be(true)
+          expect(edge.has_key?(:ref)).to be(true)
+
+          tt = psi.safeType(ref, edge[:type])
+          expect(tt.nil?).to be(false)
+          expect(edge[:ref]).to be_within(0.01).of(val[tt] * edge[:ratio])
+          next if edge[:psi] < TOL
+          rate = edge[:ref] / edge[:psi] * 100
+          expect(rate).to be_within(0.1).of(30.0) if tt == :rimjoist
+          expect(rate).to be_within(0.1).of(40.6) if tt == :parapet
+          expect(rate).to be_within(0.1).of(70.0) if tt == :fenestration
+          expect(rate).to be_within(0.1).of(35.3) if tt == :corner
+          expect(rate).to be_within(0.1).of(52.9) if tt == :grade
         end
       end
     end

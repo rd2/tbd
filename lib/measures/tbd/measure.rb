@@ -11,6 +11,7 @@ rescue LoadError
   require_relative "resources/psi.rb"
   require_relative "resources/conditioned.rb"
   require_relative "resources/framedivider.rb"
+  require_relative "resources/ua.rb"
   require_relative "resources/geometry.rb"
   require_relative "resources/model.rb"
   require_relative "resources/transformation.rb"
@@ -23,12 +24,14 @@ end
 # Generates log errors and warnings, even if io or out are FALSE.
 #
 # @param [Runner] runner OpenStudio Measure runner
+# @param [Bool] ua True if user wishes to generate UA' metric/report
+# @param [Bool] ref UA' reference
 # @param [Bool] out True if user wishes to output detailed TBD content/results
 # @param [Hash] io TBD input/output content
 # @param [Hash] surfaces TBD derated surfaces
 #
 # @return [Bool] Returns true if TBD Measure is successful.
-def exitTBD(runner, out = false, io = nil, surfaces = nil)
+def exitTBD(runner, ua = false, ref = "", out = false, io = nil, surfaces = nil)
   # Generated files target a design context ( >= WARN ) ... change TBD log_level
   # for debugging purposes. By default, log_status is set below DEBUG while
   # log_level is set @WARN. Example: "TBD.set_log_level(TBD::DEBUG)".
@@ -71,6 +74,33 @@ def exitTBD(runner, out = false, io = nil, surfaces = nil)
     end
   end
   tbd_log[:results] = results unless results.empty?
+
+  # Process points, edges & surfaces (& subsurfaces) to compute UA' metric.
+  # Set up (3x) heating setpoint (HSTP) "blocks":
+  #   bloc1: spaces/zones with HSTP >= 18°C
+  #   bloc2: spaces/zones with HSTP < 18°C
+  #   bloc3: spaces/zones without HSTP (i.e. unconditioned)
+  #   ... in line with Quebec energy code 3.3. UA' trade-off methodology (2021)
+  #       - could be generalized in the future e.g., more blocks, user-set HSTP.
+  #
+  # TBD presents separately bloc1 & bloc2 UA' metrics - bloc3 is ignored.
+  #
+  # Both block's UA' = ∑ U•area + ∑ PSI•length + ∑ KHI•count
+  #
+  # TBD also presents binned results per component (per block), as follows:
+  #   - walls
+  #     - doors & windows
+  #   - roofs
+  #     - skylights
+  #   - floors
+  #     - any subsurface in an exposed floor
+  #   - subsurface (door, window, skylight) perimeters
+  #   - rimjoists, balconies & grade junctions
+  #   - parapets
+  #   - corners
+  #   - other (joint, party, points)
+  #
+  # TBD compares both block UA' & binned summaries vs valid reference values.
 
   tbd_msgs = []
   TBD.logs.each do |l|
@@ -188,7 +218,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
 
     gen_UA_report = OpenStudio::Measure::OSArgument.makeBoolArgument("gen_UA_report", true, false)
     gen_UA_report.setDisplayName("Generate UA' report")
-    gen_UA_report.setDescription("Generate compliance report (UA sum + major thermal bridges), based on UA' pull-down reference below")
+    gen_UA_report.setDescription("Compare ∑U•A + ∑PSI•L + ∑KHI•n, vs UA' reference (pull-down option below)")
     gen_UA_report.setDefaultValue(false)
     args << gen_UA_report
 
@@ -258,7 +288,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     schema_path = nil
     io, surfaces = processTBD(model, option, io_path, schema_path, gen_UA_report, ua_reference, gen_kiva)
 
-    return exitTBD(runner, write_tbd_json, io, surfaces)
+    return exitTBD(runner, gen_UA_report, ua_reference, write_tbd_json, io, surfaces)
   end
 end
 

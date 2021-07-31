@@ -44,7 +44,7 @@ Write 'tbd.out.json' file to customize for subsequent runs. Edit and place in mo
 **Model Dependent:** false
 
 ### Generate UA' report
-Generate compliance report (UA sum + major thermal bridges), based on UA' pull-down reference below
+Compare ∑U•A + ∑PSI•L + ∑KHI•n, vs UA' reference (pull-down option below)
 **Name:** gen_UA_report,
 **Type:** Boolean,
 **Units:** ,
