@@ -25,7 +25,6 @@ def qc33(surfaces, sets)
     next unless surface.has_key?(:deratable)
     next unless surface[:deratable]
     next unless surface.has_key?(:type)
-    # next unless surface.has_key?(:ua)
     next unless surface.has_key?(:heating)
     heating = surface[:heating]
     cooling = 50.0

@@ -3112,7 +3112,7 @@ def processTBD(
         ratio  = -(current_R - updated_R) * 100 / current_R
         surface[:ratio] = ratio if ratio.abs > TOL
 
-        # Storing underated USi value (UA').
+        # Storing underated U-factors value (for UA').
         surface[:u] = 1/current_R
       end
     end

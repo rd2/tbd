@@ -26,12 +26,12 @@ Energy modellers simply interested in using the TBD OpenStudio _measure_ can eit
 
 Install Ruby using the [RubyInstaller](https://rubyinstaller.org/downloads/archives/) for [Ruby 2.7.2 (x64)](https://github.com/oneclick/rubyinstaller2/releases/tag/RubyInstaller-2.7.2-1/rubyinstaller-2.7.2-1-x64.exe).
 
-Check the ruby installation returns the correct Ruby version (v2.7.2):
+From the command line, check that the ruby installation returns the correct Ruby version (v2.7.2):
 ```
 ruby -v
 ```
 
-Install bundler from the command line
+Install bundler:
 ```
 gem install bundler -v 2.1
 ```
@@ -40,7 +40,7 @@ Install the OpenStudio SDK [3.2.1](https://github.com/NREL/OpenStudio/releases/t
 
 Create a file ```C:\Ruby27-x64\lib\ruby\site_ruby\openstudio.rb```  (path may be different depending on the environment and/or Ruby variant) and point it to your OpenStudio installation by editing the contents e.g.:
 
-```ruby
+```
 require 'C:\openstudio-3.2.1\Ruby\openstudio.rb'
 ```
 
@@ -52,12 +52,9 @@ ruby -e "require 'openstudio'" -e "puts OpenStudio::Model::Model.new"
 Run basic tests to ensure the measure operates properly (see end of this README).
 
 
-## Run tests using Docker
+## Run tests using Docker - _optional_
 
-Install Docker for Windows:
-```
-https://docs.docker.com/docker-for-windows/install/
-```
+Install [Docker for Windows](https://docs.docker.com/docker-for-windows/install/).
 
 Pull the OpenStudio v3.2.1 Docker image:
 ```
@@ -76,15 +73,45 @@ docker kill test
 
 ## MacOS Instructions
 
-MacOS already comes with Ruby, but maybe not the right Ruby version for the desired OpenStudio measure development [environment](https://github.com/NREL/OpenStudio/wiki/OpenStudio-SDK-Version-Compatibility-Matrix). The instructions here show how to install Ruby v2.7.2 (alongside MacOS's own Ruby version). Ruby v2.7.2 is compatible with OpenStudio [v3.2.1](https://github.com/NREL/OpenStudio/releases/tag/v3.2.1) and the OpenStudio Application [v1.2.0](https://github.com/openstudiocoalition/OpenStudioApplication/releases/tag/v1.2.0). An OpenStudio v2.9.1 setup is described [here](https://github.com/rd2/tbd/blob/ua/v291_MacOS.md).
+MacOS already comes with Ruby, but maybe not the right Ruby version for the desired OpenStudio measure development [environment](https://github.com/NREL/OpenStudio/wiki/OpenStudio-SDK-Version-Compatibility-Matrix). Instructions here show how to install Ruby v2.7.2 (alongside MacOS's own Ruby version). Ruby v2.7.2 is compatible with OpenStudio [v3.2.1](https://github.com/NREL/OpenStudio/releases/tag/v3.2.1) and OpenStudio Application [v1.2.0](https://github.com/openstudiocoalition/OpenStudioApplication/releases/tag/v1.2.0). An OpenStudio v2.9.1 setup is described [here](https://github.com/rd2/tbd/blob/ua/v291_MacOS.md).
 
-From a Terminal, install [Homebrew](https://brew.sh/index) - nice for package distribution and management. Using Homebrew, install _ruby-build_, _rbenv_ (which allows users to manage multiple Ruby versions) and finally Ruby v2.7.2:
+From a Terminal, install [Homebrew](https://brew.sh/index) - nice for package distribution and management. Using Homebrew, install _rbenv_ (which allows users to manage multiple Ruby versions) and finally Ruby v2.7.2:
 
 ```
-brew install ruby-build
 brew install rbenv
+rbenv init
 rbenv install 2.7.2
 ```
+Install [bundler](https://bundler.io), great for managing Ruby gems and dependencies:
+
+```
+gem install bundler -v 2.1
+```
+
+In the Terminal, check the Ruby version:
+
+```
+ruby -v
+```
+
+... should still report the current Ruby version used by macOS (e.g. ```system```, or ```2.6```). To ensure Ruby v2.7.2 is used for developing OpenStudio v3.2.1-compatible measures, instruct _rbenv_ to use Ruby v2.7.2 _locally_ within a user’s chosen directory (e.g. "sandbox321"):
+
+```
+mkdir ~/Documents/sandbox321
+cd ~/Documents/sandbox321
+rbenv local 2.7.2
+ruby -v
+```
+… should now report ```2.7.2``` as the local Ruby version, to be used by default for anything under the "sandbox321" directory tree. To ensure both Ruby versions are operational and safe, run the following checkup twice - once from a user’s home (or ~/), then from within e.g., "sandbox321":
+
+```
+cd ~/
+ruby -ropen-uri -e 'eval URI.open("https://git.io/vQhWq").read'
+cd ~/Documents/sandbox321
+ruby -ropen-uri -e 'eval URI.open("https://git.io/vQhWq").read'
+```
+
+If successful, one should get a ```Hooray!``` from both Ruby versions confirming valid communication with [Rubygems](https://rubygems.org/).
 
 Install the OpenStudio SDK [v3.2.1](https://www.openstudio.net/downloads).
 
@@ -94,43 +121,14 @@ Then create the file _~/.rbenv/versions/2.7.2/lib/ruby/site_ruby/openstudio.rb_,
 require '/Applications/OpenStudio-3.2.1/Ruby/openstudio.rb'
 ```
 
-In the Terminal, check the Ruby version:
+Verify your local OpenStudio and Ruby configuration:
 
 ```
-ruby -v
-```
-
-It should report the current Ruby version used by macOS (e.g. ‘system’, or '2.6'). To ensure Ruby v2.7.2 is used for developing OpenStudio v3.2.1-compatible measures, a safe way is to instruct _rbenv_ to use Ruby v2.7.2 for anything within a user’s OpenStudio directory (the default OpenStudio installation would add a /Users/user/OpenStudio folder, containing a Measures folder):
-
-```
-cd ~/OpenStudio
-rbenv local 2.7.2
-ruby -v
-```
-
-… should report ```2.7.2``` as the local Ruby version, to be used by default for anything under the OpenStudio directory tree (including anything under Measures). To ensure both Ruby versions are operational and safe, run the following checkup twice - once from a user’s home (or ~/) directory, then from within the local OpenStudio environment:
-
-```
-cd ~/
-ruby -ropen-uri -e 'eval open("https://git.io/vQhWq").read'
-cd OpenStudio
-ruby -ropen-uri -e 'eval open("https://git.io/vQhWq").read'
-```
-
-If successful, one should get a ```Hooray!``` from both Ruby versions confirming valid communication with [Rubygems](https://rubygems.org/). It may be necessary to first install [bundler](https://bundler.io). If not, now’s a good time:
-
-```
-cd ~/OpensStudio
-gem install bundler -v 2.1
-```
-
-Verify your OpenStudio and Ruby configuration:
-
-```
+cd ~/Documents/sandbox321
 ruby -e "require 'openstudio'" -e "puts OpenStudio::Model::Model.new"
 ```
 
-Install the latest version of _git_ (e.g. through Homebrew), and _git clone_ the TBD measure under the user’s local OpenStudio Measures directory.
+Install the latest version of _git_ (e.g. through Homebrew), and _git clone_ the TBD measure e.g., under "sandbox321".
 
 Run the basic tests below to ensure the measure operates as expected.
 
