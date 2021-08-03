@@ -1,4 +1,4 @@
-_We reiterate that energy modellers simply interested in using the TBD OpenStudio measure can either download the latest [release](https://github.com/rd2/tbd/releases) or access the measure via NREL's [BCL2](https://bcl2.nrel.gov) ... search for "bridging" or "rd2"._
+_We reiterate that energy modellers simply interested in using the TBD OpenStudio measure can either download the latest [release](https://github.com/rd2/tbd/releases) or access the measure via NREL's [BCL](https://bcl.nrel.gov) ... search for "bridging" or "rd2"._
 
 _Those instead interested in exploring/tweaking the source code (cloned or forked versions of TBD) can follow the Windows or MacOS Ruby setup described in TBD's [README](https://github.com/rd2/tbd#readme)._
 
@@ -90,9 +90,9 @@ ruby -ropen-uri -e 'eval open("https://git.io/vQhWq").read'
 
 If successful, one should get a ```Hooray!``` from both Ruby versions confirming valid communication with [Rubygems](https://rubygems.org/), yet with their specific RubyGems and OpenSSL versions, as well as their own SSL certificates.
 
-Install OpenStudio v2.9.1.
+Install OpenStudio [v2.9.1](https://github.com/NREL/OpenStudio/releases/tag/v2.9.1).
 
-Then create the file _~/.rbenv/versions/2.2.5/lib/ruby/site_ruby/openstudio.rb_, and point it to your OpenStudio installation by editing the contents, e.g.:
+Then create the file _~/.rbenv/versions/2.2.5/lib/ruby/site_ruby/openstudio.rb_, and _point it_ to your OpenStudio installation by editing the contents, e.g.:
 
 ```
 require '/Applications/OpenStudio-2.9.1/Ruby/openstudio.rb'
