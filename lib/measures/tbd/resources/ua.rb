@@ -35,7 +35,7 @@ def qc33(surfaces, sets)
     ref = 1.0 / 3.60 if surface[:type] == :wall
 
     # Adjust for lower heating setpoint (assumes -25°C design conditions).
-    ref = 43.0 * ref / (heating + 25.0) if heating < 18.0 && cooling >= 18.0
+    ref *= 43.0 / (heating + 25.0) if heating < 18.0 && cooling >= 18.0
 
     # And store.
     surface[:ref] = ref
@@ -43,13 +43,13 @@ def qc33(surfaces, sets)
     # Loop through subsurfaces.
     if surface.has_key?(:skylights)
       ref = 2.85
-      ref = 43.0 * ref / (heating + 25.0) if heating < 18.0 && cooling >= 18.0
+      ref *= 43.0 / (heating + 25.0) if heating < 18.0 && cooling >= 18.0
       surface[:skylights].values.map { |skylight| skylight[:ref] = ref }
     end
 
     if surface.has_key?(:windows)
       ref = 2.0
-      ref = 43.0 * ref / (heating + 25.0) if heating < 18.0 && cooling >= 18.0
+      ref *= 43.0 / (heating + 25.0) if heating < 18.0 && cooling >= 18.0
       surface[:windows].values.map { |window| window[:ref] = ref }
     end
 
@@ -57,7 +57,7 @@ def qc33(surfaces, sets)
       surface[:doors].each do |i, door|
         ref = 0.9
         ref = 2.0 if door.has_key?(:glazed) && door[:glazed]
-        ref = 43.0 * ref / (heating + 25.0) if heating < 18.0 && cooling >= 18.0
+        ref *= 43.0 / (heating + 25.0) if heating < 18.0 && cooling >= 18.0
         door[:ref] = ref
       end
     end

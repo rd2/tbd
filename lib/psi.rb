@@ -3144,9 +3144,8 @@ def processTBD(
   end
   io.delete(:edges) unless io[:edges].size > 0
 
-  if g_UA
-    qc33(surfaces, io_p) if ref && ref == "code (Quebec)"
-  end
+  # Populate UA' trade-off reference values (optional).
+  qc33(surfaces, io_p) if g_UA && ref && ref == "code (Quebec)"
 
   return io, surfaces
 end

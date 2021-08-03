@@ -4632,7 +4632,7 @@ RSpec.describe TBD do
     expect(holds[:fenestration]).to be(true)
     expect(vals[:sill]).to be_within(0.001).of(0.371)
     expect(vals[:sillconcave]).to be_within(0.001).of(0.372)
-    expect(vals[:sillconvex]).to  be_within(0.001).of(0.373)
+    expect(vals[:sillconvex]).to be_within(0.001).of(0.373)
 
     expect(psi.set.has_key?("partial sills")).to be(false)
     partial_sills =
@@ -6067,6 +6067,28 @@ RSpec.describe TBD do
     expect(io[:edges].size).to eq(300)
     expect(surfaces.size).to eq(23)
 
+    # Set up 3x heating setpoint (HSTP) "blocks":
+    #   bloc1: spaces/zones with HSTP >= 18°C
+    #   bloc2: spaces/zones with HSTP < 18°C
+    #   bloc3: spaces/zones without HSTP (i.e. unheated)
+    #   (ref: 2021 Quebec energy code 3.3. UA' trade-off methodology)
+    #   ... could be generalized in the future e.g., more blocks, user-set HSTP.
+    #
+    # Determine UA' compliance separately for (i) bloc1 & (ii) bloc2.
+    #
+    # Each block's UA' = ∑ U•area + ∑ PSI•length + ∑ KHI•count
+    blc = { walls:   0, roofs:     0, floors:    0, doors:     0,
+            windows: 0, skylights: 0, rimjoists: 0, parapets:  0,
+            subs:    0, corners:   0, balconies: 0, grades:    0,
+            other:   0 # includes party wall edges, expansion joints, etc.
+          }
+    bloc1 = {}
+    bloc2 = {}
+    bloc1[:pro] = blc
+    bloc1[:ref] = blc.clone
+    bloc2[:pro] = blc.clone
+    bloc2[:ref] = blc.clone
+
     surfaces.each do |id, surface|
       next unless surface.has_key?(:conditioned)
       expect(surface.has_key?(:heating)).to be(true)
@@ -6074,6 +6096,10 @@ RSpec.describe TBD do
       expect(surface.has_key?(:deratable)).to be(true)
       next unless surface[:deratable]
       expect(ids.has_value?(id)).to be(true)
+      expect(surface.has_key?(:type)).to be(true)
+      expect(surface.has_key?(:net)).to be(true)
+      expect(surface[:net] > TOL).to be(true)
+
       expect(surface.has_key?(:u)).to be(true)
       expect(surface[:u]).to be_a(Numeric)
       expect(surface[:u]).to be_within(0.01).of(0.48) if id == ids[:a]
@@ -6089,6 +6115,35 @@ RSpec.describe TBD do
       expect(surface[:u]).to be_within(0.01).of(0.64) if id == ids[:k]
       expect(surface[:u]).to be_within(0.01).of(0.64) if id == ids[:l]
 
+      # Reference values.
+      expect(surface.has_key?(:ref)).to be(true)
+      expect(surface[:ref]).to be_within(0.01).of(0.28) if id == ids[:a]
+      expect(surface[:ref]).to be_within(0.01).of(0.28) if id == ids[:b]
+      expect(surface[:ref]).to be_within(0.01).of(0.19) if id == ids[:c]
+      expect(surface[:ref]).to be_within(0.01).of(0.29) if id == ids[:d]
+      expect(surface[:ref]).to be_within(0.01).of(0.29) if id == ids[:e]
+      expect(surface[:ref]).to be_within(0.01).of(0.29) if id == ids[:f]
+      expect(surface[:ref]).to be_within(0.01).of(0.29) if id == ids[:g]
+      expect(surface[:ref]).to be_within(0.01).of(0.29) if id == ids[:h]
+      expect(surface[:ref]).to be_within(0.01).of(0.23) if id == ids[:i]
+      expect(surface[:ref]).to be_within(0.01).of(0.34) if id == ids[:j]
+      expect(surface[:ref]).to be_within(0.01).of(0.34) if id == ids[:k]
+      expect(surface[:ref]).to be_within(0.01).of(0.34) if id == ids[:l]
+
+      bloc = bloc1
+      bloc = bloc2 if surface[:heating] < 18
+
+      if surface[:type] == :wall
+        bloc[:pro][:walls] += surface[:net] * surface[:u]
+        bloc[:ref][:walls] += surface[:net] * surface[:ref]
+      elsif surface[:type] == :ceiling
+        bloc[:pro][:roofs] += surface[:net] * surface[:u]
+        bloc[:ref][:roofs] += surface[:net] * surface[:ref]
+      else
+        bloc[:pro][:floors] += surface[:net] * surface[:u]
+        bloc[:ref][:floors] += surface[:net] * surface[:ref]
+      end
+
       if surface.has_key?(:doors)
         surface[:doors].each do |i, door|
           expect(id2.has_value?(i)).to be(true)
@@ -6096,6 +6151,10 @@ RSpec.describe TBD do
           expect(door.has_key?(:u)).to be(true)
           expect(door[:u]).to be_a(Numeric)
           expect(door[:u]).to be_within(0.01).of(3.98)
+          expect(door.has_key?(:ref)).to be(true)
+          expect(door[:ref]).to be_a(Numeric)
+          bloc[:pro][:doors] += door[:gross] * door[:u]
+          bloc[:ref][:doors] += door[:gross] * door[:ref]
         end
       end
 
@@ -6104,6 +6163,10 @@ RSpec.describe TBD do
           expect(skylight.has_key?(:u)).to be(true)
           expect(skylight[:u]).to be_a(Numeric)
           expect(skylight[:u]).to be_within(0.01).of(6.64)
+          expect(skylight.has_key?(:ref)).to be(true)
+          expect(skylight[:ref]).to be_a(Numeric)
+          bloc[:pro][:skylights] += skylight[:gross] * skylight[:u]
+          bloc[:ref][:skylights] += skylight[:gross] * skylight[:ref]
         end
       end
 
@@ -6113,10 +6176,17 @@ RSpec.describe TBD do
       if surface.has_key?(:windows)
         surface[:windows].each do |i, window|
           expect(window.has_key?(:u)).to be(true)
+          expect(window.has_key?(:ref)).to be(true)
+          expect(window[:ref]).to be_a(Numeric)
+          bloc[:pro][:windows] += window[:gross] * window[:u]
+          bloc[:ref][:windows] += window[:gross] * window[:ref]
           expect(window[:u]).to be_a(Numeric)
           expect(window[:u]).to be_within(0.01).of(4.00) if i == id3[:a]
           expect(window[:u]).to be_within(0.01).of(3.50) if i == id3[:b]
+          expect(window[:gross]).to be_within(0.1).of(5.58) if i == id3[:a]
+          expect(window[:gross]).to be_within(0.1).of(5.58) if i == id3[:b]
           next if i == id3[:a] || i == id3[:b]
+          expect(window[:gross]).to be_within(0.1).of(3.25)
           expect(window[:u]).to be_within(0.01).of(2.35)
         end
       end
@@ -6132,16 +6202,104 @@ RSpec.describe TBD do
           expect(edge[:ref]).to be_within(0.01).of(val[tt] * edge[:ratio])
           next if edge[:psi] < TOL
           rate = edge[:ref] / edge[:psi] * 100
-          expect(rate).to be_within(0.1).of(30.0) if tt == :rimjoist
-          expect(rate).to be_within(0.1).of(40.6) if tt == :parapet
-          expect(rate).to be_within(0.1).of(70.0) if tt == :fenestration
-          expect(rate).to be_within(0.1).of(35.3) if tt == :corner
-          expect(rate).to be_within(0.1).of(52.9) if tt == :grade
+
+          case tt
+          when :rimjoist
+            expect(rate).to be_within(0.1).of(30.0)
+            bloc[:pro][:rimjoists] += edge[:length] * edge[:psi]
+            bloc[:ref][:rimjoists] += edge[:length] * val[tt] * edge[:ratio]
+          when :parapet
+            expect(rate).to be_within(0.1).of(40.6)
+            bloc[:pro][:parapets] += edge[:length] * edge[:psi]
+            bloc[:ref][:parapets] += edge[:length] * val[tt] * edge[:ratio]
+          when :fenestration
+            expect(rate).to be_within(0.1).of(70.0)
+            bloc[:pro][:subs] += edge[:length] * edge[:psi]
+            bloc[:ref][:subs] += edge[:length] * val[tt] * edge[:ratio]
+          when :corner
+            expect(rate).to be_within(0.1).of(35.3)
+            bloc[:pro][:corners] += edge[:length] * edge[:psi]
+            bloc[:ref][:corners] += edge[:length] * val[tt] * edge[:ratio]
+          when :grade
+            expect(rate).to be_within(0.1).of(52.9)
+            bloc[:pro][:grades] += edge[:length] * edge[:psi]
+            bloc[:ref][:grades] += edge[:length] * val[tt] * edge[:ratio]
+          else
+            expect(rate).to be_within(0.1).of( 0.0)
+            bloc[:pro][:other] += edge[:length] * edge[:psi]
+            bloc[:ref][:other] += edge[:length] * val[tt] * edge[:ratio]
+          end
         end
       end
     end
 
-    # (work in progress ...)
+    expect(bloc1[:pro][:walls]).to     be_within(0.1).of(  60.1)
+    expect(bloc1[:pro][:roofs]).to     be_within(0.1).of(   0.0)
+    expect(bloc1[:pro][:floors]).to    be_within(0.1).of(   0.0)
+    expect(bloc1[:pro][:doors]).to     be_within(0.1).of(  23.3)
+    expect(bloc1[:pro][:windows]).to   be_within(0.1).of(  57.1)
+    expect(bloc1[:pro][:skylights]).to be_within(0.1).of(   0.0)
+    expect(bloc1[:pro][:rimjoists]).to be_within(0.1).of(  17.5)
+    expect(bloc1[:pro][:parapets]).to  be_within(0.1).of(   0.0)
+    expect(bloc1[:pro][:subs]).to      be_within(0.1).of(  23.3)
+    expect(bloc1[:pro][:corners]).to   be_within(0.1).of(   3.6)
+    expect(bloc1[:pro][:balconies]).to be_within(0.1).of(   0.0)
+    expect(bloc1[:pro][:grades]).to    be_within(0.1).of(  29.8)
+    expect(bloc1[:pro][:other]).to     be_within(0.1).of(   0.0)
+
+    bloc1_pro_UA = bloc1[:pro].values.reduce(:+)
+    expect(bloc1_pro_UA).to be_within(0.1).of(214.8)
+
+    expect(bloc1[:ref][:walls]).to     be_within(0.1).of(  35.0)
+    expect(bloc1[:ref][:roofs]).to     be_within(0.1).of(   0.0)
+    expect(bloc1[:ref][:floors]).to    be_within(0.1).of(   0.0)
+    expect(bloc1[:ref][:doors]).to     be_within(0.1).of(   5.3)
+    expect(bloc1[:ref][:windows]).to   be_within(0.1).of(  35.3)
+    expect(bloc1[:ref][:skylights]).to be_within(0.1).of(   0.0)
+    expect(bloc1[:ref][:rimjoists]).to be_within(0.1).of(   5.3)
+    expect(bloc1[:ref][:parapets]).to  be_within(0.1).of(   0.0)
+    expect(bloc1[:ref][:subs]).to      be_within(0.1).of(  16.3)
+    expect(bloc1[:ref][:corners]).to   be_within(0.1).of(   1.3)
+    expect(bloc1[:ref][:balconies]).to be_within(0.1).of(   0.0)
+    expect(bloc1[:ref][:grades]).to    be_within(0.1).of(  15.8)
+    expect(bloc1[:ref][:other]).to     be_within(0.1).of(   0.0)
+
+    bloc1_ref_UA = bloc1[:ref].values.reduce(:+)
+    expect(bloc1_ref_UA).to be_within(0.1).of(114.2)
+
+    expect(bloc2[:pro][:walls]).to     be_within(0.1).of(1342.0)
+    expect(bloc2[:pro][:roofs]).to     be_within(0.1).of(2169.2)
+    expect(bloc2[:pro][:floors]).to    be_within(0.1).of(   0.0)
+    expect(bloc2[:pro][:doors]).to     be_within(0.1).of( 245.6)
+    expect(bloc2[:pro][:windows]).to   be_within(0.1).of(   0.0)
+    expect(bloc2[:pro][:skylights]).to be_within(0.1).of( 454.3)
+    expect(bloc2[:pro][:rimjoists]).to be_within(0.1).of(  17.5)
+    expect(bloc2[:pro][:parapets]).to  be_within(0.1).of( 234.1)
+    expect(bloc2[:pro][:subs]).to      be_within(0.1).of( 155.0)
+    expect(bloc2[:pro][:corners]).to   be_within(0.1).of(  25.4)
+    expect(bloc2[:pro][:balconies]).to be_within(0.1).of(   0.0)
+    expect(bloc2[:pro][:grades]).to    be_within(0.1).of( 218.9)
+    expect(bloc2[:pro][:other]).to     be_within(0.1).of(   0.0)
+
+    bloc2_pro_UA = bloc2[:pro].values.reduce(:+)
+    expect(bloc2_pro_UA).to be_within(0.1).of(4862.0)
+
+    expect(bloc2[:ref][:walls]).to     be_within(0.1).of( 744.6)
+    expect(bloc2[:ref][:roofs]).to     be_within(0.1).of( 976.9)
+    expect(bloc2[:ref][:floors]).to    be_within(0.1).of(   0.0)
+    expect(bloc2[:ref][:doors]).to     be_within(0.1).of(  67.7)
+    expect(bloc2[:ref][:windows]).to   be_within(0.1).of(   0.0)
+    expect(bloc2[:ref][:skylights]).to be_within(0.1).of( 229.4)
+    expect(bloc2[:ref][:rimjoists]).to be_within(0.1).of(   5.3)
+    expect(bloc2[:ref][:parapets]).to  be_within(0.1).of(  95.1)
+    expect(bloc2[:ref][:subs]).to      be_within(0.1).of( 108.5)
+    expect(bloc2[:ref][:corners]).to   be_within(0.1).of(   9.0)
+    expect(bloc2[:ref][:balconies]).to be_within(0.1).of(   0.0)
+    expect(bloc2[:ref][:grades]).to    be_within(0.1).of( 115.9)
+    expect(bloc2[:ref][:other]).to     be_within(0.1).of(   0.0)
+
+    bloc2_ref_UA = bloc2[:ref].values.reduce(:+)
+    expect(bloc2_ref_UA).to be_within(0.1).of(2352.4)
   end
 
   it "can generate and access KIVA inputs (seb)" do
