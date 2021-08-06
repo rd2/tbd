@@ -6048,8 +6048,8 @@ RSpec.describe TBD do
     psi = PSI.new
     ref = "code (Quebec)"
     has, val = psi.shorthands(ref)
-    expect(has.nil?).to be(false)
-    expect(val.nil?).to be(false)
+    expect(has.empty?).to be(false)
+    expect(val.empty?).to be(false)
 
     psi_set = "poor (BETBG)"
     ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse10.json"
@@ -6079,7 +6079,7 @@ RSpec.describe TBD do
     # Each block's UA' = ∑ U•area + ∑ PSI•length + ∑ KHI•count
     blc = { walls:   0, roofs:     0, floors:    0, doors:     0,
             windows: 0, skylights: 0, rimjoists: 0, parapets:  0,
-            subs:    0, corners:   0, balconies: 0, grades:    0,
+            trim:    0, corners:   0, balconies: 0, grade:     0,
             other:   0 # includes party wall edges, expansion joints, etc.
           }
     bloc1 = {}
@@ -6090,9 +6090,6 @@ RSpec.describe TBD do
     bloc2[:ref] = blc.clone
 
     surfaces.each do |id, surface|
-      next unless surface.has_key?(:conditioned)
-      expect(surface.has_key?(:heating)).to be(true)
-      expect(surface.has_key?(:cooling)).to be(true)
       expect(surface.has_key?(:deratable)).to be(true)
       next unless surface[:deratable]
       expect(ids.has_value?(id)).to be(true)
@@ -6101,7 +6098,7 @@ RSpec.describe TBD do
       expect(surface[:net] > TOL).to be(true)
 
       expect(surface.has_key?(:u)).to be(true)
-      expect(surface[:u]).to be_a(Numeric)
+      expect(surface[:u] > TOL).to be(true)
       expect(surface[:u]).to be_within(0.01).of(0.48) if id == ids[:a]
       expect(surface[:u]).to be_within(0.01).of(0.48) if id == ids[:b]
       expect(surface[:u]).to be_within(0.01).of(0.31) if id == ids[:c]
@@ -6130,6 +6127,9 @@ RSpec.describe TBD do
       expect(surface[:ref]).to be_within(0.01).of(0.34) if id == ids[:k]
       expect(surface[:ref]).to be_within(0.01).of(0.34) if id == ids[:l]
 
+      expect(surface.has_key?(:heating)).to be(true)
+      expect(surface.has_key?(:cooling)).to be(true)
+
       bloc = bloc1
       bloc = bloc2 if surface[:heating] < 18
 
@@ -6147,12 +6147,14 @@ RSpec.describe TBD do
       if surface.has_key?(:doors)
         surface[:doors].each do |i, door|
           expect(id2.has_value?(i)).to be(true)
+          expect(door.has_key?(:gross)).to be(true)
+          expect(door[:gross] > TOL).to be(true)
           expect(door.has_key?(:glazed)).to be(false)
           expect(door.has_key?(:u)).to be(true)
-          expect(door[:u]).to be_a(Numeric)
+          expect(door[:u] > TOL).to be(true)
           expect(door[:u]).to be_within(0.01).of(3.98)
           expect(door.has_key?(:ref)).to be(true)
-          expect(door[:ref]).to be_a(Numeric)
+          expect(door[:ref] > TOL).to be(true)
           bloc[:pro][:doors] += door[:gross] * door[:u]
           bloc[:ref][:doors] += door[:gross] * door[:ref]
         end
@@ -6160,11 +6162,13 @@ RSpec.describe TBD do
 
       if surface.has_key?(:skylights)
         surface[:skylights].each do |i, skylight|
+          expect(skylight.has_key?(:gross)).to be(true)
+          expect(skylight[:gross] > TOL).to be(true)
           expect(skylight.has_key?(:u)).to be(true)
-          expect(skylight[:u]).to be_a(Numeric)
+          expect(skylight[:u] > TOL).to be(true)
           expect(skylight[:u]).to be_within(0.01).of(6.64)
           expect(skylight.has_key?(:ref)).to be(true)
-          expect(skylight[:ref]).to be_a(Numeric)
+          expect(skylight[:ref] > TOL).to be(true)
           bloc[:pro][:skylights] += skylight[:gross] * skylight[:u]
           bloc[:ref][:skylights] += skylight[:gross] * skylight[:ref]
         end
@@ -6177,10 +6181,10 @@ RSpec.describe TBD do
         surface[:windows].each do |i, window|
           expect(window.has_key?(:u)).to be(true)
           expect(window.has_key?(:ref)).to be(true)
-          expect(window[:ref]).to be_a(Numeric)
+          expect(window[:ref] > TOL).to be(true)
           bloc[:pro][:windows] += window[:gross] * window[:u]
           bloc[:ref][:windows] += window[:gross] * window[:ref]
-          expect(window[:u]).to be_a(Numeric)
+          expect(window[:u] > 0).to be(true)
           expect(window[:u]).to be_within(0.01).of(4.00) if i == id3[:a]
           expect(window[:u]).to be_within(0.01).of(3.50) if i == id3[:b]
           expect(window[:gross]).to be_within(0.1).of(5.58) if i == id3[:a]
@@ -6196,11 +6200,12 @@ RSpec.describe TBD do
           expect(edge.has_key?(:type)).to be(true)
           expect(edge.has_key?(:ratio)).to be(true)
           expect(edge.has_key?(:ref)).to be(true)
+          expect(edge.has_key?(:psi)).to be(true)
+          next unless edge[:psi] > TOL
 
           tt = psi.safeType(ref, edge[:type])
           expect(tt.nil?).to be(false)
           expect(edge[:ref]).to be_within(0.01).of(val[tt] * edge[:ratio])
-          next if edge[:psi] < TOL
           rate = edge[:ref] / edge[:psi] * 100
 
           case tt
@@ -6214,21 +6219,31 @@ RSpec.describe TBD do
             bloc[:ref][:parapets] += edge[:length] * val[tt] * edge[:ratio]
           when :fenestration
             expect(rate).to be_within(0.1).of(70.0)
-            bloc[:pro][:subs] += edge[:length] * edge[:psi]
-            bloc[:ref][:subs] += edge[:length] * val[tt] * edge[:ratio]
+            bloc[:pro][:trim] += edge[:length] * edge[:psi]
+            bloc[:ref][:trim] += edge[:length] * val[tt] * edge[:ratio]
           when :corner
             expect(rate).to be_within(0.1).of(35.3)
             bloc[:pro][:corners] += edge[:length] * edge[:psi]
             bloc[:ref][:corners] += edge[:length] * val[tt] * edge[:ratio]
           when :grade
             expect(rate).to be_within(0.1).of(52.9)
-            bloc[:pro][:grades] += edge[:length] * edge[:psi]
-            bloc[:ref][:grades] += edge[:length] * val[tt] * edge[:ratio]
+            bloc[:pro][:grade] += edge[:length] * edge[:psi]
+            bloc[:ref][:grade] += edge[:length] * val[tt] * edge[:ratio]
           else
             expect(rate).to be_within(0.1).of( 0.0)
             bloc[:pro][:other] += edge[:length] * edge[:psi]
             bloc[:ref][:other] += edge[:length] * val[tt] * edge[:ratio]
           end
+        end
+      end
+
+      if surface.has_key?(:pts)
+        surface[:pts].values.each do |pts|
+          expect(pts.has_key?(:val)).to be(true)
+          expect(pts.has_key?(:n)).to be(true)
+          bloc[:pro][:other] += pts[:val] * pts[:n]
+          expect(pts.has_key?(:ref)).to be(true)
+          bloc[:ref][:other] += pts[:ref] * pts[:n]
         end
       end
     end
@@ -6241,14 +6256,15 @@ RSpec.describe TBD do
     expect(bloc1[:pro][:skylights]).to be_within(0.1).of(   0.0)
     expect(bloc1[:pro][:rimjoists]).to be_within(0.1).of(  17.5)
     expect(bloc1[:pro][:parapets]).to  be_within(0.1).of(   0.0)
-    expect(bloc1[:pro][:subs]).to      be_within(0.1).of(  23.3)
+    expect(bloc1[:pro][:trim]).to      be_within(0.1).of(  23.3)
     expect(bloc1[:pro][:corners]).to   be_within(0.1).of(   3.6)
     expect(bloc1[:pro][:balconies]).to be_within(0.1).of(   0.0)
-    expect(bloc1[:pro][:grades]).to    be_within(0.1).of(  29.8)
+    expect(bloc1[:pro][:grade]).to     be_within(0.1).of(  29.8)
     expect(bloc1[:pro][:other]).to     be_within(0.1).of(   0.0)
 
     bloc1_pro_UA = bloc1[:pro].values.reduce(:+)
     expect(bloc1_pro_UA).to be_within(0.1).of(214.8)
+    # Info: Design (fully heated): 199.2 W/K vs 114.2 W/K
 
     expect(bloc1[:ref][:walls]).to     be_within(0.1).of(  35.0)
     expect(bloc1[:ref][:roofs]).to     be_within(0.1).of(   0.0)
@@ -6258,10 +6274,10 @@ RSpec.describe TBD do
     expect(bloc1[:ref][:skylights]).to be_within(0.1).of(   0.0)
     expect(bloc1[:ref][:rimjoists]).to be_within(0.1).of(   5.3)
     expect(bloc1[:ref][:parapets]).to  be_within(0.1).of(   0.0)
-    expect(bloc1[:ref][:subs]).to      be_within(0.1).of(  16.3)
+    expect(bloc1[:ref][:trim]).to      be_within(0.1).of(  16.3)
     expect(bloc1[:ref][:corners]).to   be_within(0.1).of(   1.3)
     expect(bloc1[:ref][:balconies]).to be_within(0.1).of(   0.0)
-    expect(bloc1[:ref][:grades]).to    be_within(0.1).of(  15.8)
+    expect(bloc1[:ref][:grade]).to    be_within(0.1).of(  15.8)
     expect(bloc1[:ref][:other]).to     be_within(0.1).of(   0.0)
 
     bloc1_ref_UA = bloc1[:ref].values.reduce(:+)
@@ -6275,14 +6291,14 @@ RSpec.describe TBD do
     expect(bloc2[:pro][:skylights]).to be_within(0.1).of( 454.3)
     expect(bloc2[:pro][:rimjoists]).to be_within(0.1).of(  17.5)
     expect(bloc2[:pro][:parapets]).to  be_within(0.1).of( 234.1)
-    expect(bloc2[:pro][:subs]).to      be_within(0.1).of( 155.0)
+    expect(bloc2[:pro][:trim]).to      be_within(0.1).of( 155.0)
     expect(bloc2[:pro][:corners]).to   be_within(0.1).of(  25.4)
     expect(bloc2[:pro][:balconies]).to be_within(0.1).of(   0.0)
-    expect(bloc2[:pro][:grades]).to    be_within(0.1).of( 218.9)
-    expect(bloc2[:pro][:other]).to     be_within(0.1).of(   0.0)
+    expect(bloc2[:pro][:grade]).to     be_within(0.1).of( 218.9)
+    expect(bloc2[:pro][:other]).to     be_within(0.1).of(   1.6)
 
     bloc2_pro_UA = bloc2[:pro].values.reduce(:+)
-    expect(bloc2_pro_UA).to be_within(0.1).of(4862.0)
+    expect(bloc2_pro_UA).to be_within(0.1).of(4863.6)
 
     expect(bloc2[:ref][:walls]).to     be_within(0.1).of( 744.6)
     expect(bloc2[:ref][:roofs]).to     be_within(0.1).of( 976.9)
@@ -6292,14 +6308,14 @@ RSpec.describe TBD do
     expect(bloc2[:ref][:skylights]).to be_within(0.1).of( 229.4)
     expect(bloc2[:ref][:rimjoists]).to be_within(0.1).of(   5.3)
     expect(bloc2[:ref][:parapets]).to  be_within(0.1).of(  95.1)
-    expect(bloc2[:ref][:subs]).to      be_within(0.1).of( 108.5)
+    expect(bloc2[:ref][:trim]).to      be_within(0.1).of( 108.5)
     expect(bloc2[:ref][:corners]).to   be_within(0.1).of(   9.0)
     expect(bloc2[:ref][:balconies]).to be_within(0.1).of(   0.0)
-    expect(bloc2[:ref][:grades]).to    be_within(0.1).of( 115.9)
-    expect(bloc2[:ref][:other]).to     be_within(0.1).of(   0.0)
+    expect(bloc2[:ref][:grade]).to     be_within(0.1).of( 115.9)
+    expect(bloc2[:ref][:other]).to     be_within(0.1).of(   1.0)
 
     bloc2_ref_UA = bloc2[:ref].values.reduce(:+)
-    expect(bloc2_ref_UA).to be_within(0.1).of(2352.4)
+    expect(bloc2_ref_UA).to be_within(0.1).of(2353.4)
   end
 
   it "can generate and access KIVA inputs (seb)" do

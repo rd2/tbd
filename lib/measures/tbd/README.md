@@ -44,7 +44,7 @@ Write 'tbd.out.json' file to customize for subsequent runs. Edit and place in mo
 **Model Dependent:** false
 
 ### Generate UA' report
-Compare ∑U•A + ∑PSI•L + ∑KHI•n, vs UA' reference (pull-down option below)
+Compare ∑U•A + ∑PSI•L + ∑KHI•n (model vs UA' reference - see pull-down option below).
 **Name:** gen_UA_report,
 **Type:** Boolean,
 **Units:** ,
@@ -60,7 +60,7 @@ e.g. 'poor', 'regular', 'efficient', 'code'.
 **Model Dependent:** false
 
 ### Generate Kiva inputs
-Generate Kiva settings & objects if any model surfaces have 'foundation' boundary conditions ('ground' facing surfaces are ignored).
+Generate Kiva settings & objects for surfaces with 'foundation' boundary conditions (not 'ground').
 **Name:** gen_kiva,
 **Type:** Boolean,
 **Units:** ,
@@ -68,7 +68,7 @@ Generate Kiva settings & objects if any model surfaces have 'foundation' boundar
 **Model Dependent:** false
 
 ### Force-generate Kiva inputs
-Overwrites all 'ground' boundary conditions as 'foundation' before generating Kiva inputs (preferred solution).
+Overwrites 'ground' boundary conditions as 'foundation' before generating Kiva inputs (recommended).
 **Name:** gen_kiva_force,
 **Type:** Boolean,
 **Units:** ,
