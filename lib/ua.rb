@@ -209,6 +209,12 @@ def ua_summary(surfaces, ref = "")
           bloc[:pro][:parapets] += loss
         when /fenestration/i
           bloc[:pro][:trim] += loss
+        when /head/i
+          bloc[:pro][:trim] += loss
+        when /sill/i
+          bloc[:pro][:trim] += loss
+        when /jamb/i
+          bloc[:pro][:trim] += loss
         when /corner/i
           bloc[:pro][:corners] += loss
         when /grade/i
