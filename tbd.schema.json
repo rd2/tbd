@@ -477,19 +477,45 @@
               "title": "heating setpoints >= 18°C",
               "type": "object",
               "properties": {
-                "summary": {"type":"string"},
-                "walls": {"type":"string"},
-                "roofs": {"type":"string"},
-                "floors": {"type":"string"},
-                "doors": {"type":"string"},
-                "windows": {"type":"string"},
-                "skylights": {"type":"string"},
-                "rimjoists": {"type":"string"},
-                "parapets": {"type":"string"},
-                "trim": {"type":"string"},
-                "corners": {"type":"string"},
-                "grade": {"type":"string"},
-                "other": {"type":"string"}
+                "summary": {
+                  "type": "string"
+                },
+                "walls": {
+                  "type": "string"
+                },
+                "roofs": {
+                  "type": "string"
+                },
+                "floors": {
+                  "type": "string"
+                },
+                "doors": {
+                  "type": "string"
+                },
+                "windows": {
+                  "type": "string"
+                },
+                "skylights": {
+                  "type": "string"
+                },
+                "rimjoists": {
+                  "type": "string"
+                },
+                "parapets": {
+                  "type": "string"
+                },
+                "trim": {
+                  "type": "string"
+                },
+                "corners": {
+                  "type": "string"
+                },
+                "grade": {
+                  "type": "string"
+                },
+                "other": {
+                  "type": "string"
+                }
               },
               "additionalProperties": false,
               "required": ["summary"]
@@ -498,19 +524,45 @@
               "title": "heating setpoints >= 18°C",
               "type": "object",
               "properties": {
-                "summary": {"type":"string"},
-                "walls": {"type":"string"},
-                "roofs": {"type":"string"},
-                "floors": {"type":"string"},
-                "doors": {"type":"string"},
-                "windows": {"type":"string"},
-                "skylights": {"type":"string"},
-                "rimjoists": {"type":"string"},
-                "parapets": {"type":"string"},
-                "trim": {"type":"string"},
-                "corners": {"type":"string"},
-                "grade": {"type":"string"},
-                "other": {"type":"string"}
+                "summary": {
+                  "type": "string"
+                },
+                "walls": {
+                  "type": "string"
+                },
+                "roofs": {
+                  "type": "string"
+                },
+                "floors": {
+                  "type": "string"
+                },
+                "doors": {
+                  "type": "string"
+                },
+                "windows": {
+                  "type": "string"
+                },
+                "skylights": {
+                  "type": "string"
+                },
+                "rimjoists": {
+                  "type": "string"
+                },
+                "parapets": {
+                  "type": "string"
+                },
+                "trim": {
+                  "type": "string"
+                },
+                "corners": {
+                  "type": "string"
+                },
+                "grade": {
+                  "type": "string"
+                },
+                "other": {
+                  "type": "string"
+                }
               },
               "additionalProperties": false,
               "required": ["summary"]

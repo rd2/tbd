@@ -334,23 +334,6 @@ def ua_summary(surfaces, date = Time.now, version = "",
     end
   end
 
-  # Delete items where both proposed & reference values are below TOL.
-  # b1[:pro].each do |k, v|
-  #   next unless b1[:ref].has_key?(k)
-  #   if v < TOL && b1[:ref][k] < TOL
-  #     b1[:pro].delete(k)
-  #     b1[:ref].delete(k)
-  #   end
-  # end
-  #
-  # b2[:pro].each do |k, v|
-  #   next unless b2[:ref].has_key?(k)
-  #   if v < TOL && b2[:ref][k] < TOL
-  #     b2[:pro].delete(k)
-  #     b2[:ref].delete(k)
-  #   end
-  # end
-
   # Fully-heated summary.
   pro_sum = b1[:pro].values.reduce(:+)
   ref_sum = b1[:ref].values.reduce(:+)
