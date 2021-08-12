@@ -23,6 +23,7 @@ end
 # TBD exit strategy. Outputs TBD model content/results if out && io are TRUE.
 # Generates log errors and warnings, even if io or out are FALSE.
 #
+# @param [Model] model OpenStudio model
 # @param [Runner] runner OpenStudio Measure runner
 # @param [Bool] gen_ua True if user wishes to generate UA' metric/report
 # @param [String] ref UA' reference
@@ -32,7 +33,7 @@ end
 # @param [Hash] surfaces TBD derated surfaces
 #
 # @return [Bool] Returns true if TBD Measure is successful.
-def exitTBD(runner, gen_ua = false, ref = "", setpoints = false, out = false, io = nil, surfaces = nil)
+def exitTBD(model, runner, gen_ua = false, ref = "", setpoints = false, out = false, io = nil, surfaces = nil)
   # Generated files target a design context ( >= WARN ) ... change TBD log_level
   # for debugging purposes. By default, log_status is set below DEBUG while
   # log_level is set @WARN. Example: "TBD.set_log_level(TBD::DEBUG)".
@@ -50,107 +51,60 @@ def exitTBD(runner, gen_ua = false, ref = "", setpoints = false, out = false, io
 
   io = {} unless io
 
-  seed_file = runner.workflow.seedFile
-  seed_file = seed_file.get.to_s unless seed_file.empty?
-  description = "Thermal Bridging and Derating"
-  description += " - '#{seed_file}'" unless seed_file.empty?
-  io[:description] = description unless io.has_key?(:description)
+  seed = runner.workflow.seedFile
+  seed = seed.get.to_s unless seed.empty?
+  seed = File.basename(seed)
+  descr = "Thermal Bridging and Derating"
+  descr += " - '#{seed}'" unless seed.empty?
+  io[:description] = descr unless io.has_key?(:description)
 
   unless io.has_key?(:schema)
     io[:schema] = "https://github.com/rd2/tbd/blob/master/tbd.schema.json"
   end
 
   tbd_log = { date: Time.now, status: status }
+  version = model.getVersion.versionIdentifier
 
-  ua = ua_summary(surfaces, ref) if surfaces && gen_ua
-  unless TBD.fatal? || ua.empty?
-    if ua.has_key?(:bloc1) || ua.has_key?(:bloc2)
-      runner.registerInfo("  -  ")
-      output = "∑U•A + ∑PSI•L + ∑KHI•n"
-      output += " : Design vs '#{ref}'" unless ref.empty?
-      runner.registerInfo(output)
-    end
-
-    if ua.has_key?(:bloc1)
-      pro = 0
-      pro = ua[:bloc1][:pro].values.reduce(:+) if ua[:bloc1].has_key?(:pro)
-      if pro > TOL
-        output = "  - fully-heated: "
-        output += ("%.1f" % pro).rjust(7) + " W/K"
-
-        if ua[:bloc1].has_key?(:ref)
-          rf = ua[:bloc1][:ref].values.reduce(:+)
-          output += " vs " + ("%.1f" % rf).rjust(7) + " W/K"
-          ratio = nil
-          ratio = (100.0 * (pro - rf) / rf).abs if rf > TOL
-          ratio = ("+%.1f" % ratio).rjust(8) + "%" if ratio && pro > rf
-          ratio = ("-%.1f" % ratio).rjust(8) + "%" if ratio && pro < rf
-          output += ratio if ratio
-        end
-        runner.registerInfo(output)
-
-        ua[:bloc1][:pro].each do |id, pro|
-          output = "  --- #{id.to_s.rjust(10)}: "
-          output += ("%.1f" % pro).rjust(7) + " W/K"
-          if ua[:bloc1].has_key?(:ref) && ua[:bloc1][:ref].has_key?(id)
-            rf = ua[:bloc1][:ref][id]
-            output += " vs " + ("%.1f" % rf).rjust(7) + " W/K"
-            ratio = nil
-            ratio = (100.0 * (pro - rf) / rf).abs if rf > TOL
-            ratio = ("+%.1f" % ratio).rjust(8) + "%" if ratio && pro > rf
-            ratio = ("-%.1f" % ratio).rjust(8) + "%" if ratio && pro < rf
-            output += ratio if ratio
-          end
-          runner.registerInfo(output)
-        end
-      end
-    end
-
-    if ua.has_key?(:bloc2)
-      pro = 0
-      pro = ua[:bloc2][:pro].values.reduce(:+) if ua[:bloc2].has_key?(:pro)
-      if pro > TOL
-        output = "  -  semi-heated: "
-        output += ("%.1f" % pro).rjust(7) + " W/K"
-
-        if ua[:bloc2].has_key?(:ref)
-          rf = ua[:bloc2][:ref].values.reduce(:+)
-          output += " vs " + ("%.1f" % rf).rjust(7) + " W/K"
-          ratio = nil
-          ratio = (100.0 * (pro - rf) / rf).abs if rf > TOL
-          ratio = ("+%.1f" % ratio).rjust(8) + "%" if ratio && pro > rf
-          ratio = ("-%.1f" % ratio).rjust(8) + "%" if ratio && pro < rf
-          output += ratio if ratio
-        end
-        runner.registerInfo(output)
-
-        ua[:bloc2][:pro].each do |id, pro|
-          output = "  --- #{id.to_s.rjust(10)}: "
-          output += ("%.1f" % pro).rjust(7) + " W/K"
-          if ua[:bloc2].has_key?(:ref) && ua[:bloc2][:ref].has_key?(id)
-            rf = ua[:bloc2][:ref][id]
-            output += " vs " + ("%.1f" % rf).rjust(7) + " W/K"
-            ratio = nil
-            ratio = (100.0 * (pro - rf) / rf).abs if rf > TOL
-            ratio = ("+%.1f" % ratio).rjust(8) + "%" if ratio && pro > rf
-            ratio = ("-%.1f" % ratio).rjust(8) + "%" if ratio && pro < rf
-            output += ratio if ratio
-          end
-          runner.registerInfo(output)
-        end
-      end
-    end
-    runner.registerInfo("  -  ")
+  ua_md_en = nil
+  ua_md_fr = nil
+  ua = nil
+  if surfaces && gen_ua
+    ua = ua_summary(surfaces, tbd_log[:date], version, descr, seed, ref)
   end
 
-  tbd_log[:ua] = ua unless ua.empty?
+  unless TBD.fatal? || ua.nil? || ua.empty?
+    if ua.has_key?(:en)
+      if ua[:en].has_key?(:b1) || ua[:en].has_key?(:b2)
+        runner.registerInfo("-")
+        runner.registerInfo(ua[:model])
+        tbd_log[:ua] = {}
+        ud_md_en = ua_md(ua, :en)
+        ud_md_fr = ua_md(ua, :fr)
+      end
+      if ua[:en].has_key?(:b1) && ua[:en][:b1].has_key?(:summary)
+        runner.registerInfo(" - #{ua[:en][:b1][:summary]}")
+        ua[:en][:b1].each do |k, v|
+          runner.registerInfo(" --- #{v}") unless k == :summary
+        end
+        tbd_log[:ua][:bloc1] = ua[:en][:b1]
+      end
+      if ua[:en].has_key?(:b2) && ua[:en][:b2].has_key?(:summary)
+        runner.registerInfo(" - #{ua[:en][:b2][:summary]}")
+        ua[:en][:b2].each do |k, v|
+          runner.registerInfo(" --- #{v}") unless k == :summary
+        end
+        tbd_log[:ua][:bloc2] = ua[:en][:b2]
+      end
+    end
+    runner.registerInfo(" -")
+  end
 
   results = []
   if surfaces
     surfaces.each do |id, surface|
       next if TBD.fatal?
       next unless surface.has_key?(:ratio)
-      ratio  = ("%4.1f" % surface[:ratio]).rjust(7)
+      ratio  = format("%4.1f", surface[:ratio])
       output = "RSi derated by #{ratio}% : #{id}"
       results << output
       runner.registerInfo(output)
@@ -206,14 +160,35 @@ def exitTBD(runner, gen_ua = false, ref = "", setpoints = false, out = false, io
   end
 
   out_path = File.join(out_dir, "tbd.out.json")
-
-  # Make sure data is written to the disk one way or the other.
   File.open(out_path, 'w') do |file|
     file.puts JSON::pretty_generate(io)
+    # Make sure data is written to the disk one way or the other.
     begin
       file.fsync
     rescue StandardError
       file.flush
+    end
+  end
+
+  unless TBD.fatal? || ua.nil? || ua.empty?
+    ua_path = File.join(out_dir, "ua_en.md")
+    File.open(ua_path, 'w') do |file|
+      file.puts ud_md_en
+      begin
+        file.fsync
+      rescue StandardError
+        file.flush
+      end
+    end
+
+    ua_path = File.join(out_dir, "ua_fr.md")
+    File.open(ua_path, 'w') do |file|
+      file.puts ud_md_fr
+      begin
+        file.fsync
+      rescue StandardError
+        file.flush
+      end
     end
   end
 
@@ -347,7 +322,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     t = heatingTemperatureSetpoints?(model)
     t = coolingTemperatureSetpoints?(model) || t
 
-    return exitTBD(runner, gen_UA, ua_ref, t, write_tbd_json, io, surfaces)
+    return exitTBD(model, runner, gen_UA, ua_ref, t, write_tbd_json, io, surfaces)
   end
 end
 

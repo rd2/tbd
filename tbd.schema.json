@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "id": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
+  "id": "https://github.com/rd2/tbd/blob/ua/tbd.schema.json",
   "title": "TBD Schema",
   "description": "Schema for Thermal Bridging and Derating",
   "type": "object",
@@ -468,6 +468,54 @@
         "status": {
           "title": "Global state",
           "type": "string"
+        },
+        "ua": {
+          "title": "UA' assessment",
+          "type": "object",
+          "properties": {
+            "bloc1": {
+              "title": "heating setpoints >= 18°C",
+              "type": "object",
+              "properties": {
+                "summary": {"type":"string"},
+                "walls": {"type":"string"},
+                "roofs": {"type":"string"},
+                "floors": {"type":"string"},
+                "doors": {"type":"string"},
+                "windows": {"type":"string"},
+                "skylights": {"type":"string"},
+                "rimjoists": {"type":"string"},
+                "parapets": {"type":"string"},
+                "trim": {"type":"string"},
+                "corners": {"type":"string"},
+                "grade": {"type":"string"},
+                "other": {"type":"string"}
+              },
+              "additionalProperties": false,
+              "required": ["summary"]
+            },
+            "bloc2": {
+              "title": "heating setpoints >= 18°C",
+              "type": "object",
+              "properties": {
+                "summary": {"type":"string"},
+                "walls": {"type":"string"},
+                "roofs": {"type":"string"},
+                "floors": {"type":"string"},
+                "doors": {"type":"string"},
+                "windows": {"type":"string"},
+                "skylights": {"type":"string"},
+                "rimjoists": {"type":"string"},
+                "parapets": {"type":"string"},
+                "trim": {"type":"string"},
+                "corners": {"type":"string"},
+                "grade": {"type":"string"},
+                "other": {"type":"string"}
+              },
+              "additionalProperties": false,
+              "required": ["summary"]
+            }
+          }
         },
         "results": {
           "title": "Thermal derating results",

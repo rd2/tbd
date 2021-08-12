@@ -6316,6 +6316,108 @@ RSpec.describe TBD do
 
     bloc2_ref_UA = bloc2[:ref].values.reduce(:+)
     expect(bloc2_ref_UA).to be_within(0.1).of(2353.4)
+
+    # Testing summaries function.
+    version = os_model.getVersion.versionIdentifier
+    ua = ua_summary(surfaces, Time.now, version, "test",
+      "test_warehouse.osm", "code (Quebec)")
+    expect(ua.nil?).to be(false)
+    expect(ua.empty?).to be(false)
+    expect(ua.is_a?(Hash)).to be(true)
+    expect(ua.has_key?(:model))
+
+    expect(ua.has_key?(:fr)).to be(true)
+    expect(ua[:fr].has_key?(:objective)).to be(true)
+    expect(ua[:fr][:objective].empty?).to be(false)
+    expect(ua[:fr].has_key?(:details)).to be(true)
+    expect(ua[:fr][:details].is_a?(Array)).to be(true)
+    expect(ua[:fr][:details].empty?).to be(false)
+    expect(ua[:fr].has_key?(:areas)).to be(true)
+    expect(ua[:fr][:areas].empty?).to be(false)
+    expect(ua[:fr][:areas].is_a?(Hash)).to be(true)
+    expect(ua[:fr][:areas].has_key?(:walls)).to be(true)
+    expect(ua[:fr][:areas].has_key?(:roofs)).to be(true)
+    expect(ua[:fr][:areas].has_key?(:floors)).to be(false)
+    expect(ua[:fr].has_key?(:notes)).to be(true)
+    expect(ua[:fr][:notes].empty?).to be(false)
+
+    expect(ua[:fr].has_key?(:b1)).to be(true)
+    expect(ua[:fr][:b1].empty?).to be(false)
+    expect(ua[:fr][:b1].has_key?(:summary)).to be(true)
+    expect(ua[:fr][:b1].has_key?(:walls)).to be(true)
+    expect(ua[:fr][:b1].has_key?(:roofs)).to be(false)
+    expect(ua[:fr][:b1].has_key?(:floors)).to be(false)
+    expect(ua[:fr][:b1].has_key?(:doors)).to be(true)
+    expect(ua[:fr][:b1].has_key?(:windows)).to be(true)
+    expect(ua[:fr][:b1].has_key?(:skylights)).to be(false)
+    expect(ua[:fr][:b1].has_key?(:rimjoists)).to be(true)
+    expect(ua[:fr][:b1].has_key?(:parapets)).to be(false)
+    expect(ua[:fr][:b1].has_key?(:trim)).to be(true)
+    expect(ua[:fr][:b1].has_key?(:corners)).to be(true)
+    expect(ua[:fr][:b1].has_key?(:balconies)).to be(false)
+    expect(ua[:fr][:b1].has_key?(:grade)).to be(true)
+    expect(ua[:fr][:b1].has_key?(:other)).to be(false)
+
+    expect(ua[:fr].has_key?(:b2)).to be(true)
+    expect(ua[:fr][:b2].empty?).to be(false)
+    expect(ua[:fr][:b2].has_key?(:summary)).to be(true)
+    expect(ua[:fr][:b2].has_key?(:walls)).to be(true)
+    expect(ua[:fr][:b2].has_key?(:roofs)).to be(true)
+    expect(ua[:fr][:b2].has_key?(:floors)).to be(false)
+    expect(ua[:fr][:b2].has_key?(:doors)).to be(true)
+    expect(ua[:fr][:b2].has_key?(:windows)).to be(false)
+    expect(ua[:fr][:b2].has_key?(:skylights)).to be(true)
+    expect(ua[:fr][:b2].has_key?(:rimjoists)).to be(true)
+    expect(ua[:fr][:b2].has_key?(:parapets)).to be(true)
+    expect(ua[:fr][:b2].has_key?(:trim)).to be(true)
+    expect(ua[:fr][:b2].has_key?(:corners)).to be(true)
+    expect(ua[:fr][:b2].has_key?(:balconies)).to be(false)
+    expect(ua[:fr][:b2].has_key?(:grade)).to be(true)
+    expect(ua[:fr][:b2].has_key?(:other)).to be(true)
+
+    expect(ua[:en].has_key?(:b1)).to be(true)
+    expect(ua[:en][:b1].empty?).to be(false)
+    expect(ua[:en][:b1].has_key?(:summary)).to be(true)
+    expect(ua[:en][:b1].has_key?(:walls)).to be(true)
+    expect(ua[:en][:b1].has_key?(:roofs)).to be(false)
+    expect(ua[:en][:b1].has_key?(:floors)).to be(false)
+    expect(ua[:en][:b1].has_key?(:doors)).to be(true)
+    expect(ua[:en][:b1].has_key?(:windows)).to be(true)
+    expect(ua[:en][:b1].has_key?(:skylights)).to be(false)
+    expect(ua[:en][:b1].has_key?(:rimjoists)).to be(true)
+    expect(ua[:en][:b1].has_key?(:parapets)).to be(false)
+    expect(ua[:en][:b1].has_key?(:trim)).to be(true)
+    expect(ua[:en][:b1].has_key?(:corners)).to be(true)
+    expect(ua[:en][:b1].has_key?(:balconies)).to be(false)
+    expect(ua[:en][:b1].has_key?(:grade)).to be(true)
+    expect(ua[:en][:b1].has_key?(:other)).to be(false)
+
+    expect(ua[:en].has_key?(:b2)).to be(true)
+    expect(ua[:en][:b2].empty?).to be(false)
+    expect(ua[:en][:b2].has_key?(:summary)).to be(true)
+    expect(ua[:en][:b2].has_key?(:walls)).to be(true)
+    expect(ua[:en][:b2].has_key?(:roofs)).to be(true)
+    expect(ua[:en][:b2].has_key?(:floors)).to be(false)
+    expect(ua[:en][:b2].has_key?(:doors)).to be(true)
+    expect(ua[:en][:b2].has_key?(:windows)).to be(false)
+    expect(ua[:en][:b2].has_key?(:skylights)).to be(true)
+    expect(ua[:en][:b2].has_key?(:rimjoists)).to be(true)
+    expect(ua[:en][:b2].has_key?(:parapets)).to be(true)
+    expect(ua[:en][:b2].has_key?(:trim)).to be(true)
+    expect(ua[:en][:b2].has_key?(:corners)).to be(true)
+    expect(ua[:en][:b2].has_key?(:balconies)).to be(false)
+    expect(ua[:en][:b2].has_key?(:grade)).to be(true)
+    expect(ua[:en][:b2].has_key?(:other)).to be(true)
+
+    ud_md_en = ua_md(ua, :en)
+    File.open("ua_en.md", "w") do |file|
+      file.puts ud_md_en
+    end
+
+    ud_md_fr = ua_md(ua, :fr)
+    File.open("ua_fr.md", "w") do |file|
+      file.puts ud_md_fr
+    end
   end
 
   it "can generate and access KIVA inputs (seb)" do
