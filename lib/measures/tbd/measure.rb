@@ -52,10 +52,9 @@ def exitTBD(model, runner, gen_ua = false, ref = "", setpoints = false, out = fa
   io = {} unless io
 
   seed = runner.workflow.seedFile
-  seed = seed.get.to_s unless seed.empty?
-  seed = File.basename(seed)
-  descr = "Thermal Bridging and Derating"
-  descr += " - '#{seed}'" unless seed.empty?
+  seed = File.basename(seed.get.to_s) unless seed.empty?
+  descr = ""
+  descr = seed unless seed.empty?
   io[:description] = descr unless io.has_key?(:description)
 
   unless io.has_key?(:schema)
@@ -69,7 +68,7 @@ def exitTBD(model, runner, gen_ua = false, ref = "", setpoints = false, out = fa
   ua_md_fr = nil
   ua = nil
   if surfaces && gen_ua
-    ua = ua_summary(surfaces, tbd_log[:date], version, descr, seed, ref)
+    ua = ua_summary(surfaces, tbd_log[:date], version, io[:description], seed, ref)
   end
 
   unless TBD.fatal? || ua.nil? || ua.empty?
