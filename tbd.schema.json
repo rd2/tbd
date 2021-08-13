@@ -208,10 +208,10 @@
         }
       },
       "additionalProperties": false,
+      "minProperties": 2,
       "required": [
         "id"
-      ],
-      "minProperties": 2
+      ]
     },
     "KHI": {
       "description": "KHI-value (in W/K) for a point thermal bridge",
@@ -331,7 +331,7 @@
           "type": "string"
         },
         "usi": {
-          "title": "Overall U-factor (optional)",
+          "title": "Overall U-factor",
           "type": "number",
           "minimum": 0.01,
           "maximum": 10.0
@@ -476,96 +476,16 @@
             "bloc1": {
               "title": "heating setpoints >= 18°C",
               "type": "object",
-              "properties": {
-                "summary": {
-                  "type": "string"
-                },
-                "walls": {
-                  "type": "string"
-                },
-                "roofs": {
-                  "type": "string"
-                },
-                "floors": {
-                  "type": "string"
-                },
-                "doors": {
-                  "type": "string"
-                },
-                "windows": {
-                  "type": "string"
-                },
-                "skylights": {
-                  "type": "string"
-                },
-                "rimjoists": {
-                  "type": "string"
-                },
-                "parapets": {
-                  "type": "string"
-                },
-                "trim": {
-                  "type": "string"
-                },
-                "corners": {
-                  "type": "string"
-                },
-                "grade": {
-                  "type": "string"
-                },
-                "other": {
-                  "type": "string"
-                }
-              },
-              "additionalProperties": false,
-              "required": ["summary"]
+              "items": {
+                "$ref": "#/definitions/UaBlocks"
+              }
             },
             "bloc2": {
-              "title": "heating setpoints >= 18°C",
+              "title": "heating setpoints < 18°C",
               "type": "object",
-              "properties": {
-                "summary": {
-                  "type": "string"
-                },
-                "walls": {
-                  "type": "string"
-                },
-                "roofs": {
-                  "type": "string"
-                },
-                "floors": {
-                  "type": "string"
-                },
-                "doors": {
-                  "type": "string"
-                },
-                "windows": {
-                  "type": "string"
-                },
-                "skylights": {
-                  "type": "string"
-                },
-                "rimjoists": {
-                  "type": "string"
-                },
-                "parapets": {
-                  "type": "string"
-                },
-                "trim": {
-                  "type": "string"
-                },
-                "corners": {
-                  "type": "string"
-                },
-                "grade": {
-                  "type": "string"
-                },
-                "other": {
-                  "type": "string"
-                }
-              },
-              "additionalProperties": false,
-              "required": ["summary"]
+              "items": {
+                "$ref": "#/definitions/UaBlocks"
+              }
             }
           }
         },
@@ -600,6 +520,54 @@
         }
       },
       "additionalProperties": false
+    },
+    "UaBlock": {
+      "description": "UA summary",
+      "type": "object",
+      "properties": {
+        "summary": {
+          "type": "string"
+        },
+        "walls": {
+          "type": "string"
+        },
+        "roofs": {
+          "type": "string"
+        },
+        "floors": {
+          "type": "string"
+        },
+        "doors": {
+          "type": "string"
+        },
+        "windows": {
+          "type": "string"
+        },
+        "skylights": {
+          "type": "string"
+        },
+        "rimjoists": {
+          "type": "string"
+        },
+        "parapets": {
+          "type": "string"
+        },
+        "trim": {
+          "type": "string"
+        },
+        "corners": {
+          "type": "string"
+        },
+        "grade": {
+          "type": "string"
+        },
+        "other": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "minProperties": 2,
+      "required": ["summary"]
     }
   }
 }
