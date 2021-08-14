@@ -4085,6 +4085,13 @@ RSpec.describe TBD do
     io = JSON.parse(ioC, symbolize_names: true)
     expect(JSON::Validator.validate(schema, io)).to be(true)
     expect(JSON::Validator.validate(schemaP, ioP, uri: true)).to be(true)
+
+    # Load complete results (ex. UA') example
+    ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse11.json"
+    ioC = File.read(ioP)
+    io = JSON.parse(ioC, symbolize_names: true)
+    expect(JSON::Validator.validate(schema, io)).to be(true)
+    expect(JSON::Validator.validate(schemaP, ioP, uri: true)).to be(true)
   end
 
   it "can factor in spacetype-specific PSI sets (JSON input)" do

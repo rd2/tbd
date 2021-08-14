@@ -476,18 +476,16 @@
             "bloc1": {
               "title": "heating setpoints >= 18°C",
               "type": "object",
-              "items": {
-                "$ref": "#/definitions/UaBlocks"
-              }
+              "$ref": "#/definitions/UaBlock"
             },
             "bloc2": {
               "title": "heating setpoints < 18°C",
               "type": "object",
-              "items": {
-                "$ref": "#/definitions/UaBlocks"
-              }
+              "$ref": "#/definitions/UaBlock"
             }
-          }
+          },
+          "additionalProperties": false,
+          "minProperties": 1
         },
         "results": {
           "title": "Thermal derating results",
@@ -500,13 +498,13 @@
           "title": "Logged messages",
           "type": "array",
           "items": {
-            "$ref": "#/definitions/LogMessages"
+            "$ref": "#/definitions/LogMessage"
           }
         }
       },
       "additionalProperties": false
     },
-    "LogMessages": {
+    "LogMessage": {
       "description": "TBD log messages",
       "type": "object",
       "properties": {
