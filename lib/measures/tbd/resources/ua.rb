@@ -27,7 +27,7 @@ def qc33(surfaces, sets)
     next unless surface.has_key?(:type)
     heating = 21.0
     heating = surface[:heating] if surface.has_key?(:heating)
-    cooling = 50.0
+    cooling = 24.0
     cooling = surface[:cooling] if surface.has_key?(:cooling)
 
     # Start with surface U-factors.
@@ -35,7 +35,7 @@ def qc33(surfaces, sets)
     ref = 1.0 / 3.60 if surface[:type] == :wall
 
     # Adjust for lower heating setpoint (assumes -25°C design conditions).
-    ref *= 43.0 / (heating + 25.0) if heating < 18.0 && cooling >= 18.0
+    ref *= 43.0 / (heating + 25.0) if heating < 18.0 && cooling > 40.0
 
     # And store.
     surface[:ref] = ref
@@ -43,13 +43,13 @@ def qc33(surfaces, sets)
     # Loop through subsurfaces.
     if surface.has_key?(:skylights)
       ref = 2.85
-      ref *= 43.0 / (heating + 25.0) if heating < 18.0 && cooling >= 18.0
+      ref *= 43.0 / (heating + 25.0) if heating < 18.0 && cooling > 40.0
       surface[:skylights].values.map { |skylight| skylight[:ref] = ref }
     end
 
     if surface.has_key?(:windows)
       ref = 2.0
-      ref *= 43.0 / (heating + 25.0) if heating < 18.0 && cooling >= 18.0
+      ref *= 43.0 / (heating + 25.0) if heating < 18.0 && cooling > 40.0
       surface[:windows].values.map { |window| window[:ref] = ref }
     end
 
@@ -57,7 +57,7 @@ def qc33(surfaces, sets)
       surface[:doors].each do |i, door|
         ref = 0.9
         ref = 2.0 if door.has_key?(:glazed) && door[:glazed]
-        ref *= 43.0 / (heating + 25.0) if heating < 18.0 && cooling >= 18.0
+        ref *= 43.0 / (heating + 25.0) if heating < 18.0 && cooling > 40.0
         door[:ref] = ref
       end
     end
@@ -89,7 +89,7 @@ end
 # @param [String] file OSM file name (optional)
 # @param [String] ref UA' reference (optional)
 #
-# @return [Hash] Returns binned values for UA' summary.
+# @return [Hash] Returns (multilingual) binned values for UA' summary.
 def ua_summary(surfaces, date = Time.now, version = "",
                descr = "", file = "", ref = "")
   ua = {}
@@ -100,8 +100,9 @@ def ua_summary(surfaces, date = Time.now, version = "",
   end
   return ua if surfaces.empty?
 
-  ua[:en] = {}
-  ua[:fr] = {}
+  languages = [:en, :fr]
+  languages.each { |lang| ua[lang] = {} }
+
   ua[:model] = "∑U•A + ∑PSI•L + ∑KHI•n"
   ua[:date] = date
   ua[:version] = version unless version.nil? || version.empty?
@@ -162,10 +163,9 @@ def ua_summary(surfaces, date = Time.now, version = "",
     end
   end
 
-  # Set up 3x heating setpoint (HSTP) "blocks":
+  # Set up 2x heating setpoint (HSTP) "blocks" (or bins):
   #   bloc1: spaces/zones with HSTP >= 18°C
   #   bloc2: spaces/zones with HSTP < 18°C
-  #   bloc3: spaces/zones without HSTP (i.e. unheated)
   #   (ref: 2021 Quebec energy code 3.3. UA' trade-off methodology)
   #   (... can be extended in the future to cover other standards)
   #
@@ -197,8 +197,6 @@ def ua_summary(surfaces, date = Time.now, version = "",
     next unless surface[:u] > TOL
     heating = 21.0
     heating = surface[:heating] if surface.has_key?(:heating)
-    cooling = 50.0
-    cooling = surface[:cooling] if surface.has_key?(:cooling)
 
     bloc = b1
     bloc = b2 if heating < 18
@@ -334,309 +332,122 @@ def ua_summary(surfaces, date = Time.now, version = "",
     end
   end
 
-  # Fully-heated summary.
-  pro_sum = b1[:pro].values.reduce(:+)
-  ref_sum = b1[:ref].values.reduce(:+)
+  languages.each do |lang|
+    blc = [:b1, :b2]
+    blc.each do |b|
+      bloc = b1
+      bloc = b2 if b == :b2
 
-  if pro_sum > TOL
-    ratio = nil
-    ratio = 100.0 * (pro_sum - ref_sum) / ref_sum if ref_sum > TOL
-    str = format("%.1f W/K (vs %.1f W/K)", pro_sum, ref_sum)
-    str += format(" +%.1f%%", ratio) if ratio && pro_sum > ref_sum # **
-    str += format(" -%.1f%%", ratio) if ratio && pro_sum < ref_sum
-    ua[:en][:b1] = {}
-    ua[:fr][:b1] = {}
-    ua[:en][:b1][:summary] = "heated : #{str}"
-    ua[:fr][:b1][:summary] = "chauffé : #{str}"
+      pro_sum = bloc[:pro].values.reduce(:+)
+      ref_sum = bloc[:ref].values.reduce(:+)
+      if pro_sum > TOL
+        ratio = nil
+        ratio = 100.0 * (pro_sum - ref_sum) / ref_sum if ref_sum > TOL
+        str = format("%.1f W/K (vs %.1f W/K)", pro_sum, ref_sum)
+        str += format(" +%.1f%%", ratio) if ratio && pro_sum > ref_sum # **
+        str += format(" -%.1f%%", ratio) if ratio && pro_sum < ref_sum
+        ua[lang][b] = {}
+        ua[:en][b][:summary] = "heated : #{str}"  if lang == :en
+        ua[:fr][b][:summary] = "chauffé : #{str}" if lang == :fr
 
-    # ** https://bugs.ruby-lang.org/issues/13761 (Ruby > 2.2.5)
-    # str += format(" +%.1f%", ratio) if ratio && pro_sum > ref_sum ... becomes
-    # str += format(" +%.1f%%", ratio) if ratio && pro_sum > ref_sum
+        # ** https://bugs.ruby-lang.org/issues/13761 (Ruby > 2.2.5)
+        # str += format(" +%.1f%", ratio) if ratio && pro_sum > ref_sum ... becomes
+        # str += format(" +%.1f%%", ratio) if ratio && pro_sum > ref_sum
 
-    b1[:pro].each do |k, v|
-      rf = b1[:ref][k]
-      next if v < TOL && rf < TOL
-      ratio = nil
-      ratio = 100.0 * (v - rf) / rf if rf > TOL
-      str = format("%.1f W/K (vs %.1f W/K)", v, rf)
-      str += format(" +%.1f%%", ratio) if v > rf
-      str += format(" -%.1f%%", ratio) if v < rf
+        bloc[:pro].each do |k, v|
+          rf = bloc[:ref][k]
+          next if v < TOL && rf < TOL
+          ratio = nil
+          ratio = 100.0 * (v - rf) / rf if rf > TOL
+          str = format("%.1f W/K (vs %.1f W/K)", v, rf)
+          str += format(" +%.1f%%", ratio) if v > rf
+          str += format(" -%.1f%%", ratio) if v < rf
 
-      case k
-      when :walls
-        ua[:en][:b1][k] = "walls : #{str}"
-        ua[:fr][:b1][k] = "murs : #{str}"
-      when :roofs
-        ua[:en][:b1][k] = "roofs : #{str}"
-        ua[:fr][:b1][k] = "toits : #{str}"
-      when :floors
-        ua[:en][:b1][k] = "floors : #{str}"
-        ua[:fr][:b1][k] = "planchers : #{str}"
-      when :doors
-        ua[:en][:b1][k] = "doors : #{str}"
-        ua[:fr][:b1][k] = "portes : #{str}"
-      when :windows
-        ua[:en][:b1][k] = "windows : #{str}"
-        ua[:fr][:b1][k] = "fenêtres : #{str}"
-      when :skylights
-        ua[:en][:b1][k] = "skylights : #{str}"
-        ua[:fr][:b1][k] = "lanterneaux : #{str}"
-      when :rimjoists
-        ua[:en][:b1][k] = "rimjoists : #{str}"
-        ua[:fr][:b1][k] = "rives : #{str}"
-      when :parapets
-        ua[:en][:b1][k] = "parapets : #{str}"
-        ua[:fr][:b1][k] = "parapets : #{str}"
-      when :trim
-        ua[:en][:b1][k] = "trim : #{str}"
-        ua[:fr][:b1][k] = "chassis : #{str}"
-      when :corners
-        ua[:en][:b1][k] = "corners : #{str}"
-        ua[:fr][:b1][k] = "coins : #{str}"
-      when :balconies
-        ua[:en][:b1][k] = "balconies : #{str}"
-        ua[:fr][:b1][k] = "balcons : #{str}"
-      when :grade
-        ua[:en][:b1][k] = "grade : #{str}"
-        ua[:fr][:b1][k] = "tracé : #{str}"
-      else
-        ua[:en][:b1][k] = "other : #{str}"
-        ua[:fr][:b1][k] = "autres : #{str}"
+          case k
+          when :walls
+            ua[:en][b][k] = "walls : #{str}"        if lang == :en
+            ua[:fr][b][k] = "murs : #{str}"         if lang == :fr
+          when :roofs
+            ua[:en][b][k] = "roofs : #{str}"        if lang == :en
+            ua[:fr][b][k] = "toits : #{str}"        if lang == :fr
+          when :floors
+            ua[:en][b][k] = "floors : #{str}"       if lang == :en
+            ua[:fr][b][k] = "planchers : #{str}"    if lang == :fr
+          when :doors
+            ua[:en][b][k] = "doors : #{str}"        if lang == :en
+            ua[:fr][b][k] = "portes : #{str}"       if lang == :fr
+          when :windows
+            ua[:en][b][k] = "windows : #{str}"      if lang == :en
+            ua[:fr][b][k] = "fenêtres : #{str}"     if lang == :fr
+          when :skylights
+            ua[:en][b][k] = "skylights : #{str}"    if lang == :en
+            ua[:fr][b][k] = "lanterneaux : #{str}"  if lang == :fr
+          when :rimjoists
+            ua[:en][b][k] = "rimjoists : #{str}"    if lang == :en
+            ua[:fr][b][k] = "rives : #{str}"        if lang == :fr
+          when :parapets
+            ua[:en][b][k] = "parapets : #{str}"     if lang == :en
+            ua[:fr][b][k] = "parapets : #{str}"     if lang == :fr
+          when :trim
+            ua[:en][b][k] = "trim : #{str}"         if lang == :en
+            ua[:fr][b][k] = "chassis : #{str}"      if lang == :fr
+          when :corners
+            ua[:en][b][k] = "corners : #{str}"      if lang == :en
+            ua[:fr][b][k] = "coins : #{str}"        if lang == :fr
+          when :balconies
+            ua[:en][b][k] = "balconies : #{str}"    if lang == :en
+            ua[:fr][b][k] = "balcons : #{str}"      if lang == :fr
+          when :grade
+            ua[:en][b][k] = "grade : #{str}"        if lang == :en
+            ua[:fr][b][k] = "tracé : #{str}"        if lang == :fr
+          else
+            ua[:en][b][k] = "other : #{str}"        if lang == :en
+            ua[:fr][b][k] = "autres : #{str}"       if lang == :fr
+          end
+        end
+
+        # Deterministic sorting
+        ua[lang][b][:summary] = ua[lang][b].delete(:summary)
+        if ua[lang][b].has_key?(:walls)
+          ua[lang][b][:walls] = ua[lang][b].delete(:walls)
+        end
+        if ua[lang][b].has_key?(:roofs)
+          ua[lang][b][:roofs] = ua[lang][b].delete(:roofs)
+        end
+        if ua[lang][b].has_key?(:floors)
+          ua[lang][b][:floors] = ua[lang][b].delete(:floors)
+        end
+        if ua[lang][b].has_key?(:doors)
+          ua[lang][b][:doors] = ua[lang][b].delete(:doors)
+        end
+        if ua[lang][b].has_key?(:windows)
+          ua[lang][b][:windows] = ua[lang][b].delete(:windows)
+        end
+        if ua[lang][b].has_key?(:skylights)
+          ua[lang][b][:skylights] = ua[lang][b].delete(:skylights)
+        end
+        if ua[lang][b].has_key?(:rimjoists)
+          ua[lang][b][:rimjoists] = ua[lang][b].delete(:rimjoists)
+        end
+        if ua[lang][b].has_key?(:parapets)
+          ua[lang][b][:parapets] = ua[lang][b].delete(:parapets)
+        end
+        if ua[lang][b].has_key?(:trim)
+          ua[lang][b][:trim] = ua[lang][b].delete(:trim)
+        end
+        if ua[lang][b].has_key?(:corners)
+          ua[lang][b][:corners] = ua[lang][b].delete(:corners)
+        end
+        if ua[lang][b].has_key?(:balconies)
+          ua[lang][b][:balconies] = ua[lang][b].delete(:balconies)
+        end
+        if ua[lang][b].has_key?(:grade)
+          ua[lang][b][:grade] = ua[lang][b].delete(:grade)
+        end
+        if ua[lang][b].has_key?(:other)
+          ua[lang][b][:other] = ua[lang][b].delete(:other)
+        end
       end
-    end
-
-    # Deterministic sorting
-    ua[:en][:b1][:summary] = ua[:en][:b1].delete(:summary)
-    if ua[:en][:b1].has_key?(:walls)
-      ua[:en][:b1][:walls] = ua[:en][:b1].delete(:walls)
-    end
-    if ua[:en][:b1].has_key?(:roofs)
-      ua[:en][:b1][:roofs] = ua[:en][:b1].delete(:roofs)
-    end
-    if ua[:en][:b1].has_key?(:floors)
-      ua[:en][:b1][:floors] = ua[:en][:b1].delete(:floors)
-    end
-    if ua[:en][:b1].has_key?(:doors)
-      ua[:en][:b1][:doors] = ua[:en][:b1].delete(:doors)
-    end
-    if ua[:en][:b1].has_key?(:windows)
-      ua[:en][:b1][:windows] = ua[:en][:b1].delete(:windows)
-    end
-    if ua[:en][:b1].has_key?(:skylights)
-      ua[:en][:b1][:skylights] = ua[:en][:b1].delete(:skylights)
-    end
-    if ua[:en][:b1].has_key?(:rimjoists)
-      ua[:en][:b1][:rimjoists] = ua[:en][:b1].delete(:rimjoists)
-    end
-    if ua[:en][:b1].has_key?(:parapets)
-      ua[:en][:b1][:parapets] = ua[:en][:b1].delete(:parapets)
-    end
-    if ua[:en][:b1].has_key?(:trim)
-      ua[:en][:b1][:trim] = ua[:en][:b1].delete(:trim)
-    end
-    if ua[:en][:b1].has_key?(:corners)
-      ua[:en][:b1][:corners] = ua[:en][:b1].delete(:corners)
-    end
-    if ua[:en][:b1].has_key?(:balconies)
-      ua[:en][:b1][:balconies] = ua[:en][:b1].delete(:balconies)
-    end
-    if ua[:en][:b1].has_key?(:grade)
-      ua[:en][:b1][:grade] = ua[:en][:b1].delete(:grade)
-    end
-    if ua[:en][:b1].has_key?(:other)
-      ua[:en][:b1][:other] = ua[:en][:b1].delete(:other)
-    end
-
-    ua[:fr][:b1][:summary] = ua[:fr][:b1].delete(:summary)
-    if ua[:fr][:b1].has_key?(:walls)
-      ua[:fr][:b1][:walls] = ua[:fr][:b1].delete(:walls)
-    end
-    if ua[:fr][:b1].has_key?(:roofs)
-      ua[:fr][:b1][:roofs] = ua[:fr][:b1].delete(:roofs)
-    end
-    if ua[:fr][:b1].has_key?(:floors)
-      ua[:fr][:b1][:floors] = ua[:fr][:b1].delete(:floors)
-    end
-    if ua[:fr][:b1].has_key?(:doors)
-      ua[:fr][:b1][:doors] = ua[:fr][:b1].delete(:doors)
-    end
-    if ua[:fr][:b1].has_key?(:windows)
-      ua[:fr][:b1][:windows] = ua[:fr][:b1].delete(:windows)
-    end
-    if ua[:fr][:b1].has_key?(:skylights)
-      ua[:fr][:b1][:skylights] = ua[:fr][:b1].delete(:skylights)
-    end
-    if ua[:fr][:b1].has_key?(:rimjoists)
-      ua[:fr][:b1][:rimjoists] = ua[:fr][:b1].delete(:rimjoists)
-    end
-    if ua[:fr][:b1].has_key?(:parapets)
-      ua[:fr][:b1][:parapets] = ua[:fr][:b1].delete(:parapets)
-    end
-    if ua[:fr][:b1].has_key?(:trim)
-      ua[:fr][:b1][:trim] = ua[:fr][:b1].delete(:trim)
-    end
-    if ua[:fr][:b1].has_key?(:corners)
-      ua[:fr][:b1][:corners] = ua[:fr][:b1].delete(:corners)
-    end
-    if ua[:fr][:b1].has_key?(:balconies)
-      ua[:fr][:b1][:balconies] = ua[:fr][:b1].delete(:balconies)
-    end
-    if ua[:fr][:b1].has_key?(:grade)
-      ua[:fr][:b1][:grade] = ua[:fr][:b1].delete(:grade)
-    end
-    if ua[:fr][:b1].has_key?(:other)
-      ua[:fr][:b1][:other] = ua[:fr][:b1].delete(:other)
-    end
-  end
-
-  # Repeat for semi-heated.
-  pro_sum = b2[:pro].values.reduce(:+)
-  ref_sum = b2[:ref].values.reduce(:+)
-
-  if pro_sum > TOL
-    ratio = nil
-    ratio = 100.0 * (pro_sum - ref_sum) / ref_sum if ref_sum > TOL
-    str = format("%.1f W/K (vs %.1f W/K)", pro_sum, ref_sum)
-    str += format(" +%.1f%%", ratio) if ratio && pro_sum > ref_sum
-    str += format(" -%.1f%%", ratio) if ratio && pro_sum < ref_sum
-    ua[:en][:b2] = {}
-    ua[:fr][:b2] = {}
-    ua[:en][:b2][:summary] = "semi-heated : #{str}"
-    ua[:fr][:b2][:summary] = "semi-chauffé : #{str}"
-
-    b2[:pro].each do |k, v|
-      rf = b2[:ref][k]
-      next if v < TOL && rf < TOL
-      ratio = nil
-      ratio = 100.0 * (v - rf) / rf if rf > TOL
-      str = format("%.1f W/K (vs %.1f W/K)", v, rf)
-      str += format(" +%.1f%%", ratio) if v > rf
-      str += format(" -%.1f%%", ratio) if v < rf
-
-      case k
-      when :walls
-        ua[:en][:b2][k] = "walls : #{str}"
-        ua[:fr][:b2][k] = "murs : #{str}"
-      when :roofs
-        ua[:en][:b2][k] = "roofs : #{str}"
-        ua[:fr][:b2][k] = "toits : #{str}"
-      when :floors
-        ua[:en][:b2][k] = "floors : #{str}"
-        ua[:fr][:b2][k] = "planchers : #{str}"
-      when :doors
-        ua[:en][:b2][k] = "doors : #{str}"
-        ua[:fr][:b2][k] = "portes : #{str}"
-      when :windows
-        ua[:en][:b2][k] = "windows : #{str}"
-        ua[:fr][:b2][k] = "fenêtres : #{str}"
-      when :skylights
-        ua[:en][:b2][k] = "skylights : #{str}"
-        ua[:fr][:b2][k] = "lanterneaux : #{str}"
-      when :rimjoists
-        ua[:en][:b2][k] = "rimjoists : #{str}"
-        ua[:fr][:b2][k] = "rives : #{str}"
-      when :parapets
-        ua[:en][:b2][k] = "parapets : #{str}"
-        ua[:fr][:b2][k] = "parapets : #{str}"
-      when :trim
-        ua[:en][:b2][k] = "trim : #{str}"
-        ua[:fr][:b2][k] = "chassis : #{str}"
-      when :corners
-        ua[:en][:b2][k] = "corners : #{str}"
-        ua[:fr][:b2][k] = "coins : #{str}"
-      when :balconies
-        ua[:en][:b2][k] = "balconies : #{str}"
-        ua[:fr][:b2][k] = "balcons : #{str}"
-      when :grade
-        ua[:en][:b2][k] = "grade : #{str}"
-        ua[:fr][:b2][k] = "tracé : #{str}"
-      else
-        ua[:en][:b2][k] = "other : #{str}"
-        ua[:fr][:b2][k] = "autres : #{str}"
-      end
-    end
-
-    # Deterministic sorting
-    ua[:en][:b2][:summary] = ua[:en][:b2].delete(:summary)
-    if ua[:en][:b2].has_key?(:walls)
-      ua[:en][:b2][:walls] = ua[:en][:b2].delete(:walls)
-    end
-    if ua[:en][:b2].has_key?(:roofs)
-      ua[:en][:b2][:roofs] = ua[:en][:b2].delete(:roofs)
-    end
-    if ua[:en][:b2].has_key?(:floors)
-      ua[:en][:b2][:floors] = ua[:en][:b2].delete(:floors)
-    end
-    if ua[:en][:b2].has_key?(:doors)
-      ua[:en][:b2][:doors] = ua[:en][:b2].delete(:doors)
-    end
-    if ua[:en][:b2].has_key?(:windows)
-      ua[:en][:b2][:windows] = ua[:en][:b2].delete(:windows)
-    end
-    if ua[:en][:b2].has_key?(:skylights)
-      ua[:en][:b2][:skylights] = ua[:en][:b2].delete(:skylights)
-    end
-    if ua[:en][:b2].has_key?(:rimjoists)
-      ua[:en][:b2][:rimjoists] = ua[:en][:b2].delete(:rimjoists)
-    end
-    if ua[:en][:b2].has_key?(:parapets)
-      ua[:en][:b2][:parapets] = ua[:en][:b2].delete(:parapets)
-    end
-    if ua[:en][:b2].has_key?(:trim)
-      ua[:en][:b2][:trim] = ua[:en][:b2].delete(:trim)
-    end
-    if ua[:en][:b2].has_key?(:corners)
-      ua[:en][:b2][:corners] = ua[:en][:b2].delete(:corners)
-    end
-    if ua[:en][:b2].has_key?(:balconies)
-      ua[:en][:b2][:balconies] = ua[:en][:b2].delete(:balconies)
-    end
-    if ua[:en][:b2].has_key?(:grade)
-      ua[:en][:b2][:grade] = ua[:en][:b2].delete(:grade)
-    end
-    if ua[:en][:b2].has_key?(:other)
-      ua[:en][:b2][:other] = ua[:en][:b2].delete(:other)
-    end
-
-    ua[:fr][:b2][:summary] = ua[:fr][:b2].delete(:summary)
-    if ua[:fr][:b2].has_key?(:walls)
-      ua[:fr][:b2][:walls] = ua[:fr][:b2].delete(:walls)
-    end
-    if ua[:fr][:b2].has_key?(:roofs)
-      ua[:fr][:b2][:roofs] = ua[:fr][:b2].delete(:roofs)
-    end
-    if ua[:fr][:b2].has_key?(:floors)
-      ua[:fr][:b2][:floors] = ua[:fr][:b2].delete(:floors)
-    end
-    if ua[:fr][:b2].has_key?(:doors)
-      ua[:fr][:b2][:doors] = ua[:fr][:b2].delete(:doors)
-    end
-    if ua[:fr][:b2].has_key?(:windows)
-      ua[:fr][:b2][:windows] = ua[:fr][:b2].delete(:windows)
-    end
-    if ua[:fr][:b2].has_key?(:skylights)
-      ua[:fr][:b2][:skylights] = ua[:fr][:b2].delete(:skylights)
-    end
-    if ua[:fr][:b2].has_key?(:rimjoists)
-      ua[:fr][:b2][:rimjoists] = ua[:fr][:b2].delete(:rimjoists)
-    end
-    if ua[:fr][:b2].has_key?(:parapets)
-      ua[:fr][:b2][:parapets] = ua[:fr][:b2].delete(:parapets)
-    end
-    if ua[:fr][:b2].has_key?(:trim)
-      ua[:fr][:b2][:trim] = ua[:fr][:b2].delete(:trim)
-    end
-    if ua[:fr][:b2].has_key?(:corners)
-      ua[:fr][:b2][:corners] = ua[:fr][:b2].delete(:corners)
-    end
-    if ua[:fr][:b2].has_key?(:balconies)
-      ua[:fr][:b2][:balconies] = ua[:fr][:b2].delete(:balconies)
-    end
-    if ua[:fr][:b2].has_key?(:grade)
-      ua[:fr][:b2][:grade] = ua[:fr][:b2].delete(:grade)
-    end
-    if ua[:fr][:b2].has_key?(:other)
-      ua[:fr][:b2][:other] = ua[:fr][:b2].delete(:other)
     end
   end
 
@@ -692,151 +503,89 @@ def ua_md(ua, lang = :en)
     return report
   end
 
-  if lang == :en && ua[:en].has_key?(:objective)
-    report << "# #{ua[:en][:objective]}   "
-    report << "   "
-  elsif lang == :fr && ua[:fr].has_key?(:objective)
-    report << "# #{ua[:fr][:objective]}   "
+  if ua[lang].has_key?(:objective)
+    report << "# #{ua[lang][:objective]}   "
     report << "   "
   end
 
-  if lang == :en && ua[:en].has_key?(:details)
-    ua[:en][:details].each { |d| report << "#{d}   " }
-    report << "   "
-  elsif lang == :fr && ua[:fr].has_key?(:details)
-    ua[:fr][:details].each { |d| report << "#{d}   " }
+  if ua[lang].has_key?(:details)
+    ua[lang][:details].each { |d| report << "#{d}   " }
     report << "   "
   end
 
-  if lang == :en && ua.has_key?(:model)
-    report << "##### SUMMARY   "
-    report << "   "
-    report << "#{ua[:model]}   "
-    report << "   "
-  elsif lang == :fr && ua.has_key?(:model)
-    report << "##### SOMMAIRE   "
+  if ua.has_key?(:model)
+    report << "##### SUMMARY   "  if lang == :en
+    report << "##### SOMMAIRE   " if lang == :fr
     report << "   "
     report << "#{ua[:model]}   "
     report << "   "
   end
 
-  if lang == :en && ua[:en].has_key?(:b1)
-    if ua[:en][:b1].has_key?(:summary)
-      last = ua[:en][:b1].keys.to_a.last
-      report << "* #{ua[:en][:b1][:summary]}"
-      ua[:en][:b1].each do |k, v|
-        next if k == :summary
-        report << "  * #{v}" unless k == last
-        report << "  * #{v}   " if k == last
-        report << "   " if k == last
-      end
-      report << "   "
+  if ua[lang].has_key?(:b1) && ua[lang][:b1].has_key?(:summary)
+    last = ua[lang][:b1].keys.to_a.last
+    report << "* #{ua[lang][:b1][:summary]}"
+    ua[lang][:b1].each do |k, v|
+      next if k == :summary
+      report << "  * #{v}" unless k == last
+      report << "  * #{v}   " if k == last
+      report << "   " if k == last
     end
-  elsif lang == :fr && ua[:fr].has_key?(:b1)
-    if ua[:fr][:b1].has_key?(:summary)
-      last = ua[:fr][:b1].keys.to_a.last
-      report << "* #{ua[:fr][:b1][:summary]}"
-      ua[:fr][:b1].each do |k, v|
-        next if k == :summary
-        report << "  * #{v}" unless k == last
-        report << "  * #{v}   " if k == last
-        report << "   " if k == last
-      end
-      report << "   "
-    end
+    report << "   "
   end
 
-  if lang == :en && ua[:en].has_key?(:b2)
-    if ua[:en][:b2].has_key?(:summary)
-      last = ua[:en][:b2].keys.to_a.last
-      report << "* #{ua[:en][:b2][:summary]}"
-      ua[:en][:b2].each do |k, v|
-        next if k == :summary
-        report << "  * #{v}" unless k == last
-        report << "  * #{v}   " if k == last
-        report << "   " if k == last
-      end
-      report << "   "
+  if ua[lang].has_key?(:b2) && ua[lang][:b2].has_key?(:summary)
+    last = ua[lang][:b2].keys.to_a.last
+    report << "* #{ua[lang][:b2][:summary]}"
+    ua[lang][:b2].each do |k, v|
+      next if k == :summary
+      report << "  * #{v}" unless k == last
+      report << "  * #{v}   " if k == last
+      report << "   " if k == last
     end
-  elsif lang == :fr && ua[:fr].has_key?(:b2)
-    last = ua[:fr][:b2].keys.to_a.last
-    if ua[:fr][:b2].has_key?(:summary)
-      report << "* #{ua[:fr][:b2][:summary]}"
-      ua[:fr][:b2].each do |k, v|
-        next if k == :summary
-        report << "  * #{v}" unless k == last
-        report << "  * #{v}   " if k == last
-        report << "   " if k == last
-      end
-      report << "   "
-    end
+    report << "   "
   end
 
-  if lang == :en && ua.has_key?(:date)
+  if ua.has_key?(:date)
     report << "##### DESCRIPTION   "
     report << "   "
-    report << "* project : #{ua[:descr]}" if ua.has_key?(:descr)
+    report << "* project : #{ua[:descr]}" if ua.has_key?(:descr) && lang == :en
+    report << "* projet : #{ua[:descr]}"  if ua.has_key?(:descr) && lang == :fr
     model = ""
     model = "* model : #{ua[:file]}" if ua.has_key?(:file)
     model += " (v#{ua[:version]})" if ua.has_key?(:version)
     report << model unless model.empty?
     report << "* TBD version : v2.2.0"
     report << "* date : #{ua[:date]}"
-    report << "* status : #{TBD.msg(TBD.status)}" unless TBD.status.zero?
-    report << "* status : success !" if TBD.status.zero?
-    report << "   "
-  elsif lang == :fr && ua.has_key?(:date)
-    report << "##### DESCRIPTION   "
-    report << "   "
-    report << "* projet : #{ua[:descr]}" if ua.has_key?(:descr)
-    model = ""
-    model = "* modèle : #{ua[:file]}" if ua.has_key?(:file)
-    model += " (v#{ua[:version]})" if ua.has_key?(:version)
-    report << model unless model.empty?
-    report << "* TBD version : v2.2.0"
-    report << "* date : #{ua[:date]}"
-    report << "* statut : #{TBD.msg(TBD.status)}" unless TBD.status.zero?
-    report << "* status : succès !" if TBD.status.zero?
-    report << "   "
-  end
-
-  if lang == :en && ua[:en].has_key?(:areas)
-    report << "##### AREAS   "
-    report << "   "
-    if ua[:en][:areas].has_key?(:walls)
-      report << "* #{ua[:en][:areas][:walls]}"
-    end
-    if ua[:en][:areas].has_key?(:roofs)
-      report << "* #{ua[:en][:areas][:roofs]}"
-    end
-    if ua[:en][:areas].has_key?(:floors)
-      report << "* #{ua[:en][:areas][:floors]}"
-    end
-    report << "   "
-  elsif lang == :fr && ua[:en].has_key?(:areas)
-    report << "##### AIRES   "
-    report << "   "
-    if ua[:fr][:areas].has_key?(:walls)
-      report << "* #{ua[:fr][:areas][:walls]}"
-    end
-    if ua[:fr][:areas].has_key?(:roofs)
-      report << "* #{ua[:fr][:areas][:roofs]}"
-    end
-    if ua[:fr][:areas].has_key?(:floors)
-      report << "* #{ua[:fr][:areas][:floors]}"
+    if lang == :en
+      report << "* status : #{TBD.msg(TBD.status)}" unless TBD.status.zero?
+      report << "* status : success !" if TBD.status.zero?
+    elsif lang == :fr
+      report << "* statut : #{TBD.msg(TBD.status)}" unless TBD.status.zero?
+      report << "* status : succès !" if TBD.status.zero?
     end
     report << "   "
   end
 
-  if lang == :en && ua[:en].has_key?(:notes)
+  if ua[lang].has_key?(:areas)
+    report << "##### AREAS   " if lang == :en
+    report << "##### AIRES   " if lang == :fr
+    report << "   "
+    if ua[lang][:areas].has_key?(:walls)
+      report << "* #{ua[lang][:areas][:walls]}"
+    end
+    if ua[lang][:areas].has_key?(:roofs)
+      report << "* #{ua[lang][:areas][:roofs]}"
+    end
+    if ua[lang][:areas].has_key?(:floors)
+      report << "* #{ua[lang][:areas][:floors]}"
+    end
+    report << "   "
+  end
+
+  if ua[lang].has_key?(:notes)
     report << "##### NOTES   "
     report << "   "
-    report << "#{ua[:en][:notes]}   "
-    report << "   "
-  elsif lang == :fr && ua[:fr].has_key?(:notes)
-    report << "##### NOTES   "
-    report << "   "
-    report << "#{ua[:fr][:notes]}   "
+    report << "#{ua[lang][:notes]}   "
     report << "   "
   end
 

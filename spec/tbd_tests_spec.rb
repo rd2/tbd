@@ -6074,10 +6074,9 @@ RSpec.describe TBD do
     expect(io[:edges].size).to eq(300)
     expect(surfaces.size).to eq(23)
 
-    # Set up 3x heating setpoint (HSTP) "blocks":
+    # Set up 2x heating setpoint (HSTP) "blocks":
     #   bloc1: spaces/zones with HSTP >= 18°C
     #   bloc2: spaces/zones with HSTP < 18°C
-    #   bloc3: spaces/zones without HSTP (i.e. unheated)
     #   (ref: 2021 Quebec energy code 3.3. UA' trade-off methodology)
     #   ... could be generalized in the future e.g., more blocks, user-set HSTP.
     #
@@ -6123,12 +6122,12 @@ RSpec.describe TBD do
       expect(surface.has_key?(:ref)).to be(true)
       expect(surface[:ref]).to be_within(0.01).of(0.28) if id == ids[:a]
       expect(surface[:ref]).to be_within(0.01).of(0.28) if id == ids[:b]
-      expect(surface[:ref]).to be_within(0.01).of(0.19) if id == ids[:c]
-      expect(surface[:ref]).to be_within(0.01).of(0.29) if id == ids[:d]
-      expect(surface[:ref]).to be_within(0.01).of(0.29) if id == ids[:e]
-      expect(surface[:ref]).to be_within(0.01).of(0.29) if id == ids[:f]
-      expect(surface[:ref]).to be_within(0.01).of(0.29) if id == ids[:g]
-      expect(surface[:ref]).to be_within(0.01).of(0.29) if id == ids[:h]
+      expect(surface[:ref]).to be_within(0.01).of(0.18) if id == ids[:c]
+      expect(surface[:ref]).to be_within(0.01).of(0.28) if id == ids[:d]
+      expect(surface[:ref]).to be_within(0.01).of(0.28) if id == ids[:e]
+      expect(surface[:ref]).to be_within(0.01).of(0.28) if id == ids[:f]
+      expect(surface[:ref]).to be_within(0.01).of(0.28) if id == ids[:g]
+      expect(surface[:ref]).to be_within(0.01).of(0.28) if id == ids[:h]
       expect(surface[:ref]).to be_within(0.01).of(0.23) if id == ids[:i]
       expect(surface[:ref]).to be_within(0.01).of(0.34) if id == ids[:j]
       expect(surface[:ref]).to be_within(0.01).of(0.34) if id == ids[:k]
@@ -6307,12 +6306,12 @@ RSpec.describe TBD do
     bloc2_pro_UA = bloc2[:pro].values.reduce(:+)
     expect(bloc2_pro_UA).to be_within(0.1).of(4863.6)
 
-    expect(bloc2[:ref][:walls]).to     be_within(0.1).of( 744.6)
-    expect(bloc2[:ref][:roofs]).to     be_within(0.1).of( 976.9)
+    expect(bloc2[:ref][:walls]).to     be_within(0.1).of( 732.0)
+    expect(bloc2[:ref][:roofs]).to     be_within(0.1).of( 961.8)
     expect(bloc2[:ref][:floors]).to    be_within(0.1).of(   0.0)
-    expect(bloc2[:ref][:doors]).to     be_within(0.1).of(  67.7)
+    expect(bloc2[:ref][:doors]).to     be_within(0.1).of(  67.5)
     expect(bloc2[:ref][:windows]).to   be_within(0.1).of(   0.0)
-    expect(bloc2[:ref][:skylights]).to be_within(0.1).of( 229.4)
+    expect(bloc2[:ref][:skylights]).to be_within(0.1).of( 225.9)
     expect(bloc2[:ref][:rimjoists]).to be_within(0.1).of(   5.3)
     expect(bloc2[:ref][:parapets]).to  be_within(0.1).of(  95.1)
     expect(bloc2[:ref][:trim]).to      be_within(0.1).of( 108.5)
@@ -6322,7 +6321,7 @@ RSpec.describe TBD do
     expect(bloc2[:ref][:other]).to     be_within(0.1).of(   1.0)
 
     bloc2_ref_UA = bloc2[:ref].values.reduce(:+)
-    expect(bloc2_ref_UA).to be_within(0.1).of(2353.4)
+    expect(bloc2_ref_UA).to be_within(0.1).of(2321.8)
 
     # Testing summaries function.
     version = os_model.getVersion.versionIdentifier

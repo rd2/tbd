@@ -1814,6 +1814,8 @@ def processTBD(
         unless heating || cooling
           conditioned = false unless plenum?(space, airloops, setpoints)
         end
+        conditioned = false if heating && heating < -40 &&
+                               cooling && cooling > 40
       end
     end
 
