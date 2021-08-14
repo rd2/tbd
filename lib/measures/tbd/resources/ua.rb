@@ -5,9 +5,10 @@ require "openstudio"
 #
 # @param [Hash] surfaces Preprocessed collection of TBD surfaces
 # @param [Hash] sets A model's PSI sets
+# @param [Bool] setpoints True if OpenStudio model has valid setpoints
 #
 # @return [Bool] Returns true if successful in generating UA' reference values
-def qc33(surfaces, sets)
+def qc33(surfaces, sets, setpoints)
   unless surfaces && surfaces.is_a?(Hash) && sets && sets.is_a?(PSI)
     TBD.log(TBD::DEBUG,
       "Can't process Quebec energy code UA' inputs - invalid arguments")
@@ -21,13 +22,24 @@ def qc33(surfaces, sets)
     return false
   end
 
+  unless setpoints == true || setpoints == false
+    TBD.log(TBD::DEBUG,
+      "Variable 'setpoints' must be true/false for 3.3 UA' tradeoff")
+    return false
+  end
+
   surfaces.each do |id, surface|
     next unless surface.has_key?(:deratable)
     next unless surface[:deratable]
     next unless surface.has_key?(:type)
-    heating = 21.0
+    if setpoints
+      heating = -50
+      cooling =  50
+    else
+      heating =  21
+      cooling =  24
+    end
     heating = surface[:heating] if surface.has_key?(:heating)
-    cooling = 24.0
     cooling = surface[:cooling] if surface.has_key?(:cooling)
 
     # Start with surface U-factors.

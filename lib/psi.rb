@@ -1812,7 +1812,12 @@ def processTBD(
         heating, _ = maxHeatScheduledSetpoint(zone)
         cooling, _ = minCoolScheduledSetpoint(zone)
         unless heating || cooling
-          conditioned = false unless plenum?(space, airloops, setpoints)
+          if plenum?(space, airloops, setpoints)
+            heating = 21
+            cooling = 24
+          else
+            conditioned = false
+          end
         end
         conditioned = false if heating && heating < -40 &&
                                cooling && cooling > 40
@@ -3147,7 +3152,7 @@ def processTBD(
   io.delete(:edges) unless io[:edges].size > 0
 
   # Populate UA' trade-off reference values (optional).
-  qc33(surfaces, io_p) if g_UA && ref && ref == "code (Quebec)"
+  qc33(surfaces, io_p, setpoints) if g_UA && ref && ref == "code (Quebec)"
 
   return io, surfaces
 end
