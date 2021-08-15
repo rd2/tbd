@@ -112,14 +112,24 @@ def ua_summary(surfaces, date = Time.now, version = "",
   end
   return ua if surfaces.empty?
 
-  languages = [:en, :fr]
-  languages.each { |lang| ua[lang] = {} }
-
   ua[:model] = "∑U•A + ∑PSI•L + ∑KHI•n"
   ua[:date] = date
   ua[:version] = version unless version.nil? || version.empty?
   ua[:descr] = descr unless descr.nil? || descr.empty?
   ua[:file] = file unless file.nil? || file.empty?
+
+  languages = [:en, :fr]
+  languages.each { |lang| ua[lang] = {} }
+
+  ua[:en][:notes] = "Automated assessement from the OpenStudio Measure, "      \
+    "Thermal Bridging and Derating (TBD). Open source and MIT-licensed, TBD "  \
+    "is provided as is (without warranty). Procedures are documented in "      \
+    "the source code: https://github.com/rd2/tbd. "
+
+  ua[:fr][:notes] = "Analyse automatisée réalisée par la measure OpenStudio, " \
+    "'Thermal Bridging and Derating' (ou TBD). Distribuée librement (licence " \
+    "MIT), TBD est offerte telle quelle (sans garantie). L'approche est "      \
+    "documentée au sein du code source : https://github.com/rd2/tbd."
 
   walls  = { net: 0, gross: 0, subs: 0 }
   roofs  = { net: 0, gross: 0, subs: 0 }
@@ -134,9 +144,9 @@ def ua_summary(surfaces, date = Time.now, version = "",
     if has.empty? || val.empty?
       TBD.log(TBD::ERROR, "Invalid UA' reference set - skipping")
     else
+      ua[:model] += " : Design vs '#{ref}'"
       case ref
       when "code (Quebec)"
-        ua[:model] += " : Design vs 'code (Quebec)'"
         ua[:en][:objective] = "COMPLIANCE ASSESSMENT"
         ua[:en][:details] = []
         ua[:en][:details] << "Quebec Construction Code, Chapter I.1"
@@ -144,14 +154,10 @@ def ua_summary(surfaces, date = Time.now, version = "",
         ua[:en][:details] << "Division B, Section 3.3"
         ua[:en][:details] << "Building Envelope Trade-off Path"
 
-        ua[:en][:notes] = "Automated assessement from the OpenStudio "         \
-          "Measure, Thermal Bridging and Derating (TBD). Open source and MIT-" \
-          "licensed, TBD is provided as is (without warranty). Results are "   \
-          "based on user input not subject to prior validation (see "          \
-          "DESCRIPTION), and as such the assessment shall not be considered "  \
-          "as a certification of compliance. Calculations, which comply with " \
-          "Section 3.3 requirements, are described and documented in the "     \
-          "source code: https://github.com/rd2/tbd."
+        ua[:en][:notes] << " Calculations comply with Section 3.3 "            \
+          "requirements. Results are based on user input not subject to "      \
+          "prior validation (see DESCRIPTION), and as such the assessment "    \
+          "shall not be considered as a certification of compliance."
 
         ua[:fr][:objective] = "ANALYSE DE CONFORMITÉ"
         ua[:fr][:details] = []
@@ -160,17 +166,13 @@ def ua_summary(surfaces, date = Time.now, version = "",
         ua[:fr][:details] << "Division B, Section 3.3"
         ua[:fr][:details] << "Méthode des solutions de remplacement"
 
-        ua[:fr][:notes] = "Analyse automatisée réalisée par la "                \
-          "measure OpenStudio, 'Thermal Bridging and Derating' (ou TBD). "     \
-          "Distribuée librement (licence MIT), TBD est offerte "               \
-          "telle quelle (sans garantie). Les résultats sont tributaires "      \
-          "d'intrants fournis par l'utilisateur sans validation préalable "    \
-          "(voir DESCRIPTION). L'analyse n'est donc pas une attestation "      \
-          "de conformité. Les calculs, conformes aux dispositions de la "      \
-          "Section 3.3, sont décrits et documentés au sein du code source : "  \
-          "https://github.com/rd2/tbd."
+        ua[:fr][:notes] << " Les calculs sont conformes aux dispositions de "  \
+          "la Section 3.3. Les résultats sont tributaires d'intrants fournis " \
+          "par l'utilisateur, sans validation préalable (voir DESCRIPTION). "  \
+          "Ce document ne peut consituer une attestation de conformité. "
       else
-        # More to come ...
+        ua[:en][:objective] = "UA'"
+        ua[:fr][:objective] = "UA'"
       end
     end
   end
@@ -205,8 +207,10 @@ def ua_summary(surfaces, date = Time.now, version = "",
     next unless type == :wall || type == :ceiling || type == :floor
     next unless surface.has_key?(:net)
     next unless surface[:net] > TOL
-    next unless surface.has_key?(:u)
-    next unless surface[:u] > TOL
+    next unless surface.has_key?(:u) || surface.has_key?(:r)
+    next unless surface[:u] > TOL if surface.has_key?(:u)
+    next unless surface[:r] > TOL if surface.has_key?(:r)
+    surface[:u] = 1.0 / surface[:r] unless surface.has_key?(:u)
     heating = 21.0
     heating = surface[:heating] if surface.has_key?(:heating)
 
@@ -218,14 +222,17 @@ def ua_summary(surfaces, date = Time.now, version = "",
       areas[:walls][:net] += surface[:net]
       bloc[:pro][:walls] += surface[:net] * surface[:u]
       bloc[:ref][:walls] += surface[:net] * surface[:ref] if reference
+      bloc[:ref][:walls] += surface[:net] * surface[:u] unless reference
     elsif type == :ceiling
       areas[:roofs][:net] += surface[:net]
       bloc[:pro][:roofs] += surface[:net] * surface[:u]
       bloc[:ref][:roofs] += surface[:net] * surface[:ref] if reference
+      bloc[:ref][:roofs] += surface[:net] * surface[:u] unless reference
     else
       areas[:floors][:net] += surface[:net]
       bloc[:pro][:floors] += surface[:net] * surface[:u]
       bloc[:ref][:floors] += surface[:net] * surface[:ref] if reference
+      bloc[:ref][:floors] += surface[:net] * surface[:u] unless reference
     end
 
     if surface.has_key?(:doors)
@@ -238,8 +245,11 @@ def ua_summary(surfaces, date = Time.now, version = "",
         areas[:roofs][:subs] += door[:gross] if type == :ceiling
         areas[:floors][:subs] += door[:gross] if type == :floor
         bloc[:pro][:doors] += door[:gross] * door[:u]
-        next unless door.has_key?(:ref)
-        bloc[:ref][:doors] += door[:gross] * door[:ref]
+        if door.has_key?(:ref)
+          bloc[:ref][:doors] += door[:gross] * door[:ref]
+        else
+          bloc[:ref][:doors] += door[:gross] * door[:u]
+        end
       end
     end
 
@@ -253,8 +263,11 @@ def ua_summary(surfaces, date = Time.now, version = "",
         areas[:roofs][:subs] += window[:gross] if type == :ceiling
         areas[:floors][:subs] += window[:gross] if type == :floor
         bloc[:pro][:windows] += window[:gross] * window[:u]
-        next unless window.has_key?(:ref)
-        bloc[:ref][:windows] += window[:gross] * window[:ref]
+        if window.has_key?(:ref)
+          bloc[:ref][:windows] += window[:gross] * window[:ref]
+        else
+          bloc[:ref][:windows] += window[:gross] * window[:u]
+        end
       end
     end
 
@@ -268,8 +281,11 @@ def ua_summary(surfaces, date = Time.now, version = "",
         areas[:roofs][:subs] += sky[:gross] if type == :ceiling
         areas[:floors][:subs] += sky[:gross] if type == :floor
         bloc[:pro][:skylights] += sky[:gross] * sky[:u]
-        next unless sky.has_key?(:ref)
-        bloc[:ref][:skylights] += sky[:gross] * sky[:ref]
+        if sky.has_key?(:ref)
+          bloc[:ref][:skylights] += sky[:gross] * sky[:ref]
+        else
+          bloc[:ref][:skylights] += sky[:gross] * sky[:u]
+        end
       end
     end
 
@@ -304,11 +320,15 @@ def ua_summary(surfaces, date = Time.now, version = "",
           bloc[:pro][:other] += loss
         end
 
-        next unless edge.has_key?(:ref)
-        next unless edge.has_key?(:ratio)
-        next if val.nil?
+        next unless val
         tt = psi.safeType(ref, edge[:type])
-        loss = edge[:length] * val[tt] * edge[:ratio]
+        if edge.has_key?(:ref)
+          loss = edge[:length] * edge[:ref]
+        else
+          ratio = 0
+          ratio = edge[:ratio] if edge.has_key?(:ratio)
+          loss = edge[:length] * val[tt] * edge[:ratio]
+        end
 
         case tt.to_s
         when /rimjoist/i
@@ -352,15 +372,20 @@ def ua_summary(surfaces, date = Time.now, version = "",
 
       pro_sum = bloc[:pro].values.reduce(:+)
       ref_sum = bloc[:ref].values.reduce(:+)
-      if pro_sum > TOL
+      if pro_sum > TOL || ref_sum > TOL
         ratio = nil
-        ratio = 100.0 * (pro_sum - ref_sum) / ref_sum if ref_sum > TOL
+        ratio = (100.0 * (pro_sum - ref_sum) / ref_sum).abs if ref_sum > TOL
         str = format("%.1f W/K (vs %.1f W/K)", pro_sum, ref_sum)
         str += format(" +%.1f%%", ratio) if ratio && pro_sum > ref_sum # **
         str += format(" -%.1f%%", ratio) if ratio && pro_sum < ref_sum
         ua[lang][b] = {}
-        ua[:en][b][:summary] = "heated : #{str}"  if lang == :en
-        ua[:fr][b][:summary] = "chauffé : #{str}" if lang == :fr
+        if b == :b1
+          ua[:en][b][:summary] = "heated : #{str}"  if lang == :en
+          ua[:fr][b][:summary] = "chauffé : #{str}" if lang == :fr
+        else
+          ua[:en][b][:summary] = "semi-heated : #{str}"  if lang == :en
+          ua[:fr][b][:summary] = "semi-chauffé : #{str}" if lang == :fr
+        end
 
         # ** https://bugs.ruby-lang.org/issues/13761 (Ruby > 2.2.5)
         # str += format(" +%.1f%", ratio) if ratio && pro_sum > ref_sum ... becomes
@@ -370,10 +395,10 @@ def ua_summary(surfaces, date = Time.now, version = "",
           rf = bloc[:ref][k]
           next if v < TOL && rf < TOL
           ratio = nil
-          ratio = 100.0 * (v - rf) / rf if rf > TOL
+          ratio = (100.0 * (v - rf) / rf).abs if rf > TOL
           str = format("%.1f W/K (vs %.1f W/K)", v, rf)
-          str += format(" +%.1f%%", ratio) if v > rf
-          str += format(" -%.1f%%", ratio) if v < rf
+          str += format(" +%.1f%%", ratio) if ratio && v > rf
+          str += format(" -%.1f%%", ratio) if ratio && v < rf
 
           case k
           when :walls

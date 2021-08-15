@@ -78,8 +78,8 @@ def exitTBD(model, runner, gen_ua = false, ref = "", setpoints = false, out = fa
         runner.registerInfo("-")
         runner.registerInfo(ua[:model])
         tbd_log[:ua] = {}
-        ud_md_en = ua_md(ua, :en)
-        ud_md_fr = ua_md(ua, :fr)
+        ua_md_en = ua_md(ua, :en)
+        ua_md_fr = ua_md(ua, :fr)
       end
       if ua[:en].has_key?(:b1) && ua[:en][:b1].has_key?(:summary)
         runner.registerInfo(" - #{ua[:en][:b1][:summary]}")
@@ -171,35 +171,39 @@ def exitTBD(model, runner, gen_ua = false, ref = "", setpoints = false, out = fa
   end
 
   unless TBD.fatal? || ua.nil? || ua.empty?
-    ua_path = File.join(out_dir, "ua_en.md")
-    File.open(ua_path, 'w') do |file|
-      file.puts ud_md_en
-      begin
-        file.fsync
-      rescue StandardError
-        file.flush
+    unless ua_md_en.nil? || ua_md_en.empty?
+      ua_path = File.join(out_dir, "ua_en.md")
+      File.open(ua_path, 'w') do |file|
+        file.puts ua_md_en
+        begin
+          file.fsync
+        rescue StandardError
+          file.flush
+        end
       end
     end
 
-    ua_path = File.join(out_dir, "ua_fr.md")
-    File.open(ua_path, 'w') do |file|
-      file.puts ud_md_fr
-      begin
-        file.fsync
-      rescue StandardError
-        file.flush
+    unless ua_md_fr.nil? || ua_md_fr.empty?
+      ua_path = File.join(out_dir, "ua_fr.md")
+      File.open(ua_path, 'w') do |file|
+        file.puts ua_md_fr
+        begin
+          file.fsync
+        rescue StandardError
+          file.flush
+        end
       end
     end
   end
 
   if TBD.fatal?
-    runner.registerError(status + " - see 'tbd.out.json'")
+    runner.registerError("#{status} - see 'tbd.out.json'")
     return false
   elsif TBD.error? || TBD.warn?
-    runner.registerWarning(status + " - see 'tbd.out.json'")
+    runner.registerWarning("#{status} - see 'tbd.out.json'")
     return true
   else
-    runner.registerInfo(status + " - see 'tbd.out.json'")
+    runner.registerInfo("#{status} - see 'tbd.out.json'")
     return true
   end
 end

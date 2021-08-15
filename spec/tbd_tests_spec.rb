@@ -6283,7 +6283,7 @@ RSpec.describe TBD do
     expect(bloc1[:ref][:trim]).to      be_within(0.1).of(  16.3)
     expect(bloc1[:ref][:corners]).to   be_within(0.1).of(   1.3)
     expect(bloc1[:ref][:balconies]).to be_within(0.1).of(   0.0)
-    expect(bloc1[:ref][:grade]).to    be_within(0.1).of(  15.8)
+    expect(bloc1[:ref][:grade]).to     be_within(0.1).of(  15.8)
     expect(bloc1[:ref][:other]).to     be_within(0.1).of(   0.0)
 
     bloc1_ref_UA = bloc1[:ref].values.reduce(:+)
@@ -6414,6 +6414,89 @@ RSpec.describe TBD do
     expect(ua[:en][:b2].has_key?(:balconies)).to be(false)
     expect(ua[:en][:b2].has_key?(:grade)).to be(true)
     expect(ua[:en][:b2].has_key?(:other)).to be(true)
+
+    # ud_md_en = ua_md(ua, :en)
+    # File.open("ua_en.md", "w") do |file|
+    #   file.puts ud_md_en
+    # end
+    #
+    # ud_md_fr = ua_md(ua, :fr)
+    # File.open("ua_fr.md", "w") do |file|
+    #   file.puts ud_md_fr
+    # end
+
+    # Try with an incomplete reference, e.g. (non thermal bridging)
+    TBD.clean!
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    file = "/files/test_warehouse.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    ref = "code (Quebec)"
+    # When faced with an edge that may be characterized by more than one thermal
+    # bridge type (e.g. ground-floor door "sill" vs "grade" edge; "corner" vs
+    # corner window "jamb"), TBD retains the edge type (amongst candidate edge
+    # types) representing the greatest heat loss:
+    #
+    #   psi = edge[:psi].values.max
+    #   type = edge[:psi].key(psi)
+    #
+    # As long as there is a slight difference in PSI-values between candidate
+    # edge types, the automated selection will be deterministic. With 2 or more
+    # edge types sharing the exact same PSI value (e.g. 0.3 W/K per m), the
+    # final selection of edge type becomes less obvious. It is not randomly
+    # selected, but rather based on the (somewhat arbitrary) design choice of
+    # which edge type is processed first in psi.rb (line ~2300 onwards). For
+    # instance, fenestration perimeter joints are treated before corners or
+    # parapets. When dealing with equal hash values, Ruby's Hash "key" method
+    # returns the first key (i.e. edge type) that matches the criterion:
+    #
+    # https://docs.ruby-lang.org/en/2.0.0/Hash.html#method-i-key
+    #
+    # From an energy simulation results perspective, the consequences of this
+    # pseudo-random choice are insignificant (i.e. same PSI-value). For UA'
+    # comparisons, the situation becomes less obvious in outlier cases. When a
+    # reference value needs to be generated for the edge described above, TBD
+    # retains the original autoselected edge type, yet applies reference PSI
+    # values (e.g. code). So far so good. However, when "(non thermal bridging)"
+    # is retained as a default PSI design set (not as a reference set), all edge
+    # types will necessarily have 0 W/K per meter as PSI-values. Same with the
+    # "efficient (BETBG)" PSI set (all but one type at 0.2 W/K per m). Not
+    # obvious (for users) which edge type will be selected by TBD for multi-type
+    # edges. This also has the undesirable effect of generating variations in
+    # reference UA' tallies, depending on the chosen design PSI set (as the
+    # reference PSI set may have radically different PSI-values depending on
+    # the pseudo-random edge type selection). Fortunately, this effect is
+    # limited to the somewhat academic PSI sets like "(non thermal bridging)" or
+    # "efficient (BETBG)".
+    #
+    # In the end, the above discussion remains an "aide-mémoire" for future
+    # guide material, yet also as a basis for peer-review commentary of upcoming
+    # standards on thermal bridging.
+    psi_set = "(non thermal bridging)"
+    io, surfaces = processTBD(os_model, psi_set, nil, nil, true, ref)
+
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
+    expect(io.has_key?(:edges))
+    expect(io[:edges].size).to eq(300)
+    expect(surfaces.size).to eq(23)
+
+    # Testing summaries function.
+    version = os_model.getVersion.versionIdentifier
+    ua = ua_summary(surfaces, Time.now, version, "testing non thermal bridging",
+      "test_warehouse.osm", ref)
+    expect(ua.nil?).to be(false)
+    expect(ua.empty?).to be(false)
+    expect(ua.is_a?(Hash)).to be(true)
+    expect(ua.has_key?(:model))
 
     ud_md_en = ua_md(ua, :en)
     File.open("ua_en.md", "w") do |file|
