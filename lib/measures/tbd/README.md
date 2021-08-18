@@ -35,6 +35,14 @@ e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by 'tbd.json' fil
 **Required:** true,
 **Model Dependent:** false
 
+### Alter OpenStudio model
+If checked, TBD will irrevocably change the user's OpenStudio model.
+**Name:** alter_model,
+**Type:** Boolean,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
 ### Write 'tbd.out.json'
 Write 'tbd.out.json' file to customize for subsequent runs. Edit and place in model 'files' directory as 'tbd.json'.
 **Name:** write_tbd_json,

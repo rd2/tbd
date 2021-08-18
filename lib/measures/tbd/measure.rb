@@ -239,11 +239,18 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     choices = OpenStudio::StringVector.new
     psi = PSI.new
     psi.set.keys.each { |k| choices << k.to_s }
+
     option = OpenStudio::Measure::OSArgument.makeChoiceArgument("option", choices, true)
     option.setDisplayName("Default thermal bridge option")
     option.setDescription("e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by 'tbd.json' file).")
     option.setDefaultValue("poor (BETBG)")
     args << option
+
+    alter_model = OpenStudio::Measure::OSArgument.makeBoolArgument("alter_model", true, false)
+    alter_model.setDisplayName("Alter OpenStudio model")
+    alter_model.setDescription("If checked, TBD will irrevocably change the user's OpenStudio model.")
+    alter_model.setDefaultValue(true)
+    args << alter_model
 
     write_tbd_json = OpenStudio::Measure::OSArgument.makeBoolArgument("write_tbd_json", true, false)
     write_tbd_json.setDisplayName("Write 'tbd.out.json'")
@@ -279,12 +286,13 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
   end
 
   # define what happens when the measure is run
-  def run(model, runner, user_arguments)
-    super(model, runner, user_arguments)
+  def run(user_model, runner, user_arguments)
+    super(user_model, runner, user_arguments)
 
     # assign the user inputs to variables
     load_tbd_json = runner.getBoolArgumentValue("load_tbd_json", user_arguments)
     option = runner.getStringArgumentValue("option", user_arguments)
+    alter = runner.getBoolArgumentValue("alter_model", user_arguments)
     write_tbd_json = runner.getBoolArgumentValue("write_tbd_json", user_arguments)
     gen_UA = runner.getBoolArgumentValue("gen_UA_report", user_arguments)
     ua_ref = runner.getStringArgumentValue("ua_reference", user_arguments)
@@ -292,7 +300,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     gen_kiva_force = runner.getBoolArgumentValue("gen_kiva_force", user_arguments)
 
     # use the built-in error checking
-    return false unless runner.validateUserArguments(arguments(model), user_arguments)
+    return false unless runner.validateUserArguments(arguments(user_model), user_arguments)
 
     TBD.clean!
 
@@ -304,15 +312,15 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
         return exitTBD(runner)
       else
         io_path = io_path.get.to_s
-        #TBD.log(TBD::INFO, "Using inputs from #{io_path}")  # for debugging
-        #runner.registerInfo("Using inputs from #{io_path}") # for debugging
+        # TBD.log(TBD::INFO, "Using inputs from #{io_path}")  # for debugging
+        # runner.registerInfo("Using inputs from #{io_path}") # for debugging
       end
     end
 
     # Process all ground-facing surfaces as foundation-facing.
     if gen_kiva_force
       gen_kiva = true
-      model.getSurfaces.each do |s|
+      user_model.getSurfaces.each do |s|
         next unless s.isGroundSurface
         construction = s.construction.get
         s.setOutsideBoundaryCondition("Foundation")
@@ -320,8 +328,19 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
       end
     end
 
-    schema_path = nil
-    io, surfaces = processTBD(model, option, io_path, schema_path, gen_UA, ua_ref, gen_kiva)
+    unless alter
+      # 1. Clone model
+      # 2. Save (where?) cloned model/reopen to ensure deep clone.
+      # 4. Copy over user-set input tbd.json to cloned model's /files folder.
+      # 3. Instead of "model = user_model", "model = cloned_model".
+      model = user_model
+      # 4. Retrieve tbd.out.json and/or UA' MD files over to original model's
+      # /files folder (in exitTBD).
+    else
+      model = user_model
+    end
+
+    io, surfaces = processTBD(model, option, io_path, nil, gen_UA, ua_ref, gen_kiva)
 
     t = heatingTemperatureSetpoints?(model)
     t = coolingTemperatureSetpoints?(model) || t

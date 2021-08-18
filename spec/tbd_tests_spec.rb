@@ -6509,6 +6509,96 @@ RSpec.describe TBD do
     end
   end
 
+  it "can work off of a cloned model" do
+    TBD.clean!
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    file = File.dirname(__FILE__) + "/files/test_warehouse.osm"
+    path = OpenStudio::Path.new(file)
+    model = translator.loadModel(path)
+    expect(model.empty?).to be(false)
+    model = model.get
+
+    alt_model = model.clone
+    alt_file = File.dirname(__FILE__) + "/files/alt_warehouse.osm"
+    alt_model.save(alt_file, true)
+
+    # Despite one being the clone of the other, files will not be identical,
+    # namely due to unique handles.
+    expect(FileUtils.identical?(file, alt_file)).to be(false)
+
+    io, surfaces = processTBD(model, "poor (BETBG)")
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(io.has_key?(:edges)).to be(true)
+    expect(io[:edges].size).to eq(300)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
+    expect(surfaces.size).to eq(23)
+    out = JSON.pretty_generate(io)
+    outP = File.dirname(__FILE__) + "/../json/tbd_warehouse12.out.json"
+    File.open(outP, "w") { |outP| outP.puts out }
+
+    TBD.clean!
+    alt_file = File.dirname(__FILE__) + "/files/alt_warehouse.osm"
+    alt_path = OpenStudio::Path.new(alt_file)
+    alt_model = translator.loadModel(alt_path)
+    expect(alt_model.empty?).to be(false)
+    alt_model = alt_model.get
+    alt_io, alt_surfaces = processTBD(alt_model, "poor (BETBG)")
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(alt_io.nil?).to be(false)
+    expect(alt_io.is_a?(Hash)).to be(true)
+    expect(alt_io.empty?).to be(false)
+    expect(alt_io.has_key?(:edges)).to be(true)
+    expect(alt_io[:edges].size).to eq(300)
+    expect(alt_surfaces.nil?).to be(false)
+    expect(alt_surfaces.is_a?(Hash)).to be(true)
+    expect(alt_surfaces.size).to eq(23)
+    out2 = JSON.pretty_generate(alt_io)
+    outP2 = File.dirname(__FILE__) + "/../json/tbd_warehouse13.out.json"
+    File.open(outP2, "w") { |outP2| outP2.puts out2 }
+
+    # Despite holding the same content, both output JSON files are not written
+    # out the same sequentially.
+    expect(FileUtils.identical?(outP, outP2)).to be(false)
+
+    time = Time.now
+    version = model.getVersion.versionIdentifier
+
+    # Original output UA' MD file.
+    o_ua = ua_summary(surfaces, time, version, "testing equality",
+      "warehouse.osm", "code (Quebec)")
+    expect(o_ua.nil?).to be(false)
+    expect(o_ua.empty?).to be(false)
+    expect(o_ua.is_a?(Hash)).to be(true)
+    expect(o_ua.has_key?(:model))
+
+    o_ud_md_en = ua_md(o_ua, :en)
+    File.open("o_ua_en.md", "w") do |file|
+      file.puts o_ud_md_en
+    end
+
+    # Alternate output UA' MD file.
+    alt_ua = ua_summary(alt_surfaces, time, version, "testing equality",
+      "warehouse.osm", "code (Quebec)")
+    expect(alt_ua.nil?).to be(false)
+    expect(alt_ua.empty?).to be(false)
+    expect(alt_ua.is_a?(Hash)).to be(true)
+    expect(alt_ua.has_key?(:model))
+
+    alt_ud_md_en = ua_md(alt_ua, :en)
+    File.open("alt_ua_en.md", "w") do |file|
+      file.puts alt_ud_md_en
+    end
+
+    # Both output UA' MD files should be identical.
+    expect(FileUtils.identical?("o_ua_en.md", "alt_ua_en.md")).to be(true)
+  end
+
   it "can generate and access KIVA inputs (seb)" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
