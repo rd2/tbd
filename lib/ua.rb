@@ -588,10 +588,11 @@ def ua_md(ua, lang = :en)
     report << "* project : #{ua[:descr]}" if ua.has_key?(:descr) && lang == :en
     report << "* projet : #{ua[:descr]}"  if ua.has_key?(:descr) && lang == :fr
     model = ""
-    model = "* model : #{ua[:file]}" if ua.has_key?(:file)
+    model = "* model : #{ua[:file]}" if ua.has_key?(:file) if lang == :en
+    model = "* modèle : #{ua[:file]}" if ua.has_key?(:file) if lang == :fr
     model += " (v#{ua[:version]})" if ua.has_key?(:version)
     report << model unless model.empty?
-    report << "* TBD version : v2.2.0"
+    report << "* TBD : v2.2.0"
     report << "* date : #{ua[:date]}"
     if lang == :en
       report << "* status : #{TBD.msg(TBD.status)}" unless TBD.status.zero?

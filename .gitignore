@@ -6,6 +6,7 @@
 /spec/test/
 /spec/*_suite_runs/
 /spec/files/alt_warehouse.osm
+/spec/files/alt2_warehouse.osm
 #/spec/files/*/
 /test/
 /tmp/

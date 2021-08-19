@@ -6596,7 +6596,47 @@ RSpec.describe TBD do
     end
 
     # Both output UA' MD files should be identical.
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
     expect(FileUtils.identical?("o_ua_en.md", "alt_ua_en.md")).to be(true)
+
+    # Testing the Macumber solution.
+    TBD.clean!
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    file = File.dirname(__FILE__) + "/files/test_warehouse.osm"
+    path = OpenStudio::Path.new(file)
+    model = translator.loadModel(path)
+    expect(model.empty?).to be(false)
+    model = model.get
+
+    alt2_model = OpenStudio::Model::Model.new
+    alt2_model.addObjects(model.toIdfFile.objects)
+    alt2_file = File.dirname(__FILE__) + "/files/alt2_warehouse.osm"
+    alt2_model.save(alt2_file, true)
+
+    # Still get the differences in handles (not consequential at all if the TBD
+    # JSON output files are identical).
+    expect(FileUtils.identical?(file, alt2_file)).to be(false)
+
+    alt2_io, alt2_surfaces = processTBD(alt2_model, "poor (BETBG)")
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(alt2_io.nil?).to be(false)
+    expect(alt2_io.is_a?(Hash)).to be(true)
+    expect(alt2_io.empty?).to be(false)
+    expect(alt2_io.has_key?(:edges)).to be(true)
+    expect(alt2_io[:edges].size).to eq(300)
+    expect(alt2_surfaces.nil?).to be(false)
+    expect(alt2_surfaces.is_a?(Hash)).to be(true)
+    expect(alt2_surfaces.size).to eq(23)
+
+    out3 = JSON.pretty_generate(alt2_io)
+    outP3 = File.dirname(__FILE__) + "/../json/tbd_warehouse14.out.json"
+    File.open(outP3, "w") { |outP3| outP3.puts out3 }
+
+    # Nice. Both TBD JSON output files are identical!
+    # "/../json/tbd_warehouse12.out.json" vs "/../json/tbd_warehouse14.out.json"
+    expect(FileUtils.identical?(outP, outP3)).to be(true)
   end
 
   it "can generate and access KIVA inputs (seb)" do
