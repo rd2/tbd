@@ -33,7 +33,7 @@ end
 # @param [Hash] surfaces TBD derated surfaces
 #
 # @return [Bool] Returns true if TBD Measure is successful.
-def exitTBD(model, runner, gen_ua = false, ref = "", setpoints = false, out = false, io = nil, surfaces = nil)
+def exitTBD(model, runner, gen_ua = false, ref = "", setpoints = false, out = false, io = nil, surfaces = nil, seed = "")
   # Generated files target a design context ( >= WARN ) ... change TBD log_level
   # for debugging purposes. By default, log_status is set below DEBUG while
   # log_level is set @WARN. Example: "TBD.set_log_level(TBD::DEBUG)".
@@ -51,8 +51,8 @@ def exitTBD(model, runner, gen_ua = false, ref = "", setpoints = false, out = fa
 
   io = {} unless io
 
-  seed = runner.workflow.seedFile
-  seed = File.basename(seed.get.to_s) unless seed.empty?
+  # seed = runner.workflow.seedFile
+  # seed = File.basename(seed.get.to_s) unless seed.empty?
   descr = ""
   descr = seed unless seed.empty?
   io[:description] = descr unless io.has_key?(:description)
@@ -328,24 +328,38 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
       end
     end
 
-    unless alter
-      # 1. Clone model
-      # 2. Save (where?) cloned model/reopen to ensure deep clone.
-      # 4. Copy over user-set input tbd.json to cloned model's /files folder.
-      # 3. Instead of "model = user_model", "model = cloned_model".
-      model = user_model
-      # 4. Retrieve tbd.out.json and/or UA' MD files over to original model's
-      # /files folder (in exitTBD).
+    seed = runner.workflow.seedFile
+    seed = File.basename(seed.get.to_s) unless seed.empty?
+    runner.registerInfo("Model named '#{seed}''") # for debugging
+
+    if alter == false
+      # Clone model.
+      model = OpenStudio::Model::Model.new
+      model.addObjects(user_model.toIdfFile.objects)
+
+      io, surfaces = processTBD(model, option, io_path, nil, gen_UA, ua_ref, gen_kiva)
+
+      t = heatingTemperatureSetpoints?(model)
+      t = coolingTemperatureSetpoints?(model) || t
+
+      return exitTBD(model, runner, gen_UA, ua_ref, t, write_tbd_json, io, surfaces, seed)
     else
-      model = user_model
+      # model = user_model
+
+      io, surfaces = processTBD(user_model, option, io_path, nil, gen_UA, ua_ref, gen_kiva)
+
+      t = heatingTemperatureSetpoints?(user_model)
+      t = coolingTemperatureSetpoints?(user_model) || t
+
+      return exitTBD(user_model, runner, gen_UA, ua_ref, t, write_tbd_json, io, surfaces, seed)
     end
 
-    io, surfaces = processTBD(model, option, io_path, nil, gen_UA, ua_ref, gen_kiva)
-
-    t = heatingTemperatureSetpoints?(model)
-    t = coolingTemperatureSetpoints?(model) || t
-
-    return exitTBD(model, runner, gen_UA, ua_ref, t, write_tbd_json, io, surfaces)
+    # io, surfaces = processTBD(model, option, io_path, nil, gen_UA, ua_ref, gen_kiva)
+    #
+    # t = heatingTemperatureSetpoints?(model)
+    # t = coolingTemperatureSetpoints?(model) || t
+    #
+    # return exitTBD(model, runner, gen_UA, ua_ref, t, write_tbd_json, io, surfaces)
   end
 end
 
