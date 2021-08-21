@@ -5,7 +5,7 @@
 # Thermal Bridging and Derating - TBD
 
 ## Description
-Thermally derates opaque constructions from major thermal bridges.
+Derates opaque constructions from major thermal bridges.
 
 ## Modeler Description
 (see github.com/rd2/tbd)
@@ -35,6 +35,14 @@ e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by 'tbd.json' fil
 **Required:** true,
 **Model Dependent:** false
 
+### Alter OpenStudio model (Apply Measures Now)
+If checked under Apply Measures Now, TBD will irrevocably alter the user's OpenStudio model.
+**Name:** alter_model,
+**Type:** Boolean,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
 ### Write 'tbd.out.json'
 Write 'tbd.out.json' file to customize for subsequent runs. Edit and place in model 'files' directory as 'tbd.json'.
 **Name:** write_tbd_json,
@@ -43,8 +51,24 @@ Write 'tbd.out.json' file to customize for subsequent runs. Edit and place in mo
 **Required:** true,
 **Model Dependent:** false
 
+### Generate UA' report
+Compare ∑U•A + ∑PSI•L + ∑KHI•n (model vs UA' reference - see pull-down option below).
+**Name:** gen_UA_report,
+**Type:** Boolean,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
+### UA' reference
+e.g. 'poor', 'regular', 'efficient', 'code'.
+**Name:** ua_reference,
+**Type:** Choice,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
 ### Generate Kiva inputs
-Generate Kiva settings & objects if any model surfaces have 'foundation' boundary conditions ('ground' facing surfaces are ignored).
+Generate Kiva settings & objects for surfaces with 'foundation' boundary conditions (not 'ground').
 **Name:** gen_kiva,
 **Type:** Boolean,
 **Units:** ,
@@ -52,7 +76,7 @@ Generate Kiva settings & objects if any model surfaces have 'foundation' boundar
 **Model Dependent:** false
 
 ### Force-generate Kiva inputs
-Overwrites all 'ground' boundary conditions as 'foundation' before generating Kiva inputs (preferred solution).
+Overwrites 'ground' boundary conditions as 'foundation' before generating Kiva inputs (recommended).
 **Name:** gen_kiva_force,
 **Type:** Boolean,
 **Units:** ,

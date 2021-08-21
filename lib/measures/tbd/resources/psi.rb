@@ -12,6 +12,7 @@ end
 
 require_relative "conditioned.rb"
 require_relative "framedivider.rb"
+require_relative "ua.rb"
 require_relative "log.rb"
 
 # Set 10mm tolerance for edge (thermal bridge) vertices.
@@ -558,7 +559,7 @@ end
 # :io_building = project-wide PSI set, if absent from TBD JSON file
 #
 # @param [Hash] surfaces Preprocessed collection of TBD surfaces
-# @param [Hash] edges Preprocessed collection TBD edges
+# @param [Hash] edges Preprocessed collection of TBD edges
 # @param [String] set Default) PSI set identifier, can be "" (empty)
 # @param [String] ioP Path to a user-set TBD JSON input file (optional)
 # @param [String] schemaP Path to a TBD JSON schema file (optional)
@@ -722,6 +723,41 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
           end
         else
           TBD.log(TBD::FATAL, "Invalid surface entry (TBD JSON file)")
+          return nil, psi, khi
+        end
+      end
+    end
+
+    if io.has_key?(:subsurfaces)
+      io[:subsurfaces].each do |sub|
+        if sub.has_key?(:id) && sub.has_key?(:usi)
+          i = sub[:id]
+          match = false
+          surfaces.each do |id, surface|
+            if surface.has_key?(:windows)
+              surface[:windows].each do |ii, window|
+                next if match
+                match = true if i == ii
+              end
+            end
+            if surface.has_key?(:doors)
+              surface[:doors].each do |ii, door|
+                next if match
+                match = true if i == ii
+              end
+            end
+            if surface.has_key?(:skylights)
+              surface[:skylights].each do |ii, skylight|
+                next if match
+                match = true if i == ii
+              end
+            end
+          end
+          unless match
+            TBD.log(TBD::ERROR, "Missing OSM subsurface '#{i}' - skipping")
+          end
+        else
+          TBD.log(TBD::FATAL, "Invalid subsurface entry (TBD JSON file)")
           return nil, psi, khi
         end
       end
@@ -1318,6 +1354,118 @@ def generateKiva(model, walls, floors, edges)
 end
 
 ##
+# Returns total air film resistance for fenestration (future use)
+#
+# @param [Float] usi A fenestrated construction's U-factor in W/m2.K
+#
+# @return [Float] Returns total air film resistance in m2.K/W (0.1216 if errors)
+def glazingAirFilmRSi(usi = 5.85)
+  # The sum of thermal resistances of calculated exterior and interior film
+  # coefficients under standard winter conditions are taken from:
+  # https://bigladdersoftware.com/epx/docs/9-5/engineering-reference/
+  # window-calculation-module.html#simple-window-model
+  #
+  # These remain acceptable approximations for flat windows, yet likely
+  # unsuitable for subsurfaces with curved or projecting shapes like domed
+  # skylights. Given TBD UA' calculation requirements (i.e. reporting only, not
+  # affecting simulation inputs), the solution (if ever used) would be
+  # considered an adequate fix, awaiting eventual OpenStudio (and EnergyPlus)
+  # upgrades to report NFRC 100 (or ISO) air film resistances under standard
+  # winter conditions.
+  #
+  # For U-factors above 8.0 W/m2.K (or invalid input), the function will return
+  # 0.1216 m2.K/W, which corresponds to a construction with a single glass layer
+  # of thickness 2mm & k = ~0.6 W/m.K, based on the output of the models.
+  #
+  # The EnergyPlus Engineering calculations were designed for vertical windows
+  # - not horizontal, slanted or domed surfaces.
+  unless usi && usi.is_a?(Numeric) && usi > TOL
+    TBD.log(TBD::DEBUG,
+      "Invalid U-factor, can't calculate air film resistance - skipping")
+    return 0.4216
+  end
+  if usi > 8.0
+    TBD.log(TBD::WARN,
+      "'#{id}' U-factor > 8.0 W/m2.K - using airfilm RSi of 0.1216 m2.K/W")
+    return 0.1216
+  end
+
+  rsi = 1.0 / (0.025342 * usi + 29.163853)                        # exterior ...
+
+  if usi < 5.85
+    return rsi + 1.0 / (0.359073 * Math.log(usi) + 6.949915)    # ... + interior
+  else
+    return rsi + 1.0 / (1.788041 * usi - 2.886625)              # ... + interior
+  end
+end
+
+##
+# Returns a construction's standard thermal resistance (with air films).
+#
+# @param [OpenStudio::Model::Construction] construction An OS construction
+# @param [Float] film_RSi Thermal resistance of surface air films (m2.K/W)
+# @param [Float] temperature Gas temperature (°C) [optional]
+#
+# @return [Float] Returns construction's calculated RSi; 0 if error
+def rsi(construction, film_RSi, temperature = 0.0)
+  # This is adapted from BTAP's Material Module's "get_conductance" (Phyl Lopez)
+  # https://github.com/NREL/OpenStudio-Prototype-Buildings/blob/
+  # c3d5021d8b7aef43e560544699fb5c559e6b721d/lib/btap/measures/
+  # btap_equest_converter/envelope.rb#L122
+  #
+  # Convert C to K.
+  t =  temperature + 273.0
+
+  rsi = 0
+  unless construction && construction.is_a?(OpenStudio::Model::Construction)
+    TBD.log(TBD::DEBUG,
+      "Invalid construction, can't calculate RSi - skipping")
+    return rsi
+  end
+  unless film_RSi && film_RSi.is_a?(Numeric)
+    TBD.log(TBD::DEBUG,
+      "Invalid surface film resistance, can't calculate RSi - skipping")
+    return rsi
+  end
+  rsi = film_RSi
+
+  construction.layers.each do |m|
+    # Fenestration materials first (ignoring shades, screens, etc.)
+    unless m.to_SimpleGlazing.empty?
+      return 1.0 / m.to_SimpleGlazing.get.uFactor              # no need to loop
+    end
+    unless m.to_StandardGlazing.empty?
+      rsi += m.to_StandardGlazing.get.thermalResistance
+    end
+    unless m.to_RefractionExtinctionGlazing.empty?
+      rsi += m.to_RefractionExtinctionGlazing.get.thermalResistance
+    end
+    unless m.to_Gas.empty?
+      rsi += m.to_Gas.get.getThermalResistance(t)
+    end
+    unless m.to_GasMixture.empty?
+      rsi += m.to_GasMixture.get.getThermalResistance(t)
+    end
+
+    # Opaque materials next.
+    unless m.to_OpaqueMaterial.empty?
+      rsi += m.to_OpaqueMaterial.get.thermalResistance
+    end
+    unless m.to_MasslessOpaqueMaterial.empty?
+      rsi += m.to_MasslessOpaqueMaterial.get.thermalResistance
+    end
+    unless m.to_RoofVegetation.empty?
+      rsi += m.to_RoofVegetation.get.thermalResistance
+    end
+    unless m.to_AirGap.empty?
+      rsi += m.to_AirGap.get.getThermalResistance
+    end
+  end
+
+  rsi
+end
+
+##
 # Identifies a layered construction's insulating (or deratable) layer.
 #
 # @param [OpenStudio::Model::Construction] construction An OS construction
@@ -1328,7 +1476,7 @@ end
 def deratableLayer(construction)
   r                = 0.0                        # R-value of insulating material
   index            = nil                        # index of insulating material
-  type             = nil                        # nil, :massless; or :standard
+  type             = nil                        # nil, :massless; :standard
   i                = 0                          # iterator
 
   unless construction && construction.is_a?(OpenStudio::Model::Construction)
@@ -1363,6 +1511,7 @@ def deratableLayer(construction)
         type       = :standard
       end
     end
+
     i += 1
   end
   return index, type, r
@@ -1568,11 +1717,21 @@ end
 # @param [String] psi_set Default PSI set identifier, can be "" (empty)
 # @param [String] ioP Path to a user-set TBD JSON input file (optional)
 # @param [String] schemaP Path to a TBD JSON schema file (optional)
+# @param [Bool] g_UA Have TBD generate UA' report (optional)
+# @param [String] ref U & PSI reference (optional)
 # @param [Bool] g_kiva Have TBD generate Kiva objects
 #
 # @return [Hash] Returns TBD collection of objects for JSON serialization
 # @return [Hash] Returns collection of derated TBD surfaces
-def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
+def processTBD(
+  os_model,
+  psi_set,
+  ioP     = nil,
+  schemaP = nil,
+  g_UA    = false,
+  ref     = "",
+  g_kiva  = false)
+
   unless os_model
     TBD.log(TBD::DEBUG,
       "Can't process TBD, unable to find or open OSM (argument) - exiting")
@@ -1582,6 +1741,11 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
   unless os_model.is_a?(cl)
     TBD.log(TBD::DEBUG,
       "Can't process TBD, #{os_model.class}? expected '#{cl}' - exiting")
+    return nil, nil
+  end
+  unless g_UA == true || g_UA == false
+    TBD.log(TBD::DEBUG,
+      "Can't process TBD (UA), #{g_UA.class}? expected true or false - exiting")
     return nil, nil
   end
   unless g_kiva == true || g_kiva == false
@@ -1648,8 +1812,15 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
         heating, _ = maxHeatScheduledSetpoint(zone)
         cooling, _ = minCoolScheduledSetpoint(zone)
         unless heating || cooling
-          conditioned = false unless plenum?(space, airloops, setpoints)
+          if plenum?(space, airloops, setpoints)
+            heating = 21
+            cooling = 24
+          else
+            conditioned = false
+          end
         end
+        conditioned = false if heating && heating < -40 &&
+                               cooling && cooling > 40
       end
     end
 
@@ -1688,6 +1859,7 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     }
     surfaces[id][:heating] = heating if heating     # if valid heating setpoints
     surfaces[id][:cooling] = cooling if cooling     # if valid cooling setpoints
+
     a = space.spaceType.empty?
     surfaces[id][:stype] = space.spaceType.get unless a
     a = space.buildingStory.empty?
@@ -1767,8 +1939,9 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     # The function will throw 2 possible (non-fatal) errors:
     #   - number of subsurfaces vertices isn't 3 or 4 (EnergyPlus limitation)
     #   - subsurface gross area is below threshold TOL (not worth the effort)
-    gross, pts = opening(os_model, id)
+    u, gross, pts = opening(os_model, id)
     next unless pts
+    next if u < TOL
     next if gross < TOL
 
     # Site-specific (or absolute, or true) surface normal.
@@ -1793,10 +1966,15 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     type = :window if /window/i.match(s.subSurfaceType)
     type = :door if /door/i.match(s.subSurfaceType)
 
+    if type == :door
+      glazed = true if /glass/i.match(s.subSurfaceType)
+    end
+
     # For every kid, there's a dad somewhere ...
     surfaces.each do |identifier, properties|
       if identifier == dad
-        sub = { points: points, minz: minz, n: n, gross: gross }
+        sub = { points: points, minz: minz, n: n, gross: gross, u: u }
+        sub[:glazed] = true if glazed
         if type == :window
           properties[:windows] = {} unless properties.has_key?(:windows)
           properties[:windows][id] = sub
@@ -1833,9 +2011,6 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
 
   walls = surfaces.select { |i, p| p[:type] == :wall }
   walls = walls.sort_by { |i, p| [p[:minz], p[:space]] }.to_h
-
-  # Remove ":type" (now redundant).
-  surfaces.values.each { |p| p.delete_if { |ii, _| ii == :type } }
 
   # Fetch OpenStudio shading surfaces & key attributes.
   shades = {}
@@ -2081,10 +2256,10 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
   # thermal bridge instead of a "mild transition") yet TBD is unable to match
   # it against OpenStudio and/or Topolys edges (or surfaces), then TBD
   # will log this as an error while simply 'skipping' the anomaly (TBD will
-  # otherwise ignore the requested change and puruse its processes).
+  # otherwise ignore the requested change and pursue its processes).
   #
-  # There are 2 errors that are considered FATAL when processing user-defined
-  # TBD JSON input files:
+  # There are 2 types of errors that are considered FATAL when processing
+  # user-defined TBD JSON input files:
   #   - incorrect JSON formatting of the input file (can't parse)
   #   - TBD is unable to identify a 'complete' building-level PSI set
   #     (either a bad argument from the Measure, or bad input on file).
@@ -2416,6 +2591,49 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
   #   custom :surfaces   PSI sets trump the aforementioned PSI sets
   #   custom :edges      PSI sets trump the aforementioned PSI sets
   if io
+    # First, reset subsurface U-factors (if set on file).
+    if io.has_key?(:subsurfaces)
+      io[:subsurfaces].each do |sub|
+        next unless sub.has_key?(:id)
+        next unless sub.has_key?(:usi)
+        i = sub[:id]
+        match = false
+        surfaces.values.each do |surface|
+          next if match
+          if surface.has_key?(:windows)
+            surface[:windows].each do |ii, window|
+              next unless window.has_key?(:u)
+              next if match
+              if i == ii
+                match = true
+                window[:u] = sub[:usi]
+              end
+            end
+          end
+          if surface.has_key?(:doors)
+            surface[:doors].each do |ii, door|
+              next unless door.has_key?(:u)
+              next if match
+              if i == ii
+                match = true
+                door[:u] = sub[:usi]
+              end
+            end
+          end
+          if surface.has_key?(:skylights)
+            surface[:skylights].each do |ii, skylight|
+              next unless skylight.has_key?(:u)
+              next if match
+              if i == ii
+                match = true
+                skylight[:u] = sub[:usi]
+              end
+            end
+          end
+        end
+      end
+    end
+
     if io.has_key?(:stories)
       io[:stories].each do |story|
         next unless story.has_key?(:id)
@@ -2697,7 +2915,8 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     next unless edge.has_key?(:psi)
     psi = edge[:psi].values.max
     type = edge[:psi].key(psi)
-    bridge = { psi: psi, type: type, length: edge[:length] }
+    length = edge[:length]
+    bridge = { psi: psi, type: type, length: length }
 
     if edge.has_key?(:sets) && edge[:sets].has_key?(type)
       edge[:set] = edge[:sets][type] unless edge.has_key?(:io_set)
@@ -2752,9 +2971,11 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     # insulating layer thermal resistance
     deratables.each do |id, deratable|
       surfaces[id][:edges] = {} unless surfaces[id].has_key?(:edges)
-      loss = 0
-      loss = bridge[:psi] * surfaces[id][:r] / rsi if rsi > 0.001
-      b = { psi: loss, type: bridge[:type], length: bridge[:length] }
+      ratio = 0
+      ratio = surfaces[id][:r] / rsi if rsi > 0.001
+      loss = bridge[:psi] * ratio
+
+      b = { psi: loss, type: bridge[:type], length: length, ratio: ratio }
       surfaces[id][:edges][identifier] = b
     end
   end
@@ -2780,11 +3001,14 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
       next unless id == s[:id]
       s[:khis].each do |k|
         next unless k.has_key?(:id)
+        i = k[:id]
         next unless k.has_key?(:count)
-        next unless io_k.point.has_key?(k[:id])
-        next unless io_k.point[k[:id]] > 0.001
+        next unless io_k.point.has_key?(i)
+        next unless io_k.point[i] > 0.001
         surface[:heatloss] = 0 unless surface.has_key?(:heatloss)
-        surface[:heatloss] += io_k.point[k[:id]] * k[:count]
+        surface[:heatloss] += io_k.point[i] * k[:count]
+        surface[:pts] = {} unless surface.has_key?(:pts)
+        surface[:pts][i] = { val: io_k.point[i], n: k[:count] }
       end
     end
   end
@@ -2894,6 +3118,9 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
 
         ratio  = -(current_R - updated_R) * 100 / current_R
         surface[:ratio] = ratio if ratio.abs > TOL
+
+        # Storing underated U-factors value (for UA').
+        surface[:u] = 1/current_R
       end
     end
   end
@@ -2923,6 +3150,9 @@ def processTBD(os_model, psi_set, ioP = nil, schemaP = nil, g_kiva = false)
     io[:edges] << edge
   end
   io.delete(:edges) unless io[:edges].size > 0
+
+  # Populate UA' trade-off reference values (optional).
+  qc33(surfaces, io_p, setpoints) if g_UA && ref && ref == "code (Quebec)"
 
   return io, surfaces
 end

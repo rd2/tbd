@@ -1,5 +1,5 @@
 {
-  "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
+  "schema": "https://github.com/rd2/tbd/blob/ua/tbd.schema.json",
   "description": "TBD JSON example - combining building vs surface vs edge PSI sets",
   "psis": [{
       "id": "OK",

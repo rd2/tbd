@@ -5,6 +5,8 @@
 /spec/reports/
 /spec/test/
 /spec/*_suite_runs/
+/spec/files/alt_warehouse.osm
+/spec/files/alt2_warehouse.osm
 #/spec/files/*/
 /test/
 /tmp/
@@ -46,6 +48,7 @@ os_model_KIVA.osm
 warehouse_KIVA.osm
 os_model_test.osm
 os_model_FD.osm
+*.md
 
 runner.conf
 

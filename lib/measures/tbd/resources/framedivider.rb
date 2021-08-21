@@ -143,37 +143,85 @@ end
 # Calculate subsurface rough opening area & vertices.
 #
 # @param [OpenStudio::Model::Model] model An OS model
-# @param [String] id SubSurface identifier
+# @param [String] id A subsurface identifier
 #
+# @return [Float] Returns subsurface calculated U-factor (W/m2.K)
 # @return [Float] Returns subsurface rough opening area (m2)
 # @return [Array] Returns subsurface rough opening OpenStudio 3D points
 def opening(model, id)
   unless model && model.is_a?(OpenStudio::Model::Model)
     TBD.log(TBD::DEBUG,
       "Can't find or validate OSM (argument) for area & vertices - skipping")
-    return 0, nil
+    return 0, 0, nil
   end
 
   s = model.getSubSurfaceByName(id)
   if s.empty?
     TBD.log(TBD::DEBUG,
-      "Can't find OSM '#{id}' subsurface for area & vertices - skipping")
-    return 0, nil
+      "Can't find OSM subsurface '#{id}' for area & vertices - skipping")
+    return 0, 0, nil
   end
-
   s = s.get
+
   points = s.vertices
   unless points.size == 3 || points.size == 4
     TBD.log(TBD::ERROR,
       "OSM subsurface '#{id}' vertex count (must be 3 or 4) - skipping")
-    return 0, points
+    return 0, 0, points
   end
+
+  if s.surface.empty?
+    TBD.log(TBD::ERROR,
+      "Can't find OSM subsurface '#{id}' parent surface - skipping")
+    return 0, 0, points
+  end
+  dad = s.surface.get
 
   area = s.grossArea
   if area < TOL
     TBD.log(TBD::ERROR,
       "OSM subsurface '#{id}' gross area (< TOL) - skipping")
-    return 0, points
+    return 0, 0, points
+  end
+
+  constr = s.construction
+  if constr.empty?
+    TBD.log(TBD::ERROR,
+      "OSM subsurface '#{id}' missing construction - skipping")
+    return 0, 0, points
+  end
+  constr = constr.get.to_Construction.get
+
+  # A subsurface may have an overall U-factor set by the user - a less accurate
+  # option, yet easier to process (and often the only option available). With
+  # EnergyPlus' "simple window" model, a subsurface's construction has a single
+  # SimpleGlazing material/layer holding the whole product U-factor.
+  #
+  # https://bigladdersoftware.com/epx/docs/9-5/engineering-reference/
+  # window-calculation-module.html#simple-window-model
+  #
+  # In other cases, TBD will recover an 'additional property' tagged "uFactor",
+  # assigned either to the individual subsurface itself, or else assigned to
+  # its referenced construction (a more generic fallback).
+  #
+  # If all else fails, TBD will calculate an approximate whole product U-factor
+  # by adding up the subsurface's construction material thermal resistances (as
+  # well as the subsurface's parent surface film resistances). This is the least
+  # accurate option, especially if subsurfaces have Frame & Divider objects.
+  u = s.uFactor
+  u = s.additionalProperties.getFeatureAsDouble("uFactor") if u.empty?
+  u = constr.additionalProperties.getFeatureAsDouble("uFactor") if u.empty?
+  if u.empty?
+    r = rsi(constr, dad.filmResistance)
+    if r < TOL
+      TBD.log(TBD::ERROR,
+        "OSM subsurface '#{id}' U-factor unavailable - skipping")
+      return 0, 0, points
+    else
+      u = 1.0 / r
+    end
+  else
+    u = u.get
   end
 
   # Should verify convexity of vertex wire/face ...
@@ -193,9 +241,9 @@ def opening(model, id)
   #     /     \
   #    B - C - D   <<< allowed as OpenStudio/E+ subsurface?
   #
-  return area, points if s.windowPropertyFrameAndDivider.empty?
+  return u, area, points if s.windowPropertyFrameAndDivider.empty?
   width = s.windowPropertyFrameAndDivider.get.frameWidth
-  return area, points if width < TOL
+  return u, area, points if width < TOL
 
   four = true if s.vertices.size == 4
   pts = {}
@@ -365,7 +413,7 @@ def opening(model, id)
   vec << OpenStudio::Point3d.new(pts[:C][:p].x, pts[:C][:p].y, pts[:C][:p].z)
   vec << OpenStudio::Point3d.new(pts[:D][:p].x, pts[:D][:p].y, pts[:D][:p].z) if four
 
-  return area, points unless fit?(model, id, vec)
+  return u, area, points unless fit?(model, id, vec)
 
   tr1 = []
   tr1 << pts[:A][:p]
@@ -383,5 +431,5 @@ def opening(model, id)
   end
   area = area1 + area2
 
-  return area, vec
+  return u, area, vec
 end

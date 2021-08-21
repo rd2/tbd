@@ -1,0 +1,24 @@
+{
+  "schema": "https://github.com/rd2/tbd/blob/ua/tbd.schema.json",
+  "description": "test_warehouse.osm with custom subsurface U-factors",
+  "khis": [{
+    "id": "OK",
+    "point": 0.8
+  }],
+  "surfaces": [{
+    "id": "Fine Storage Front Wall",
+    "khis": [{
+      "id": "OK",
+      "count": 2
+    }]
+  }],
+  "subsurfaces": [{
+      "id": "Office Front Wall Window 1",
+      "usi": 4.0
+    },
+    {
+      "id": "Office Front Wall Window2",
+      "usi": 3.5
+    }
+  ]
+}

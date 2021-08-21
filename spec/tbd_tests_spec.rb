@@ -15,15 +15,15 @@ RSpec.describe TBD do
 
     os_model = OpenStudio::Model::Model.new
     os_g = OpenStudio::Model::Space.new(os_model) # gallery "g" & elevator "e"
-    os_g.setName("scrigno_gallery")
+    expect(os_g.setName("scrigno_gallery").to_s).to eq("scrigno_gallery")
     os_p = OpenStudio::Model::Space.new(os_model) # plenum "p" & stairwell "s"
-    os_p.setName("scrigno_plenum")
+    expect(os_p.setName("scrigno_plenum").to_s).to eq("scrigno_plenum")
     os_s = OpenStudio::Model::ShadingSurfaceGroup.new(os_model)
 
     os_building = os_model.getBuilding
 
-    # For the purposes of the spec, all opaque envelope assemblies will be
-    # built up from a single, 3-layered construction
+    # For the purposes of the spec, all opaque envelope assemblies are built up
+    # from a single, 3-layered construction.
     construction = OpenStudio::Model::Construction.new(os_model)
     expect(construction.handle.to_s.empty?).to be(false)
     expect(construction.nameString.empty?).to be(false)
@@ -32,17 +32,44 @@ RSpec.describe TBD do
     expect(construction.nameString).to eq("scrigno_construction")
     expect(construction.layers.size).to eq(0)
 
+    # All subsurfaces are Simple Glazing constructions.
+    fenestration = OpenStudio::Model::Construction.new(os_model)
+    expect(fenestration.handle.to_s.empty?).to be(false)
+    expect(fenestration.nameString.empty?).to be(false)
+    expect(fenestration.nameString).to eq("Construction 1")
+    fenestration.setName("scrigno_fenestration")
+    expect(fenestration.nameString).to eq("scrigno_fenestration")
+    expect(fenestration.layers.size).to eq(0)
+
+    glazing = OpenStudio::Model::SimpleGlazing.new(os_model)
+    expect(glazing.handle.to_s.empty?).to be(false)
+    expect(glazing.nameString.empty?).to be(false)
+    expect(glazing.nameString).to eq("Window Material Simple Glazing System 1")
+    glazing.setName("scrigno_glazing")
+    expect(glazing.nameString).to eq("scrigno_glazing")
+    expect(glazing.setUFactor(2.0)).to be(true)
+    expect(glazing.setSolarHeatGainCoefficient(0.50)).to be(true)
+    expect(glazing.setVisibleTransmittance(0.70)).to be(true)
+
+    layers = OpenStudio::Model::MaterialVector.new
+    layers << glazing
+    expect(fenestration.setLayers(layers)).to be(true)
+    expect(fenestration.layers.size).to eq(1)
+    expect(fenestration.layers[0].handle.to_s).to eq(glazing.handle.to_s)
+    expect(fenestration.uFactor.empty?).to be(false)
+    expect(fenestration.uFactor.get).to be_within(0.1).of(2.0)
+
     exterior = OpenStudio::Model::MasslessOpaqueMaterial.new(os_model)
     expect(exterior.handle.to_s.empty?).to be(false)
     expect(exterior.nameString.empty?).to be(false)
     expect(exterior.nameString).to eq("Material No Mass 1")
     exterior.setName("scrigno_exterior")
     expect(exterior.nameString).to eq("scrigno_exterior")
-    exterior.setRoughness("Rough")
-    exterior.setThermalResistance(0.3626)
-    exterior.setThermalAbsorptance(0.9)
-    exterior.setSolarAbsorptance(0.7)
-    exterior.setVisibleAbsorptance(0.7)
+    expect(exterior.setRoughness("Rough")).to be(true)
+    expect(exterior.setThermalResistance(0.3626)).to be(true)
+    expect(exterior.setThermalAbsorptance(0.9)).to be(true)
+    expect(exterior.setSolarAbsorptance(0.7)).to be(true)
+    expect(exterior.setVisibleAbsorptance(0.7)).to be(true)
     expect(exterior.roughness).to eq("Rough")
     expect(exterior.thermalResistance).to be_within(0.0001).of(0.3626)
     expect(exterior.thermalAbsorptance.empty?).to be(false)
@@ -58,14 +85,14 @@ RSpec.describe TBD do
     expect(insulation.nameString).to eq("Material 1")
     insulation.setName("scrigno_insulation")
     expect(insulation.nameString).to eq("scrigno_insulation")
-    insulation.setRoughness("MediumRough")
-    insulation.setThickness(0.1184)
-    insulation.setConductivity(0.045)
-    insulation.setDensity(265)
-    insulation.setSpecificHeat(836.8)
-    insulation.setThermalAbsorptance(0.9)
-    insulation.setSolarAbsorptance(0.7)
-    insulation.setVisibleAbsorptance(0.7)
+    expect(insulation.setRoughness("MediumRough")).to be(true)
+    expect(insulation.setThickness(0.1184)).to be(true)
+    expect(insulation.setConductivity(0.045)).to be(true)
+    expect(insulation.setDensity(265)).to be(true)
+    expect(insulation.setSpecificHeat(836.8)).to be(true)
+    expect(insulation.setThermalAbsorptance(0.9)).to be(true)
+    expect(insulation.setSolarAbsorptance(0.7)).to be(true)
+    expect(insulation.setVisibleAbsorptance(0.7)).to be(true)
     expect(insulation.roughness.empty?).to be(false)
     expect(insulation.roughness).to eq("MediumRough")
     expect(insulation.thickness).to be_within(0.0001).of(0.1184)
@@ -82,14 +109,14 @@ RSpec.describe TBD do
     expect(interior.nameString.downcase).to eq("material 1")
     interior.setName("scrigno_interior")
     expect(interior.nameString).to eq("scrigno_interior")
-    interior.setRoughness("MediumRough")
-    interior.setThickness(0.0126)
-    interior.setConductivity(0.16)
-    interior.setDensity(784.9)
-    interior.setSpecificHeat(830)
-    interior.setThermalAbsorptance(0.9)
-    interior.setSolarAbsorptance(0.9)
-    interior.setVisibleAbsorptance(0.9)
+    expect(interior.setRoughness("MediumRough")).to be(true)
+    expect(interior.setThickness(0.0126)).to be(true)
+    expect(interior.setConductivity(0.16)).to be(true)
+    expect(interior.setDensity(784.9)).to be(true)
+    expect(interior.setSpecificHeat(830)).to be(true)
+    expect(interior.setThermalAbsorptance(0.9)).to be(true)
+    expect(interior.setSolarAbsorptance(0.9)).to be(true)
+    expect(interior.setVisibleAbsorptance(0.9)).to be(true)
     expect(interior.roughness.downcase).to eq("mediumrough")
     expect(interior.thickness).to be_within(0.0001).of(0.0126)
     expect(interior.conductivity).to be_within(0.0001).of( 0.16)
@@ -114,13 +141,24 @@ RSpec.describe TBD do
     expect(defaults.setRoofCeilingConstruction(construction)).to be(true)
     expect(defaults.setFloorConstruction(construction)).to be(true)
 
+    subs = OpenStudio::Model::DefaultSubSurfaceConstructions.new(os_model)
+    expect(subs.setFixedWindowConstruction(fenestration)).to be(true)
+    expect(subs.setOperableWindowConstruction(fenestration)).to be(true)
+    expect(subs.setDoorConstruction(fenestration)).to be(true)
+    expect(subs.setGlassDoorConstruction(fenestration)).to be(true)
+    expect(subs.setOverheadDoorConstruction(fenestration)).to be(true)
+    expect(subs.setSkylightConstruction(fenestration)).to be(true)
+    expect(subs.setTubularDaylightDomeConstruction(fenestration)).to be(true)
+    expect(subs.setTubularDaylightDiffuserConstruction(fenestration)).to be(true)
+
     set = OpenStudio::Model::DefaultConstructionSet.new(os_model)
     expect(set.setDefaultExteriorSurfaceConstructions(defaults)).to be(true)
+    expect(set.setDefaultExteriorSubSurfaceConstructions(subs)).to be(true)
 
     # if one comments out the following, then one can no longer rely on a
     # building-specific, default construction set. If missing, fall back to
     # to model default construction set @index 0.
-    os_building.setDefaultConstructionSet(set)
+    expect(os_building.setDefaultConstructionSet(set)).to be(true)
 
     # 8" XPS massless variant, specific for elevator floor (not defaulted)
     xps8x25mm = OpenStudio::Model::MasslessOpaqueMaterial.new(os_model)
@@ -129,11 +167,11 @@ RSpec.describe TBD do
     expect(xps8x25mm.nameString).to eq("Material No Mass 1")
     xps8x25mm.setName("xps8x25mm")
     expect(xps8x25mm.nameString).to eq("xps8x25mm")
-    xps8x25mm.setRoughness("Rough")
-    xps8x25mm.setThermalResistance(8 * 0.88)
-    xps8x25mm.setThermalAbsorptance(0.9)
-    xps8x25mm.setSolarAbsorptance(0.7)
-    xps8x25mm.setVisibleAbsorptance(0.7)
+    expect(xps8x25mm.setRoughness("Rough")).to be(true)
+    expect(xps8x25mm.setThermalResistance(8 * 0.88)).to be(true)
+    expect(xps8x25mm.setThermalAbsorptance(0.9)).to be(true)
+    expect(xps8x25mm.setSolarAbsorptance(0.7)).to be(true)
+    expect(xps8x25mm.setVisibleAbsorptance(0.7)).to be(true)
     expect(xps8x25mm.roughness).to eq("Rough")
     expect(xps8x25mm.thermalResistance).to be_within(0.0001).of(7.0400)
     expect(xps8x25mm.thermalAbsorptance.empty?).to be(false)
@@ -170,7 +208,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 22.7, 45.0, 50.0)
     os_r1_shade = OpenStudio::Model::ShadingSurface.new(os_v, os_model)
     os_r1_shade.setName("r1_shade")
-    os_r1_shade.setShadingSurfaceGroup(os_s)
+    expect(os_r1_shade.setShadingSurfaceGroup(os_s)).to be(true)
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 22.7, 45.0, 50.0)
@@ -179,7 +217,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 48.7, 45.0, 50.0)
     os_r2_shade = OpenStudio::Model::ShadingSurface.new(os_v, os_model)
     os_r2_shade.setName("r2_shade")
-    os_r2_shade.setShadingSurfaceGroup(os_s)
+    expect(os_r2_shade.setShadingSurfaceGroup(os_s)).to be(true)
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 22.7, 32.5, 50.0)
@@ -188,7 +226,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 48.7, 32.5, 50.0)
     os_r3_shade = OpenStudio::Model::ShadingSurface.new(os_v, os_model)
     os_r3_shade.setName("r3_shade")
-    os_r3_shade.setShadingSurfaceGroup(os_s)
+    expect(os_r3_shade.setShadingSurfaceGroup(os_s)).to be(true)
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 48.7, 45.0, 50.0)
@@ -197,7 +235,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 59.0, 45.0, 50.0)
     os_r4_shade = OpenStudio::Model::ShadingSurface.new(os_v, os_model)
     os_r4_shade.setName("r4_shade")
-    os_r4_shade.setShadingSurfaceGroup(os_s)
+    expect(os_r4_shade.setShadingSurfaceGroup(os_s)).to be(true)
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 47.4, 40.2, 44.0)
@@ -206,7 +244,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 45.7, 40.2, 44.0)
     os_N_balcony = OpenStudio::Model::ShadingSurface.new(os_v, os_model)
     os_N_balcony.setName("N_balcony") # 1.70m as thermal bridge
-    os_N_balcony.setShadingSurfaceGroup(os_s)
+    expect(os_N_balcony.setShadingSurfaceGroup(os_s)).to be(true)
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 28.1, 29.8, 44.0)
@@ -215,7 +253,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 47.4, 29.8, 44.0)
     os_S_balcony = OpenStudio::Model::ShadingSurface.new(os_v, os_model)
     os_S_balcony.setName("S_balcony") # 19.3m as thermal bridge
-    os_S_balcony.setShadingSurfaceGroup(os_s)
+    expect(os_S_balcony.setShadingSurfaceGroup(os_s)).to be(true)
 
     # 1st space: gallery (g) with elevator (e) surfaces
     os_v = OpenStudio::Point3dVector.new
@@ -225,7 +263,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 17.4, 29.8, 49.5) # 10.4m
     os_g_W_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_g_W_wall.setName("g_W_wall")
-    os_g_W_wall.setSpace(os_g)                        #  57.2m2
+    expect(os_g_W_wall.setSpace(os_g)).to be(true)                     #  57.2m2
 
     expect(os_g_W_wall.surfaceType.downcase).to eq("wall")
     expect(os_g_W_wall.isConstructionDefaulted).to be(true)
@@ -241,7 +279,9 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 17.4, 40.2, 49.5) # 36.6m
     os_g_N_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_g_N_wall.setName("g_N_wall")
-    os_g_N_wall.setSpace(os_g)                        # 201.3m2
+    expect(os_g_N_wall.setSpace(os_g)).to be(true)                     # 201.3m2
+    expect(os_g_N_wall.uFactor.empty?).to be(false)
+    expect(os_g_N_wall.uFactor.get).to be_within(0.001).of(0.310)
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 47.4, 40.2, 46.0) #   2.0m
@@ -250,8 +290,10 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 46.4, 40.2, 46.0) #   1.0m
     os_g_N_door = OpenStudio::Model::SubSurface.new(os_v, os_model)
     os_g_N_door.setName("g_N_door")
-    os_g_N_door.setSubSurfaceType("Door")
-    os_g_N_door.setSurface(os_g_N_wall)                #   2.0m2
+    expect(os_g_N_door.setSubSurfaceType("GlassDoor")).to be(true)
+    expect(os_g_N_door.setSurface(os_g_N_wall)).to be(true)            #   2.0m2
+    expect(os_g_N_door.uFactor.empty?).to be(false)
+    expect(os_g_N_door.uFactor.get).to be_within(0.1).of(2.0)
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 54.0, 29.8, 49.5) #  5.5m
@@ -260,7 +302,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 54.0, 40.2, 49.5) # 10.4m
     os_g_E_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_g_E_wall.setName("g_E_wall")
-    os_g_E_wall.setSpace(os_g)                        # 57.2m2
+    expect(os_g_E_wall.setSpace(os_g)).to be(true)                      # 57.2m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 17.4, 29.8, 49.5) #  5.5m
@@ -273,7 +315,9 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 54.0, 29.8, 49.5) # 36.6m
     os_g_S_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_g_S_wall.setName("g_S_wall")
-    os_g_S_wall.setSpace(os_g)                        # 190.48m2
+    expect(os_g_S_wall.setSpace(os_g)).to be(true)                    # 190.48m2
+    expect(os_g_S_wall.uFactor.empty?).to be(false)
+    expect(os_g_S_wall.uFactor.get).to be_within(0.001).of(0.310)
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 46.4, 29.8, 46.0) #  2.0m
@@ -282,8 +326,10 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 47.4, 29.8, 46.0) #  1.0m
     os_g_S_door = OpenStudio::Model::SubSurface.new(os_v, os_model)
     os_g_S_door.setName("g_S_door")
-    os_g_S_door.setSubSurfaceType("Door")
-    os_g_S_door.setSurface(os_g_S_wall)                #   2.0m2
+    expect(os_g_S_door.setSubSurfaceType("GlassDoor")).to be(true)
+    expect(os_g_S_door.setSurface(os_g_S_wall)).to be(true)            #   2.0m2
+    expect(os_g_S_door.uFactor.empty?).to be(false)
+    expect(os_g_S_door.uFactor.get).to be_within(0.1).of(2.0)
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 17.4, 40.2, 49.5) # 10.4m
@@ -292,7 +338,9 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 54.0, 40.2, 49.5) # 36.6m
     os_g_top = OpenStudio::Model::Surface.new(os_v, os_model)
     os_g_top.setName("g_top")
-    os_g_top.setSpace(os_g)                            # 380.64m2
+    expect(os_g_top.setSpace(os_g)).to be(true)                       # 380.64m2
+    expect(os_g_S_wall.uFactor.empty?).to be(false)
+    expect(os_g_S_wall.uFactor.get).to be_within(0.001).of(0.310)
 
     expect(os_g_top.surfaceType.downcase).to eq("roofceiling")
     expect(os_g_top.isConstructionDefaulted).to be(true)
@@ -308,7 +356,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 54.0, 40.2, 49.5) # 36.6m
     os_g_sky = OpenStudio::Model::SubSurface.new(os_v, os_model)
     os_g_sky.setName("g_sky")
-    os_g_sky.setSurface(os_g_top)                      # 380.64m2
+    expect(os_g_sky.setSurface(os_g_top)).to be(true)                 # 380.64m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 24.0, 29.8, 46.7) #  1.5m
@@ -317,7 +365,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 28.0, 29.8, 46.7) #  4.0m
     os_e_top = OpenStudio::Model::Surface.new(os_v, os_model)
     os_e_top.setName("e_top")
-    os_e_top.setSpace(os_g)                            #   6.0m2
+    expect(os_e_top.setSpace(os_g)).to be(true)                        #   6.0m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 24.0, 28.3, 40.8) #  1.5m
@@ -326,8 +374,8 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 28.0, 28.3, 40.8) #  4.0m
     os_e_floor = OpenStudio::Model::Surface.new(os_v, os_model)
     os_e_floor.setName("e_floor")
-    os_e_floor.setSpace(os_g)                          #   6.0m2
-    os_e_floor.setOutsideBoundaryCondition("Outdoors")
+    expect(os_e_floor.setSpace(os_g)).to be(true)                      #   6.0m2
+    expect(os_e_floor.setOutsideBoundaryCondition("Outdoors")).to be(true)
 
     # initially, elevator floor is defaulted ...
     expect(os_e_floor.surfaceType.downcase).to eq("floor")
@@ -338,7 +386,7 @@ RSpec.describe TBD do
     expect(c.nameString).to eq("scrigno_construction")
 
     # ... now overriding default construction
-    os_e_floor.setConstruction(elevator_floor_c)
+    expect(os_e_floor.setConstruction(elevator_floor_c)).to be(true)
     expect(os_e_floor.isConstructionDefaulted).to be(false)
     c = os_e_floor.construction.get.to_Construction.get
     expect(c.numLayers).to eq(3)
@@ -352,7 +400,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 24.0, 28.3, 46.7) #  1.5m
     os_e_W_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_e_W_wall.setName("e_W_wall")
-    os_e_W_wall.setSpace(os_g)                         #   8.85m2
+    expect(os_e_W_wall.setSpace(os_g)).to be(true)                    #   8.85m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 24.0, 28.3, 46.7) #  5.9m
@@ -361,7 +409,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 28.0, 28.3, 46.7) #  4.0m
     os_e_S_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_e_S_wall.setName("e_S_wall")
-    os_e_S_wall.setSpace(os_g)                         #  23.6m2
+    expect(os_e_S_wall.setSpace(os_g)).to be(true)                     #  23.6m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 28.0, 28.3, 46.7) #  5.9m
@@ -370,7 +418,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 28.0, 29.8, 46.7) #  1.5m
     os_e_E_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_e_E_wall.setName("e_E_wall")
-    os_e_E_wall.setSpace(os_g)                         #   8.85m2
+    expect(os_e_E_wall.setSpace(os_g)).to be(true)                    #   8.85m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 28.0, 29.8, 42.4) #  1.60m
@@ -379,7 +427,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 24.0, 29.8, 43.0) #  4.04m
     os_e_N_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_e_N_wall.setName("e_N_wall")
-    os_e_N_wall.setSpace(os_g)                         #  ~7.63m2
+    expect(os_e_N_wall.setSpace(os_g)).to be(true)                    #  ~7.63m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 28.0, 29.8, 44.0) #  1.60m
@@ -388,8 +436,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 24.0, 29.8, 44.0) #  4.00m
     os_e_p_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_e_p_wall.setName("e_p_wall")
-    os_e_p_wall.setSpace(os_g)                         #   ~5.2m2
-    os_e_p_wall.setOutsideBoundaryCondition("Surface")
+    expect(os_e_p_wall.setSpace(os_g)).to be(true)                    #   ~5.2m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 17.4, 29.8, 44.0) # 10.4m
@@ -398,9 +445,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 54.0, 29.8, 44.0) # 36.6m
     os_g_floor = OpenStudio::Model::Surface.new(os_v, os_model)
     os_g_floor.setName("g_floor")
-    os_g_floor.setSpace(os_g)                         # 380.64m2
-    os_g_floor.setOutsideBoundaryCondition("Surface")
-
+    expect(os_g_floor.setSpace(os_g) ).to be(true)                    # 380.64m2
 
     # 2nd space: plenum (p) with stairwell (s) surfaces
     os_v = OpenStudio::Point3dVector.new
@@ -410,11 +455,12 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 54.0, 40.2, 44.0) # 36.6m
     os_p_top = OpenStudio::Model::Surface.new(os_v, os_model)
     os_p_top.setName("p_top")
-    os_p_top.setSpace(os_p)                            # 380.64m2
-    os_p_top.setOutsideBoundaryCondition("Surface")
+    expect(os_p_top.setSpace(os_p)).to be(true)                       # 380.64m2
 
-    os_p_top.setAdjacentSurface(os_g_floor)
-    os_g_floor.setAdjacentSurface(os_p_top)
+    expect(os_p_top.setAdjacentSurface(os_g_floor)).to be(true)
+    expect(os_g_floor.setAdjacentSurface(os_p_top)).to be(true)
+    expect(os_p_top.setOutsideBoundaryCondition("Surface")).to be(true)
+    expect(os_g_floor.setOutsideBoundaryCondition("Surface")).to be(true)
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 24.0, 29.8, 44.0) #  1.00m
@@ -423,11 +469,12 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 28.0, 29.8, 44.0) #  4.00m
     os_p_e_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_p_e_wall.setName("p_e_wall")
-    os_p_e_wall.setSpace(os_p)                         #  ~5.2m2
-    os_p_e_wall.setOutsideBoundaryCondition("Surface")
+    expect(os_p_e_wall.setSpace(os_p)).to be(true)                     #  ~5.2m2
 
-    os_e_p_wall.setAdjacentSurface(os_p_e_wall)
-    os_p_e_wall.setAdjacentSurface(os_e_p_wall)
+    expect(os_e_p_wall.setAdjacentSurface(os_p_e_wall)).to be(true)
+    expect(os_p_e_wall.setAdjacentSurface(os_e_p_wall)).to be(true)
+    expect(os_p_e_wall.setOutsideBoundaryCondition("Surface")).to be(true)
+    expect(os_e_p_wall.setOutsideBoundaryCondition("Surface")).to be(true)
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 17.4, 29.8, 44.0) #   6.67m
@@ -435,7 +482,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 24.0, 29.8, 44.0) #   6.60m
     os_p_S1_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_p_S1_wall.setName("p_S1_wall")
-    os_p_S1_wall.setSpace(os_p)                        #  ~3.3m2
+    expect(os_p_S1_wall.setSpace(os_p)).to be(true)                    #  ~3.3m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 28.0, 29.8, 44.0) #   1.60m
@@ -445,7 +492,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 54.0, 29.8, 44.0) #  25.00m
     os_p_S2_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_p_S2_wall.setName("p_S2_wall")
-    os_p_S2_wall.setSpace(os_p)                        #  38.15m2
+    expect(os_p_S2_wall.setSpace(os_p)).to be(true)                   #  38.15m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 54.0, 40.2, 44.0) #  13.45m
@@ -454,7 +501,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 17.4, 40.2, 44.0) #  36.60m
     os_p_N_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_p_N_wall.setName("p_N_wall")
-    os_p_N_wall.setSpace(os_p)                         #  46.61m2
+    expect(os_p_N_wall.setSpace(os_p)).to be(true)                    #  46.61m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 30.7, 29.8, 42.0) # 10.4m
@@ -463,8 +510,8 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 40.7, 29.8, 42.0) # 10.0m
     os_p_floor = OpenStudio::Model::Surface.new(os_v, os_model)
     os_p_floor.setName("p_floor")
-    os_p_floor.setSpace(os_p)                         # 104.00m2
-    os_p_floor.setOutsideBoundaryCondition("Outdoors")
+    expect(os_p_floor.setSpace(os_p)).to be(true)                     # 104.00m2
+    expect(os_p_floor.setOutsideBoundaryCondition("Outdoors")).to be(true)
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 40.7, 29.8, 42.0) # 10.40m
@@ -473,8 +520,8 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 54.0, 29.8, 44.0) # 13.45m
     os_p_E_floor = OpenStudio::Model::Surface.new(os_v, os_model)
     os_p_E_floor.setName("p_E_floor")
-    os_p_E_floor.setSpace(os_p)                        # 139.88m2
-    os_p_E_floor.setSurfaceType("Floor") # slanted floors are walls (default)
+    expect(os_p_E_floor.setSpace(os_p)).to be(true)                   # 139.88m2
+    expect(os_p_E_floor.setSurfaceType("Floor")).to be(true)  # walls by default
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 17.4, 29.8, 44.0) # 10.40m
@@ -483,8 +530,8 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 24.0, 29.8, 43.0) # ~6.68m
     os_p_W1_floor = OpenStudio::Model::Surface.new(os_v, os_model)
     os_p_W1_floor.setName("p_W1_floor")
-    os_p_W1_floor.setSpace(os_p)                       #  69.44m2
-    os_p_W1_floor.setSurfaceType("Floor") # slanted floors are walls (default)
+    expect(os_p_W1_floor.setSpace(os_p)).to be(true)                  #  69.44m2
+    expect(os_p_W1_floor.setSurfaceType("Floor")).to be(true) # walls by default
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 24.0, 29.8, 43.00) #  3.30m D
@@ -497,8 +544,8 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 30.7, 29.8, 42.00) #  6.77m F
     os_p_W2_floor = OpenStudio::Model::Surface.new(os_v, os_model)
     os_p_W2_floor.setName("p_W2_floor")
-    os_p_W2_floor.setSpace(os_p)                        #  51.23m2
-    os_p_W2_floor.setSurfaceType("Floor") # slanted floors are walls (default)
+    expect(os_p_W2_floor.setSpace(os_p)).to be(true)                  #  51.23m2
+    expect(os_p_W2_floor.setSurfaceType("Floor")).to be(true) # walls by default
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 24.0, 36.9, 43.0) #  2.2m
@@ -507,7 +554,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 24.0, 33.1, 43.0) #  3.8m
     os_s_W_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_s_W_wall.setName("s_W_wall")
-    os_s_W_wall.setSpace(os_p)                         #   8.39m2
+    expect(os_s_W_wall.setSpace(os_p)).to be(true)                    #   8.39m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 29.0, 36.9, 42.26) #  1.46m
@@ -516,7 +563,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 24.0, 36.9, 43.00) #  5.06m
     os_s_N_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_s_N_wall.setName("s_N_wall")
-    os_s_N_wall.setSpace(os_p)                          #   9.15m2
+    expect(os_s_N_wall.setSpace(os_p)).to be(true)                    #   9.15m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 29.0, 33.1, 42.26) #  1.46m
@@ -525,7 +572,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 29.0, 36.9, 42.26) #  3.80m
     os_s_E_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_s_E_wall.setName("s_E_wall")
-    os_s_E_wall.setSpace(os_p)                          #   5.55m2
+    expect(os_s_E_wall.setSpace(os_p)).to be(true)                    #   5.55m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 24.0, 33.1, 43.00) #  2.20m
@@ -534,7 +581,7 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 29.0, 33.1, 42.26) #  5.06m
     os_s_S_wall = OpenStudio::Model::Surface.new(os_v, os_model)
     os_s_S_wall.setName("s_S_wall")
-    os_s_S_wall.setSpace(os_p)                          #   9.15m2
+    expect(os_s_S_wall.setSpace(os_p)).to be(true)                    #   9.15m2
 
     os_v = OpenStudio::Point3dVector.new
     os_v << OpenStudio::Point3d.new( 24.0, 33.1, 40.8) #  3.8m
@@ -543,9 +590,9 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 29.0, 33.1, 40.8) #  5.0m
     os_s_floor = OpenStudio::Model::Surface.new(os_v, os_model)
     os_s_floor.setName("s_floor")
-    os_s_floor.setSpace(os_p)                          #  19.0m2
-    os_s_floor.setSurfaceType("Floor")
-    os_s_floor.setOutsideBoundaryCondition("Outdoors")
+    expect(os_s_floor.setSpace(os_p)).to be(true)                      #  19.0m2
+    expect(os_s_floor.setSurfaceType("Floor")).to be(true)
+    expect(os_s_floor.setOutsideBoundaryCondition("Outdoors")).to be(true)
 
     os_model.save("os_model_test.osm", true)
 
@@ -578,15 +625,15 @@ RSpec.describe TBD do
 
       conditioned = true
       if setpoints
-        unless space.thermalZone.empty?
+        if space.thermalZone.empty?
+          conditioned = false unless plenum?(space, airloops, setpoints)
+        else
           zone = space.thermalZone.get
           heating, _ = maxHeatScheduledSetpoint(zone)
           cooling, _ = minCoolScheduledSetpoint(zone)
           unless heating || cooling
             conditioned = false unless plenum?(space, airloops, setpoints)
           end
-        else
-          conditioned = false unless plenum?(space, airloops, setpoints)
         end
       end
 
@@ -670,9 +717,11 @@ RSpec.describe TBD do
       dad   = s.surface.get.nameString
       id    = s.nameString
 
-      gross, pts = opening(os_model, id)
+      u, gross, pts = opening(os_model, id)
       expect(gross).to be_a(Numeric)
       expect(pts.nil?).to be(false)
+      expect(u.zero?).to be(false)
+      next if gross < TOL
 
       # Site-specific (or absolute, or true) surface normal.
       t, r = transforms(os_model, space)
@@ -681,17 +730,22 @@ RSpec.describe TBD do
       n = trueNormal(s, r)
       expect(n.nil?).to be(false)
 
-      points = (t * pts).map{ |v| Topolys::Point3D.new(v.x, v.y, v.z) }
-      minz = (points.map{ |p| p.z }).min
+      points = (t * pts).map { |v| Topolys::Point3D.new(v.x, v.y, v.z) }
+      minz = (points.map { |p| p.z }).min
 
       type = :skylight
       type = :window if /window/i.match(s.subSurfaceType)
       type = :door if /door/i.match(s.subSurfaceType)
 
+      if type == :door
+        glazed = true if /glass/i.match(s.subSurfaceType)
+      end
+
       # For every kid, there's a dad somewhere ...
       surfaces.each do |identifier, properties|
         if identifier == dad
-          sub = { points: points, minz: minz, n: n, gross: gross }
+          sub = { points: points, minz: minz, n: n, gross: gross, u: u }
+          sub[:glazed] = true if glazed
           if type == :window
             properties[:windows] = {} unless properties.has_key?(:windows)
             properties[:windows][id] = sub
@@ -1421,19 +1475,12 @@ RSpec.describe TBD do
         deratables[id] = surface
       end
 
-      # Retrieve linked openings.
-      is = {}
-      is[:head]     = edge[:psi].keys.to_s.include?("head")
-      is[:sill]     = edge[:psi].keys.to_s.include?("sill")
-      is[:jamb]     = edge[:psi].keys.to_s.include?("jamb")
       openings = {}
-      if is[:head] || is[:sill] || is[:jamb]
-        edge[:surfaces].each do |id, surface|
-          next unless holes.has_key?(id)
-          openings[id] = surface
-        end
+      edge[:surfaces].each do |id, surface|
+        next unless holes.has_key?(id)
+        openings[id] = surface
       end
-      next if openings.size > 1 # edge links 2x openings
+      next if openings.size > 1                         # edge links 2x openings
 
       # Prune if edge links an opening and its parent, as well as 1x other
       # opaque surface (i.e. corner window derates neighbour - not parent).
@@ -1530,7 +1577,7 @@ RSpec.describe TBD do
         m = nil
         m = derate(os_model, id, surface, c) unless index.nil?
 
-        unless m.nil?
+        if m
           c.setLayer(index, m)
           c.setName("#{id} c tbd")
           s.setConstruction(c)
@@ -1594,6 +1641,29 @@ RSpec.describe TBD do
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
+    # Testing min/max cooling/heating setpoints
+    setpoints = heatingTemperatureSetpoints?(os_model)
+    setpoints = coolingTemperatureSetpoints?(os_model) || setpoints
+    expect(setpoints).to be(true)
+    airloops = airLoopsHVAC?(os_model)
+    expect(airloops).to be(true)
+
+    os_model.getSpaces.each do |space|
+      expect(space.thermalZone.empty?).to be(false)
+      zone = space.thermalZone.get
+      heating, _ = maxHeatScheduledSetpoint(zone)
+      cooling, _ = minCoolScheduledSetpoint(zone)
+      if zone.nameString == "Attic ZN"
+        expect(plenum?(space, airloops, setpoints)).to be(false)
+        expect(heating.nil?).to be(true)
+        expect(cooling.nil?).to be(true)
+        next
+      end
+      expect(plenum?(space, airloops, setpoints)).to be(false)
+      expect(heating).to be_within(0.1).of(21.1)
+      expect(cooling).to be_within(0.1).of(23.9)
+    end
+
     # Tracking insulated ceiling surfaces below attic.
     os_model.getSurfaces.each do |s|
       next unless s.surfaceType == "RoofCeiling"
@@ -1652,6 +1722,24 @@ RSpec.describe TBD do
     expect(surfaces.nil?).to be(false)
     expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(43)
+
+    surfaces.each do |id, surface|
+      expect(surface.has_key?(:conditioned)).to be(true)
+      next unless surface[:conditioned]
+      expect(surface.has_key?(:heating)).to be(true)
+      expect(surface.has_key?(:cooling)).to be(true)
+
+      # Testing glass door detection
+      if surface.has_key?(:doors)
+        surface[:doors].each do |i, door|
+          expect(door.has_key?(:glazed)).to be(true)
+          expect(door[:glazed]).to be(true)
+          expect(door.has_key?(:u)).to be(true)
+          expect(door[:u]).to be_a(Numeric)
+          expect(door[:u]).to be_within(0.01).of(6.40)
+        end
+      end
+    end
 
     # Testing attic surfaces.
     surfaces.each do |id, surface|
@@ -1822,7 +1910,7 @@ RSpec.describe TBD do
       expect(construction.nameString).to eq(str)
       construction.setName("#{s.nameString} floor")
       expect(construction.layers.size).to eq(2)
-      s.setConstruction(construction)
+      expect(s.setConstruction(construction)).to be(true)
       expect(s.isConstructionDefaulted).to be(false)
     end
 
@@ -2410,6 +2498,29 @@ RSpec.describe TBD do
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
+    # Testing min/max cooling/heating setpoints (a tad redundant).
+    setpoints = heatingTemperatureSetpoints?(os_model)
+    setpoints = coolingTemperatureSetpoints?(os_model) || setpoints
+    expect(setpoints).to be(true)
+    airloops = airLoopsHVAC?(os_model)
+    expect(airloops).to be(true)
+
+    os_model.getSpaces.each do |space|
+      expect(space.thermalZone.empty?).to be(false)
+      zone = space.thermalZone.get
+      heating, _ = maxHeatScheduledSetpoint(zone)
+      cooling, _ = minCoolScheduledSetpoint(zone)
+      if zone.nameString == "Level 0 Ceiling Plenum Zone"
+        expect(plenum?(space, airloops, setpoints)).to be(false)
+        expect(heating.nil?).to be(true)
+        expect(cooling.nil?).to be(true)
+        next
+      end
+      expect(plenum?(space, airloops, setpoints)).to be(false)
+      expect(heating).to be_within(0.1).of(22.1)
+      expect(cooling).to be_within(0.1).of(22.8)
+    end
+
     os_model.getSurfaces.each do |s|
       expect(s.space.empty?).to be(false)
       expect(s.isConstructionDefaulted).to be(false)
@@ -2461,6 +2572,13 @@ RSpec.describe TBD do
     expect(surfaces.nil?).to be(false)
     expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
+
+    surfaces.each do |id, surface|
+      expect(surface.has_key?(:conditioned)).to be(true)
+      next unless surface[:conditioned]
+      expect(surface.has_key?(:heating)).to be(true)
+      expect(surface.has_key?(:cooling)).to be(true)
+    end
 
     ids = { a: "Entryway  Wall 4",
             b: "Entryway  Wall 5",
@@ -2761,6 +2879,13 @@ RSpec.describe TBD do
     expect(surfaces.nil?).to be(false)
     expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
+
+    surfaces.each do |id, surface|
+      expect(surface.has_key?(:conditioned)).to be(true)
+      next unless surface[:conditioned]
+      expect(surface.has_key?(:heating)).to be(true)
+      expect(surface.has_key?(:cooling)).to be(true)
+    end
 
     # Since all PSI values = 0, we're not expecting any derated surfaces
     surfaces.values.each do |surface|
@@ -3960,6 +4085,13 @@ RSpec.describe TBD do
     io = JSON.parse(ioC, symbolize_names: true)
     expect(JSON::Validator.validate(schema, io)).to be(true)
     expect(JSON::Validator.validate(schemaP, ioP, uri: true)).to be(true)
+
+    # Load complete results (ex. UA') example
+    ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse11.json"
+    ioC = File.read(ioP)
+    io = JSON.parse(ioC, symbolize_names: true)
+    expect(JSON::Validator.validate(schema, io)).to be(true)
+    expect(JSON::Validator.validate(schemaP, ioP, uri: true)).to be(true)
   end
 
   it "can factor in spacetype-specific PSI sets (JSON input)" do
@@ -4063,6 +4195,28 @@ RSpec.describe TBD do
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
+    # Testing min/max cooling/heating setpoints
+    setpoints = heatingTemperatureSetpoints?(os_model)
+    setpoints = coolingTemperatureSetpoints?(os_model) || setpoints
+    expect(setpoints).to be(true)
+    airloops = airLoopsHVAC?(os_model)
+    expect(airloops).to be(true)
+
+    os_model.getSpaces.each do |space|
+      expect(space.thermalZone.empty?).to be(false)
+      zone = space.thermalZone.get
+      heating, _ = maxHeatScheduledSetpoint(zone)
+      cooling, _ = minCoolScheduledSetpoint(zone)
+      expect(plenum?(space, airloops, setpoints)).to be(false)
+      if zone.nameString == "Office ZN"
+        expect(heating).to be_within(0.1).of(21.1)
+        expect(cooling).to be_within(0.1).of(23.9)
+      else
+        expect(heating).to be_within(0.1).of(21.7)
+        expect(cooling).to be_within(0.1).of(24.4)
+      end
+    end
+
     psi_set = "(non thermal bridging)"                              # overridden
     ioP = File.dirname(__FILE__) + "/../json/midrise.json"
     schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
@@ -4075,6 +4229,13 @@ RSpec.describe TBD do
     expect(surfaces.nil?).to be(false)
     expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(180)
+
+    surfaces.each do |id, surface|
+      expect(surface.has_key?(:conditioned)).to be(true)
+      next unless surface[:conditioned]
+      expect(surface.has_key?(:heating)).to be(true)
+      expect(surface.has_key?(:cooling)).to be(true)
+    end
 
     st1 = "Building Story 1"
     st2 = "Building Story 2"
@@ -4478,7 +4639,7 @@ RSpec.describe TBD do
     expect(holds[:fenestration]).to be(true)
     expect(vals[:sill]).to be_within(0.001).of(0.371)
     expect(vals[:sillconcave]).to be_within(0.001).of(0.372)
-    expect(vals[:sillconvex]).to  be_within(0.001).of(0.373)
+    expect(vals[:sillconvex]).to be_within(0.001).of(0.373)
 
     expect(psi.set.has_key?("partial sills")).to be(false)
     partial_sills =
@@ -4547,7 +4708,7 @@ RSpec.describe TBD do
     expect(vals[:sillconvex]).to  be_within(0.001).of(0.391)     # :fenestration
   end
 
-  it "can factor-in Frame & Divider objects" do
+  it "can factor-in Frame & Divider (F&D) objects" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = "/files/test_warehouse.osm"
@@ -4555,6 +4716,9 @@ RSpec.describe TBD do
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
+
+    nom = "Office Front Wall"
+    name = "Office Front Wall Window 1"
 
     psi_set = "poor (BETBG)"
     ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse8.json"
@@ -4569,8 +4733,6 @@ RSpec.describe TBD do
     expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
 
-    nom = "Office Front Wall"
-    name = "Office Front Wall Window 1"
     n_transitions  = 0
     n_fen_edges    = 0
     n_heads        = 0
@@ -4643,7 +4805,7 @@ RSpec.describe TBD do
     # Adding/validating Frame & Divider object.
     fd = OpenStudio::Model::WindowPropertyFrameAndDivider.new(os_model_FD)
     expect(fd.setFrameWidth(0.030)).to be(true)   # 30mm (narrow) around glazing
-    expect(fd.setFrameConductance(0.500)).to be(true)
+    expect(fd.setFrameConductance(2.500)).to be(true)
     window_FD = os_model_FD.getSubSurfaceByName(name)
     expect(window_FD.empty?).to be(false)
     window_FD = window_FD.get
@@ -4692,10 +4854,12 @@ RSpec.describe TBD do
     expect(r.nil?).to be(false)
 
     # The following "opening" function is standalone - does not change OSM.
-    opening_area, opening_vertices = opening(os_model_FD, name)
+    u, opening_area, opening_vertices = opening(os_model_FD, name)
     expect(opening_area).to be_a(Numeric)
     expect(opening_vertices.nil?).to be(false)
-    expect(opening_area).to be_within(0.01).of(5.89)                   # vs 5.58
+    expect(opening_area).to be_within(0.01).of(5.89)           # vs 5.58 - good!
+    expect(u).to be_within(0.01).of(2.35)          # ignoring frame conductances
+
     expect(opening_vertices.size).to eq(4)
     opening_vertices = t * opening_vertices
 
@@ -4715,6 +4879,34 @@ RSpec.describe TBD do
     expect(opening_vertices[3].z).to be_within(0.01).of(2.47)
 
     os_model_FD.save("os_model_FD.osm", true)
+
+    # TBD-calculated subsurface U-factors ignore frame conductances (as well as
+    # divider & edge-of-glass conductances, etc.). Optionally, users can set
+    # a subsurface's overall U-factor using additionalProperties, or a
+    # construction's overall U-factor (affecting all subsurfaces).
+    fenestration = window_FD.construction
+    expect(fenestration.empty?).to be(false)
+    fenestration = fenestration.get.to_Construction.get
+    props = fenestration.additionalProperties
+    expect(props.setFeature("uFactor", 3.0)).to be(true)
+    surface_u = props.getFeatureAsDouble("uFactor").get
+    expect(surface_u).to be_within(0.1).of(3.0)
+    u, opening_area, opening_vertices = opening(os_model_FD, name)
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
+    expect(opening_area).to be_within(0.01).of(5.89)
+    expect(u).to be_within(0.01).of(3.0)
+
+    props = window_FD.additionalProperties
+    expect(props.setFeature("uFactor", 4.0)).to be(true)
+    surface_u = props.getFeatureAsDouble("uFactor").get
+    expect(surface_u).to be_within(0.1).of(4.0)
+    u, opening_area, opening_vertices = opening(os_model_FD, name)
+    expect(opening_area).to be_a(Numeric)
+    expect(opening_vertices.nil?).to be(false)
+    expect(opening_area).to be_within(0.01).of(5.89)
+    expect(u).to be_within(0.01).of(4.0)
+
 
     psi_set = "poor (BETBG)"
     ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse8.json"
@@ -4756,6 +4948,33 @@ RSpec.describe TBD do
     expect(t.nil?).to be(false)
     expect(r.nil?).to be(false)
 
+    # All subsurfaces are Simple Glazing constructions.
+    fenestration = OpenStudio::Model::Construction.new(fd_model)
+    expect(fenestration.handle.to_s.empty?).to be(false)
+    expect(fenestration.nameString.empty?).to be(false)
+    expect(fenestration.nameString).to eq("Construction 1")
+    fenestration.setName("FD fenestration")
+    expect(fenestration.nameString).to eq("FD fenestration")
+    expect(fenestration.layers.size).to eq(0)
+
+    glazing = OpenStudio::Model::SimpleGlazing.new(fd_model)
+    expect(glazing.handle.to_s.empty?).to be(false)
+    expect(glazing.nameString.empty?).to be(false)
+    expect(glazing.nameString).to eq("Window Material Simple Glazing System 1")
+    glazing.setName("FD glazing")
+    expect(glazing.nameString).to eq("FD glazing")
+    expect(glazing.setUFactor(2.0)).to be(true)
+    expect(glazing.setSolarHeatGainCoefficient(0.50)).to be(true)
+    expect(glazing.setVisibleTransmittance(0.70)).to be(true)
+
+    layers = OpenStudio::Model::MaterialVector.new
+    layers << glazing
+    expect(fenestration.setLayers(layers)).to be(true)
+    expect(fenestration.layers.size).to eq(1)
+    expect(fenestration.layers[0].handle.to_s).to eq(glazing.handle.to_s)
+    expect(fenestration.uFactor.empty?).to be(false)
+    expect(fenestration.uFactor.get).to be_within(0.1).of(2.0)
+
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new(  0.00,  0.00, 10.00)
     vec << OpenStudio::Point3d.new(  0.00,  0.00,  0.00)
@@ -4763,7 +4982,7 @@ RSpec.describe TBD do
     vec << OpenStudio::Point3d.new( 10.00,  0.00, 10.00)
     dad = OpenStudio::Model::Surface.new(vec, fd_model)
     dad.setName("dad")
-    dad.setSpace(space)
+    expect(dad.setSpace(space)).to be(true)
 
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new(  2.00,  0.00,  8.00)
@@ -4771,8 +4990,11 @@ RSpec.describe TBD do
     vec << OpenStudio::Point3d.new(  4.00,  0.00,  9.00)
     w1 = OpenStudio::Model::SubSurface.new(vec, fd_model)
     w1.setName("w1")
-    w1.setSubSurfaceType("Window")
-    w1.setSurface(dad)
+    expect(w1.setSubSurfaceType("FixedWindow")).to be(true)
+    expect(w1.setSurface(dad)).to be(true)
+    expect(w1.setConstruction(fenestration)).to be(true)
+    expect(w1.uFactor.empty?).to be(false)
+    expect(w1.uFactor.get).to be_within(0.1).of(2.0)
 
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new(  7.00,  0.00,  4.00)
@@ -4781,8 +5003,11 @@ RSpec.describe TBD do
     vec << OpenStudio::Point3d.new(  9.00,  0.00,  3.00)
     w2 = OpenStudio::Model::SubSurface.new(vec, fd_model)
     w2.setName("w2")
-    w2.setSubSurfaceType("Window")
-    w2.setSurface(dad)
+    expect(w2.setSubSurfaceType("FixedWindow")).to be(true)
+    expect(w2.setSurface(dad)).to be(true)
+    expect(w2.setConstruction(fenestration)).to be(true)
+    expect(w2.uFactor.empty?).to be(false)
+    expect(w2.uFactor.get).to be_within(0.1).of(2.0)
 
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new(  9.00,  0.00,  9.80)
@@ -4790,14 +5015,18 @@ RSpec.describe TBD do
     vec << OpenStudio::Point3d.new(  9.80,  0.00,  9.80)
     w3 = OpenStudio::Model::SubSurface.new(vec, fd_model)
     w3.setName("w3")
-    w3.setSubSurfaceType("Window")
-    w3.setSurface(dad)
+    expect(w3.setSubSurfaceType("FixedWindow")).to be(true)
+    expect(w3.setSurface(dad)).to be(true)
+    expect(w3.setConstruction(fenestration)).to be(true)
+    expect(w3.uFactor.empty?).to be(false)
+    expect(w3.uFactor.get).to be_within(0.1).of(2.0)
 
     # Without Frame & Divider objects linked to subsurface.
-    opening_area, opening_vertices = opening(fd_model, "w1")
+    u, opening_area, opening_vertices = opening(fd_model, "w1")
     expect(opening_area).to be_a(Numeric)
     expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(1.5)
+    expect(u).to be_within(0.01).of(2.0)
     expect(opening_vertices.size).to eq(3)
 
     # Adding a Frame & Divider object.
@@ -4810,10 +5039,11 @@ RSpec.describe TBD do
     width = w1.windowPropertyFrameAndDivider.get.frameWidth
     expect(width).to be_within(0.001).of(0.200)                # good so far ...
 
-    opening_area, opening_vertices = opening(fd_model, "w1")
+    u, opening_area, opening_vertices = opening(fd_model, "w1")
     expect(opening_area).to be_a(Numeric)
     expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(3.75)
+    expect(u).to be_within(0.01).of(2.0)
     expect(opening_vertices.size).to eq(3)
     opening_vertices = t * opening_vertices
     # The following X & Z coordinates are all offset by 0.200 (frame width),
@@ -4836,10 +5066,11 @@ RSpec.describe TBD do
     width = w2.windowPropertyFrameAndDivider.get.frameWidth
     expect(width).to be_within(0.001).of(0.200)
 
-    opening_area, opening_vertices = opening(fd_model, "w2")
+    u, opening_area, opening_vertices = opening(fd_model, "w2")
     expect(opening_area).to be_a(Numeric)
     expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(8.64)
+    expect(u).to be_within(0.01).of(2.0)
     expect(opening_vertices.size).to eq(4)
     opening_vertices = t * opening_vertices
 
@@ -4863,10 +5094,11 @@ RSpec.describe TBD do
     width = w3.windowPropertyFrameAndDivider.get.frameWidth
     expect(width).to be_within(0.001).of(0.200)
 
-    opening_area, opening_vertices = opening(fd_model, "w3")
+    u, opening_area, opening_vertices = opening(fd_model, "w3")
     expect(opening_area).to be_a(Numeric)
     expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(1.1)
+    expect(u).to be_within(0.01).of(2.0)
     expect(opening_vertices.size).to eq(3)
     opening_vertices = t * opening_vertices
 
@@ -4891,6 +5123,31 @@ RSpec.describe TBD do
     expect(t.nil?).to be(false)
     expect(r.nil?).to be(false)
 
+    # All subsurfaces are Simple Glazing constructions.
+    fenestration = OpenStudio::Model::Construction.new(fd2_model)
+    expect(fenestration.handle.to_s.empty?).to be(false)
+    expect(fenestration.nameString.empty?).to be(false)
+    expect(fenestration.nameString).to eq("Construction 1")
+    fenestration.setName("FD2 fenestration")
+    expect(fenestration.nameString).to eq("FD2 fenestration")
+    expect(fenestration.layers.size).to eq(0)
+
+    glazing = OpenStudio::Model::SimpleGlazing.new(fd2_model)
+    expect(glazing.handle.to_s.empty?).to be(false)
+    expect(glazing.nameString.empty?).to be(false)
+    expect(glazing.nameString).to eq("Window Material Simple Glazing System 1")
+    glazing.setName("FD2 glazing")
+    expect(glazing.nameString).to eq("FD2 glazing")
+    expect(glazing.setUFactor(2.0)).to be(true)
+    expect(glazing.setSolarHeatGainCoefficient(0.50)).to be(true)
+    expect(glazing.setVisibleTransmittance(0.70)).to be(true)
+
+    layers = OpenStudio::Model::MaterialVector.new
+    layers << glazing
+    expect(fenestration.setLayers(layers)).to be(true)
+    expect(fenestration.layers.size).to eq(1)
+    expect(fenestration.layers[0].handle.to_s).to eq(glazing.handle.to_s)
+
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new(  0.00,  0.00, 10.00)
     vec << OpenStudio::Point3d.new(  0.00,  0.00,  0.00)
@@ -4898,7 +5155,7 @@ RSpec.describe TBD do
     vec << OpenStudio::Point3d.new( -5.00, -8.67, 10.00)
     dad = OpenStudio::Model::Surface.new(vec, fd2_model)
     dad.setName("dad")
-    dad.setSpace(space2)
+    expect(dad.setSpace(space2)).to be(true)
 
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new( -1.00, -1.73,  8.00)
@@ -4906,8 +5163,9 @@ RSpec.describe TBD do
     vec << OpenStudio::Point3d.new( -2.00, -3.46,  9.00)
     w1 = OpenStudio::Model::SubSurface.new(vec, fd2_model)
     w1.setName("w1")
-    w1.setSubSurfaceType("Window")
-    w1.setSurface(dad)
+    expect(w1.setSubSurfaceType("FixedWindow")).to be(true)
+    expect(w1.setSurface(dad)).to be(true)
+    expect(w1.setConstruction(fenestration)).to be(true)
 
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new( -3.50, -6.06,  4.00)
@@ -4916,8 +5174,9 @@ RSpec.describe TBD do
     vec << OpenStudio::Point3d.new( -4.50, -7.79,  3.00)
     w2 = OpenStudio::Model::SubSurface.new(vec, fd2_model)
     w2.setName("w2")
-    w2.setSubSurfaceType("Window")
-    w2.setSurface(dad)
+    expect(w2.setSubSurfaceType("FixedWindow")).to be(true)
+    expect(w2.setSurface(dad)).to be(true)
+    expect(w2.setConstruction(fenestration)).to be(true)
 
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new( -4.50, -7.79,  9.80)
@@ -4925,14 +5184,16 @@ RSpec.describe TBD do
     vec << OpenStudio::Point3d.new( -4.90, -8.49,  9.80)
     w3 = OpenStudio::Model::SubSurface.new(vec, fd2_model)
     w3.setName("w3")
-    w3.setSubSurfaceType("Window")
-    w3.setSurface(dad)
+    expect(w3.setSubSurfaceType("FixedWindow")).to be(true)
+    expect(w3.setSurface(dad)).to be(true)
+    expect(w3.setConstruction(fenestration)).to be(true)
 
     # Without Frame & Divider objects linked to subsurface.
-    opening_area, opening_vertices = opening(fd2_model, "w1")
+    u, opening_area, opening_vertices = opening(fd2_model, "w1")
     expect(opening_area).to be_a(Numeric)
     expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(1.5)
+    expect(u).to be_within(0.01).of(2.0)
     expect(opening_vertices.size).to eq(3)
 
     # Adding a Frame & Divider object.
@@ -4945,10 +5206,11 @@ RSpec.describe TBD do
     width = w1.windowPropertyFrameAndDivider.get.frameWidth
     expect(width).to be_within(0.001).of(0.200)                # good so far ...
 
-    opening_area, opening_vertices = opening(fd2_model, "w1")
+    u, opening_area, opening_vertices = opening(fd2_model, "w1")
     expect(opening_area).to be_a(Numeric)
     expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(3.75)
+    expect(u).to be_within(0.01).of(2.0)
     expect(opening_vertices.size).to eq(3)
     opening_vertices = t * opening_vertices
     # The following X & Z coordinates are all offset by 0.200 (frame width),
@@ -4971,10 +5233,11 @@ RSpec.describe TBD do
     width = w2.windowPropertyFrameAndDivider.get.frameWidth
     expect(width).to be_within(0.001).of(0.200)
 
-    opening_area, opening_vertices = opening(fd2_model, "w2")
+    u, opening_area, opening_vertices = opening(fd2_model, "w2")
     expect(opening_area).to be_a(Numeric)
     expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(8.64)
+    expect(u).to be_within(0.01).of(2.0)
     expect(opening_vertices.size).to eq(4)
     opening_vertices = t * opening_vertices
 
@@ -4998,10 +5261,11 @@ RSpec.describe TBD do
     width = w3.windowPropertyFrameAndDivider.get.frameWidth
     expect(width).to be_within(0.001).of(0.200)
 
-    opening_area, opening_vertices = opening(fd2_model, "w3")
+    u, opening_area, opening_vertices = opening(fd2_model, "w3")
     expect(opening_area).to be_a(Numeric)
     expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(1.1)
+    expect(u).to be_within(0.01).of(2.0)
     expect(opening_vertices.size).to eq(3)
     opening_vertices = t * opening_vertices
 
@@ -5025,6 +5289,31 @@ RSpec.describe TBD do
     expect(t.nil?).to be(false)
     expect(r.nil?).to be(false)
 
+    # All subsurfaces are Simple Glazing constructions.
+    fenestration = OpenStudio::Model::Construction.new(fd3_model)
+    expect(fenestration.handle.to_s.empty?).to be(false)
+    expect(fenestration.nameString.empty?).to be(false)
+    expect(fenestration.nameString).to eq("Construction 1")
+    fenestration.setName("FD3 fenestration")
+    expect(fenestration.nameString).to eq("FD3 fenestration")
+    expect(fenestration.layers.size).to eq(0)
+
+    glazing = OpenStudio::Model::SimpleGlazing.new(fd3_model)
+    expect(glazing.handle.to_s.empty?).to be(false)
+    expect(glazing.nameString.empty?).to be(false)
+    expect(glazing.nameString).to eq("Window Material Simple Glazing System 1")
+    glazing.setName("FD3 glazing")
+    expect(glazing.nameString).to eq("FD3 glazing")
+    expect(glazing.setUFactor(2.0)).to be(true)
+    expect(glazing.setSolarHeatGainCoefficient(0.50)).to be(true)
+    expect(glazing.setVisibleTransmittance(0.70)).to be(true)
+
+    layers = OpenStudio::Model::MaterialVector.new
+    layers << glazing
+    expect(fenestration.setLayers(layers)).to be(true)
+    expect(fenestration.layers.size).to eq(1)
+    expect(fenestration.layers[0].handle.to_s).to eq(glazing.handle.to_s)
+
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new( -2.17,  4.33,  8.75)
     vec << OpenStudio::Point3d.new(  0.00,  0.00,  0.00)
@@ -5040,8 +5329,9 @@ RSpec.describe TBD do
     vec << OpenStudio::Point3d.new( -4.45,  0.90,  8.74)
     w1 = OpenStudio::Model::SubSurface.new(vec, fd3_model)
     w1.setName("w1")
-    w1.setSubSurfaceType("Window")
-    w1.setSurface(dad)
+    expect(w1.setSubSurfaceType("FixedWindow")).to be(true)
+    expect(w1.setSurface(dad)).to be(true)
+    expect(w1.setConstruction(fenestration)).to be(true)
 
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new( -5.24, -3.52,  5.02)
@@ -5050,8 +5340,9 @@ RSpec.describe TBD do
     vec << OpenStudio::Point3d.new( -6.27, -5.45,  4.57)
     w2 = OpenStudio::Model::SubSurface.new(vec, fd3_model)
     w2.setName("w2")
-    w2.setSubSurfaceType("Window")
-    w2.setSurface(dad)
+    expect(w2.setSubSurfaceType("FixedWindow")).to be(true)
+    expect(w2.setSurface(dad)).to be(true)
+    expect(w2.setConstruction(fenestration)).to be(true)
 
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new( -7.75, -2.51, 10.52)
@@ -5059,14 +5350,17 @@ RSpec.describe TBD do
     vec << OpenStudio::Point3d.new( -8.25, -3.11, 10.70)
     w3 = OpenStudio::Model::SubSurface.new(vec, fd3_model)
     w3.setName("w3")
-    w3.setSubSurfaceType("Window")
-    w3.setSurface(dad)
+    expect(w3.setSubSurfaceType("FixedWindow")).to be(true)
+    expect(w3.setSurface(dad)).to be(true)
+    expect(w3.setConstruction(fenestration)).to be(true)
 
     # Without Frame & Divider objects linked to subsurface.
-    opening_area, opening_vertices = opening(fd3_model, "w1")
+    u, opening_area, opening_vertices = opening(fd3_model, "w1")
+    expect(u).to be_within(0.1).of(2.0)
     expect(opening_area).to be_a(Numeric)
     expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(1.5)
+    expect(u).to be_within(0.01).of(2.0)
     expect(opening_vertices.size).to eq(3)
 
     # Adding a Frame & Divider object.
@@ -5079,10 +5373,11 @@ RSpec.describe TBD do
     width = w1.windowPropertyFrameAndDivider.get.frameWidth
     expect(width).to be_within(0.001).of(0.200)                # good so far ...
 
-    opening_area, opening_vertices = opening(fd3_model, "w1")
+    u, opening_area, opening_vertices = opening(fd3_model, "w1")
     expect(opening_area).to be_a(Numeric)
     expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(3.75)
+    expect(u).to be_within(0.01).of(2.0)
     expect(opening_vertices.size).to eq(3)
     opening_vertices = t * opening_vertices
 
@@ -5106,10 +5401,11 @@ RSpec.describe TBD do
     width = w2.windowPropertyFrameAndDivider.get.frameWidth
     expect(width).to be_within(0.001).of(0.200)
 
-    opening_area, opening_vertices = opening(fd3_model, "w2")
+    u, opening_area, opening_vertices = opening(fd3_model, "w2")
     expect(opening_area).to be_a(Numeric)
     expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(8.64)
+    expect(u).to be_within(0.01).of(2.0)
     expect(opening_vertices.size).to eq(4)
     opening_vertices = t * opening_vertices
 
@@ -5133,10 +5429,11 @@ RSpec.describe TBD do
     width = w3.windowPropertyFrameAndDivider.get.frameWidth
     expect(width).to be_within(0.001).of(0.200)
 
-    opening_area, opening_vertices = opening(fd3_model, "w3")
+    u, opening_area, opening_vertices = opening(fd3_model, "w3")
     expect(opening_area).to be_a(Numeric)
     expect(opening_vertices.nil?).to be(false)
     expect(opening_area).to be_within(0.1).of(1.1)
+    expect(u).to be_within(0.01).of(2.0)
     expect(opening_vertices.size).to eq(3)
     opening_vertices = t * opening_vertices
 
@@ -5191,8 +5488,8 @@ RSpec.describe TBD do
     os_v << OpenStudio::Point3d.new( 13.87, 0.00, 3.50)
     clerestory = OpenStudio::Model::SubSurface.new(os_v, os_model)
     clerestory.setName("clerestory")
-    clerestory.setSurface(front_office_wall)
-    clerestory.setSubSurfaceType("FixedWindow")
+    expect(clerestory.setSurface(front_office_wall)).to be(true)
+    expect(clerestory.setSubSurfaceType("FixedWindow")).to be(true)
     # ... reminder: set subsurface type AFTER setting its parent surface.
 
     # A new, highly-conductive material (RSi = 0.001 m2.K/W) - the OS min.
@@ -5419,7 +5716,7 @@ RSpec.describe TBD do
       tbd_msgs << { level: TBD.tag(l[:level]), message: l[:message] }
     end
     tbd_log[:messages] = tbd_msgs unless tbd_msgs.empty?
-    
+
     io[:log] = tbd_log
 
     # Deterministic sorting
@@ -5449,6 +5746,29 @@ RSpec.describe TBD do
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
+
+    # Testing min/max cooling/heating setpoints
+    setpoints = heatingTemperatureSetpoints?(os_model)
+    setpoints = coolingTemperatureSetpoints?(os_model) || setpoints
+    expect(setpoints).to be(true)
+    airloops = airLoopsHVAC?(os_model)
+    expect(airloops).to be(false)
+
+    os_model.getSpaces.each do |space|
+      expect(space.thermalZone.empty?).to be(false)
+      zone = space.thermalZone.get
+      heating, _ = maxHeatScheduledSetpoint(zone)
+      cooling, _ = minCoolScheduledSetpoint(zone)
+      if zone.nameString == "PLENUM-1 Thermal Zone"
+        expect(plenum?(space, airloops, setpoints)).to be(false)
+        expect(heating.nil?).to be(true)
+        expect(cooling.nil?).to be(true)
+        next
+      end
+      expect(plenum?(space, airloops, setpoints)).to be(false)
+      expect(heating).to be_within(0.1).of(22.2)
+      expect(cooling).to be_within(0.1).of(23.9)
+    end
 
     # Tracking insulated ceiling surfaces below PLENUM.
     os_model.getSurfaces.each do |s|
@@ -5497,6 +5817,24 @@ RSpec.describe TBD do
     expect(io.has_key?(:edges))
     expect(io[:edges].size).to eq(47)
     expect(surfaces.size).to eq(40)
+
+    surfaces.each do |id, surface|
+      expect(surface.has_key?(:conditioned)).to be(true)
+      next unless surface[:conditioned]
+      expect(surface.has_key?(:heating)).to be(true)
+      expect(surface.has_key?(:cooling)).to be(true)
+
+      # Testing glass door detection
+      if surface.has_key?(:doors)
+        surface[:doors].each do |i, door|
+          expect(door.has_key?(:glazed)).to be(true)
+          expect(door[:glazed]).to be(true)
+          expect(door.has_key?(:u)).to be(true)
+          expect(door[:u]).to be_a(Numeric)
+          expect(door[:u]).to be_within(0.01).of(6.54)
+        end
+      end
+    end
 
     ids = { a: "LEFT-1",
             b: "RIGHT-1",
@@ -5563,6 +5901,744 @@ RSpec.describe TBD do
     end
   end
 
+  it "can handle TDDs" do
+    # OpenStudio SDK doesn't (fully) support Tubular Daylighting Devices, as per:
+    # https://bigladdersoftware.com/epx/docs/9-5/input-output-reference/
+    # group-daylighting.html#daylightingdevicetubular
+    methods = OpenStudio::Model::Model.instance_methods.grep(/tubular/i)
+    expect(methods.empty?).to be(true)
+
+    # ... OpenStudio is however able to set/get related subsurface types:
+    types = OpenStudio::Model::SubSurface.validSubSurfaceTypeValues
+    expect(types.is_a?(Array)).to be(true)
+    expect(types.include?("TubularDaylightDome")).to be(true)
+    expect(types.include?("TubularDaylightDiffuser")).to be(true)
+
+    # Assigning a "TubularDaylightDome" subsurface type (previously a skylight).
+    TBD.clean!
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    file = "/files/test_warehouse.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    # Initial skylight.
+    nom = "FineStorage_skylight_5"
+    sky5 = os_model.getSubSurfaceByName(nom)
+    expect(sky5.empty?).to be(false)
+    sky5 = sky5.get
+    expect(sky5.subSurfaceType.downcase).to eq("skylight")
+    name = "U 1.17 SHGC 0.39 Simple Glazing Skylight U-1.17 SHGC 0.39 2"
+    skylight = sky5.construction
+    expect(skylight.empty?).to be(false)
+    expect(skylight.get.nameString).to eq(name)
+
+    # Resetting type ...
+    expect(sky5.setSubSurfaceType("TubularDaylightDome")).to be(true)
+    skylight = sky5.construction
+    expect(skylight.empty?).to be(false)
+    expect(skylight.get.nameString).to eq("Typical Interior Window")
+    # Weird to see "Typical Interior Window" as a suitable construction for a
+    # tubular skylight dome, but that's the assigned default construction in
+    # the DOE prototype warehouse model.
+
+    roof = os_model.getSurfaceByName("Fine Storage Roof")
+    expect(roof.empty?).to be(false)
+    roof = roof.get
+
+    # Testing if TBD recognizes it as a "skylight" (for derating & UA').
+    psi_set = "poor (BETBG)"
+    io, surfaces = processTBD(os_model, psi_set)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
+    expect(io.has_key?(:edges))
+    expect(io[:edges].size).to eq(300)
+    expect(surfaces.size).to eq(23)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.size).to eq(0)
+
+    expect(surfaces.has_key?("Fine Storage Roof")).to be(true)
+    surface = surfaces["Fine Storage Roof"]
+    if surface.has_key?(:skylights)
+      expect(surface[:skylights].has_key?(nom)).to be(true)
+      surface[:skylights].each do |i, skylight|
+        expect(skylight.has_key?(:u)).to be(true)
+        expect(skylight[:u]).to be_a(Numeric)
+        expect(skylight[:u]).to be_within(0.01).of(6.64) unless i == nom
+        expect(skylight[:u]).to be_within(0.01).of(7.18) if i == nom
+        # So TBD will successfully process any subsurface perimeter, whether
+        # skylight, tubular devices, etc. And it will retrieve a calculated
+        # U-factor for TBD's UA' trade-off methodology (see below). A follow-up
+        # OpenStudio-launched EnergyPlus simulation reveals that, despite
+        # having an incomplete TDD setup i.e. dome > tube > diffuser, EnergyPlus
+        # will proceed without warning(s). Results reflect e.g. an expected
+        # increase in heating energy (Climate Zone 7), due to the poor(er)
+        # performance of the dome.
+        #
+        # Note that the effective RSi of the (missing) tube will be ignored.
+        # https://bigladdersoftware.com/epx/docs/9-5/engineering-reference/
+        # daylighting-devices.html#conductiveconvective-gains
+        #
+        # https://bigladdersoftware.com/epx/docs/9-5/input-output-reference/
+        # group-surface-construction-elements.html#field-u-factor
+      end
+    end
+  end
+
+  it "can pre-process UA parameters" do
+    TBD.clean!
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    file = "/files/test_warehouse.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    setpoints = heatingTemperatureSetpoints?(os_model)
+    setpoints = coolingTemperatureSetpoints?(os_model) || setpoints
+    expect(setpoints).to be(true)
+    airloops = airLoopsHVAC?(os_model)
+    expect(airloops).to be(true)
+
+    os_model.getSpaces.each do |space|
+      expect(space.thermalZone.empty?).to be(false)
+      expect(plenum?(space, airloops, setpoints)).to be(false)
+      zone = space.thermalZone.get
+      heating, _ = maxHeatScheduledSetpoint(zone)
+      cooling, _ = minCoolScheduledSetpoint(zone)
+      if zone.nameString == "Zone1 Office ZN"
+        expect(heating).to be_within(0.1).of(21.1)
+        expect(cooling).to be_within(0.1).of(23.9)
+      elsif zone.nameString == "Zone2 Fine Storage ZN"
+        expect(heating).to be_within(0.1).of(15.6)
+        expect(cooling).to be_within(0.1).of(26.7)
+      else
+        expect(heating).to be_within(0.1).of(10.0)
+        expect(cooling).to be_within(0.1).of(50.0)
+      end
+    end
+
+    ids = { a: "Office Front Wall",
+            b: "Office Left Wall",
+            c: "Fine Storage Roof",
+            d: "Fine Storage Office Front Wall",
+            e: "Fine Storage Office Left Wall",
+            f: "Fine Storage Front Wall",
+            g: "Fine Storage Left Wall",
+            h: "Fine Storage Right Wall",
+            i: "Bulk Storage Roof",
+            j: "Bulk Storage Rear Wall",
+            k: "Bulk Storage Left Wall",
+            l: "Bulk Storage Right Wall" }.freeze
+
+    id2 = { a: "Office Front Door",
+            b: "Office Left Wall Door",
+            c: "Fine Storage Left Door",
+            d: "Fine Storage Right Door",
+            e: "Bulk Storage Door-1",
+            f: "Bulk Storage Door-2",
+            g: "Bulk Storage Door-3",
+            h: "Overhead Door 1",
+            i: "Overhead Door 2",
+            j: "Overhead Door 3",
+            k: "Overhead Door 4",
+            l: "Overhead Door 5",
+            m: "Overhead Door 6",
+            n: "Overhead Door 7" }.freeze
+
+    psi = PSI.new
+    ref = "code (Quebec)"
+    has, val = psi.shorthands(ref)
+    expect(has.empty?).to be(false)
+    expect(val.empty?).to be(false)
+
+    psi_set = "poor (BETBG)"
+    ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse10.json"
+    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    io, surfaces = processTBD(os_model, psi_set, ioP, schemaP, true, ref)
+
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
+    expect(io.has_key?(:edges))
+    expect(io[:edges].size).to eq(300)
+    expect(surfaces.size).to eq(23)
+
+    # Set up 2x heating setpoint (HSTP) "blocks":
+    #   bloc1: spaces/zones with HSTP >= 18°C
+    #   bloc2: spaces/zones with HSTP < 18°C
+    #   (ref: 2021 Quebec energy code 3.3. UA' trade-off methodology)
+    #   ... could be generalized in the future e.g., more blocks, user-set HSTP.
+    #
+    # Determine UA' compliance separately for (i) bloc1 & (ii) bloc2.
+    #
+    # Each block's UA' = ∑ U•area + ∑ PSI•length + ∑ KHI•count
+    blc = { walls:   0, roofs:     0, floors:    0, doors:     0,
+            windows: 0, skylights: 0, rimjoists: 0, parapets:  0,
+            trim:    0, corners:   0, balconies: 0, grade:     0,
+            other:   0 # includes party wall edges, expansion joints, etc.
+          }
+    bloc1 = {}
+    bloc2 = {}
+    bloc1[:pro] = blc
+    bloc1[:ref] = blc.clone
+    bloc2[:pro] = blc.clone
+    bloc2[:ref] = blc.clone
+
+    surfaces.each do |id, surface|
+      expect(surface.has_key?(:deratable)).to be(true)
+      next unless surface[:deratable]
+      expect(ids.has_value?(id)).to be(true)
+      expect(surface.has_key?(:type)).to be(true)
+      expect(surface.has_key?(:net)).to be(true)
+      expect(surface[:net] > TOL).to be(true)
+
+      expect(surface.has_key?(:u)).to be(true)
+      expect(surface[:u] > TOL).to be(true)
+      expect(surface[:u]).to be_within(0.01).of(0.48) if id == ids[:a]
+      expect(surface[:u]).to be_within(0.01).of(0.48) if id == ids[:b]
+      expect(surface[:u]).to be_within(0.01).of(0.31) if id == ids[:c]
+      expect(surface[:u]).to be_within(0.01).of(0.48) if id == ids[:d]
+      expect(surface[:u]).to be_within(0.01).of(0.48) if id == ids[:e]
+      expect(surface[:u]).to be_within(0.01).of(0.48) if id == ids[:f]
+      expect(surface[:u]).to be_within(0.01).of(0.48) if id == ids[:g]
+      expect(surface[:u]).to be_within(0.01).of(0.48) if id == ids[:h]
+      expect(surface[:u]).to be_within(0.01).of(0.55) if id == ids[:i]
+      expect(surface[:u]).to be_within(0.01).of(0.64) if id == ids[:j]
+      expect(surface[:u]).to be_within(0.01).of(0.64) if id == ids[:k]
+      expect(surface[:u]).to be_within(0.01).of(0.64) if id == ids[:l]
+
+      # Reference values.
+      expect(surface.has_key?(:ref)).to be(true)
+      expect(surface[:ref]).to be_within(0.01).of(0.28) if id == ids[:a]
+      expect(surface[:ref]).to be_within(0.01).of(0.28) if id == ids[:b]
+      expect(surface[:ref]).to be_within(0.01).of(0.18) if id == ids[:c]
+      expect(surface[:ref]).to be_within(0.01).of(0.28) if id == ids[:d]
+      expect(surface[:ref]).to be_within(0.01).of(0.28) if id == ids[:e]
+      expect(surface[:ref]).to be_within(0.01).of(0.28) if id == ids[:f]
+      expect(surface[:ref]).to be_within(0.01).of(0.28) if id == ids[:g]
+      expect(surface[:ref]).to be_within(0.01).of(0.28) if id == ids[:h]
+      expect(surface[:ref]).to be_within(0.01).of(0.23) if id == ids[:i]
+      expect(surface[:ref]).to be_within(0.01).of(0.34) if id == ids[:j]
+      expect(surface[:ref]).to be_within(0.01).of(0.34) if id == ids[:k]
+      expect(surface[:ref]).to be_within(0.01).of(0.34) if id == ids[:l]
+
+      expect(surface.has_key?(:heating)).to be(true)
+      expect(surface.has_key?(:cooling)).to be(true)
+
+      bloc = bloc1
+      bloc = bloc2 if surface[:heating] < 18
+
+      if surface[:type] == :wall
+        bloc[:pro][:walls] += surface[:net] * surface[:u]
+        bloc[:ref][:walls] += surface[:net] * surface[:ref]
+      elsif surface[:type] == :ceiling
+        bloc[:pro][:roofs] += surface[:net] * surface[:u]
+        bloc[:ref][:roofs] += surface[:net] * surface[:ref]
+      else
+        bloc[:pro][:floors] += surface[:net] * surface[:u]
+        bloc[:ref][:floors] += surface[:net] * surface[:ref]
+      end
+
+      if surface.has_key?(:doors)
+        surface[:doors].each do |i, door|
+          expect(id2.has_value?(i)).to be(true)
+          expect(door.has_key?(:gross)).to be(true)
+          expect(door[:gross] > TOL).to be(true)
+          expect(door.has_key?(:glazed)).to be(false)
+          expect(door.has_key?(:u)).to be(true)
+          expect(door[:u] > TOL).to be(true)
+          expect(door[:u]).to be_within(0.01).of(3.98)
+          expect(door.has_key?(:ref)).to be(true)
+          expect(door[:ref] > TOL).to be(true)
+          bloc[:pro][:doors] += door[:gross] * door[:u]
+          bloc[:ref][:doors] += door[:gross] * door[:ref]
+        end
+      end
+
+      if surface.has_key?(:skylights)
+        surface[:skylights].each do |i, skylight|
+          expect(skylight.has_key?(:gross)).to be(true)
+          expect(skylight[:gross] > TOL).to be(true)
+          expect(skylight.has_key?(:u)).to be(true)
+          expect(skylight[:u] > TOL).to be(true)
+          expect(skylight[:u]).to be_within(0.01).of(6.64)
+          expect(skylight.has_key?(:ref)).to be(true)
+          expect(skylight[:ref] > TOL).to be(true)
+          bloc[:pro][:skylights] += skylight[:gross] * skylight[:u]
+          bloc[:ref][:skylights] += skylight[:gross] * skylight[:ref]
+        end
+      end
+
+      id3 = { a: "Office Front Wall Window 1",
+              b: "Office Front Wall Window2" }.freeze
+
+      if surface.has_key?(:windows)
+        surface[:windows].each do |i, window|
+          expect(window.has_key?(:u)).to be(true)
+          expect(window.has_key?(:ref)).to be(true)
+          expect(window[:ref] > TOL).to be(true)
+          bloc[:pro][:windows] += window[:gross] * window[:u]
+          bloc[:ref][:windows] += window[:gross] * window[:ref]
+          expect(window[:u] > 0).to be(true)
+          expect(window[:u]).to be_within(0.01).of(4.00) if i == id3[:a]
+          expect(window[:u]).to be_within(0.01).of(3.50) if i == id3[:b]
+          expect(window[:gross]).to be_within(0.1).of(5.58) if i == id3[:a]
+          expect(window[:gross]).to be_within(0.1).of(5.58) if i == id3[:b]
+          next if i == id3[:a] || i == id3[:b]
+          expect(window[:gross]).to be_within(0.1).of(3.25)
+          expect(window[:u]).to be_within(0.01).of(2.35)
+        end
+      end
+
+      if surface.has_key?(:edges)
+        surface[:edges].values.each do |edge|
+          expect(edge.has_key?(:type)).to be(true)
+          expect(edge.has_key?(:ratio)).to be(true)
+          expect(edge.has_key?(:ref)).to be(true)
+          expect(edge.has_key?(:psi)).to be(true)
+          next unless edge[:psi] > TOL
+
+          tt = psi.safeType(ref, edge[:type])
+          expect(tt.nil?).to be(false)
+          expect(edge[:ref]).to be_within(0.01).of(val[tt] * edge[:ratio])
+          rate = edge[:ref] / edge[:psi] * 100
+
+          case tt
+          when :rimjoist
+            expect(rate).to be_within(0.1).of(30.0)
+            bloc[:pro][:rimjoists] += edge[:length] * edge[:psi]
+            bloc[:ref][:rimjoists] += edge[:length] * val[tt] * edge[:ratio]
+          when :parapet
+            expect(rate).to be_within(0.1).of(40.6)
+            bloc[:pro][:parapets] += edge[:length] * edge[:psi]
+            bloc[:ref][:parapets] += edge[:length] * val[tt] * edge[:ratio]
+          when :fenestration
+            expect(rate).to be_within(0.1).of(70.0)
+            bloc[:pro][:trim] += edge[:length] * edge[:psi]
+            bloc[:ref][:trim] += edge[:length] * val[tt] * edge[:ratio]
+          when :corner
+            expect(rate).to be_within(0.1).of(35.3)
+            bloc[:pro][:corners] += edge[:length] * edge[:psi]
+            bloc[:ref][:corners] += edge[:length] * val[tt] * edge[:ratio]
+          when :grade
+            expect(rate).to be_within(0.1).of(52.9)
+            bloc[:pro][:grade] += edge[:length] * edge[:psi]
+            bloc[:ref][:grade] += edge[:length] * val[tt] * edge[:ratio]
+          else
+            expect(rate).to be_within(0.1).of( 0.0)
+            bloc[:pro][:other] += edge[:length] * edge[:psi]
+            bloc[:ref][:other] += edge[:length] * val[tt] * edge[:ratio]
+          end
+        end
+      end
+
+      if surface.has_key?(:pts)
+        surface[:pts].values.each do |pts|
+          expect(pts.has_key?(:val)).to be(true)
+          expect(pts.has_key?(:n)).to be(true)
+          bloc[:pro][:other] += pts[:val] * pts[:n]
+          expect(pts.has_key?(:ref)).to be(true)
+          bloc[:ref][:other] += pts[:ref] * pts[:n]
+        end
+      end
+    end
+
+    expect(bloc1[:pro][:walls]).to     be_within(0.1).of(  60.1)
+    expect(bloc1[:pro][:roofs]).to     be_within(0.1).of(   0.0)
+    expect(bloc1[:pro][:floors]).to    be_within(0.1).of(   0.0)
+    expect(bloc1[:pro][:doors]).to     be_within(0.1).of(  23.3)
+    expect(bloc1[:pro][:windows]).to   be_within(0.1).of(  57.1)
+    expect(bloc1[:pro][:skylights]).to be_within(0.1).of(   0.0)
+    expect(bloc1[:pro][:rimjoists]).to be_within(0.1).of(  17.5)
+    expect(bloc1[:pro][:parapets]).to  be_within(0.1).of(   0.0)
+    expect(bloc1[:pro][:trim]).to      be_within(0.1).of(  23.3)
+    expect(bloc1[:pro][:corners]).to   be_within(0.1).of(   3.6)
+    expect(bloc1[:pro][:balconies]).to be_within(0.1).of(   0.0)
+    expect(bloc1[:pro][:grade]).to     be_within(0.1).of(  29.8)
+    expect(bloc1[:pro][:other]).to     be_within(0.1).of(   0.0)
+
+    bloc1_pro_UA = bloc1[:pro].values.reduce(:+)
+    expect(bloc1_pro_UA).to be_within(0.1).of(214.8)
+    # Info: Design (fully heated): 199.2 W/K vs 114.2 W/K
+
+    expect(bloc1[:ref][:walls]).to     be_within(0.1).of(  35.0)
+    expect(bloc1[:ref][:roofs]).to     be_within(0.1).of(   0.0)
+    expect(bloc1[:ref][:floors]).to    be_within(0.1).of(   0.0)
+    expect(bloc1[:ref][:doors]).to     be_within(0.1).of(   5.3)
+    expect(bloc1[:ref][:windows]).to   be_within(0.1).of(  35.3)
+    expect(bloc1[:ref][:skylights]).to be_within(0.1).of(   0.0)
+    expect(bloc1[:ref][:rimjoists]).to be_within(0.1).of(   5.3)
+    expect(bloc1[:ref][:parapets]).to  be_within(0.1).of(   0.0)
+    expect(bloc1[:ref][:trim]).to      be_within(0.1).of(  16.3)
+    expect(bloc1[:ref][:corners]).to   be_within(0.1).of(   1.3)
+    expect(bloc1[:ref][:balconies]).to be_within(0.1).of(   0.0)
+    expect(bloc1[:ref][:grade]).to     be_within(0.1).of(  15.8)
+    expect(bloc1[:ref][:other]).to     be_within(0.1).of(   0.0)
+
+    bloc1_ref_UA = bloc1[:ref].values.reduce(:+)
+    expect(bloc1_ref_UA).to be_within(0.1).of(114.2)
+
+    expect(bloc2[:pro][:walls]).to     be_within(0.1).of(1342.0)
+    expect(bloc2[:pro][:roofs]).to     be_within(0.1).of(2169.2)
+    expect(bloc2[:pro][:floors]).to    be_within(0.1).of(   0.0)
+    expect(bloc2[:pro][:doors]).to     be_within(0.1).of( 245.6)
+    expect(bloc2[:pro][:windows]).to   be_within(0.1).of(   0.0)
+    expect(bloc2[:pro][:skylights]).to be_within(0.1).of( 454.3)
+    expect(bloc2[:pro][:rimjoists]).to be_within(0.1).of(  17.5)
+    expect(bloc2[:pro][:parapets]).to  be_within(0.1).of( 234.1)
+    expect(bloc2[:pro][:trim]).to      be_within(0.1).of( 155.0)
+    expect(bloc2[:pro][:corners]).to   be_within(0.1).of(  25.4)
+    expect(bloc2[:pro][:balconies]).to be_within(0.1).of(   0.0)
+    expect(bloc2[:pro][:grade]).to     be_within(0.1).of( 218.9)
+    expect(bloc2[:pro][:other]).to     be_within(0.1).of(   1.6)
+
+    bloc2_pro_UA = bloc2[:pro].values.reduce(:+)
+    expect(bloc2_pro_UA).to be_within(0.1).of(4863.6)
+
+    expect(bloc2[:ref][:walls]).to     be_within(0.1).of( 732.0)
+    expect(bloc2[:ref][:roofs]).to     be_within(0.1).of( 961.8)
+    expect(bloc2[:ref][:floors]).to    be_within(0.1).of(   0.0)
+    expect(bloc2[:ref][:doors]).to     be_within(0.1).of(  67.5)
+    expect(bloc2[:ref][:windows]).to   be_within(0.1).of(   0.0)
+    expect(bloc2[:ref][:skylights]).to be_within(0.1).of( 225.9)
+    expect(bloc2[:ref][:rimjoists]).to be_within(0.1).of(   5.3)
+    expect(bloc2[:ref][:parapets]).to  be_within(0.1).of(  95.1)
+    expect(bloc2[:ref][:trim]).to      be_within(0.1).of( 108.5)
+    expect(bloc2[:ref][:corners]).to   be_within(0.1).of(   9.0)
+    expect(bloc2[:ref][:balconies]).to be_within(0.1).of(   0.0)
+    expect(bloc2[:ref][:grade]).to     be_within(0.1).of( 115.9)
+    expect(bloc2[:ref][:other]).to     be_within(0.1).of(   1.0)
+
+    bloc2_ref_UA = bloc2[:ref].values.reduce(:+)
+    expect(bloc2_ref_UA).to be_within(0.1).of(2321.8)
+
+    # Testing summaries function.
+    version = os_model.getVersion.versionIdentifier
+    ua = ua_summary(surfaces, Time.now, version, "test",
+      "test_warehouse.osm", "code (Quebec)")
+    expect(ua.nil?).to be(false)
+    expect(ua.empty?).to be(false)
+    expect(ua.is_a?(Hash)).to be(true)
+    expect(ua.has_key?(:model))
+
+    expect(ua.has_key?(:fr)).to be(true)
+    expect(ua[:fr].has_key?(:objective)).to be(true)
+    expect(ua[:fr][:objective].empty?).to be(false)
+    expect(ua[:fr].has_key?(:details)).to be(true)
+    expect(ua[:fr][:details].is_a?(Array)).to be(true)
+    expect(ua[:fr][:details].empty?).to be(false)
+    expect(ua[:fr].has_key?(:areas)).to be(true)
+    expect(ua[:fr][:areas].empty?).to be(false)
+    expect(ua[:fr][:areas].is_a?(Hash)).to be(true)
+    expect(ua[:fr][:areas].has_key?(:walls)).to be(true)
+    expect(ua[:fr][:areas].has_key?(:roofs)).to be(true)
+    expect(ua[:fr][:areas].has_key?(:floors)).to be(false)
+    expect(ua[:fr].has_key?(:notes)).to be(true)
+    expect(ua[:fr][:notes].empty?).to be(false)
+
+    expect(ua[:fr].has_key?(:b1)).to be(true)
+    expect(ua[:fr][:b1].empty?).to be(false)
+    expect(ua[:fr][:b1].has_key?(:summary)).to be(true)
+    expect(ua[:fr][:b1].has_key?(:walls)).to be(true)
+    expect(ua[:fr][:b1].has_key?(:roofs)).to be(false)
+    expect(ua[:fr][:b1].has_key?(:floors)).to be(false)
+    expect(ua[:fr][:b1].has_key?(:doors)).to be(true)
+    expect(ua[:fr][:b1].has_key?(:windows)).to be(true)
+    expect(ua[:fr][:b1].has_key?(:skylights)).to be(false)
+    expect(ua[:fr][:b1].has_key?(:rimjoists)).to be(true)
+    expect(ua[:fr][:b1].has_key?(:parapets)).to be(false)
+    expect(ua[:fr][:b1].has_key?(:trim)).to be(true)
+    expect(ua[:fr][:b1].has_key?(:corners)).to be(true)
+    expect(ua[:fr][:b1].has_key?(:balconies)).to be(false)
+    expect(ua[:fr][:b1].has_key?(:grade)).to be(true)
+    expect(ua[:fr][:b1].has_key?(:other)).to be(false)
+
+    expect(ua[:fr].has_key?(:b2)).to be(true)
+    expect(ua[:fr][:b2].empty?).to be(false)
+    expect(ua[:fr][:b2].has_key?(:summary)).to be(true)
+    expect(ua[:fr][:b2].has_key?(:walls)).to be(true)
+    expect(ua[:fr][:b2].has_key?(:roofs)).to be(true)
+    expect(ua[:fr][:b2].has_key?(:floors)).to be(false)
+    expect(ua[:fr][:b2].has_key?(:doors)).to be(true)
+    expect(ua[:fr][:b2].has_key?(:windows)).to be(false)
+    expect(ua[:fr][:b2].has_key?(:skylights)).to be(true)
+    expect(ua[:fr][:b2].has_key?(:rimjoists)).to be(true)
+    expect(ua[:fr][:b2].has_key?(:parapets)).to be(true)
+    expect(ua[:fr][:b2].has_key?(:trim)).to be(true)
+    expect(ua[:fr][:b2].has_key?(:corners)).to be(true)
+    expect(ua[:fr][:b2].has_key?(:balconies)).to be(false)
+    expect(ua[:fr][:b2].has_key?(:grade)).to be(true)
+    expect(ua[:fr][:b2].has_key?(:other)).to be(true)
+
+    expect(ua[:en].has_key?(:b1)).to be(true)
+    expect(ua[:en][:b1].empty?).to be(false)
+    expect(ua[:en][:b1].has_key?(:summary)).to be(true)
+    expect(ua[:en][:b1].has_key?(:walls)).to be(true)
+    expect(ua[:en][:b1].has_key?(:roofs)).to be(false)
+    expect(ua[:en][:b1].has_key?(:floors)).to be(false)
+    expect(ua[:en][:b1].has_key?(:doors)).to be(true)
+    expect(ua[:en][:b1].has_key?(:windows)).to be(true)
+    expect(ua[:en][:b1].has_key?(:skylights)).to be(false)
+    expect(ua[:en][:b1].has_key?(:rimjoists)).to be(true)
+    expect(ua[:en][:b1].has_key?(:parapets)).to be(false)
+    expect(ua[:en][:b1].has_key?(:trim)).to be(true)
+    expect(ua[:en][:b1].has_key?(:corners)).to be(true)
+    expect(ua[:en][:b1].has_key?(:balconies)).to be(false)
+    expect(ua[:en][:b1].has_key?(:grade)).to be(true)
+    expect(ua[:en][:b1].has_key?(:other)).to be(false)
+
+    expect(ua[:en].has_key?(:b2)).to be(true)
+    expect(ua[:en][:b2].empty?).to be(false)
+    expect(ua[:en][:b2].has_key?(:summary)).to be(true)
+    expect(ua[:en][:b2].has_key?(:walls)).to be(true)
+    expect(ua[:en][:b2].has_key?(:roofs)).to be(true)
+    expect(ua[:en][:b2].has_key?(:floors)).to be(false)
+    expect(ua[:en][:b2].has_key?(:doors)).to be(true)
+    expect(ua[:en][:b2].has_key?(:windows)).to be(false)
+    expect(ua[:en][:b2].has_key?(:skylights)).to be(true)
+    expect(ua[:en][:b2].has_key?(:rimjoists)).to be(true)
+    expect(ua[:en][:b2].has_key?(:parapets)).to be(true)
+    expect(ua[:en][:b2].has_key?(:trim)).to be(true)
+    expect(ua[:en][:b2].has_key?(:corners)).to be(true)
+    expect(ua[:en][:b2].has_key?(:balconies)).to be(false)
+    expect(ua[:en][:b2].has_key?(:grade)).to be(true)
+    expect(ua[:en][:b2].has_key?(:other)).to be(true)
+
+    # ud_md_en = ua_md(ua, :en)
+    # File.open("ua_en.md", "w") do |file|
+    #   file.puts ud_md_en
+    # end
+    #
+    # ud_md_fr = ua_md(ua, :fr)
+    # File.open("ua_fr.md", "w") do |file|
+    #   file.puts ud_md_fr
+    # end
+
+    # Try with an incomplete reference, e.g. (non thermal bridging)
+    TBD.clean!
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    file = "/files/test_warehouse.osm"
+    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    ref = "code (Quebec)"
+    # When faced with an edge that may be characterized by more than one thermal
+    # bridge type (e.g. ground-floor door "sill" vs "grade" edge; "corner" vs
+    # corner window "jamb"), TBD retains the edge type (amongst candidate edge
+    # types) representing the greatest heat loss:
+    #
+    #   psi = edge[:psi].values.max
+    #   type = edge[:psi].key(psi)
+    #
+    # As long as there is a slight difference in PSI-values between candidate
+    # edge types, the automated selection will be deterministic. With 2 or more
+    # edge types sharing the exact same PSI value (e.g. 0.3 W/K per m), the
+    # final selection of edge type becomes less obvious. It is not randomly
+    # selected, but rather based on the (somewhat arbitrary) design choice of
+    # which edge type is processed first in psi.rb (line ~2300 onwards). For
+    # instance, fenestration perimeter joints are treated before corners or
+    # parapets. When dealing with equal hash values, Ruby's Hash "key" method
+    # returns the first key (i.e. edge type) that matches the criterion:
+    #
+    # https://docs.ruby-lang.org/en/2.0.0/Hash.html#method-i-key
+    #
+    # From an energy simulation results perspective, the consequences of this
+    # pseudo-random choice are insignificant (i.e. same PSI-value). For UA'
+    # comparisons, the situation becomes less obvious in outlier cases. When a
+    # reference value needs to be generated for the edge described above, TBD
+    # retains the original autoselected edge type, yet applies reference PSI
+    # values (e.g. code). So far so good. However, when "(non thermal bridging)"
+    # is retained as a default PSI design set (not as a reference set), all edge
+    # types will necessarily have 0 W/K per meter as PSI-values. Same with the
+    # "efficient (BETBG)" PSI set (all but one type at 0.2 W/K per m). Not
+    # obvious (for users) which edge type will be selected by TBD for multi-type
+    # edges. This also has the undesirable effect of generating variations in
+    # reference UA' tallies, depending on the chosen design PSI set (as the
+    # reference PSI set may have radically different PSI-values depending on
+    # the pseudo-random edge type selection). Fortunately, this effect is
+    # limited to the somewhat academic PSI sets like "(non thermal bridging)" or
+    # "efficient (BETBG)".
+    #
+    # In the end, the above discussion remains an "aide-mémoire" for future
+    # guide material, yet also as a basis for peer-review commentary of upcoming
+    # standards on thermal bridging.
+    psi_set = "(non thermal bridging)"
+    io, surfaces = processTBD(os_model, psi_set, nil, nil, true, ref)
+
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
+    expect(io.has_key?(:edges))
+    expect(io[:edges].size).to eq(300)
+    expect(surfaces.size).to eq(23)
+
+    # Testing summaries function.
+    version = os_model.getVersion.versionIdentifier
+    ua = ua_summary(surfaces, Time.now, version, "testing non thermal bridging",
+      "test_warehouse.osm", ref)
+    expect(ua.nil?).to be(false)
+    expect(ua.empty?).to be(false)
+    expect(ua.is_a?(Hash)).to be(true)
+    expect(ua.has_key?(:model))
+
+    ud_md_en = ua_md(ua, :en)
+    File.open("ua_en.md", "w") do |file|
+      file.puts ud_md_en
+    end
+
+    ud_md_fr = ua_md(ua, :fr)
+    File.open("ua_fr.md", "w") do |file|
+      file.puts ud_md_fr
+    end
+  end
+
+  it "can work off of a cloned model" do
+    TBD.clean!
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    file = File.dirname(__FILE__) + "/files/test_warehouse.osm"
+    path = OpenStudio::Path.new(file)
+    model = translator.loadModel(path)
+    expect(model.empty?).to be(false)
+    model = model.get
+
+    alt_model = model.clone
+    alt_file = File.dirname(__FILE__) + "/files/alt_warehouse.osm"
+    alt_model.save(alt_file, true)
+
+    # Despite one being the clone of the other, files will not be identical,
+    # namely due to unique handles.
+    expect(FileUtils.identical?(file, alt_file)).to be(false)
+
+    io, surfaces = processTBD(model, "poor (BETBG)")
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(io.has_key?(:edges)).to be(true)
+    expect(io[:edges].size).to eq(300)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
+    expect(surfaces.size).to eq(23)
+    out = JSON.pretty_generate(io)
+    outP = File.dirname(__FILE__) + "/../json/tbd_warehouse12.out.json"
+    File.open(outP, "w") { |outP| outP.puts out }
+
+    TBD.clean!
+    alt_file = File.dirname(__FILE__) + "/files/alt_warehouse.osm"
+    alt_path = OpenStudio::Path.new(alt_file)
+    alt_model = translator.loadModel(alt_path)
+    expect(alt_model.empty?).to be(false)
+    alt_model = alt_model.get
+    alt_io, alt_surfaces = processTBD(alt_model, "poor (BETBG)")
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(alt_io.nil?).to be(false)
+    expect(alt_io.is_a?(Hash)).to be(true)
+    expect(alt_io.empty?).to be(false)
+    expect(alt_io.has_key?(:edges)).to be(true)
+    expect(alt_io[:edges].size).to eq(300)
+    expect(alt_surfaces.nil?).to be(false)
+    expect(alt_surfaces.is_a?(Hash)).to be(true)
+    expect(alt_surfaces.size).to eq(23)
+    out2 = JSON.pretty_generate(alt_io)
+    outP2 = File.dirname(__FILE__) + "/../json/tbd_warehouse13.out.json"
+    File.open(outP2, "w") { |outP2| outP2.puts out2 }
+
+    # Despite holding the same content, both output JSON files are not written
+    # out the same sequentially.
+    expect(FileUtils.identical?(outP, outP2)).to be(false)
+
+    time = Time.now
+    version = model.getVersion.versionIdentifier
+
+    # Original output UA' MD file.
+    o_ua = ua_summary(surfaces, time, version, "testing equality",
+      "warehouse.osm", "code (Quebec)")
+    expect(o_ua.nil?).to be(false)
+    expect(o_ua.empty?).to be(false)
+    expect(o_ua.is_a?(Hash)).to be(true)
+    expect(o_ua.has_key?(:model))
+
+    o_ud_md_en = ua_md(o_ua, :en)
+    File.open("o_ua_en.md", "w") do |file|
+      file.puts o_ud_md_en
+    end
+
+    # Alternate output UA' MD file.
+    alt_ua = ua_summary(alt_surfaces, time, version, "testing equality",
+      "warehouse.osm", "code (Quebec)")
+    expect(alt_ua.nil?).to be(false)
+    expect(alt_ua.empty?).to be(false)
+    expect(alt_ua.is_a?(Hash)).to be(true)
+    expect(alt_ua.has_key?(:model))
+
+    alt_ud_md_en = ua_md(alt_ua, :en)
+    File.open("alt_ua_en.md", "w") do |file|
+      file.puts alt_ud_md_en
+    end
+
+    # Both output UA' MD files should be identical.
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(FileUtils.identical?("o_ua_en.md", "alt_ua_en.md")).to be(true)
+
+    # Testing the Macumber solution.
+    TBD.clean!
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    file = File.dirname(__FILE__) + "/files/test_warehouse.osm"
+    path = OpenStudio::Path.new(file)
+    model = translator.loadModel(path)
+    expect(model.empty?).to be(false)
+    model = model.get
+
+    alt2_model = OpenStudio::Model::Model.new
+    alt2_model.addObjects(model.toIdfFile.objects)
+    alt2_file = File.dirname(__FILE__) + "/files/alt2_warehouse.osm"
+    alt2_model.save(alt2_file, true)
+
+    # Still get the differences in handles (not consequential at all if the TBD
+    # JSON output files are identical).
+    expect(FileUtils.identical?(file, alt2_file)).to be(false)
+
+    alt2_io, alt2_surfaces = processTBD(alt2_model, "poor (BETBG)")
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(alt2_io.nil?).to be(false)
+    expect(alt2_io.is_a?(Hash)).to be(true)
+    expect(alt2_io.empty?).to be(false)
+    expect(alt2_io.has_key?(:edges)).to be(true)
+    expect(alt2_io[:edges].size).to eq(300)
+    expect(alt2_surfaces.nil?).to be(false)
+    expect(alt2_surfaces.is_a?(Hash)).to be(true)
+    expect(alt2_surfaces.size).to eq(23)
+
+    out3 = JSON.pretty_generate(alt2_io)
+    outP3 = File.dirname(__FILE__) + "/../json/tbd_warehouse14.out.json"
+    File.open(outP3, "w") { |outP3| outP3.puts out3 }
+
+    # Nice. Both TBD JSON output files are identical!
+    # "/../json/tbd_warehouse12.out.json" vs "/../json/tbd_warehouse14.out.json"
+    expect(FileUtils.identical?(outP, outP3)).to be(true)
+  end
+
   it "can generate and access KIVA inputs (seb)" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
@@ -5575,8 +6651,8 @@ RSpec.describe TBD do
     os_model.getSurfaces.each do |s|
       next unless s.nameString == "Open area 1 Floor"
       construction = s.construction.get
-      s.setOutsideBoundaryCondition("Foundation")
-      s.setConstruction(construction)
+      expect(s.setOutsideBoundaryCondition("Foundation")).to be(true)
+      expect(s.setConstruction(construction)).to be(true)
     end
 
     # The following materials and foundation objects are provided here as
@@ -5650,16 +6726,16 @@ RSpec.describe TBD do
       next unless s.isGroundSurface
       next unless s.nameString == "Open area 1 Floor"
       construction = s.construction.get
-      s.setOutsideBoundaryCondition("Foundation")
-      s.setConstruction(construction)
+      expect(s.setOutsideBoundaryCondition("Foundation")).to be(true)
+      expect(s.setConstruction(construction)).to be(true)
     end
 
     # Set one of the linked outside-facing walls to (Kiva) "Foundation"
     os_model2.getSurfaces.each do |s|
       next unless s.nameString == "Openarea 1 Wall 5"
       construction = s.construction.get
-      s.setOutsideBoundaryCondition("Foundation")
-      s.setConstruction(construction)
+      expect(s.setOutsideBoundaryCondition("Foundation")).to be(true)
+      expect(s.setConstruction(construction)).to be(true)
     end
 
     kfs = os_model2.getFoundationKivas
@@ -5670,7 +6746,8 @@ RSpec.describe TBD do
     expect(settings.soilConductivity).to be_within(0.01).of(1.73)
 
     psi_set = "poor (BETBG)"
-    io, surfaces = processTBD(os_model2, psi_set, nil, nil, true)
+    io, surfaces = processTBD(os_model2, psi_set, nil, nil, false, "", true)
+
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
     expect(io.nil?).to be(false)
@@ -5704,7 +6781,8 @@ RSpec.describe TBD do
     os_model = os_model.get
 
     psi_set = "poor (BETBG)"
-    io, surfaces = processTBD(os_model, psi_set, nil, nil, true)
+    io, surfaces = processTBD(os_model, psi_set, nil, nil, false, "", true)
+
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
     expect(io.nil?).to be(false)
@@ -5747,12 +6825,13 @@ RSpec.describe TBD do
     os_model.getSurfaces.each do |s|
       next unless s.outsideBoundaryCondition.downcase == "ground"
       construction = s.construction.get
-      s.setOutsideBoundaryCondition("Foundation")
-      s.setConstruction(construction)
+      expect(s.setOutsideBoundaryCondition("Foundation")).to be(true)
+      expect(s.setConstruction(construction)).to be(true)
     end
 
     psi_set = "poor (BETBG)"
-    io, surfaces = processTBD(os_model, psi_set, nil, nil, true)
+    io, surfaces = processTBD(os_model, psi_set, nil, nil, false, "", true)
+
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
     expect(io.nil?).to be(false)
@@ -5807,13 +6886,14 @@ RSpec.describe TBD do
     os_model.getSurfaces.each do |s|
       next unless s.outsideBoundaryCondition.downcase == "ground"
       construction = s.construction.get
-      s.setOutsideBoundaryCondition("Foundation")
-      s.setConstruction(construction)
+      expect(s.setOutsideBoundaryCondition("Foundation")).to be(true)
+      expect(s.setConstruction(construction)).to be(true)
     end
 
     #psi_set = "poor (BETBG)"
     psi_set = "(non thermal bridging)"
-    io, surfaces = processTBD(os_model, psi_set, nil, nil, true)
+    io, surfaces = processTBD(os_model, psi_set, nil, nil, false, "", true)
+
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
     expect(io.nil?).to be(false)

@@ -2,12 +2,12 @@
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>017cce62-e0fc-42d5-9f84-b30fb3e5192a</version_id>
-  <version_modified>20210711T094412Z</version_modified>
+  <version_id>5a0c2888-72fd-4698-9f09-f2485e5be3be</version_id>
+  <version_modified>20210821T193431Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
-  <description>Thermally derates opaque constructions from major thermal bridges.</description>
+  <description>Derates opaque constructions from major thermal bridges.</description>
   <modeler_description>(see github.com/rd2/tbd)</modeler_description>
   <arguments>
     <argument>
@@ -69,6 +69,25 @@
       </choices>
     </argument>
     <argument>
+      <name>alter_model</name>
+      <display_name>Alter OpenStudio model (Apply Measures Now)</display_name>
+      <description>If checked under Apply Measures Now, TBD will irrevocably alter the user's OpenStudio model.</description>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>true</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
       <name>write_tbd_json</name>
       <display_name>Write 'tbd.out.json'</display_name>
       <description>Write 'tbd.out.json' file to customize for subsequent runs. Edit and place in model 'files' directory as 'tbd.json'.</description>
@@ -88,9 +107,67 @@
       </choices>
     </argument>
     <argument>
+      <name>gen_UA_report</name>
+      <display_name>Generate UA' report</display_name>
+      <description>Compare ∑U•A + ∑PSI•L + ∑KHI•n (model vs UA' reference - see pull-down option below).</description>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>ua_reference</name>
+      <display_name>UA' reference</display_name>
+      <description>e.g. 'poor', 'regular', 'efficient', 'code'.</description>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>code (Quebec)</default_value>
+      <choices>
+        <choice>
+          <value>poor (BETBG)</value>
+          <display_name>poor (BETBG)</display_name>
+        </choice>
+        <choice>
+          <value>regular (BETBG)</value>
+          <display_name>regular (BETBG)</display_name>
+        </choice>
+        <choice>
+          <value>efficient (BETBG)</value>
+          <display_name>efficient (BETBG)</display_name>
+        </choice>
+        <choice>
+          <value>spandrel (BETBG)</value>
+          <display_name>spandrel (BETBG)</display_name>
+        </choice>
+        <choice>
+          <value>spandrel HP (BETBG)</value>
+          <display_name>spandrel HP (BETBG)</display_name>
+        </choice>
+        <choice>
+          <value>code (Quebec)</value>
+          <display_name>code (Quebec)</display_name>
+        </choice>
+        <choice>
+          <value>(non thermal bridging)</value>
+          <display_name>(non thermal bridging)</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
       <name>gen_kiva</name>
       <display_name>Generate Kiva inputs</display_name>
-      <description>Generate Kiva settings &amp; objects if any model surfaces have 'foundation' boundary conditions ('ground' facing surfaces are ignored).</description>
+      <description>Generate Kiva settings &amp; objects for surfaces with 'foundation' boundary conditions (not 'ground').</description>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -109,7 +186,7 @@
     <argument>
       <name>gen_kiva_force</name>
       <display_name>Force-generate Kiva inputs</display_name>
-      <description>Overwrites all 'ground' boundary conditions as 'foundation' before generating Kiva inputs (preferred solution).</description>
+      <description>Overwrites 'ground' boundary conditions as 'foundation' before generating Kiva inputs (recommended).</description>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -240,34 +317,40 @@
       <checksum>0AAEA490</checksum>
     </file>
     <file>
-      <filename>README.md</filename>
-      <filetype>md</filetype>
-      <usage_type>readme</usage_type>
-      <checksum>48ABC0B9</checksum>
-    </file>
-    <file>
-      <filename>conditioned.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>6EE3A84D</checksum>
-    </file>
-    <file>
       <filename>log.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
       <checksum>B30A86EF</checksum>
     </file>
     <file>
+      <filename>conditioned.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>9B4F2407</checksum>
+    </file>
+    <file>
       <filename>framedivider.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>8B762D7C</checksum>
+      <checksum>7A5612C1</checksum>
     </file>
     <file>
       <filename>psi.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>61B97E15</checksum>
+      <checksum>BCCE78C9</checksum>
+    </file>
+    <file>
+      <filename>ua.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>55A708ED</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>F3C828F3</checksum>
     </file>
     <file>
       <version>
@@ -278,7 +361,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>EA793312</checksum>
+      <checksum>AB24FC7A</checksum>
     </file>
   </files>
 </measure>

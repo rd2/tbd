@@ -1,0 +1,4579 @@
+{
+  "schema": "https://github.com/rd2/tbd/blob/ua/tbd.schema.json",
+  "description": "ua_warehouse.osm",
+  "log": {
+    "date": "2021-08-14 06:47:17 -0400",
+    "status": "Success! No errors, no warnings",
+    "ua": {
+      "bloc1": {
+        "summary": "heated : 199.2 W/K (vs 114.2 W/K) +74.4%",
+        "walls": "walls : 60.1 W/K (vs 35.0 W/K) +71.7%",
+        "doors": "doors : 23.3 W/K (vs 5.3 W/K) +341.8%",
+        "windows": "windows : 41.6 W/K (vs 35.3 W/K) +17.7%",
+        "rimjoists": "rimjoists : 17.5 W/K (vs 5.3 W/K) +233.3%",
+        "trim": "trim : 23.3 W/K (vs 16.3 W/K) +42.9%",
+        "corners": "corners : 3.6 W/K (vs 1.3 W/K) +183.3%",
+        "grade": "grade : 29.8 W/K (vs 15.8 W/K) +88.9%"
+      },
+      "bloc2": {
+        "summary": "semi-heated : 4862.0 W/K (vs 2352.4 W/K) +106.7%",
+        "walls": "walls : 1342.0 W/K (vs 744.6 W/K) +80.2%",
+        "roofs": "roofs : 2169.2 W/K (vs 976.9 W/K) +122.0%",
+        "doors": "doors : 245.6 W/K (vs 67.7 W/K) +262.8%",
+        "skylights": "skylights : 454.3 W/K (vs 229.4 W/K) +98.0%",
+        "rimjoists": "rimjoists : 17.5 W/K (vs 5.3 W/K) +233.3%",
+        "parapets": "parapets : 234.1 W/K (vs 95.1 W/K) +146.2%",
+        "trim": "trim : 155.0 W/K (vs 108.5 W/K) +42.9%",
+        "corners": "corners : 25.4 W/K (vs 9.0 W/K) +183.3%",
+        "grade": "grade : 218.9 W/K (vs 115.9 W/K) +88.9%"
+      }
+    },
+    "results": [
+      "RSi derated by -24.6% : Fine Storage Office Front Wall",
+      "RSi derated by -53.0% : Office Left Wall",
+      "RSi derated by -27.1% : Fine Storage Office Left Wall",
+      "RSi derated by -15.6% : Fine Storage Roof",
+      "RSi derated by -44.1% : Office Front Wall",
+      "RSi derated by -20.5% : Fine Storage Right Wall",
+      "RSi derated by -15.1% : Bulk Storage Right Wall",
+      "RSi derated by -14.9% : Bulk Storage Rear Wall",
+      "RSi derated by -20.2% : Fine Storage Front Wall",
+      "RSi derated by -19.6% : Fine Storage Left Wall",
+      "RSi derated by -19.0% : Bulk Storage Left Wall",
+      "RSi derated by -7.3% : Bulk Storage Roof"
+    ]
+  },
+  "building": {
+    "psi": "poor (BETBG)"
+  },
+  "edges": [
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2191999999999972,
+      "surfaces": [
+        "FineStorage_skylight_5",
+        "Fine Storage Roof"
+      ],
+      "v0x": 40.6146,
+      "v0y": 26.058914,
+      "v0z": 8.533984,
+      "v1x": 40.6146,
+      "v1y": 27.278114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_5",
+        "Fine Storage Roof"
+      ],
+      "v0x": 40.6146,
+      "v0y": 27.278114,
+      "v0z": 8.533984,
+      "v1x": 39.3954,
+      "v1y": 27.278114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2191999999999972,
+      "surfaces": [
+        "FineStorage_skylight_5",
+        "Fine Storage Roof"
+      ],
+      "v0x": 39.3954,
+      "v0y": 27.278114,
+      "v0z": 8.533984,
+      "v1x": 39.3954,
+      "v1y": 26.058914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_5",
+        "Fine Storage Roof"
+      ],
+      "v0x": 39.3954,
+      "v0y": 26.058914,
+      "v0z": 8.533984,
+      "v1x": 40.6146,
+      "v1y": 26.058914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_9",
+        "Fine Storage Roof"
+      ],
+      "v0x": 34.8996,
+      "v0y": 18.438914,
+      "v0z": 8.533984,
+      "v1x": 34.8996,
+      "v1y": 19.658114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_9",
+        "Fine Storage Roof"
+      ],
+      "v0x": 34.8996,
+      "v0y": 19.658114,
+      "v0z": 8.533984,
+      "v1x": 33.6804,
+      "v1y": 19.658114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_9",
+        "Fine Storage Roof"
+      ],
+      "v0x": 33.6804,
+      "v0y": 19.658114,
+      "v0z": 8.533984,
+      "v1x": 33.6804,
+      "v1y": 18.438914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_9",
+        "Fine Storage Roof"
+      ],
+      "v0x": 33.6804,
+      "v0y": 18.438914,
+      "v0z": 8.533984,
+      "v1x": 34.8996,
+      "v1y": 18.438914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_8",
+        "Fine Storage Roof"
+      ],
+      "v0x": 29.1846,
+      "v0y": 18.438914,
+      "v0z": 8.533984,
+      "v1x": 29.1846,
+      "v1y": 19.658114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_8",
+        "Fine Storage Roof"
+      ],
+      "v0x": 29.1846,
+      "v0y": 19.658114,
+      "v0z": 8.533984,
+      "v1x": 27.9654,
+      "v1y": 19.658114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_8",
+        "Fine Storage Roof"
+      ],
+      "v0x": 27.9654,
+      "v0y": 19.658114,
+      "v0z": 8.533984,
+      "v1x": 27.9654,
+      "v1y": 18.438914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_8",
+        "Fine Storage Roof"
+      ],
+      "v0x": 27.9654,
+      "v0y": 18.438914,
+      "v0z": 8.533984,
+      "v1x": 29.1846,
+      "v1y": 18.438914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_10",
+        "Fine Storage Roof"
+      ],
+      "v0x": 40.6146,
+      "v0y": 18.438914,
+      "v0z": 8.533984,
+      "v1x": 40.6146,
+      "v1y": 19.658114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_10",
+        "Fine Storage Roof"
+      ],
+      "v0x": 40.6146,
+      "v0y": 19.658114,
+      "v0z": 8.533984,
+      "v1x": 39.3954,
+      "v1y": 19.658114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_10",
+        "Fine Storage Roof"
+      ],
+      "v0x": 39.3954,
+      "v0y": 19.658114,
+      "v0z": 8.533984,
+      "v1x": 39.3954,
+      "v1y": 18.438914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_10",
+        "Fine Storage Roof"
+      ],
+      "v0x": 39.3954,
+      "v0y": 18.438914,
+      "v0z": 8.533984,
+      "v1x": 40.6146,
+      "v1y": 18.438914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_11",
+        "Fine Storage Roof"
+      ],
+      "v0x": 6.3246,
+      "v0y": 18.438914,
+      "v0z": 8.533984,
+      "v1x": 6.3246,
+      "v1y": 19.658114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2191999999999998,
+      "surfaces": [
+        "FineStorage_skylight_11",
+        "Fine Storage Roof"
+      ],
+      "v0x": 6.3246,
+      "v0y": 19.658114,
+      "v0z": 8.533984,
+      "v1x": 5.1054,
+      "v1y": 19.658114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_11",
+        "Fine Storage Roof"
+      ],
+      "v0x": 5.1054,
+      "v0y": 19.658114,
+      "v0z": 8.533984,
+      "v1x": 5.1054,
+      "v1y": 18.438914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2191999999999998,
+      "surfaces": [
+        "FineStorage_skylight_11",
+        "Fine Storage Roof"
+      ],
+      "v0x": 5.1054,
+      "v0y": 18.438914,
+      "v0z": 8.533984,
+      "v1x": 6.3246,
+      "v1y": 18.438914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2191999999999972,
+      "surfaces": [
+        "FineStorage_skylight_2",
+        "Fine Storage Roof"
+      ],
+      "v0x": 23.4696,
+      "v0y": 26.058914,
+      "v0z": 8.533984,
+      "v1x": 23.4696,
+      "v1y": 27.278114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_2",
+        "Fine Storage Roof"
+      ],
+      "v0x": 23.4696,
+      "v0y": 27.278114,
+      "v0z": 8.533984,
+      "v1x": 22.2504,
+      "v1y": 27.278114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2191999999999972,
+      "surfaces": [
+        "FineStorage_skylight_2",
+        "Fine Storage Roof"
+      ],
+      "v0x": 22.2504,
+      "v0y": 27.278114,
+      "v0z": 8.533984,
+      "v1x": 22.2504,
+      "v1y": 26.058914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_2",
+        "Fine Storage Roof"
+      ],
+      "v0x": 22.2504,
+      "v0y": 26.058914,
+      "v0z": 8.533984,
+      "v1x": 23.4696,
+      "v1y": 26.058914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2191999999999972,
+      "surfaces": [
+        "FineStorage_skylight_13",
+        "Fine Storage Roof"
+      ],
+      "v0x": 12.0396,
+      "v0y": 26.058914,
+      "v0z": 8.533984,
+      "v1x": 12.0396,
+      "v1y": 27.278114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_13",
+        "Fine Storage Roof"
+      ],
+      "v0x": 12.0396,
+      "v0y": 27.278114,
+      "v0z": 8.533984,
+      "v1x": 10.8204,
+      "v1y": 27.278114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2191999999999972,
+      "surfaces": [
+        "FineStorage_skylight_13",
+        "Fine Storage Roof"
+      ],
+      "v0x": 10.8204,
+      "v0y": 27.278114,
+      "v0z": 8.533984,
+      "v1x": 10.8204,
+      "v1y": 26.058914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_13",
+        "Fine Storage Roof"
+      ],
+      "v0x": 10.8204,
+      "v0y": 26.058914,
+      "v0z": 8.533984,
+      "v1x": 12.0396,
+      "v1y": 26.058914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2191999999999972,
+      "surfaces": [
+        "FineStorage_skylight_3",
+        "Fine Storage Roof"
+      ],
+      "v0x": 29.1846,
+      "v0y": 26.058914,
+      "v0z": 8.533984,
+      "v1x": 29.1846,
+      "v1y": 27.278114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_3",
+        "Fine Storage Roof"
+      ],
+      "v0x": 29.1846,
+      "v0y": 27.278114,
+      "v0z": 8.533984,
+      "v1x": 27.9654,
+      "v1y": 27.278114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2191999999999972,
+      "surfaces": [
+        "FineStorage_skylight_3",
+        "Fine Storage Roof"
+      ],
+      "v0x": 27.9654,
+      "v0y": 27.278114,
+      "v0z": 8.533984,
+      "v1x": 27.9654,
+      "v1y": 26.058914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_3",
+        "Fine Storage Roof"
+      ],
+      "v0x": 27.9654,
+      "v0y": 26.058914,
+      "v0z": 8.533984,
+      "v1x": 29.1846,
+      "v1y": 26.058914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_7",
+        "Fine Storage Roof"
+      ],
+      "v0x": 23.4696,
+      "v0y": 18.438914,
+      "v0z": 8.533984,
+      "v1x": 23.4696,
+      "v1y": 19.658114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_7",
+        "Fine Storage Roof"
+      ],
+      "v0x": 23.4696,
+      "v0y": 19.658114,
+      "v0z": 8.533984,
+      "v1x": 22.2504,
+      "v1y": 19.658114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_7",
+        "Fine Storage Roof"
+      ],
+      "v0x": 22.2504,
+      "v0y": 19.658114,
+      "v0z": 8.533984,
+      "v1x": 22.2504,
+      "v1y": 18.438914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_7",
+        "Fine Storage Roof"
+      ],
+      "v0x": 22.2504,
+      "v0y": 18.438914,
+      "v0z": 8.533984,
+      "v1x": 23.4696,
+      "v1y": 18.438914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2191999999999972,
+      "surfaces": [
+        "FineStorage_skylight_12",
+        "Fine Storage Roof"
+      ],
+      "v0x": 6.3246,
+      "v0y": 26.058914,
+      "v0z": 8.533984,
+      "v1x": 6.3246,
+      "v1y": 27.278114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2191999999999998,
+      "surfaces": [
+        "FineStorage_skylight_12",
+        "Fine Storage Roof"
+      ],
+      "v0x": 6.3246,
+      "v0y": 27.278114,
+      "v0z": 8.533984,
+      "v1x": 5.1054,
+      "v1y": 27.278114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2191999999999972,
+      "surfaces": [
+        "FineStorage_skylight_12",
+        "Fine Storage Roof"
+      ],
+      "v0x": 5.1054,
+      "v0y": 27.278114,
+      "v0z": 8.533984,
+      "v1x": 5.1054,
+      "v1y": 26.058914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2191999999999998,
+      "surfaces": [
+        "FineStorage_skylight_12",
+        "Fine Storage Roof"
+      ],
+      "v0x": 5.1054,
+      "v0y": 26.058914,
+      "v0z": 8.533984,
+      "v1x": 6.3246,
+      "v1y": 26.058914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_6",
+        "Fine Storage Roof"
+      ],
+      "v0x": 17.7546,
+      "v0y": 18.438914,
+      "v0z": 8.533984,
+      "v1x": 17.7546,
+      "v1y": 19.658114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_6",
+        "Fine Storage Roof"
+      ],
+      "v0x": 17.7546,
+      "v0y": 19.658114,
+      "v0z": 8.533984,
+      "v1x": 16.5354,
+      "v1y": 19.658114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_6",
+        "Fine Storage Roof"
+      ],
+      "v0x": 16.5354,
+      "v0y": 19.658114,
+      "v0z": 8.533984,
+      "v1x": 16.5354,
+      "v1y": 18.438914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_6",
+        "Fine Storage Roof"
+      ],
+      "v0x": 16.5354,
+      "v0y": 18.438914,
+      "v0z": 8.533984,
+      "v1x": 17.7546,
+      "v1y": 18.438914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2191999999999972,
+      "surfaces": [
+        "FineStorage_skylight_14",
+        "Fine Storage Roof"
+      ],
+      "v0x": 17.7546,
+      "v0y": 26.058914,
+      "v0z": 8.533984,
+      "v1x": 17.7546,
+      "v1y": 27.278114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_14",
+        "Fine Storage Roof"
+      ],
+      "v0x": 17.7546,
+      "v0y": 27.278114,
+      "v0z": 8.533984,
+      "v1x": 16.5354,
+      "v1y": 27.278114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2191999999999972,
+      "surfaces": [
+        "FineStorage_skylight_14",
+        "Fine Storage Roof"
+      ],
+      "v0x": 16.5354,
+      "v0y": 27.278114,
+      "v0z": 8.533984,
+      "v1x": 16.5354,
+      "v1y": 26.058914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_14",
+        "Fine Storage Roof"
+      ],
+      "v0x": 16.5354,
+      "v0y": 26.058914,
+      "v0z": 8.533984,
+      "v1x": 17.7546,
+      "v1y": 26.058914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2191999999999972,
+      "surfaces": [
+        "FineStorage_skylight_4",
+        "Fine Storage Roof"
+      ],
+      "v0x": 34.8996,
+      "v0y": 26.058914,
+      "v0z": 8.533984,
+      "v1x": 34.8996,
+      "v1y": 27.278114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_4",
+        "Fine Storage Roof"
+      ],
+      "v0x": 34.8996,
+      "v0y": 27.278114,
+      "v0z": 8.533984,
+      "v1x": 33.6804,
+      "v1y": 27.278114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2191999999999972,
+      "surfaces": [
+        "FineStorage_skylight_4",
+        "Fine Storage Roof"
+      ],
+      "v0x": 33.6804,
+      "v0y": 27.278114,
+      "v0z": 8.533984,
+      "v1x": 33.6804,
+      "v1y": 26.058914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_4",
+        "Fine Storage Roof"
+      ],
+      "v0x": 33.6804,
+      "v0y": 26.058914,
+      "v0z": 8.533984,
+      "v1x": 34.8996,
+      "v1y": 26.058914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_1",
+        "Fine Storage Roof"
+      ],
+      "v0x": 12.0396,
+      "v0y": 18.438914,
+      "v0z": 8.533984,
+      "v1x": 12.0396,
+      "v1y": 19.658114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_1",
+        "Fine Storage Roof"
+      ],
+      "v0x": 12.0396,
+      "v0y": 19.658114,
+      "v0z": 8.533984,
+      "v1x": 10.8204,
+      "v1y": 19.658114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_1",
+        "Fine Storage Roof"
+      ],
+      "v0x": 10.8204,
+      "v0y": 19.658114,
+      "v0z": 8.533984,
+      "v1x": 10.8204,
+      "v1y": 18.438914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "FineStorage_skylight_1",
+        "Fine Storage Roof"
+      ],
+      "v0x": 10.8204,
+      "v0y": 18.438914,
+      "v0z": 8.533984,
+      "v1x": 12.0396,
+      "v1y": 18.438914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r1c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 42.97457,
+      "v0y": 60.348914,
+      "v0z": 8.533984,
+      "v1x": 42.97457,
+      "v1y": 61.568114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r1c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 42.97457,
+      "v0y": 61.568114,
+      "v0z": 8.533984,
+      "v1x": 41.75537,
+      "v1y": 61.568114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r1c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 41.75537,
+      "v0y": 61.568114,
+      "v0z": 8.533984,
+      "v1x": 41.75537,
+      "v1y": 60.348914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r1c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 41.75537,
+      "v0y": 60.348914,
+      "v0z": 8.533984,
+      "v1x": 42.97457,
+      "v1y": 60.348914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r8c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 3.92969,
+      "v0y": 60.348914,
+      "v0z": 8.533984,
+      "v1x": 3.92969,
+      "v1y": 61.568114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2191999999999998,
+      "surfaces": [
+        "Skylight_r8c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 3.92969,
+      "v0y": 61.568114,
+      "v0z": 8.533984,
+      "v1x": 2.71049,
+      "v1y": 61.568114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r8c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 2.71049,
+      "v0y": 61.568114,
+      "v0z": 8.533984,
+      "v1x": 2.71049,
+      "v1y": 60.348914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2191999999999998,
+      "surfaces": [
+        "Skylight_r8c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 2.71049,
+      "v0y": 60.348914,
+      "v0z": 8.533984,
+      "v1x": 3.92969,
+      "v1y": 60.348914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r6c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 15.08537,
+      "v0y": 43.076914,
+      "v0z": 8.533984,
+      "v1x": 15.08537,
+      "v1y": 44.296114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.219199999999999,
+      "surfaces": [
+        "Skylight_r6c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 15.08537,
+      "v0y": 44.296114,
+      "v0z": 8.533984,
+      "v1x": 13.86617,
+      "v1y": 44.296114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r6c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 13.86617,
+      "v0y": 44.296114,
+      "v0z": 8.533984,
+      "v1x": 13.86617,
+      "v1y": 43.076914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.219199999999999,
+      "surfaces": [
+        "Skylight_r6c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 13.86617,
+      "v0y": 43.076914,
+      "v0z": 8.533984,
+      "v1x": 15.08537,
+      "v1y": 43.076914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r5c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 20.66321,
+      "v0y": 51.712914,
+      "v0z": 8.533984,
+      "v1x": 20.66321,
+      "v1y": 52.932114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r5c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 20.66321,
+      "v0y": 52.932114,
+      "v0z": 8.533984,
+      "v1x": 19.44401,
+      "v1y": 52.932114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r5c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 19.44401,
+      "v0y": 52.932114,
+      "v0z": 8.533984,
+      "v1x": 19.44401,
+      "v1y": 51.712914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r5c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 19.44401,
+      "v0y": 51.712914,
+      "v0z": 8.533984,
+      "v1x": 20.66321,
+      "v1y": 51.712914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r8c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 3.92969,
+      "v0y": 34.440914,
+      "v0z": 8.533984,
+      "v1x": 3.92969,
+      "v1y": 35.660114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2191999999999998,
+      "surfaces": [
+        "Skylight_r8c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 3.92969,
+      "v0y": 35.660114,
+      "v0z": 8.533984,
+      "v1x": 2.71049,
+      "v1y": 35.660114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r8c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 2.71049,
+      "v0y": 35.660114,
+      "v0z": 8.533984,
+      "v1x": 2.71049,
+      "v1y": 34.440914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2191999999999998,
+      "surfaces": [
+        "Skylight_r8c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 2.71049,
+      "v0y": 34.440914,
+      "v0z": 8.533984,
+      "v1x": 3.92969,
+      "v1y": 34.440914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r6c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 15.08537,
+      "v0y": 60.348914,
+      "v0z": 8.533984,
+      "v1x": 15.08537,
+      "v1y": 61.568114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.219199999999999,
+      "surfaces": [
+        "Skylight_r6c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 15.08537,
+      "v0y": 61.568114,
+      "v0z": 8.533984,
+      "v1x": 13.86617,
+      "v1y": 61.568114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r6c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 13.86617,
+      "v0y": 61.568114,
+      "v0z": 8.533984,
+      "v1x": 13.86617,
+      "v1y": 60.348914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.219199999999999,
+      "surfaces": [
+        "Skylight_r6c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 13.86617,
+      "v0y": 60.348914,
+      "v0z": 8.533984,
+      "v1x": 15.08537,
+      "v1y": 60.348914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r2c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 37.39673,
+      "v0y": 43.076914,
+      "v0z": 8.533984,
+      "v1x": 37.39673,
+      "v1y": 44.296114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r2c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 37.39673,
+      "v0y": 44.296114,
+      "v0z": 8.533984,
+      "v1x": 36.17753,
+      "v1y": 44.296114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r2c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 36.17753,
+      "v0y": 44.296114,
+      "v0z": 8.533984,
+      "v1x": 36.17753,
+      "v1y": 43.076914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r2c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 36.17753,
+      "v0y": 43.076914,
+      "v0z": 8.533984,
+      "v1x": 37.39673,
+      "v1y": 43.076914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r8c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 3.92969,
+      "v0y": 43.076914,
+      "v0z": 8.533984,
+      "v1x": 3.92969,
+      "v1y": 44.296114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2191999999999998,
+      "surfaces": [
+        "Skylight_r8c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 3.92969,
+      "v0y": 44.296114,
+      "v0z": 8.533984,
+      "v1x": 2.71049,
+      "v1y": 44.296114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r8c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 2.71049,
+      "v0y": 44.296114,
+      "v0z": 8.533984,
+      "v1x": 2.71049,
+      "v1y": 43.076914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2191999999999998,
+      "surfaces": [
+        "Skylight_r8c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 2.71049,
+      "v0y": 43.076914,
+      "v0z": 8.533984,
+      "v1x": 3.92969,
+      "v1y": 43.076914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r7c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 9.50753,
+      "v0y": 60.348914,
+      "v0z": 8.533984,
+      "v1x": 9.50753,
+      "v1y": 61.568114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.219199999999999,
+      "surfaces": [
+        "Skylight_r7c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 9.50753,
+      "v0y": 61.568114,
+      "v0z": 8.533984,
+      "v1x": 8.28833,
+      "v1y": 61.568114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r7c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 8.28833,
+      "v0y": 61.568114,
+      "v0z": 8.533984,
+      "v1x": 8.28833,
+      "v1y": 60.348914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.219199999999999,
+      "surfaces": [
+        "Skylight_r7c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 8.28833,
+      "v0y": 60.348914,
+      "v0z": 8.533984,
+      "v1x": 9.50753,
+      "v1y": 60.348914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r5c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 20.66321,
+      "v0y": 60.348914,
+      "v0z": 8.533984,
+      "v1x": 20.66321,
+      "v1y": 61.568114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r5c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 20.66321,
+      "v0y": 61.568114,
+      "v0z": 8.533984,
+      "v1x": 19.44401,
+      "v1y": 61.568114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r5c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 19.44401,
+      "v0y": 61.568114,
+      "v0z": 8.533984,
+      "v1x": 19.44401,
+      "v1y": 60.348914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r5c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 19.44401,
+      "v0y": 60.348914,
+      "v0z": 8.533984,
+      "v1x": 20.66321,
+      "v1y": 60.348914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r5c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 20.66321,
+      "v0y": 34.440914,
+      "v0z": 8.533984,
+      "v1x": 20.66321,
+      "v1y": 35.660114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r5c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 20.66321,
+      "v0y": 35.660114,
+      "v0z": 8.533984,
+      "v1x": 19.44401,
+      "v1y": 35.660114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r5c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 19.44401,
+      "v0y": 35.660114,
+      "v0z": 8.533984,
+      "v1x": 19.44401,
+      "v1y": 34.440914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r5c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 19.44401,
+      "v0y": 34.440914,
+      "v0z": 8.533984,
+      "v1x": 20.66321,
+      "v1y": 34.440914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r4c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 26.24105,
+      "v0y": 43.076914,
+      "v0z": 8.533984,
+      "v1x": 26.24105,
+      "v1y": 44.296114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r4c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 26.24105,
+      "v0y": 44.296114,
+      "v0z": 8.533984,
+      "v1x": 25.02185,
+      "v1y": 44.296114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r4c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 25.02185,
+      "v0y": 44.296114,
+      "v0z": 8.533984,
+      "v1x": 25.02185,
+      "v1y": 43.076914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r4c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 25.02185,
+      "v0y": 43.076914,
+      "v0z": 8.533984,
+      "v1x": 26.24105,
+      "v1y": 43.076914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r2c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 37.39673,
+      "v0y": 60.348914,
+      "v0z": 8.533984,
+      "v1x": 37.39673,
+      "v1y": 61.568114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r2c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 37.39673,
+      "v0y": 61.568114,
+      "v0z": 8.533984,
+      "v1x": 36.17753,
+      "v1y": 61.568114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r2c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 36.17753,
+      "v0y": 61.568114,
+      "v0z": 8.533984,
+      "v1x": 36.17753,
+      "v1y": 60.348914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r2c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 36.17753,
+      "v0y": 60.348914,
+      "v0z": 8.533984,
+      "v1x": 37.39673,
+      "v1y": 60.348914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r5c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 20.66321,
+      "v0y": 43.076914,
+      "v0z": 8.533984,
+      "v1x": 20.66321,
+      "v1y": 44.296114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r5c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 20.66321,
+      "v0y": 44.296114,
+      "v0z": 8.533984,
+      "v1x": 19.44401,
+      "v1y": 44.296114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r5c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 19.44401,
+      "v0y": 44.296114,
+      "v0z": 8.533984,
+      "v1x": 19.44401,
+      "v1y": 43.076914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r5c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 19.44401,
+      "v0y": 43.076914,
+      "v0z": 8.533984,
+      "v1x": 20.66321,
+      "v1y": 43.076914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r6c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 15.08537,
+      "v0y": 51.712914,
+      "v0z": 8.533984,
+      "v1x": 15.08537,
+      "v1y": 52.932114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.219199999999999,
+      "surfaces": [
+        "Skylight_r6c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 15.08537,
+      "v0y": 52.932114,
+      "v0z": 8.533984,
+      "v1x": 13.86617,
+      "v1y": 52.932114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r6c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 13.86617,
+      "v0y": 52.932114,
+      "v0z": 8.533984,
+      "v1x": 13.86617,
+      "v1y": 51.712914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.219199999999999,
+      "surfaces": [
+        "Skylight_r6c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 13.86617,
+      "v0y": 51.712914,
+      "v0z": 8.533984,
+      "v1x": 15.08537,
+      "v1y": 51.712914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r1c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 42.97457,
+      "v0y": 51.712914,
+      "v0z": 8.533984,
+      "v1x": 42.97457,
+      "v1y": 52.932114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r1c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 42.97457,
+      "v0y": 52.932114,
+      "v0z": 8.533984,
+      "v1x": 41.75537,
+      "v1y": 52.932114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r1c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 41.75537,
+      "v0y": 52.932114,
+      "v0z": 8.533984,
+      "v1x": 41.75537,
+      "v1y": 51.712914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r1c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 41.75537,
+      "v0y": 51.712914,
+      "v0z": 8.533984,
+      "v1x": 42.97457,
+      "v1y": 51.712914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r1c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 42.97457,
+      "v0y": 34.440914,
+      "v0z": 8.533984,
+      "v1x": 42.97457,
+      "v1y": 35.660114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r1c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 42.97457,
+      "v0y": 35.660114,
+      "v0z": 8.533984,
+      "v1x": 41.75537,
+      "v1y": 35.660114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r1c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 41.75537,
+      "v0y": 35.660114,
+      "v0z": 8.533984,
+      "v1x": 41.75537,
+      "v1y": 34.440914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r1c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 41.75537,
+      "v0y": 34.440914,
+      "v0z": 8.533984,
+      "v1x": 42.97457,
+      "v1y": 34.440914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r8c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 3.92969,
+      "v0y": 51.712914,
+      "v0z": 8.533984,
+      "v1x": 3.92969,
+      "v1y": 52.932114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2191999999999998,
+      "surfaces": [
+        "Skylight_r8c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 3.92969,
+      "v0y": 52.932114,
+      "v0z": 8.533984,
+      "v1x": 2.71049,
+      "v1y": 52.932114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r8c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 2.71049,
+      "v0y": 52.932114,
+      "v0z": 8.533984,
+      "v1x": 2.71049,
+      "v1y": 51.712914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2191999999999998,
+      "surfaces": [
+        "Skylight_r8c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 2.71049,
+      "v0y": 51.712914,
+      "v0z": 8.533984,
+      "v1x": 3.92969,
+      "v1y": 51.712914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r1c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 42.97457,
+      "v0y": 43.076914,
+      "v0z": 8.533984,
+      "v1x": 42.97457,
+      "v1y": 44.296114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r1c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 42.97457,
+      "v0y": 44.296114,
+      "v0z": 8.533984,
+      "v1x": 41.75537,
+      "v1y": 44.296114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r1c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 41.75537,
+      "v0y": 44.296114,
+      "v0z": 8.533984,
+      "v1x": 41.75537,
+      "v1y": 43.076914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r1c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 41.75537,
+      "v0y": 43.076914,
+      "v0z": 8.533984,
+      "v1x": 42.97457,
+      "v1y": 43.076914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r3c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 31.81889,
+      "v0y": 34.440914,
+      "v0z": 8.533984,
+      "v1x": 31.81889,
+      "v1y": 35.660114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r3c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 31.81889,
+      "v0y": 35.660114,
+      "v0z": 8.533984,
+      "v1x": 30.59969,
+      "v1y": 35.660114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r3c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 30.59969,
+      "v0y": 35.660114,
+      "v0z": 8.533984,
+      "v1x": 30.59969,
+      "v1y": 34.440914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r3c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 30.59969,
+      "v0y": 34.440914,
+      "v0z": 8.533984,
+      "v1x": 31.81889,
+      "v1y": 34.440914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r7c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 9.50753,
+      "v0y": 34.440914,
+      "v0z": 8.533984,
+      "v1x": 9.50753,
+      "v1y": 35.660114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.219199999999999,
+      "surfaces": [
+        "Skylight_r7c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 9.50753,
+      "v0y": 35.660114,
+      "v0z": 8.533984,
+      "v1x": 8.28833,
+      "v1y": 35.660114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r7c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 8.28833,
+      "v0y": 35.660114,
+      "v0z": 8.533984,
+      "v1x": 8.28833,
+      "v1y": 34.440914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.219199999999999,
+      "surfaces": [
+        "Skylight_r7c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 8.28833,
+      "v0y": 34.440914,
+      "v0z": 8.533984,
+      "v1x": 9.50753,
+      "v1y": 34.440914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r2c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 37.39673,
+      "v0y": 51.712914,
+      "v0z": 8.533984,
+      "v1x": 37.39673,
+      "v1y": 52.932114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r2c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 37.39673,
+      "v0y": 52.932114,
+      "v0z": 8.533984,
+      "v1x": 36.17753,
+      "v1y": 52.932114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r2c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 36.17753,
+      "v0y": 52.932114,
+      "v0z": 8.533984,
+      "v1x": 36.17753,
+      "v1y": 51.712914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r2c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 36.17753,
+      "v0y": 51.712914,
+      "v0z": 8.533984,
+      "v1x": 37.39673,
+      "v1y": 51.712914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r2c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 37.39673,
+      "v0y": 34.440914,
+      "v0z": 8.533984,
+      "v1x": 37.39673,
+      "v1y": 35.660114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r2c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 37.39673,
+      "v0y": 35.660114,
+      "v0z": 8.533984,
+      "v1x": 36.17753,
+      "v1y": 35.660114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r2c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 36.17753,
+      "v0y": 35.660114,
+      "v0z": 8.533984,
+      "v1x": 36.17753,
+      "v1y": 34.440914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r2c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 36.17753,
+      "v0y": 34.440914,
+      "v0z": 8.533984,
+      "v1x": 37.39673,
+      "v1y": 34.440914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r6c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 15.08537,
+      "v0y": 34.440914,
+      "v0z": 8.533984,
+      "v1x": 15.08537,
+      "v1y": 35.660114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.219199999999999,
+      "surfaces": [
+        "Skylight_r6c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 15.08537,
+      "v0y": 35.660114,
+      "v0z": 8.533984,
+      "v1x": 13.86617,
+      "v1y": 35.660114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r6c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 13.86617,
+      "v0y": 35.660114,
+      "v0z": 8.533984,
+      "v1x": 13.86617,
+      "v1y": 34.440914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.219199999999999,
+      "surfaces": [
+        "Skylight_r6c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 13.86617,
+      "v0y": 34.440914,
+      "v0z": 8.533984,
+      "v1x": 15.08537,
+      "v1y": 34.440914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r3c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 31.81889,
+      "v0y": 51.712914,
+      "v0z": 8.533984,
+      "v1x": 31.81889,
+      "v1y": 52.932114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r3c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 31.81889,
+      "v0y": 52.932114,
+      "v0z": 8.533984,
+      "v1x": 30.59969,
+      "v1y": 52.932114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r3c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 30.59969,
+      "v0y": 52.932114,
+      "v0z": 8.533984,
+      "v1x": 30.59969,
+      "v1y": 51.712914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r3c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 30.59969,
+      "v0y": 51.712914,
+      "v0z": 8.533984,
+      "v1x": 31.81889,
+      "v1y": 51.712914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r7c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 9.50753,
+      "v0y": 51.712914,
+      "v0z": 8.533984,
+      "v1x": 9.50753,
+      "v1y": 52.932114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.219199999999999,
+      "surfaces": [
+        "Skylight_r7c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 9.50753,
+      "v0y": 52.932114,
+      "v0z": 8.533984,
+      "v1x": 8.28833,
+      "v1y": 52.932114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r7c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 8.28833,
+      "v0y": 52.932114,
+      "v0z": 8.533984,
+      "v1x": 8.28833,
+      "v1y": 51.712914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.219199999999999,
+      "surfaces": [
+        "Skylight_r7c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 8.28833,
+      "v0y": 51.712914,
+      "v0z": 8.533984,
+      "v1x": 9.50753,
+      "v1y": 51.712914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r3c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 31.81889,
+      "v0y": 43.076914,
+      "v0z": 8.533984,
+      "v1x": 31.81889,
+      "v1y": 44.296114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r3c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 31.81889,
+      "v0y": 44.296114,
+      "v0z": 8.533984,
+      "v1x": 30.59969,
+      "v1y": 44.296114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r3c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 30.59969,
+      "v0y": 44.296114,
+      "v0z": 8.533984,
+      "v1x": 30.59969,
+      "v1y": 43.076914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r3c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 30.59969,
+      "v0y": 43.076914,
+      "v0z": 8.533984,
+      "v1x": 31.81889,
+      "v1y": 43.076914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r4c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 26.24105,
+      "v0y": 34.440914,
+      "v0z": 8.533984,
+      "v1x": 26.24105,
+      "v1y": 35.660114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r4c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 26.24105,
+      "v0y": 35.660114,
+      "v0z": 8.533984,
+      "v1x": 25.02185,
+      "v1y": 35.660114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r4c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 25.02185,
+      "v0y": 35.660114,
+      "v0z": 8.533984,
+      "v1x": 25.02185,
+      "v1y": 34.440914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r4c1",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 25.02185,
+      "v0y": 34.440914,
+      "v0z": 8.533984,
+      "v1x": 26.24105,
+      "v1y": 34.440914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r3c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 31.81889,
+      "v0y": 60.348914,
+      "v0z": 8.533984,
+      "v1x": 31.81889,
+      "v1y": 61.568114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r3c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 31.81889,
+      "v0y": 61.568114,
+      "v0z": 8.533984,
+      "v1x": 30.59969,
+      "v1y": 61.568114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r3c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 30.59969,
+      "v0y": 61.568114,
+      "v0z": 8.533984,
+      "v1x": 30.59969,
+      "v1y": 60.348914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r3c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 30.59969,
+      "v0y": 60.348914,
+      "v0z": 8.533984,
+      "v1x": 31.81889,
+      "v1y": 60.348914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r7c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 9.50753,
+      "v0y": 43.076914,
+      "v0z": 8.533984,
+      "v1x": 9.50753,
+      "v1y": 44.296114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.219199999999999,
+      "surfaces": [
+        "Skylight_r7c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 9.50753,
+      "v0y": 44.296114,
+      "v0z": 8.533984,
+      "v1x": 8.28833,
+      "v1y": 44.296114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r7c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 8.28833,
+      "v0y": 44.296114,
+      "v0z": 8.533984,
+      "v1x": 8.28833,
+      "v1y": 43.076914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.219199999999999,
+      "surfaces": [
+        "Skylight_r7c2",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 8.28833,
+      "v0y": 43.076914,
+      "v0z": 8.533984,
+      "v1x": 9.50753,
+      "v1y": 43.076914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r4c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 26.24105,
+      "v0y": 51.712914,
+      "v0z": 8.533984,
+      "v1x": 26.24105,
+      "v1y": 52.932114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r4c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 26.24105,
+      "v0y": 52.932114,
+      "v0z": 8.533984,
+      "v1x": 25.02185,
+      "v1y": 52.932114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r4c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 25.02185,
+      "v0y": 52.932114,
+      "v0z": 8.533984,
+      "v1x": 25.02185,
+      "v1y": 51.712914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r4c3",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 25.02185,
+      "v0y": 51.712914,
+      "v0z": 8.533984,
+      "v1x": 26.24105,
+      "v1y": 51.712914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r4c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 26.24105,
+      "v0y": 60.348914,
+      "v0z": 8.533984,
+      "v1x": 26.24105,
+      "v1y": 61.568114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r4c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 26.24105,
+      "v0y": 61.568114,
+      "v0z": 8.533984,
+      "v1x": 25.02185,
+      "v1y": 61.568114,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r4c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 25.02185,
+      "v0y": 61.568114,
+      "v0z": 8.533984,
+      "v1x": 25.02185,
+      "v1y": 60.348914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.2192000000000007,
+      "surfaces": [
+        "Skylight_r4c4",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 25.02185,
+      "v0y": 60.348914,
+      "v0z": 8.533984,
+      "v1x": 26.24105,
+      "v1y": 60.348914,
+      "v1z": 8.533984
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.524940613884627,
+      "surfaces": [
+        "Office Left Wall Window2",
+        "Office Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 3.75800072535639,
+      "v0z": 2.43929602151392,
+      "v1x": 0.0,
+      "v1y": 3.75800072535639,
+      "v1z": 0.914355407629293
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "sill",
+      "length": 2.13349595113501,
+      "surfaces": [
+        "Office Left Wall Window2",
+        "Office Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 3.75800072535639,
+      "v0z": 0.914355407629293,
+      "v1x": 0.0,
+      "v1y": 1.62450477422138,
+      "v1z": 0.914355407629293
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.524940613884627,
+      "surfaces": [
+        "Office Left Wall Window2",
+        "Office Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 1.62450477422138,
+      "v0z": 0.914355407629293,
+      "v1x": 0.0,
+      "v1y": 1.62450477422138,
+      "v1z": 2.43929602151392
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "head",
+      "length": 2.13349595113501,
+      "surfaces": [
+        "Office Left Wall Window2",
+        "Office Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 1.62450477422138,
+      "v0z": 2.43929602151392,
+      "v1x": 0.0,
+      "v1y": 3.75800072535639,
+      "v1z": 2.43929602151392
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.524940613884627,
+      "surfaces": [
+        "Office Left Wall Window1",
+        "Office Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 7.51904930207155,
+      "v0z": 2.43929602151392,
+      "v1x": 0.0,
+      "v1y": 7.51904930207155,
+      "v1z": 0.914355407629293
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "sill",
+      "length": 2.13349595113501,
+      "surfaces": [
+        "Office Left Wall Window1",
+        "Office Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 7.51904930207155,
+      "v0z": 0.914355407629293,
+      "v1x": 0.0,
+      "v1y": 5.38555335093654,
+      "v1z": 0.914355407629293
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.524940613884627,
+      "surfaces": [
+        "Office Left Wall Window1",
+        "Office Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 5.38555335093654,
+      "v0z": 0.914355407629293,
+      "v1x": 0.0,
+      "v1y": 5.38555335093654,
+      "v1z": 2.43929602151392
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "head",
+      "length": 2.13349595113501,
+      "surfaces": [
+        "Office Left Wall Window1",
+        "Office Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 5.38555335093654,
+      "v0z": 2.43929602151392,
+      "v1x": 0.0,
+      "v1y": 7.51904930207155,
+      "v1z": 2.43929602151392
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 2.13349595113502,
+      "surfaces": [
+        "Office Left Wall Door",
+        "Office Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 5.02895474196111,
+      "v0z": 2.13349595113502,
+      "v1x": 0.0,
+      "v1y": 5.02895474196111,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 0.9143554076292899,
+      "surfaces": [
+        "Office Left Wall Door",
+        "Office Left Wall",
+        "Office Floor"
+      ],
+      "v0x": 0.0,
+      "v0y": 4.11459933433182,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 5.02895474196111,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 2.13349595113502,
+      "surfaces": [
+        "Office Left Wall Door",
+        "Office Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 4.11459933433182,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 4.11459933433182,
+      "v1z": 2.13349595113502
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "head",
+      "length": 0.9143554076292899,
+      "surfaces": [
+        "Office Left Wall Door",
+        "Office Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 4.11459933433182,
+      "v0z": 2.13349595113502,
+      "v1x": 0.0,
+      "v1y": 5.02895474196111,
+      "v1z": 2.13349595113502
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.524940613884627,
+      "surfaces": [
+        "Office Front Wall Window 1",
+        "Office Front Wall"
+      ],
+      "v0x": 3.65742163051717,
+      "v0y": 0.0,
+      "v0z": 2.43929602151392,
+      "v1x": 3.65742163051717,
+      "v1y": 0.0,
+      "v1z": 0.914355407629293
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "sill",
+      "length": 3.65742163051717,
+      "surfaces": [
+        "Office Front Wall Window 1",
+        "Office Front Wall"
+      ],
+      "v0x": 3.65742163051717,
+      "v0y": 0.0,
+      "v0z": 0.914355407629293,
+      "v1x": 7.31484326103434,
+      "v1y": 0.0,
+      "v1z": 0.914355407629293
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.524940613884627,
+      "surfaces": [
+        "Office Front Wall Window 1",
+        "Office Front Wall"
+      ],
+      "v0x": 7.31484326103434,
+      "v0y": 0.0,
+      "v0z": 0.914355407629293,
+      "v1x": 7.31484326103434,
+      "v1y": 0.0,
+      "v1z": 2.43929602151392
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "head",
+      "length": 3.65742163051717,
+      "surfaces": [
+        "Office Front Wall Window 1",
+        "Office Front Wall"
+      ],
+      "v0x": 7.31484326103434,
+      "v0y": 0.0,
+      "v0z": 2.43929602151392,
+      "v1x": 3.65742163051717,
+      "v1y": 0.0,
+      "v1z": 2.43929602151392
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.524940613884627,
+      "surfaces": [
+        "Office Front Wall Window2",
+        "Office Front Wall"
+      ],
+      "v0x": 18.5918932884623,
+      "v0y": 0.0,
+      "v0z": 2.43929602151392,
+      "v1x": 18.5918932884623,
+      "v1y": 0.0,
+      "v1z": 0.914355407629293
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "sill",
+      "length": 3.6574216305172023,
+      "surfaces": [
+        "Office Front Wall Window2",
+        "Office Front Wall"
+      ],
+      "v0x": 18.5918932884623,
+      "v0y": 0.0,
+      "v0z": 0.914355407629293,
+      "v1x": 22.2493149189795,
+      "v1y": 0.0,
+      "v1z": 0.914355407629293
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 1.524940613884627,
+      "surfaces": [
+        "Office Front Wall Window2",
+        "Office Front Wall"
+      ],
+      "v0x": 22.2493149189795,
+      "v0y": 0.0,
+      "v0z": 0.914355407629293,
+      "v1x": 22.2493149189795,
+      "v1y": 0.0,
+      "v1z": 2.43929602151392
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "head",
+      "length": 3.6574216305172023,
+      "surfaces": [
+        "Office Front Wall Window2",
+        "Office Front Wall"
+      ],
+      "v0x": 22.2493149189795,
+      "v0y": 0.0,
+      "v0z": 2.43929602151392,
+      "v1x": 18.5918932884623,
+      "v1y": 0.0,
+      "v1z": 2.43929602151392
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 2.13349595113502,
+      "surfaces": [
+        "Office Front Door",
+        "Office Front Wall"
+      ],
+      "v0x": 12.039012867119,
+      "v0y": 0.0,
+      "v0z": 2.13349595113502,
+      "v1x": 12.039012867119,
+      "v1y": 0.0,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 1.8287108152585994,
+      "surfaces": [
+        "Office Front Door",
+        "Office Front Wall",
+        "Office Floor"
+      ],
+      "v0x": 13.8677236823776,
+      "v0y": 0.0,
+      "v0z": 0.0,
+      "v1x": 12.039012867119,
+      "v1y": 0.0,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 2.13349595113502,
+      "surfaces": [
+        "Office Front Door",
+        "Office Front Wall"
+      ],
+      "v0x": 13.8677236823776,
+      "v0y": 0.0,
+      "v0z": 0.0,
+      "v1x": 13.8677236823776,
+      "v1y": 0.0,
+      "v1z": 2.13349595113502
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "head",
+      "length": 1.8287108152585994,
+      "surfaces": [
+        "Office Front Door",
+        "Office Front Wall"
+      ],
+      "v0x": 13.8677236823776,
+      "v0y": 0.0,
+      "v0z": 2.13349595113502,
+      "v1x": 12.039012867119,
+      "v1y": 0.0,
+      "v1z": 2.13349595113502
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 2.13349595113502,
+      "surfaces": [
+        "Fine Storage Right Door",
+        "Fine Storage Right Wall"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 14.7820790900069,
+      "v0z": 2.13349595113502,
+      "v1x": 45.7177703814647,
+      "v1y": 14.7820790900069,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 0.9143554076293015,
+      "surfaces": [
+        "Fine Storage Right Door",
+        "Fine Storage Right Wall",
+        "Fine Storage Floor"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 15.6964344976362,
+      "v0z": 0.0,
+      "v1x": 45.7177703814647,
+      "v1y": 14.7820790900069,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 2.13349595113502,
+      "surfaces": [
+        "Fine Storage Right Door",
+        "Fine Storage Right Wall"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 15.6964344976362,
+      "v0z": 0.0,
+      "v1x": 45.7177703814647,
+      "v1y": 15.6964344976362,
+      "v1z": 2.13349595113502
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "head",
+      "length": 0.9143554076293015,
+      "surfaces": [
+        "Fine Storage Right Door",
+        "Fine Storage Right Wall"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 15.6964344976362,
+      "v0z": 2.13349595113502,
+      "v1x": 45.7177703814647,
+      "v1y": 14.7820790900069,
+      "v1z": 2.13349595113502
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 2.13349595113502,
+      "surfaces": [
+        "Fine Storage Left Door",
+        "Fine Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 20.2682115357827,
+      "v0z": 2.13349595113502,
+      "v1x": 0.0,
+      "v1y": 20.2682115357827,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 0.9143554076293015,
+      "surfaces": [
+        "Fine Storage Left Door",
+        "Fine Storage Left Wall",
+        "Fine Storage Floor"
+      ],
+      "v0x": 0.0,
+      "v0y": 19.3538561281534,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 20.2682115357827,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 2.13349595113502,
+      "surfaces": [
+        "Fine Storage Left Door",
+        "Fine Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 19.3538561281534,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 19.3538561281534,
+      "v1z": 2.13349595113502
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "head",
+      "length": 0.9143554076293015,
+      "surfaces": [
+        "Fine Storage Left Door",
+        "Fine Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 19.3538561281534,
+      "v0z": 2.13349595113502,
+      "v1x": 0.0,
+      "v1y": 20.2682115357827,
+      "v1z": 2.13349595113502
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 3.04785135876431,
+      "surfaces": [
+        "Overhead Door 4",
+        "Bulk Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 66.7479447569384,
+      "v0z": 3.04785135876431,
+      "v1x": 0.0,
+      "v1y": 66.7479447569384,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 2.4382810870114895,
+      "surfaces": [
+        "Overhead Door 4",
+        "Bulk Storage Left Wall",
+        "Bulk Storage Floor"
+      ],
+      "v0x": 0.0,
+      "v0y": 64.3096636699269,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 66.7479447569384,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 3.04785135876431,
+      "surfaces": [
+        "Overhead Door 4",
+        "Bulk Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 64.3096636699269,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 64.3096636699269,
+      "v1z": 3.04785135876431
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "head",
+      "length": 2.4382810870114895,
+      "surfaces": [
+        "Overhead Door 4",
+        "Bulk Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 64.3096636699269,
+      "v0z": 3.04785135876431,
+      "v1x": 0.0,
+      "v1y": 66.7479447569384,
+      "v1z": 3.04785135876431
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 3.04785135876431,
+      "surfaces": [
+        "Overhead Door 1",
+        "Bulk Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 93.9500181339099,
+      "v0z": 3.04785135876431,
+      "v1x": 0.0,
+      "v1y": 93.9500181339099,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 2.4382810870114895,
+      "surfaces": [
+        "Overhead Door 1",
+        "Bulk Storage Left Wall",
+        "Bulk Storage Floor"
+      ],
+      "v0x": 0.0,
+      "v0y": 91.5117370468984,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 93.9500181339099,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 3.04785135876431,
+      "surfaces": [
+        "Overhead Door 1",
+        "Bulk Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 91.5117370468984,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 91.5117370468984,
+      "v1z": 3.04785135876431
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "head",
+      "length": 2.4382810870114895,
+      "surfaces": [
+        "Overhead Door 1",
+        "Bulk Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 91.5117370468984,
+      "v0z": 3.04785135876431,
+      "v1x": 0.0,
+      "v1y": 93.9500181339099,
+      "v1z": 3.04785135876431
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 3.04785135876431,
+      "surfaces": [
+        "Overhead Door 5",
+        "Bulk Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 57.6805869646146,
+      "v0z": 3.04785135876431,
+      "v1x": 0.0,
+      "v1y": 57.6805869646146,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 2.4382810870114966,
+      "surfaces": [
+        "Overhead Door 5",
+        "Bulk Storage Left Wall",
+        "Bulk Storage Floor"
+      ],
+      "v0x": 0.0,
+      "v0y": 55.2423058776031,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 57.6805869646146,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 3.04785135876431,
+      "surfaces": [
+        "Overhead Door 5",
+        "Bulk Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 55.2423058776031,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 55.2423058776031,
+      "v1z": 3.04785135876431
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "head",
+      "length": 2.4382810870114966,
+      "surfaces": [
+        "Overhead Door 5",
+        "Bulk Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 55.2423058776031,
+      "v0z": 3.04785135876431,
+      "v1x": 0.0,
+      "v1y": 57.6805869646146,
+      "v1z": 3.04785135876431
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 3.04785135876431,
+      "surfaces": [
+        "Overhead Door 2",
+        "Bulk Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 84.882660341586,
+      "v0z": 3.04785135876431,
+      "v1x": 0.0,
+      "v1y": 84.882660341586,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 2.4382810870114042,
+      "surfaces": [
+        "Overhead Door 2",
+        "Bulk Storage Left Wall",
+        "Bulk Storage Floor"
+      ],
+      "v0x": 0.0,
+      "v0y": 82.4443792545746,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 84.882660341586,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 3.04785135876431,
+      "surfaces": [
+        "Overhead Door 2",
+        "Bulk Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 82.4443792545746,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 82.4443792545746,
+      "v1z": 3.04785135876431
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "head",
+      "length": 2.4382810870114042,
+      "surfaces": [
+        "Overhead Door 2",
+        "Bulk Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 82.4443792545746,
+      "v0z": 3.04785135876431,
+      "v1x": 0.0,
+      "v1y": 84.882660341586,
+      "v1z": 3.04785135876431
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 3.04785135876431,
+      "surfaces": [
+        "Overhead Door 3",
+        "Bulk Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 75.8153025492622,
+      "v0z": 3.04785135876431,
+      "v1x": 0.0,
+      "v1y": 75.8153025492622,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 2.4382810870114042,
+      "surfaces": [
+        "Overhead Door 3",
+        "Bulk Storage Left Wall",
+        "Bulk Storage Floor"
+      ],
+      "v0x": 0.0,
+      "v0y": 73.3770214622508,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 75.8153025492622,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 3.04785135876431,
+      "surfaces": [
+        "Overhead Door 3",
+        "Bulk Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 73.3770214622508,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 73.3770214622508,
+      "v1z": 3.04785135876431
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "head",
+      "length": 2.4382810870114042,
+      "surfaces": [
+        "Overhead Door 3",
+        "Bulk Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 73.3770214622508,
+      "v0z": 3.04785135876431,
+      "v1x": 0.0,
+      "v1y": 75.8153025492622,
+      "v1z": 3.04785135876431
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 3.04785135876431,
+      "surfaces": [
+        "Overhead Door 7",
+        "Bulk Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 39.5458713799669,
+      "v0z": 3.04785135876431,
+      "v1x": 0.0,
+      "v1y": 39.5458713799669,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 2.438281087011397,
+      "surfaces": [
+        "Overhead Door 7",
+        "Bulk Storage Left Wall",
+        "Bulk Storage Floor"
+      ],
+      "v0x": 0.0,
+      "v0y": 37.1075902929555,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 39.5458713799669,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 3.04785135876431,
+      "surfaces": [
+        "Overhead Door 7",
+        "Bulk Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 37.1075902929555,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 37.1075902929555,
+      "v1z": 3.04785135876431
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "head",
+      "length": 2.438281087011397,
+      "surfaces": [
+        "Overhead Door 7",
+        "Bulk Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 37.1075902929555,
+      "v0z": 3.04785135876431,
+      "v1x": 0.0,
+      "v1y": 39.5458713799669,
+      "v1z": 3.04785135876431
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 3.04785135876431,
+      "surfaces": [
+        "Overhead Door 6",
+        "Bulk Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 48.6132291722907,
+      "v0z": 3.04785135876431,
+      "v1x": 0.0,
+      "v1y": 48.6132291722907,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 2.4382810870114042,
+      "surfaces": [
+        "Overhead Door 6",
+        "Bulk Storage Left Wall",
+        "Bulk Storage Floor"
+      ],
+      "v0x": 0.0,
+      "v0y": 46.1749480852793,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 48.6132291722907,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 3.04785135876431,
+      "surfaces": [
+        "Overhead Door 6",
+        "Bulk Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 46.1749480852793,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 46.1749480852793,
+      "v1z": 3.04785135876431
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "head",
+      "length": 2.4382810870114042,
+      "surfaces": [
+        "Overhead Door 6",
+        "Bulk Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 46.1749480852793,
+      "v0z": 3.04785135876431,
+      "v1x": 0.0,
+      "v1y": 48.6132291722907,
+      "v1z": 3.04785135876431
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 2.13349595113502,
+      "surfaces": [
+        "Bulk Storage Door-3",
+        "Bulk Storage Right Wall"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 82.5967718225128,
+      "v0z": 2.13349595113502,
+      "v1x": 45.7177703814647,
+      "v1y": 82.5967718225128,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 0.9143554076292872,
+      "surfaces": [
+        "Bulk Storage Door-3",
+        "Bulk Storage Right Wall",
+        "Bulk Storage Floor"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 83.5111272301421,
+      "v0z": 0.0,
+      "v1x": 45.7177703814647,
+      "v1y": 82.5967718225128,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 2.13349595113502,
+      "surfaces": [
+        "Bulk Storage Door-3",
+        "Bulk Storage Right Wall"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 83.5111272301421,
+      "v0z": 0.0,
+      "v1x": 45.7177703814647,
+      "v1y": 83.5111272301421,
+      "v1z": 2.13349595113502
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "head",
+      "length": 0.9143554076292872,
+      "surfaces": [
+        "Bulk Storage Door-3",
+        "Bulk Storage Right Wall"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 83.5111272301421,
+      "v0z": 2.13349595113502,
+      "v1x": 45.7177703814647,
+      "v1y": 82.5967718225128,
+      "v1z": 2.13349595113502
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 2.13349595113502,
+      "surfaces": [
+        "Bulk Storage Door-2",
+        "Bulk Storage Right Wall"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 65.071626509618,
+      "v0z": 2.13349595113502,
+      "v1x": 45.7177703814647,
+      "v1y": 65.071626509618,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 0.9143554076293015,
+      "surfaces": [
+        "Bulk Storage Door-2",
+        "Bulk Storage Right Wall",
+        "Bulk Storage Floor"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 65.9859819172473,
+      "v0z": 0.0,
+      "v1x": 45.7177703814647,
+      "v1y": 65.071626509618,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 2.13349595113502,
+      "surfaces": [
+        "Bulk Storage Door-2",
+        "Bulk Storage Right Wall"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 65.9859819172473,
+      "v0z": 0.0,
+      "v1x": 45.7177703814647,
+      "v1y": 65.9859819172473,
+      "v1z": 2.13349595113502
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "head",
+      "length": 0.9143554076293015,
+      "surfaces": [
+        "Bulk Storage Door-2",
+        "Bulk Storage Right Wall"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 65.9859819172473,
+      "v0z": 2.13349595113502,
+      "v1x": 45.7177703814647,
+      "v1y": 65.071626509618,
+      "v1z": 2.13349595113502
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 2.13349595113502,
+      "surfaces": [
+        "Bulk Storage Door-1",
+        "Bulk Storage Right Wall"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 47.5464811967232,
+      "v0z": 2.13349595113502,
+      "v1x": 45.7177703814647,
+      "v1y": 47.5464811967232,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 0.9143554076293015,
+      "surfaces": [
+        "Bulk Storage Door-1",
+        "Bulk Storage Right Wall",
+        "Bulk Storage Floor"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 48.4608366043525,
+      "v0z": 0.0,
+      "v1x": 45.7177703814647,
+      "v1y": 47.5464811967232,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "jamb",
+      "length": 2.13349595113502,
+      "surfaces": [
+        "Bulk Storage Door-1",
+        "Bulk Storage Right Wall"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 48.4608366043525,
+      "v0z": 0.0,
+      "v1x": 45.7177703814647,
+      "v1y": 48.4608366043525,
+      "v1z": 2.13349595113502
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "head",
+      "length": 0.9143554076293015,
+      "surfaces": [
+        "Bulk Storage Door-1",
+        "Bulk Storage Right Wall"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 48.4608366043525,
+      "v0z": 2.13349595113502,
+      "v1x": 45.7177703814647,
+      "v1y": 47.5464811967232,
+      "v1z": 2.13349595113502
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 12.039012867119,
+      "surfaces": [
+        "Office Front Wall",
+        "Office Floor"
+      ],
+      "v0x": 25.9067365494966,
+      "v0y": 0.0,
+      "v0z": 0.0,
+      "v1x": 13.8677236823776,
+      "v1y": 0.0,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 12.039012867119,
+      "surfaces": [
+        "Office Front Wall",
+        "Office Floor"
+      ],
+      "v0x": 12.039012867119,
+      "v0y": 0.0,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 0.0,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 4.11459933433182,
+      "surfaces": [
+        "Office Left Wall",
+        "Office Floor"
+      ],
+      "v0x": 0.0,
+      "v0y": 0.0,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 4.11459933433182,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 4.114599334331819,
+      "surfaces": [
+        "Office Left Wall",
+        "Office Floor"
+      ],
+      "v0x": 0.0,
+      "v0y": 5.02895474196111,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 9.14355407629293,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 14.7820790900069,
+      "surfaces": [
+        "Fine Storage Right Wall",
+        "Fine Storage Floor"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 30.4785135876431,
+      "v0z": 0.0,
+      "v1x": 45.7177703814647,
+      "v1y": 15.6964344976362,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 14.7820790900069,
+      "surfaces": [
+        "Fine Storage Right Wall",
+        "Fine Storage Floor"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 14.7820790900069,
+      "v0z": 0.0,
+      "v1x": 45.7177703814647,
+      "v1y": 0.0,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 19.811033831968103,
+      "surfaces": [
+        "Fine Storage Front Wall",
+        "Fine Storage Floor"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 0.0,
+      "v0z": 0.0,
+      "v1x": 25.9067365494966,
+      "v1y": 0.0,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 10.21030205186047,
+      "surfaces": [
+        "Fine Storage Left Wall",
+        "Fine Storage Floor"
+      ],
+      "v0x": 0.0,
+      "v0y": 9.14355407629293,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 19.3538561281534,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 10.210302051860399,
+      "surfaces": [
+        "Fine Storage Left Wall",
+        "Fine Storage Floor"
+      ],
+      "v0x": 0.0,
+      "v0y": 20.2682115357827,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 30.4785135876431,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 17.0679676090799,
+      "surfaces": [
+        "Bulk Storage Right Wall",
+        "Bulk Storage Floor"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 100.579094839222,
+      "v0z": 0.0,
+      "v1x": 45.7177703814647,
+      "v1y": 83.5111272301421,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 16.610789905265506,
+      "surfaces": [
+        "Bulk Storage Right Wall",
+        "Bulk Storage Floor"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 82.5967718225128,
+      "v0z": 0.0,
+      "v1x": 45.7177703814647,
+      "v1y": 65.9859819172473,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 16.6107899052655,
+      "surfaces": [
+        "Bulk Storage Right Wall",
+        "Bulk Storage Floor"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 65.071626509618,
+      "v0z": 0.0,
+      "v1x": 45.7177703814647,
+      "v1y": 48.4608366043525,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 17.0679676090801,
+      "surfaces": [
+        "Bulk Storage Right Wall",
+        "Bulk Storage Floor"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 47.5464811967232,
+      "v0z": 0.0,
+      "v1x": 45.7177703814647,
+      "v1y": 30.4785135876431,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 6.6290767053124,
+      "surfaces": [
+        "Bulk Storage Left Wall",
+        "Bulk Storage Floor"
+      ],
+      "v0x": 0.0,
+      "v0y": 30.4785135876431,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 37.1075902929555,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 6.6290767053124,
+      "surfaces": [
+        "Bulk Storage Left Wall",
+        "Bulk Storage Floor"
+      ],
+      "v0x": 0.0,
+      "v0y": 39.5458713799669,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 46.1749480852793,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 6.6290767053124,
+      "surfaces": [
+        "Bulk Storage Left Wall",
+        "Bulk Storage Floor"
+      ],
+      "v0x": 0.0,
+      "v0y": 48.6132291722907,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 55.2423058776031,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 6.629076705312308,
+      "surfaces": [
+        "Bulk Storage Left Wall",
+        "Bulk Storage Floor"
+      ],
+      "v0x": 0.0,
+      "v0y": 57.6805869646146,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 64.3096636699269,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 6.6290767053124,
+      "surfaces": [
+        "Bulk Storage Left Wall",
+        "Bulk Storage Floor"
+      ],
+      "v0x": 0.0,
+      "v0y": 66.7479447569384,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 73.3770214622508,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 6.6290767053124,
+      "surfaces": [
+        "Bulk Storage Left Wall",
+        "Bulk Storage Floor"
+      ],
+      "v0x": 0.0,
+      "v0y": 75.8153025492622,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 82.4443792545746,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 6.6290767053124,
+      "surfaces": [
+        "Bulk Storage Left Wall",
+        "Bulk Storage Floor"
+      ],
+      "v0x": 0.0,
+      "v0y": 84.882660341586,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 91.5117370468984,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 6.629076705312102,
+      "surfaces": [
+        "Bulk Storage Left Wall",
+        "Bulk Storage Floor"
+      ],
+      "v0x": 0.0,
+      "v0y": 93.9500181339099,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 100.579094839222,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "gradeconvex",
+      "length": 45.7177703814647,
+      "surfaces": [
+        "Bulk Storage Rear Wall",
+        "Bulk Storage Floor"
+      ],
+      "v0x": 0.0,
+      "v0y": 100.579094839222,
+      "v0z": 0.0,
+      "v1x": 45.7177703814647,
+      "v1y": 100.579094839222,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "rimjoist",
+      "length": 9.14355407629293,
+      "surfaces": [
+        "Fine Storage Office Left Wall",
+        "Office Roof Reversed",
+        "Office Roof",
+        "Office Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 0.0,
+      "v0z": 4.26699190227003,
+      "v1x": 0.0,
+      "v1y": 9.14355407629293,
+      "v1z": 4.26699190227003
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "rimjoist",
+      "length": 25.9067365494966,
+      "surfaces": [
+        "Fine Storage Office Front Wall",
+        "Office Roof Reversed",
+        "Office Roof",
+        "Office Front Wall"
+      ],
+      "v0x": 25.9067365494966,
+      "v0y": 0.0,
+      "v0z": 4.26699190227003,
+      "v1x": 0.0,
+      "v1y": 0.0,
+      "v1z": 4.26699190227003
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "parapetconvex",
+      "length": 30.4785135876431,
+      "surfaces": [
+        "Fine Storage Right Wall",
+        "Fine Storage Roof"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 0.0,
+      "v0z": 8.53398380454007,
+      "v1x": 45.7177703814647,
+      "v1y": 30.4785135876431,
+      "v1z": 8.53398380454007
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "transition",
+      "length": 45.7177703814647,
+      "surfaces": [
+        "Bulk Storage Roof",
+        "Bulk Storage Front Wall Reversed",
+        "Bulk Storage Front Wall",
+        "Fine Storage Roof"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 30.4785135876431,
+      "v0z": 8.53398380454007,
+      "v1x": 0.0,
+      "v1y": 30.4785135876431,
+      "v1z": 8.53398380454007
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "parapetconvex",
+      "length": 21.33495951135017,
+      "surfaces": [
+        "Fine Storage Roof",
+        "Fine Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 30.4785135876431,
+      "v0z": 8.53398380454007,
+      "v1x": 0.0,
+      "v1y": 9.14355407629293,
+      "v1z": 8.53398380454007
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "parapetconvex",
+      "length": 9.14355407629293,
+      "surfaces": [
+        "Fine Storage Roof",
+        "Fine Storage Office Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 9.14355407629293,
+      "v0z": 8.53398380454007,
+      "v1x": 0.0,
+      "v1y": 0.0,
+      "v1z": 8.53398380454007
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "parapetconvex",
+      "length": 25.9067365494966,
+      "surfaces": [
+        "Fine Storage Roof",
+        "Fine Storage Office Front Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 0.0,
+      "v0z": 8.53398380454007,
+      "v1x": 25.9067365494966,
+      "v1y": 0.0,
+      "v1z": 8.53398380454007
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "parapetconvex",
+      "length": 19.811033831968103,
+      "surfaces": [
+        "Fine Storage Roof",
+        "Fine Storage Front Wall"
+      ],
+      "v0x": 25.9067365494966,
+      "v0y": 0.0,
+      "v0z": 8.53398380454007,
+      "v1x": 45.7177703814647,
+      "v1y": 0.0,
+      "v1z": 8.53398380454007
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "parapetconvex",
+      "length": 70.10058125157889,
+      "surfaces": [
+        "Bulk Storage Right Wall",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 30.4785135876431,
+      "v0z": 8.53398380454007,
+      "v1x": 45.7177703814647,
+      "v1y": 100.579094839222,
+      "v1z": 8.53398380454007
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "parapetconvex",
+      "length": 45.7177703814647,
+      "surfaces": [
+        "Bulk Storage Rear Wall",
+        "Bulk Storage Roof"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 100.579094839222,
+      "v0z": 8.53398380454007,
+      "v1x": 0.0,
+      "v1y": 100.579094839222,
+      "v1z": 8.53398380454007
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "parapetconvex",
+      "length": 70.10058125157889,
+      "surfaces": [
+        "Bulk Storage Roof",
+        "Bulk Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 100.579094839222,
+      "v0z": 8.53398380454007,
+      "v1x": 0.0,
+      "v1y": 30.4785135876431,
+      "v1z": 8.53398380454007
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "transition",
+      "length": 4.26699190227003,
+      "surfaces": [
+        "Fine Storage Left Wall",
+        "Office Rear Wall",
+        "Office Rear Wall Reversed",
+        "Office Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 9.14355407629293,
+      "v0z": 4.26699190227003,
+      "v1x": 0.0,
+      "v1y": 9.14355407629293,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "cornerconvex",
+      "length": 4.26699190227003,
+      "surfaces": [
+        "Office Left Wall",
+        "Office Front Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 0.0,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 0.0,
+      "v1z": 4.26699190227003
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "transition",
+      "length": 4.26699190227003,
+      "surfaces": [
+        "Office Right Wall",
+        "Office Right Wall Reversed",
+        "Fine Storage Front Wall",
+        "Office Front Wall"
+      ],
+      "v0x": 25.9067365494966,
+      "v0y": 0.0,
+      "v0z": 0.0,
+      "v1x": 25.9067365494966,
+      "v1y": 0.0,
+      "v1z": 4.26699190227003
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "cornerconvex",
+      "length": 8.53398380454007,
+      "surfaces": [
+        "Fine Storage Right Wall",
+        "Fine Storage Front Wall"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 0.0,
+      "v0z": 8.53398380454007,
+      "v1x": 45.7177703814647,
+      "v1y": 0.0,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "transition",
+      "length": 8.53398380454007,
+      "surfaces": [
+        "Bulk Storage Right Wall",
+        "Fine Storage Right Wall",
+        "Bulk Storage Front Wall Reversed",
+        "Bulk Storage Front Wall"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 30.4785135876431,
+      "v0z": 0.0,
+      "v1x": 45.7177703814647,
+      "v1y": 30.4785135876431,
+      "v1z": 8.53398380454007
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "transition",
+      "length": 8.53398380454007,
+      "surfaces": [
+        "Bulk Storage Left Wall",
+        "Bulk Storage Front Wall Reversed",
+        "Bulk Storage Front Wall",
+        "Fine Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 30.4785135876431,
+      "v0z": 8.53398380454007,
+      "v1x": 0.0,
+      "v1y": 30.4785135876431,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "transition",
+      "length": 4.266991902270039,
+      "surfaces": [
+        "Fine Storage Front Wall",
+        "Fine Storage Office Front Wall"
+      ],
+      "v0x": 25.9067365494966,
+      "v0y": 0.0,
+      "v0z": 8.53398380454007,
+      "v1x": 25.9067365494966,
+      "v1y": 0.0,
+      "v1z": 4.26699190227003
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "transition",
+      "length": 4.266991902270039,
+      "surfaces": [
+        "Fine Storage Left Wall",
+        "Fine Storage Office Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 9.14355407629293,
+      "v0z": 4.26699190227003,
+      "v1x": 0.0,
+      "v1y": 9.14355407629293,
+      "v1z": 8.53398380454007
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "cornerconvex",
+      "length": 8.53398380454007,
+      "surfaces": [
+        "Bulk Storage Right Wall",
+        "Bulk Storage Rear Wall"
+      ],
+      "v0x": 45.7177703814647,
+      "v0y": 100.579094839222,
+      "v0z": 8.53398380454007,
+      "v1x": 45.7177703814647,
+      "v1y": 100.579094839222,
+      "v1z": 0.0
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "cornerconvex",
+      "length": 8.53398380454007,
+      "surfaces": [
+        "Bulk Storage Rear Wall",
+        "Bulk Storage Left Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 100.579094839222,
+      "v0z": 0.0,
+      "v1x": 0.0,
+      "v1y": 100.579094839222,
+      "v1z": 8.53398380454007
+    },
+    {
+      "psi": "poor (BETBG)",
+      "type": "cornerconvex",
+      "length": 4.266991902270039,
+      "surfaces": [
+        "Fine Storage Office Left Wall",
+        "Fine Storage Office Front Wall"
+      ],
+      "v0x": 0.0,
+      "v0y": 0.0,
+      "v0z": 4.26699190227003,
+      "v1x": 0.0,
+      "v1y": 0.0,
+      "v1z": 8.53398380454007
+    }
+  ]
+}
