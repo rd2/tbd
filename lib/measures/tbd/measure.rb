@@ -57,7 +57,7 @@ def exitTBD(model, runner, gen_ua = false, ref = "", setpoints = false, out = fa
   descr = io[:description]
 
   unless io.has_key?(:schema)
-    io[:schema] = "https://github.com/rd2/tbd/blob/ua/tbd.schema.json"
+    io[:schema] = "https://github.com/rd2/tbd/blob/master/tbd.schema.json"
   end
 
   tbd_log = { date: Time.now, status: status }
