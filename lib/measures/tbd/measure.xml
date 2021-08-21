@@ -2,8 +2,8 @@
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>95974421-5d49-48c8-8d8f-2491f775e0a7</version_id>
-  <version_modified>20210820T110654Z</version_modified>
+  <version_id>4cb8ac2a-bda0-4fef-b9e1-e053cff8a731</version_id>
+  <version_modified>20210821T110443Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -70,8 +70,8 @@
     </argument>
     <argument>
       <name>alter_model</name>
-      <display_name>Alter OpenStudio model</display_name>
-      <description>If checked, TBD will irrevocably change the user's OpenStudio model.</description>
+      <display_name>Alter OpenStudio model (Apply Measures Now)</display_name>
+      <description>If checked under Apply Measures Now, TBD will irrevocably alter the user's OpenStudio model.</description>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -347,12 +347,6 @@
       <checksum>55A708ED</checksum>
     </file>
     <file>
-      <filename>README.md</filename>
-      <filetype>md</filetype>
-      <usage_type>readme</usage_type>
-      <checksum>2EC87A54</checksum>
-    </file>
-    <file>
       <version>
         <software_program>OpenStudio</software_program>
         <identifier>2.9.1</identifier>
@@ -361,7 +355,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>60FD1D45</checksum>
+      <checksum>179275C1</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>F3C828F3</checksum>
     </file>
   </files>
 </measure>

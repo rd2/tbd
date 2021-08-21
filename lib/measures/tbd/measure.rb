@@ -51,8 +51,6 @@ def exitTBD(model, runner, gen_ua = false, ref = "", setpoints = false, out = fa
 
   io = {} unless io
 
-  # seed = runner.workflow.seedFile
-  # seed = File.basename(seed.get.to_s) unless seed.empty?
   descr = ""
   descr = seed unless seed.empty?
   io[:description] = descr unless io.has_key?(:description)
@@ -247,8 +245,8 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args << option
 
     alter_model = OpenStudio::Measure::OSArgument.makeBoolArgument("alter_model", true, false)
-    alter_model.setDisplayName("Alter OpenStudio model")
-    alter_model.setDescription("If checked, TBD will irrevocably change the user's OpenStudio model.")
+    alter_model.setDisplayName("Alter OpenStudio model (Apply Measures Now)")
+    alter_model.setDescription("If checked under Apply Measures Now, TBD will irrevocably alter the user's OpenStudio model.")
     alter_model.setDefaultValue(true)
     args << alter_model
 
@@ -330,36 +328,22 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
 
     seed = runner.workflow.seedFile
     seed = File.basename(seed.get.to_s) unless seed.empty?
-    runner.registerInfo("Model named '#{seed}''") # for debugging
+    seed = "OpenStudio model" if seed == "temp_measure_manager.osm"
 
     if alter == false
       # Clone model.
       model = OpenStudio::Model::Model.new
       model.addObjects(user_model.toIdfFile.objects)
-
-      io, surfaces = processTBD(model, option, io_path, nil, gen_UA, ua_ref, gen_kiva)
-
-      t = heatingTemperatureSetpoints?(model)
-      t = coolingTemperatureSetpoints?(model) || t
-
-      return exitTBD(model, runner, gen_UA, ua_ref, t, write_tbd_json, io, surfaces, seed)
     else
-      # model = user_model
-
-      io, surfaces = processTBD(user_model, option, io_path, nil, gen_UA, ua_ref, gen_kiva)
-
-      t = heatingTemperatureSetpoints?(user_model)
-      t = coolingTemperatureSetpoints?(user_model) || t
-
-      return exitTBD(user_model, runner, gen_UA, ua_ref, t, write_tbd_json, io, surfaces, seed)
+      model = user_model
     end
 
-    # io, surfaces = processTBD(model, option, io_path, nil, gen_UA, ua_ref, gen_kiva)
-    #
-    # t = heatingTemperatureSetpoints?(model)
-    # t = coolingTemperatureSetpoints?(model) || t
-    #
-    # return exitTBD(model, runner, gen_UA, ua_ref, t, write_tbd_json, io, surfaces)
+    io, surfaces = processTBD(model, option, io_path, nil, gen_UA, ua_ref, gen_kiva)
+
+    t = heatingTemperatureSetpoints?(model)
+    t = coolingTemperatureSetpoints?(model) || t
+
+    return exitTBD(model, runner, gen_UA, ua_ref, t, write_tbd_json, io, surfaces, seed)
   end
 end
 

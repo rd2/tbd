@@ -35,8 +35,8 @@ e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by 'tbd.json' fil
 **Required:** true,
 **Model Dependent:** false
 
-### Alter OpenStudio model
-If checked, TBD will irrevocably change the user's OpenStudio model.
+### Alter OpenStudio model (Apply Measures Now)
+If checked under Apply Measures Now, TBD will irrevocably alter the user's OpenStudio model.
 **Name:** alter_model,
 **Type:** Boolean,
 **Units:** ,
