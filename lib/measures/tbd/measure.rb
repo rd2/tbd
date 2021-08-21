@@ -328,7 +328,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
 
     seed = runner.workflow.seedFile
     seed = File.basename(seed.get.to_s) unless seed.empty?
-    seed = "OpenStudio model" if seed == "temp_measure_manager.osm"
+    seed = "OpenStudio model" if seed.empty? || seed == "temp_measure_manager.osm"
 
     if alter == false
       # Clone model.
