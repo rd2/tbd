@@ -1,5 +1,5 @@
 {
-  "schema": "https://github.com/rd2/tbd/blob/ua/tbd.schema.json",
+  "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
   "description": "ua_warehouse.osm",
   "log": {
     "date": "2021-08-14 06:47:17 -0400",

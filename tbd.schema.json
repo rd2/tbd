@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "id": "https://github.com/rd2/tbd/blob/ua/tbd.schema.json",
+  "id": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
   "title": "TBD Schema",
   "description": "Schema for Thermal Bridging and Derating",
   "type": "object",
