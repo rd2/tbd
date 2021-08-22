@@ -169,7 +169,7 @@ def ua_summary(surfaces, date = Time.now, version = "",
         ua[:fr][:notes] << " Les calculs sont conformes aux dispositions de "  \
           "la Section 3.3. Les résultats sont tributaires d'intrants fournis " \
           "par l'utilisateur, sans validation préalable (voir DESCRIPTION). "  \
-          "Ce document ne peut consituer une attestation de conformité. "
+          "Ce document ne peut constituer une attestation de conformité. "
       else
         ua[:en][:objective] = "UA'"
         ua[:fr][:objective] = "UA'"
