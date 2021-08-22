@@ -31,6 +31,7 @@ end
 # @param [Bool] out True if user wishes to output detailed TBD content/results
 # @param [Hash] io TBD input/output content
 # @param [Hash] surfaces TBD derated surfaces
+# @param [String] seed OSM file name
 #
 # @return [Bool] Returns true if TBD Measure is successful.
 def exitTBD(model, runner, gen_ua = false, ref = "", setpoints = false, out = false, io = nil, surfaces = nil, seed = "")
