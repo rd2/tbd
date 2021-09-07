@@ -1448,8 +1448,8 @@ def rsi(construction, film_RSi, temperature = 0.0)
     end
 
     # Opaque materials next.
-    unless m.to_OpaqueMaterial.empty?
-      rsi += m.to_OpaqueMaterial.get.thermalResistance
+    unless m.to_StandardOpaqueMaterial.empty?
+      rsi += m.to_StandardOpaqueMaterial.get.thermalResistance
     end
     unless m.to_MasslessOpaqueMaterial.empty?
       rsi += m.to_MasslessOpaqueMaterial.get.thermalResistance
@@ -3123,6 +3123,22 @@ def processTBD(
         surface[:u] = 1/current_R
       end
     end
+  end
+
+  # Ensure deratable surfaces have U-factors (even if NOT derated).
+  surfaces.each do |id, surface|
+    next unless surface.has_key?(:deratable)
+    next unless surface[:deratable]
+    next unless surface.has_key?(:construction)
+    next if surface.has_key?(:u)
+    s = os_model.getSurfaceByName(id)
+    if s.empty?
+      TBD.log(TBD::ERROR,
+        "Processing TBD, can't find surface by name '#{id}' - skipping")
+      next
+    end
+    s = s.get
+    surface[:u] = 1.0 / rsi(surface[:construction], s.filmResistance)
   end
 
   io[:edges] = []

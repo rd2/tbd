@@ -1818,6 +1818,8 @@ RSpec.describe TBD do
       if id == "Core_ZN_ceiling"
         expect(surface[:heatloss]).to be_within(0.001).of(0)
         expect(surface.has_key?(:ratio)).to be(false)
+        expect(surface.has_key?(:u)).to be(true)
+        expect(surface[:u]).to be_within(0.001).of(0.153)
         next
       end
       expect(surface.has_key?(:ratio)).to be(true)

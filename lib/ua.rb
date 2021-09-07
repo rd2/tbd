@@ -199,7 +199,7 @@ def ua_summary(surfaces, date = Time.now, version = "",
   b2[:ref] = blc.clone                                        #        reference
 
   # Loop through surfaces, subsurfaces and edges and populate bloc1 & bloc2.
-  surfaces.values.each do |surface|
+  surfaces.each do |id, surface|
     next unless surface.has_key?(:deratable)
     next unless surface[:deratable]
     next unless surface.has_key?(:type)
@@ -207,10 +207,8 @@ def ua_summary(surfaces, date = Time.now, version = "",
     next unless type == :wall || type == :ceiling || type == :floor
     next unless surface.has_key?(:net)
     next unless surface[:net] > TOL
-    next unless surface.has_key?(:u) || surface.has_key?(:r)
-    next unless surface[:u] > TOL if surface.has_key?(:u)
-    next unless surface[:r] > TOL if surface.has_key?(:r)
-    surface[:u] = 1.0 / surface[:r] unless surface.has_key?(:u)
+    next unless surface.has_key?(:u)
+    next unless surface[:u] > TOL
     heating = 21.0
     heating = surface[:heating] if surface.has_key?(:heating)
 
@@ -592,7 +590,7 @@ def ua_md(ua, lang = :en)
     model = "* modèle : #{ua[:file]}" if ua.has_key?(:file) if lang == :fr
     model += " (v#{ua[:version]})" if ua.has_key?(:version)
     report << model unless model.empty?
-    report << "* TBD : v2.2.0"
+    report << "* TBD : v2.2.1"
     report << "* date : #{ua[:date]}"
     if lang == :en
       report << "* status : #{TBD.msg(TBD.status)}" unless TBD.status.zero?
