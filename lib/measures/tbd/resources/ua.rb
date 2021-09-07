@@ -597,7 +597,7 @@ def ua_md(ua, lang = :en)
       report << "* status : success !" if TBD.status.zero?
     elsif lang == :fr
       report << "* statut : #{TBD.msg(TBD.status)}" unless TBD.status.zero?
-      report << "* status : succès !" if TBD.status.zero?
+      report << "* statut : succès !" if TBD.status.zero?
     end
     report << "   "
   end
