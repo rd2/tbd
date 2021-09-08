@@ -226,7 +226,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
   end
 
   # define the arguments that the user will input
-  def arguments(model)
+  def arguments(model = nil)
     args = OpenStudio::Measure::OSArgumentVector.new
 
     load_tbd_json = OpenStudio::Measure::OSArgument.makeBoolArgument("load_tbd_json", true, false)
