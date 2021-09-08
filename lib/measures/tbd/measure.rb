@@ -248,7 +248,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     alter_model = OpenStudio::Measure::OSArgument.makeBoolArgument("alter_model", true, false)
     alter_model.setDisplayName("Alter OpenStudio model (Apply Measures Now)")
     alter_model.setDescription("If checked under Apply Measures Now, TBD will irrevocably alter the user's OpenStudio model.")
-    alter_model.setDefaultValue(true)
+    alter_model.setDefaultValue(false)
     args << alter_model
 
     write_tbd_json = OpenStudio::Measure::OSArgument.makeBoolArgument("write_tbd_json", true, false)
