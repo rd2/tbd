@@ -717,7 +717,7 @@ RSpec.describe TBD do
       dad   = s.surface.get.nameString
       id    = s.nameString
 
-      u, gross, pts = opening(os_model, id)
+      u, gross, pts = opening(os_model, id, surfaces)
       expect(gross).to be_a(Numeric)
       expect(pts.nil?).to be(false)
       expect(u.zero?).to be(false)

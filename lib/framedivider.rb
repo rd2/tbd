@@ -30,9 +30,10 @@ end
 # @param [OpenStudio::Model::Model] model An OS model
 # @param [String] id SubSurface identifier
 # @param [Array] pts Point3D array of subsurface 'id'
+# @param [Hash] surfaces TBD surface Hash (optional)
 #
 # @return [Bool] Returns true if subsurface can fit in.
-def fit?(model, id, pts)
+def fit?(model, id, pts, surfaces = nil)
   unless model && model.is_a?(OpenStudio::Model::Model)
     TBD.log(TBD::DEBUG,
       "Can't find or validate OSM (argument) for subsurface fit - skipping")
@@ -75,16 +76,50 @@ def fit?(model, id, pts)
   end
 
   parent = parent.get
+  dad = parent.nameString
+
+  if surfaces
+    unless surfaces.is_a?(Hash)
+      TBD.log(TBD::DEBUG,
+        "Can't validate TBD surfaces (argument) for fit? - skipping")
+      return 0, 0, points
+    end
+
+    unless surfaces.has_key?(parent.nameString)
+      TBD.log(TBD::DEBUG,
+        "Can't find TBD surface '#{parent.nameString}' for fit? - skipping")
+      return 0, 0, points
+    end
+  end
+
   ft = OpenStudio::Transformation::alignFace(parent.vertices).inverse
   ft_parent = (ft * parent.vertices).reverse
   ft_parent = flatZ(ft_parent)
 
   siblings = []
   model.getSubSurfaces.each do |sub|
-    next if sub.nameString == id
+    kid = sub.nameString
+    next if kid == id
     next if sub.surface.empty?
-    next unless sub.surface.get.nameString == parent.nameString
-    siblings << flatZ( (ft * sub.vertices).reverse )
+    next unless sub.surface.get.nameString == dad
+
+    if surfaces && surfaces.has_key?(dad)
+      if surfaces[dad].has_key?(:windows)        &&
+         surfaces[dad][:windows].has_key?(kid)   &&
+         surfaces[dad][:windows][kid].has_key?(:pts)
+
+         points = surfaces[dad][:windows][kid][:pts]
+         unless points.empty?
+           siblings << flatZ( (ft * points).reverse )
+         else
+           siblings << flatZ( (ft * sub.vertices).reverse )
+         end
+      else
+        siblings << flatZ( (ft * sub.vertices).reverse )
+      end
+    else
+      siblings << flatZ( (ft * sub.vertices).reverse )
+    end
   end
 
   ft_pts = flatZ(ft * pts)
@@ -144,11 +179,12 @@ end
 #
 # @param [OpenStudio::Model::Model] model An OS model
 # @param [String] id A subsurface identifier
+# @param [Hash] surfaces TBD surface Hash (optional)
 #
 # @return [Float] Returns subsurface calculated U-factor (W/m2.K)
 # @return [Float] Returns subsurface rough opening area (m2)
 # @return [Array] Returns subsurface rough opening OpenStudio 3D points
-def opening(model, id)
+def opening(model, id, surfaces = nil)
   unless model && model.is_a?(OpenStudio::Model::Model)
     TBD.log(TBD::DEBUG,
       "Can't find or validate OSM (argument) for area & vertices - skipping")
@@ -176,6 +212,20 @@ def opening(model, id)
     return 0, 0, points
   end
   dad = s.surface.get
+
+  if surfaces
+    unless surfaces.is_a?(Hash)
+      TBD.log(TBD::DEBUG,
+        "Can't validate TBD surfaces (argument) for area & vertices - skipping")
+      return 0, 0, points
+    end
+
+    unless surfaces.has_key?(dad.nameString)
+      TBD.log(TBD::DEBUG,
+        "Can't find TBD surface '#{dad.nameString}' - skipping")
+      return 0, 0, points
+    end
+  end
 
   area = s.grossArea
   if area < TOL
@@ -413,7 +463,7 @@ def opening(model, id)
   vec << OpenStudio::Point3d.new(pts[:C][:p].x, pts[:C][:p].y, pts[:C][:p].z)
   vec << OpenStudio::Point3d.new(pts[:D][:p].x, pts[:D][:p].y, pts[:D][:p].z) if four
 
-  return u, area, points unless fit?(model, id, vec)
+  return u, area, points unless fit?(model, id, vec, surfaces)
 
   tr1 = []
   tr1 << pts[:A][:p]
