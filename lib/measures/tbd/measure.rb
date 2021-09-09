@@ -115,9 +115,9 @@ def exitTBD(model, runner, gen_ua = false, ref = "", setpoints = false, out = fa
   TBD.logs.each do |l|
     tbd_msgs << { level: TBD.tag(l[:level]), message: l[:message] }
     if l[:level] > TBD::INFO
-      runner.registerWarning("(#{TBD.tag(l[:level])}) #{l[:message]}")
+      runner.registerWarning(l[:message])
     else
-      runner.registerInfo("(#{TBD.tag(l[:level])}) #{l[:message]}")
+      runner.registerInfo(l[:message])
     end
   end
   tbd_log[:messages] = tbd_msgs unless tbd_msgs.empty?
