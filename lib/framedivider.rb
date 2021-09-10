@@ -76,6 +76,7 @@ def fit?(model, id, pts, surfaces = nil)
   end
 
   parent = parent.get
+  subs = parent.subSurfaces
   dad = parent.nameString
 
   if surfaces
@@ -85,9 +86,9 @@ def fit?(model, id, pts, surfaces = nil)
       return 0, 0, points
     end
 
-    unless surfaces.has_key?(parent.nameString)
+    unless surfaces.has_key?(dad)
       TBD.log(TBD::DEBUG,
-        "Can't find TBD surface '#{parent.nameString}' for fit? - skipping")
+        "Can't find TBD surface '#{dad}' for fit? - skipping")
       return 0, 0, points
     end
   end
@@ -96,37 +97,55 @@ def fit?(model, id, pts, surfaces = nil)
   ft_parent = (ft * parent.vertices).reverse
   ft_parent = flatZ(ft_parent)
 
-  siblings = []
-  model.getSubSurfaces.each do |sub|
+  siblings = {}
+  subs.each do |sub|
     kid = sub.nameString
     next if kid == id
     next if sub.surface.empty?
     next unless sub.surface.get.nameString == dad
 
     if surfaces && surfaces.has_key?(dad)
-      if surfaces[dad].has_key?(:windows)        &&
-         surfaces[dad][:windows].has_key?(kid)   &&
-         surfaces[dad][:windows][kid].has_key?(:pts)
+      points = []
 
+      if surfaces[dad].has_key?(:windows)           &&
+         surfaces[dad][:windows].has_key?(kid)      &&
+         surfaces[dad][:windows][kid].has_key?(:pts)
          points = surfaces[dad][:windows][kid][:pts]
-         unless points.empty?
-           siblings << flatZ( (ft * points).reverse )
-         else
-           siblings << flatZ( (ft * sub.vertices).reverse )
-         end
+      end
+      if surfaces[dad].has_key?(:doors)             &&
+         surfaces[dad][:doors].has_key?(kid)        &&
+         surfaces[dad][:doors][kid].has_key?(:pts)
+         points = surfaces[dad][:doors][kid][:pts]
+      end
+      if surfaces[dad].has_key?(:skylights)         &&
+         surfaces[dad][:skylights].has_key?(kid)    &&
+         surfaces[dad][:skylights][kid].has_key?(:pts)
+         points = surfaces[dad][:skylights][kid][:pts]
+      end
+
+      unless points.empty?
+        siblings[kid] = flatZ( (ft * points).reverse )
       else
-        siblings << flatZ( (ft * sub.vertices).reverse )
+        siblings[kid] = flatZ( (ft * sub.vertices).reverse )
       end
     else
-      siblings << flatZ( (ft * sub.vertices).reverse )
+      siblings[kid] = flatZ( (ft * sub.vertices).reverse )
     end
   end
 
   ft_pts = flatZ(ft * pts)
   ft_pts.each do |ft_pt|
-    return false unless OpenStudio::pointInPolygon(ft_pt, ft_parent, TOL)
-    siblings.each do |sibling|
-      return false if OpenStudio::pointInPolygon(ft_pt, sibling, TOL)
+    unless OpenStudio::pointInPolygon(ft_pt, ft_parent, TOL)
+      TBD.log(TBD::ERROR,
+        "'#{id}' vertices in conflict with '#{dad}' - skipping")
+      return false
+    end
+    siblings.each do |i, sibling|
+      if OpenStudio::pointInPolygon(ft_pt, sibling, TOL)
+        TBD.log(TBD::ERROR,
+          "'#{id}' vertices in conflict with '#{i}' - skipping")
+        return false
+      end
     end
   end
   true

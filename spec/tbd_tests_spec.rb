@@ -4806,15 +4806,16 @@ RSpec.describe TBD do
 
     # Adding/validating Frame & Divider object.
     fd = OpenStudio::Model::WindowPropertyFrameAndDivider.new(os_model_FD)
-    expect(fd.setFrameWidth(0.030)).to be(true)   # 30mm (narrow) around glazing
+    width = 0.03
+    expect(fd.setFrameWidth(width)).to be(true)   # 30mm (narrow) around glazing
     expect(fd.setFrameConductance(2.500)).to be(true)
     window_FD = os_model_FD.getSubSurfaceByName(name)
     expect(window_FD.empty?).to be(false)
     window_FD = window_FD.get
     expect(window_FD.allowWindowPropertyFrameAndDivider).to be(true)
     expect(window_FD.setWindowPropertyFrameAndDivider(fd)).to be(true)
-    width = window_FD.windowPropertyFrameAndDivider.get.frameWidth
-    expect(width).to be_within(0.001).of(0.030)                # good so far ...
+    width2 = window_FD.windowPropertyFrameAndDivider.get.frameWidth
+    expect(width2).to be_within(0.001).of(width)               # good so far ...
 
     expect(window_FD.netArea).to be_within(0.01).of(5.58)
     expect(window_FD.grossArea).to be_within(0.01).of(5.58)              # 5.89?
@@ -4940,8 +4941,117 @@ RSpec.describe TBD do
       end
     end
 
+    # Adding a clerestory window, slightly above "Office Front Wall Window 1"
+    cl_v = OpenStudio::Point3dVector.new
+    cl_v << OpenStudio::Point3d.new( 3.66, 0.00, 4.00)
+    cl_v << OpenStudio::Point3d.new( 3.66, 0.00, 2.47)
+    cl_v << OpenStudio::Point3d.new( 7.31, 0.00, 2.47)
+    cl_v << OpenStudio::Point3d.new( 7.31, 0.00, 4.00)
+    clerestory = OpenStudio::Model::SubSurface.new(cl_v, os_model_FD)
+    clerestory.setName("clerestory")
+    expect(clerestory.setSurface(front_FD)).to be(true)
+    expect(clerestory.setSubSurfaceType("FixedWindow")).to be(true)
+    # ... reminder: set subsurface type AFTER setting its parent surface.
 
-    # Testing more complexe cases e.g., triangular windows, irregular 4-side
+    io, surfaces = processTBD(os_model_FD, "poor (BETBG)")
+    expect(TBD.status).to eq(TBD::WARN)    # surfaces have already been derated.
+    expect(TBD.logs.size).to eq(12)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
+    expect(surfaces.size).to eq(23)
+    expect(surfaces.has_key?(nom)).to be(true)
+    expect(surfaces[nom].has_key?(:windows)).to be(true)
+    wins = surfaces[nom][:windows]
+    expect(wins.size).to eq(3)
+    expect(wins.has_key?("clerestory")).to be(true)
+    expect(wins.has_key?(name)).to be(true)
+    expect(wins["clerestory"].has_key?(:pts)).to be(true)
+    expect(wins["clerestory"].has_key?(:points)).to be(true)
+    expect(wins[name].has_key?(:pts)).to be(true)
+    expect(wins[name].has_key?(:points)).to be(true)
+    expect(wins["clerestory"][:pts].size).to eq(4)
+    expect(wins[name][:pts].size).to eq(4)
+
+    v1 = window_FD.vertices                   # original OSM vertices for window
+    p1 = wins[name][:pts]            # TBD window vertices offset by frame width
+    expect((p1[0].x - v1[0].x).abs).to be_within(0.01).of(width)
+    expect((p1[1].x - v1[1].x).abs).to be_within(0.01).of(width)
+    expect((p1[2].x - v1[2].x).abs).to be_within(0.01).of(width)
+    expect((p1[3].x - v1[3].x).abs).to be_within(0.01).of(width)
+    expect((p1[0].y - v1[0].y).abs).to be_within(0.01).of(0)
+    expect((p1[1].y - v1[1].y).abs).to be_within(0.01).of(0)
+    expect((p1[2].y - v1[2].y).abs).to be_within(0.01).of(0)
+    expect((p1[3].y - v1[3].y).abs).to be_within(0.01).of(0)
+    expect((p1[0].z - v1[0].z).abs).to be_within(0.01).of(width)
+    expect((p1[1].z - v1[1].z).abs).to be_within(0.01).of(width)
+    expect((p1[2].z - v1[2].z).abs).to be_within(0.01).of(width)
+    expect((p1[3].z - v1[3].z).abs).to be_within(0.01).of(width)
+
+    v2 = clerestory.vertices
+    p2 = wins["clerestory"][:pts]                # same as original OSM vertices
+    expect((p2[0].x - v2[0].x).abs).to be_within(0.01).of(0)
+    expect((p2[1].x - v2[1].x).abs).to be_within(0.01).of(0)
+    expect((p2[2].x - v2[2].x).abs).to be_within(0.01).of(0)
+    expect((p2[3].x - v2[3].x).abs).to be_within(0.01).of(0)
+    expect((p2[0].y - v2[0].y).abs).to be_within(0.01).of(0)
+    expect((p2[1].y - v2[1].y).abs).to be_within(0.01).of(0)
+    expect((p2[2].y - v2[2].y).abs).to be_within(0.01).of(0)
+    expect((p2[3].y - v2[3].y).abs).to be_within(0.01).of(0)
+    expect((p2[0].z - v2[0].z).abs).to be_within(0.01).of(0)
+    expect((p2[1].z - v2[1].z).abs).to be_within(0.01).of(0)
+    expect((p2[2].z - v2[2].z).abs).to be_within(0.01).of(0)
+    expect((p2[3].z - v2[3].z).abs).to be_within(0.01).of(0)
+
+    # In addition, the top of the "Office Front Wall Window 1" is aligned with
+    # the bottom of the clerestory, i.e. no conflicts between siblings.
+    expect((p1[0].z - p2[1].z).abs).to be_within(0.01).of(0)
+    expect((p1[3].z - p2[2].z).abs).to be_within(0.01).of(0)
+    expect(TBD.status).to eq(TBD::WARN)
+
+    # Same exercise, yet provide clerestory with Frame & Divider. Switch to
+    # 0.04 to ensure TBD catches conflict between siblings. Otherwise, 0.03
+    # SHOULD generate a conflict and raise an error - alas.
+    fd2 = OpenStudio::Model::WindowPropertyFrameAndDivider.new(os_model_FD)
+    width2 = 0.03
+    expect(fd2.setFrameWidth(width2)).to be(true)
+    expect(fd2.setFrameConductance(2.500)).to be(true)
+    expect(clerestory.allowWindowPropertyFrameAndDivider).to be(true)
+    expect(clerestory.setWindowPropertyFrameAndDivider(fd2)).to be(true)
+    width3 = clerestory.windowPropertyFrameAndDivider.get.frameWidth
+    expect(width3).to be_within(0.001).of(width2)
+
+    TBD.clean!
+    io, surfaces = processTBD(os_model_FD, "poor (BETBG)")
+
+    # There should be a conflict between both windows equipped with F&D,
+    # regardless if width 0.03 or 0.04.
+    expect(TBD.status).to eq(TBD::WARN)      # should be ERROR if width2 == 0.04
+    # puts TBD.logs
+    expect(TBD.logs.size).to eq(12)             # should be 13 if width2 == 0.04
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
+    expect(surfaces.size).to eq(23)
+    expect(surfaces.has_key?(nom)).to be(true)
+    expect(surfaces[nom].has_key?(:windows)).to be(true)
+    wins = surfaces[nom][:windows]
+    expect(wins.size).to eq(3)
+    expect(wins.has_key?("clerestory")).to be(true)
+    expect(wins.has_key?(name)).to be(true)
+    expect(wins["clerestory"].has_key?(:pts)).to be(true)
+    expect(wins["clerestory"].has_key?(:points)).to be(true)
+    expect(wins[name].has_key?(:pts)).to be(true)
+    expect(wins[name].has_key?(:points)).to be(true)
+    expect(wins["clerestory"][:pts].size).to eq(4)
+    expect(wins[name][:pts].size).to eq(4)
+
+
+    # Testing more complex cases e.g., triangular windows, irregular 4-side
     # windows, rough opening edges overlapping parent surface edges.
     fd_model = OpenStudio::Model::Model.new
     space = OpenStudio::Model::Space.new(fd_model)

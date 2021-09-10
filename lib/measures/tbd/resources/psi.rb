@@ -1934,12 +1934,13 @@ def processTBD(
         "Can't process '#{id}', can't find its parent surface - skipping")
       next
     end
-    dad = s.surface.get.nameString
+    dad = s.surface.get
 
-    # The function will throw 3 possible (non-fatal) errors:
+    # The function will throw 4 possible (non-fatal) errors:
     #   - number of subsurfaces vertices isn't 3 or 4 (EnergyPlus limitation)
     #   - subsurface gross area is below threshold TOL (not worth the effort)
     #   - subsurface construction is invalid or missing
+    #   - subsurface with Frame & Divider conflicting with parent or siblings
     u, gross, pts = opening(os_model, id, surfaces)
     next unless pts
     next if u < TOL
@@ -1973,7 +1974,7 @@ def processTBD(
 
     # For every kid, there's a dad somewhere ...
     surfaces.each do |identifier, properties|
-      if identifier == dad
+      if identifier == dad.nameString
         sub = { points: points, pts: pts, minz: minz, n: n, gross: gross, u: u }
         sub[:glazed] = true if glazed
         if type == :window
