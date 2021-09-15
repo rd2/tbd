@@ -1725,7 +1725,7 @@ end
 # @return [Hash] Returns collection of derated TBD surfaces
 def processTBD(
   os_model,
-  psi_set,
+  psi_set = "",
   ioP     = nil,
   schemaP = nil,
   g_UA    = false,
@@ -1770,19 +1770,28 @@ def processTBD(
   # ignore any air-loop related logic (e.g., plenum zones as HVAC objects).
   airloops = airLoopsHVAC?(os_model)
 
-  # Fetch OpenStudio (opaque) surfaces & key attributes.
+  # TBD surface Hash.
   surfaces = {}
-  os_model.getSurfaces.each do |s|
+
+  # Fetch OpenStudio (opaque) surfaces & key attributes.
+
+  # Option A:
+  # os_model.getSurfaces.each do |s|
+
+  # Option B:
+  # os_model.getModelObjects.each do |s|
+    # next if s.to_Surface.empty?
+    # s = s.to_Surface.get
+
+  # Option C:
+  os_model.getSurfaces.sort_by{ |s| s.nameString }.each do |s|
+
     id = s.nameString
+    surface = openings(os_model, s)
+    next if surface.nil?
+    next unless surface.is_a?(Hash)
+    next unless surface.has_key?(:space)
 
-    if s.space.empty?
-      TBD.log(TBD::ERROR,
-        "Processing TBD, can't find space holding surface '#{id}' - skipping")
-      next
-    end
-    space = s.space.get
-
-    ground   = s.isGroundSurface
     boundary = s.outsideBoundaryCondition
     if boundary.downcase == "surface"
       if s.adjacentSurface.empty?
@@ -1798,6 +1807,8 @@ def processTBD(
       end
       boundary = adjacent
     end
+    surface[:boundary] = boundary
+    surface[:ground] = s.isGroundSurface
 
     # Similar to "setpoints?" functions above, the boolean functions below will
     # also return "false" when encountering invalid OSM inputs, ignoring any
@@ -1805,14 +1816,14 @@ def processTBD(
     # plenum as an unconditioned zone).
     conditioned = true
     if setpoints
-      if space.thermalZone.empty?
-        conditioned = false unless plenum?(space, airloops, setpoints)
+      if surface[:space].thermalZone.empty?
+        conditioned = false unless plenum?(surface[:space], airloops, setpoints)
       else
-        zone = space.thermalZone.get
+        zone = surface[:space].thermalZone.get
         heating, _ = maxHeatScheduledSetpoint(zone)
         cooling, _ = minCoolScheduledSetpoint(zone)
         unless heating || cooling
-          if plenum?(space, airloops, setpoints)
+          if plenum?(surface[:space], airloops, setpoints)
             heating = 21
             cooling = 24
           else
@@ -1823,47 +1834,14 @@ def processTBD(
                                cooling && cooling > 40
       end
     end
+    surface[:conditioned] = conditioned
+    surface[:heating] = heating if heating          # if valid heating setpoints
+    surface[:cooling] = cooling if cooling          # if valid cooling setpoints
 
-    # Site-specific (or absolute, or true) surface normal.
-    t, r = transforms(os_model, space)
-    unless t && r
-      TBD.log(TBD::FATAL,
-        "Can't process '#{id}' transformation")
-      return nil, nil
-    end
-    n = trueNormal(s, r)
-    unless n
-      TBD.log(TBD::FATAL,
-        "Can't process '#{id}' true normal")
-      return nil, nil
-    end
-
-    type = :floor
-    type = :ceiling if /ceiling/i.match(s.surfaceType)
-    type = :wall    if /wall/i.match(s.surfaceType)
-
-    points = (t * s.vertices).map { |v| Topolys::Point3D.new(v.x, v.y, v.z) }
-    minz   = (points.map{ |p| p.z }).min
-
-    # Content of the hash will evolve over the next few hundred lines.
-    surfaces[id] = {
-      type:         type,
-      conditioned:  conditioned,
-      ground:       ground,
-      boundary:     boundary,
-      space:        space,
-      gross:        s.grossArea,
-      points:       points,
-      minz:         minz,
-      n:            n
-    }
-    surfaces[id][:heating] = heating if heating     # if valid heating setpoints
-    surfaces[id][:cooling] = cooling if cooling     # if valid cooling setpoints
-
-    a = space.spaceType.empty?
-    surfaces[id][:stype] = space.spaceType.get unless a
-    a = space.buildingStory.empty?
-    surfaces[id][:story] = space.buildingStory.get unless a
+    typ = s.surfaceType.downcase
+    surface[:type] = :floor
+    surface[:type] = :ceiling if typ.include?("ceiling")
+    surface[:type] = :wall if typ.include?("wall")
 
     unless s.construction.empty?
       construction = s.construction.get.to_Construction.get
@@ -1875,12 +1853,13 @@ def processTBD(
       index = nil unless index >= 0
       index = nil unless index < construction.layers.size
       if index
-        surfaces[id][:construction] = construction
-        surfaces[id][:index]        = index
-        surfaces[id][:ltype]        = ltype
-        surfaces[id][:r]            = r
+        surface[:construction] = construction
+        surface[:index]        = index
+        surface[:ltype]        = ltype
+        surface[:r]            = r
       end
     end
+    surfaces[id] = surface
   end                                              # (opaque) surfaces populated
 
   # TBD only derates constructions of opaque surfaces in CONDITIONED spaces, if
@@ -1917,79 +1896,6 @@ def processTBD(
       "Can't identify any surfaces to derate")
     return nil, nil
   end
-
-  # Fetch OpenStudio subsurfaces & key attributes.
-  os_model.getSubSurfaces.each do |s|
-    id = s.nameString
-
-    if s.space.empty?
-      TBD.log(TBD::ERROR,
-        "Can't process '#{id}', can't find its host space - skipping")
-      next
-    end
-    space = s.space.get
-
-    if s.surface.empty?
-      TBD.log(TBD::ERROR,
-        "Can't process '#{id}', can't find its parent surface - skipping")
-      next
-    end
-    dad = s.surface.get
-
-    # The function will throw 4 possible (non-fatal) errors:
-    #   - number of subsurfaces vertices isn't 3 or 4 (EnergyPlus limitation)
-    #   - subsurface gross area is below threshold TOL (not worth the effort)
-    #   - subsurface construction is invalid or missing
-    #   - subsurface with Frame & Divider conflicting with parent or siblings
-    u, gross, pts = opening(os_model, id, surfaces)
-    next unless pts
-    next if u < TOL
-    next if gross < TOL
-
-    # Site-specific (or absolute, or true) surface normal.
-    t, r = transforms(os_model, space)
-    unless t && r
-      TBD.log(TBD::FATAL,
-        "Can't process '#{id}' transformation")
-      return nil, nil
-    end
-
-    n = trueNormal(s, r)
-    unless n
-      TBD.log(TBD::FATAL,
-        "Can't process '#{id}' true normal")
-      return nil, nil
-    end
-
-    points = (t * pts).map { |v| Topolys::Point3D.new(v.x, v.y, v.z) }
-    minz = ( points.map { |p| p.z } ).min
-
-    type = :skylight
-    type = :window if /window/i.match(s.subSurfaceType)
-    type = :door if /door/i.match(s.subSurfaceType)
-
-    if type == :door
-      glazed = true if /glass/i.match(s.subSurfaceType)
-    end
-
-    # For every kid, there's a dad somewhere ...
-    surfaces.each do |identifier, properties|
-      if identifier == dad.nameString
-        sub = { points: points, pts: pts, minz: minz, n: n, gross: gross, u: u }
-        sub[:glazed] = true if glazed
-        if type == :window
-          properties[:windows] = {} unless properties.has_key?(:windows)
-          properties[:windows][id] = sub
-        elsif type == :door
-          properties[:doors] = {} unless properties.has_key?(:doors)
-          properties[:doors][id] = sub
-        else # skylight
-          properties[:skylights] = {} unless properties.has_key?(:skylights)
-          properties[:skylights][id] = sub
-        end
-      end
-    end
-  end                 # (opaque) surface "dads" populated with subsurface "kids"
 
   # Sort kids.
   surfaces.values.each do |p|
@@ -2071,21 +1977,6 @@ def processTBD(
   holes.merge!(wall_holes)
 
   populateTBDdads(t_model, shades)
-
-  # Revise opaque surface net area (maybe subsurfaces with Frame & Divider).
-  surfaces.values.each do |p|
-    subarea = 0
-    if p.has_key?(:windows)
-      p[:windows].values.each { |o| subarea += o[:gross] }
-    end
-    if p.has_key?(:doors)
-      p[:doors].values.each { |o| subarea += o[:gross] }
-    end
-    if p.has_key?(:skylights)
-      p[:skylights].values.each { |o| subarea += o[:gross] }
-    end
-    p[:net] = p[:gross] - subarea
-  end
 
   # Loop through Topolys edges and populate TBD edge hash. Initially, there
   # should be a one-to-one correspondence between Topolys and TBD edge
@@ -3167,7 +3058,14 @@ def processTBD(
     edge[:v1z] = e[:v1].point.z
     io[:edges] << edge
   end
-  io.delete(:edges) unless io[:edges].size > 0
+
+  if io[:edges].empty?
+    io.delete(:edges)
+  else
+    io[:edges].sort_by { |e| [ e[:v0x], e[:v0y], e[:v0z],
+                               e[:v1x], e[:v1y], e[:v1z] ] }
+  end
+
 
   # Populate UA' trade-off reference values (optional).
   qc33(surfaces, io_p, setpoints) if g_UA && ref && ref == "code (Quebec)"
