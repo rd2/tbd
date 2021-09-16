@@ -17,6 +17,7 @@ require_relative "log.rb"
 
 # Set 10mm tolerance for edge (thermal bridge) vertices.
 TOL = 0.01
+TOL2 = TOL * TOL
 
 # Sources for thermal bridge types and/or linked default KHI & PSI values/sets:
 
@@ -1774,16 +1775,6 @@ def processTBD(
   surfaces = {}
 
   # Fetch OpenStudio (opaque) surfaces & key attributes.
-
-  # Option A:
-  # os_model.getSurfaces.each do |s|
-
-  # Option B:
-  # os_model.getModelObjects.each do |s|
-    # next if s.to_Surface.empty?
-    # s = s.to_Surface.get
-
-  # Option C:
   os_model.getSurfaces.sort_by{ |s| s.nameString }.each do |s|
 
     id = s.nameString

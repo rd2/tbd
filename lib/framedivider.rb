@@ -24,14 +24,14 @@ def flatZ(pts)
   vec
 end
 
-## Validates whether one OpenStudio polygon fits within another polygon.
+## Validates whether 1st OpenStudio polygon fits within 2nd polygon.
 #
 # @param [Array] poly1 Point3D array of convex polygon #1
-# @param [Array] poly1 Point3D array of convex polygon #2
+# @param [Array] poly2 Point3D array of convex polygon #2
 # @param [String] id1 Polygon #1 identifier (optional)
 # @param [String] id2 Polygon #2 identifier (optional)
 #
-# @return Returns true if either polygon fits entirely within the other.
+# @return Returns true if 1st polygon fits entirely within the 2nd polygon.
 def fits?(poly1, poly2, id1 = "", id2 = "")
   unless poly1 && (poly1.is_a?(OpenStudio::Point3dVector) || poly1.is_a?(Array))
     msg = ""
@@ -85,38 +85,42 @@ def fits?(poly1, poly2, id1 = "", id2 = "")
   ft_poly1 = flatZ( (ft * poly1).reverse )
   ft_poly2 = flatZ( (ft * poly2).reverse )
 
-  ft_model = OpenStudio::Model::Model.new
-  surface1 = OpenStudio::Model::Surface.new(ft_poly1, ft_model)
-  surface2 = OpenStudio::Model::Surface.new(ft_poly2, ft_model)
-
-  area1 = surface1.grossArea
-  unless area1 > TOL
-    msg = ""
-    msg << "'#{id1}': " unless id1.empty?
+  area1 = OpenStudio::getArea(ft_poly1)
+  if area1.empty?
+    msg = "#{pt.class}? "
+    msg << "for '#{id2}': " unless id2.empty?
     msg << "Invalid polygon area (fits?, 1st argument) - skipping"
     TBD.log(TBD::DEBUG, msg)
     return false
   end
-  area2 = surface2.grossArea
-  unless area2 > TOL
-    msg = ""
-    msg << "'#{id2}': " unless id2.empty?
+  area1 = area1.get
+
+  area2 = OpenStudio::getArea(ft_poly2)
+  if area2.empty?
+    msg = "#{pt.class}? "
+    msg << "for '#{id2}': " unless id2.empty?
     msg << "Invalid polygon area (fits?, 2nd argument) - skipping"
     TBD.log(TBD::DEBUG, msg)
     return false
   end
+  area2 = area2.get
 
-  union = OpenStudio::join(ft_poly1, ft_poly2, TOL)
+  union = OpenStudio::join(ft_poly1, ft_poly2, TOL2)
   return false if union.empty?
   union = union.get
-  surface = OpenStudio::Model::Surface.new(union, ft_model)
-  area = surface.grossArea
-  return false if area < TOL
-  if area1 > area2
-    return false if area - area1 > TOL
-  else
-    return false if area - area2 > TOL
+  area = OpenStudio::getArea(union)
+  if area.empty?
+    msg = "Can't determine if "
+    msg << "'#{id1}' " unless id1.empty?
+    msg << "fits? - skipping"
+    TBD.log(TBD::DEBUG, msg)
+    return false
   end
+  area = area.get
+
+  return false if area < TOL
+  return true if (area - area2).abs < TOL
+  return false if (area - area2).abs > TOL
   true
 end
 
@@ -177,88 +181,45 @@ def overlaps?(poly1, poly2, id1 = "", id2 = "")
     end
   end
 
-  return true if fits?(poly1, poly2)
-  return true if fits?(poly2, poly1)
-
   ft = OpenStudio::Transformation::alignFace(poly1).inverse
   ft_poly1 = flatZ( (ft * poly1).reverse )
   ft_poly2 = flatZ( (ft * poly2).reverse )
 
-  ft_model = OpenStudio::Model::Model.new
-  surface1 = OpenStudio::Model::Surface.new(ft_poly1, ft_model)
-  surface2 = OpenStudio::Model::Surface.new(ft_poly2, ft_model)
-
-  area1 = surface1.grossArea
-  unless area1 > TOL
-    msg = ""
-    msg << "'#{id1}': " unless id1.empty?
-    msg << "Invalid polygon area (overlaps?, 1st argument) - skipping"
+  area1 = OpenStudio::getArea(ft_poly1)
+  if area1.empty?
+    msg = "#{pt.class}? "
+    msg << "for '#{id2}': " unless id2.empty?
+    msg << "Invalid polygon area (fits?, 1st argument) - skipping"
     TBD.log(TBD::DEBUG, msg)
     return false
   end
-  area2 = surface2.grossArea
-  unless area2 > TOL
-    msg = ""
-    msg << "'#{id2}': " unless id2.empty?
-    msg << "Invalid polygon area (overlaps?, 2nd argument) - skipping"
+  area1 = area1.get
+
+  area2 = OpenStudio::getArea(ft_poly2)
+  if area2.empty?
+    msg = "#{pt.class}? "
+    msg << "for '#{id2}': " unless id2.empty?
+    msg << "Invalid polygon area (fits?, 2nd argument) - skipping"
     TBD.log(TBD::DEBUG, msg)
     return false
   end
+  area2 = area2.get
 
-  union = OpenStudio::join(ft_poly1, ft_poly2, TOL)
+  union = OpenStudio::join(ft_poly1, ft_poly2, TOL2)
   return false if union.empty?
   union = union.get
-  surface = OpenStudio::Model::Surface.new(union, ft_model)
-  area = surface.grossArea
+  area = OpenStudio::getArea(union)
+  if area.empty?
+    msg = "Can't determine if "
+    msg << "'#{id1}' " unless id1.empty?
+    msg << "overlaps? - skipping"
+    TBD.log(TBD::DEBUG, msg)
+    return false
+  end
+  area = area.get
+
   return false if area < TOL
-  if area1 > area2
-    return true if area - area1 > TOL
-  else
-    return true if area - area2 > TOL
-  end
   true
-end
-
-##
-# Calculate triangle area.
-#
-# @param [Array] pts Point3D array (3x)
-#
-# @return [Float] triangle area (m2)
-# @return [Array] subsurface rough opening sorted Topolys 3D points
-def areaHeron(pts)
-  unless pts && pts.is_a?(Array) && pts.size == 3
-    TBD.log(TBD::DEBUG,
-      "Invalid subsurface pts (argument) to calculate area - skipping")
-    return 0
-  end
-
-  pts.each do |pt|
-    unless pt.class == Topolys::Point3D
-      TBD.log(TBD::DEBUG,
-        "#{pt.class}? expected OSM 3D points to calculate area - skipping")
-      return 0
-    end
-  end
-
-  e = []
-  e << { v0: pts[0], v1: pts[1], mag: (pts[1] - pts[0]).magnitude }
-  e << { v0: pts[1], v1: pts[2], mag: (pts[2] - pts[1]).magnitude }
-  e << { v0: pts[2], v1: pts[0], mag: (pts[0] - pts[2]).magnitude }
-
-  if matches?(e[0], e[1]) || matches?(e[1], e[2]) || matches?(e[2], e[0])
-    TBD.log(TBD::DEBUG,
-      "Unique triangle edges to calculate area - skipping")
-    return 0
-  end
-  e = e.sort_by{ |p| p[:mag] }
-
-  # Kahan's stable implementation of Heron's formula for triangle area.
-  # area = 1/4 sqrt( (a+(b+c)) (c-(a-b)) (c+(a-b)) (a+(b-c)) ) ... a > b > c
-  a = e[0][:mag]
-  b = e[1][:mag]
-  c = e[2][:mag]
-  0.25 * Math.sqrt( (a+(b+c)) * (c-(a-b)) * (c+(a-b)) * (a+(b-c)) )
 end
 
 ##
@@ -496,19 +457,6 @@ def openings(model, surface)
   fd = false
   subs = {}
 
-  # Option A:
-  # subsurfaces = model.getSubSurfaces.sort_by{ |s| s.nameString }
-  # subsurfaces.each do |s|
-
-  # Option B:
-  # surface.subSurfaces.each do |s|
-
-  # Option C:
-  # model.getModelObjects.each do |s|
-    # next if s.to_SubSurface.empty?
-    # s = s.to_SubSurface.get
-
-  # Option D:
   subsurfaces = surface.subSurfaces.sort_by { |s| s.nameString }
   subsurfaces.each do |s|
     id = s.nameString
@@ -592,7 +540,7 @@ def openings(model, surface)
     #     /     \
     #    B - C - D   <<< allowed as OpenStudio/E+ subsurface?
     #
-    four = true if s.vertices.size == 4
+    four = (s.vertices.size == 4)
 
     if s.windowPropertyFrameAndDivider.empty?
       vec = s.vertices
@@ -600,6 +548,8 @@ def openings(model, surface)
     else
       width = s.windowPropertyFrameAndDivider.get.frameWidth
       ptz = offset(s.vertices, width)
+      # ptz = OpenStudio::buffer(s.vertices, width, TOL2)
+
       fd = true
 
       # Re-convert Topolys 3D points into OpenStudio 3D points.
@@ -608,22 +558,7 @@ def openings(model, surface)
       vec << OpenStudio::Point3d.new(ptz[:B][:p].x, ptz[:B][:p].y, ptz[:B][:p].z)
       vec << OpenStudio::Point3d.new(ptz[:C][:p].x, ptz[:C][:p].y, ptz[:C][:p].z)
       vec << OpenStudio::Point3d.new(ptz[:D][:p].x, ptz[:D][:p].y, ptz[:D][:p].z) if four
-
-      tr1 = []
-      tr1 << ptz[:A][:p]
-      tr1 << ptz[:B][:p]
-      tr1 << ptz[:C][:p]
-      area1 = areaHeron(tr1)
-
-      area2 = 0
-      if four
-        tr2 = []
-        tr2 << ptz[:A][:p]
-        tr2 << ptz[:C][:p]
-        tr2 << ptz[:D][:p]
-        area2 = areaHeron(tr2)
-      end
-      area = area1 + area2
+      area = OpenStudio::getArea(vec).get
     end
 
     sub = { v:      s.vertices,
@@ -647,7 +582,7 @@ def openings(model, surface)
   subs.each do |id, sub|
     next unless fd
     next unless valid
-    unless fits?(surface.vertices, sub[:points])
+    unless fits?(sub[:points], surface.vertices, id, identifier)
       msg = "Subsurface '#{id}' can't fit in '#{identifier}' - skipping"
       TBD.log(TBD::ERROR, msg)
       valid = false
@@ -655,7 +590,7 @@ def openings(model, surface)
     subs.each do |i, sb|
       next unless valid
       next if i == id
-      if overlaps?(sub[:points], sb[:points])
+      if overlaps?(sb[:points], sub[:points], id, identifier)
         msg = "Subsurface '#{id}' overlaps sibling '#{i}' - skipping"
         TBD.log(TBD::ERROR, msg)
         valid = false

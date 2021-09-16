@@ -4601,25 +4601,35 @@ RSpec.describe TBD do
     expect(vals[:sillconvex]).to  be_within(0.001).of(0.391)     # :fenestration
   end
 
-  it "can flag polygon overlaps" do
-    # Testing  'fits?' & 'overlaps?' functions (framedivider.rb).
+  it "can flag polygon 'fits?' & 'overlaps?' (frame & dividers)" do
     model = OpenStudio::Model::Model.new
 
-    # 10m x 10m parent vertical (wall) surface
+    # 10m x 10m parent vertical (wall) surface.
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new(  0,  0, 10)
     vec << OpenStudio::Point3d.new(  0,  0,  0)
     vec << OpenStudio::Point3d.new( 10,  0,  0)
-    vec << OpenStudio::Point3d.new( 10,  0,  10)
+    vec << OpenStudio::Point3d.new( 10,  0, 10)
     wall = OpenStudio::Model::Surface.new(vec, model)
+    ft = OpenStudio::Transformation::alignFace(wall.vertices).inverse
+    ft_wall  = flatZ( (ft * wall.vertices).reverse )
 
-    # 1m x 2m corner door
+    # 1m x 2m corner door (with 2x edges along wall edges)
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new(  0,  0,  2)
     vec << OpenStudio::Point3d.new(  0,  0,  0)
     vec << OpenStudio::Point3d.new(  1,  0,  0)
     vec << OpenStudio::Point3d.new(  1,  0,  2)
     door1 = OpenStudio::Model::SubSurface.new(vec, model)
+    ft_door1 = flatZ( (ft * door1.vertices).reverse )
+
+    union = OpenStudio::join(ft_wall, ft_door1, TOL2)
+    expect(union.empty?).to be(false)
+    union = union.get
+    area = OpenStudio::getArea(union)
+    expect(area.empty?).to be(false)
+    area = area.get
+    expect(area).to be_within(0.01).of(wall.grossArea)
 
     # Door1 fits?, overlaps?
     TBD.clean!
@@ -4627,8 +4637,8 @@ RSpec.describe TBD do
     expect(overlaps?(door1.vertices, wall.vertices)).to be(true)
     expect(TBD.status).to eq(0)
 
-    # Order of arguments doesn't matter.
-    expect(fits?(wall.vertices, door1.vertices)).to be(true)
+    # Order of arguments matter.
+    expect(fits?(wall.vertices, door1.vertices)).to be(false)
     expect(overlaps?(wall.vertices, door1.vertices)).to be(true)
     expect(TBD.status).to eq(0)
 
@@ -4639,13 +4649,16 @@ RSpec.describe TBD do
     vec << OpenStudio::Point3d.new( 17,  0,  0)
     vec << OpenStudio::Point3d.new( 17,  0,  2)
     door2 = OpenStudio::Model::SubSurface.new(vec, model)
+    ft_door2 = flatZ( (ft * door2.vertices).reverse )
+    union = OpenStudio::join(ft_wall, ft_door2, TOL2)
+    expect(union.empty?).to be(true)
 
     # Door2 fits?, overlaps?
     expect(fits?(door2.vertices, wall.vertices)).to be(false)
     expect(overlaps?(door2.vertices, wall.vertices)).to be(false)
     expect(TBD.status).to eq(0)
 
-    # Again, order of arguments doesn't matter.
+    # # Order of arguments doesn't matter.
     expect(fits?(wall.vertices, door2.vertices)).to be(false)
     expect(overlaps?(wall.vertices, door2.vertices)).to be(false)
     expect(TBD.status).to eq(0)
@@ -4657,6 +4670,14 @@ RSpec.describe TBD do
     vec << OpenStudio::Point3d.new( 11,  0,  9)
     vec << OpenStudio::Point3d.new( 11,  0, 11)
     window = OpenStudio::Model::SubSurface.new(vec, model)
+    ft_window = flatZ( (ft * window.vertices).reverse )
+    union = OpenStudio::join(ft_wall, ft_window, TOL2)
+    expect(union.empty?).to be(false)
+    union = union.get
+    area = OpenStudio::getArea(union)
+    expect(area.empty?).to be(false)
+    area = area.get
+    expect(area).to be_within(0.01).of(103)
 
     # Window fits?, overlaps?
     expect(fits?(window.vertices, wall.vertices)).to be(false)
@@ -4672,7 +4693,7 @@ RSpec.describe TBD do
     vec << OpenStudio::Point3d.new(  0,  0, 10)
     vec << OpenStudio::Point3d.new(  0,  0,  0)
     vec << OpenStudio::Point3d.new( 10,  0,  0)
-    vec << OpenStudio::Point3d.new( 10,  0,  10)
+    vec << OpenStudio::Point3d.new( 10,  0, 10)
     glazing = OpenStudio::Model::SubSurface.new(vec, model)
 
     # Glazing fits?, overlaps?
@@ -5269,8 +5290,8 @@ RSpec.describe TBD do
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new(  0.00,  0.00, 10.00)
     vec << OpenStudio::Point3d.new(  0.00,  0.00,  0.00)
-    vec << OpenStudio::Point3d.new( -5.00, -8.67,  0.00)
-    vec << OpenStudio::Point3d.new( -5.00, -8.67, 10.00)
+    vec << OpenStudio::Point3d.new( -5.00, -8.66,  0.00)
+    vec << OpenStudio::Point3d.new( -5.00, -8.66, 10.00)
     dad = OpenStudio::Model::Surface.new(vec, fd2_model)
     dad.setName("dad")
     expect(dad.setSpace(space2)).to be(true)
@@ -5305,6 +5326,7 @@ RSpec.describe TBD do
     expect(w3.setSubSurfaceType("FixedWindow")).to be(true)
     expect(w3.setSurface(dad)).to be(true)
     expect(w3.setConstruction(fenestration)).to be(true)
+    expect(w3.grossArea).to be_within(0.01).of(0.32)
 
     # Without Frame & Divider objects linked to subsurface.
     surface = openings(fd2_model, dad)
@@ -5324,6 +5346,11 @@ RSpec.describe TBD do
     expect(surface[:windows]["w1"][:u]).to be_within(0.01).of(2.0)
     expect(surface[:windows]["w1"].has_key?(:points)).to be(true)
     expect(surface[:windows]["w1"][:points].size).to eq(3)
+
+    expect(surface[:windows].has_key?("w3"))
+    expect(surface[:windows]["w3"].is_a?(Hash)).to be(true)
+    expect(surface[:windows]["w3"].has_key?(:gross)).to be(true)
+    expect(surface[:windows]["w3"][:gross]).to be_within(0.01).of(0.32)
 
     # Adding a Frame & Divider object.
     fd2 = OpenStudio::Model::WindowPropertyFrameAndDivider.new(fd2_model)
@@ -5362,7 +5389,7 @@ RSpec.describe TBD do
     expect(vec[0].y).to be_within(0.01).of(-1.60)
     expect(vec[0].z).to be_within(0.01).of( 8.15)
     expect(vec[1].x).to be_within(0.01).of(-0.13)
-    expect(vec[1].y).to be_within(0.01).of(-0.24)
+    expect(vec[1].y).to be_within(0.01).of(-0.24) # SketchUP (-0.23)
     expect(vec[1].z).to be_within(0.01).of( 4.99)
     expect(vec[2].x).to be_within(0.01).of(-2.51)
     expect(vec[2].y).to be_within(0.01).of(-4.34)
@@ -5434,7 +5461,7 @@ RSpec.describe TBD do
 
     # # This window would have 2 shared edges (@right angle) with the parent.
     expect(vec[0].x).to be_within(0.01).of(-4.26)
-    expect(vec[0].y).to be_within(0.01).of(-7.37)
+    expect(vec[0].y).to be_within(0.01).of(-7.37) # SketchUp (-7.38)
     expect(vec[0].z).to be_within(0.01).of(10.00)
     expect(vec[1].x).to be_within(0.01).of(-5.00)
     expect(vec[1].y).to be_within(0.01).of(-8.66)
@@ -5478,18 +5505,18 @@ RSpec.describe TBD do
     expect(fenestration.layers[0].handle.to_s).to eq(glazing.handle.to_s)
 
     vec = OpenStudio::Point3dVector.new
-    vec << OpenStudio::Point3d.new( -2.17,  4.33,  8.75)
+    vec << OpenStudio::Point3d.new( -1.25,  6.50,  7.50)
     vec << OpenStudio::Point3d.new(  0.00,  0.00,  0.00)
-    vec << OpenStudio::Point3d.new( -6.25, -7.50,  2.17)
-    vec << OpenStudio::Point3d.new( -8.42, -3.17, 10.92)
+    vec << OpenStudio::Point3d.new( -6.50, -6.25,  4.33)
+    vec << OpenStudio::Point3d.new( -7.75,  0.25, 11.83)
     dad = OpenStudio::Model::Surface.new(vec, fd3_model)
     dad.setName("dad")
     dad.setSpace(space3)
 
     vec = OpenStudio::Point3dVector.new
-    vec << OpenStudio::Point3d.new( -2.98,  1.96,  7.43)
-    vec << OpenStudio::Point3d.new( -1.92,  1.85,  5.47)
-    vec << OpenStudio::Point3d.new( -4.45,  0.90,  8.74)
+    vec << OpenStudio::Point3d.new( -2.30,  3.95,  6.87)
+    vec << OpenStudio::Point3d.new( -1.40,  3.27,  4.93)
+    vec << OpenStudio::Point3d.new( -3.72,  3.35,  8.48)
     w1 = OpenStudio::Model::SubSurface.new(vec, fd3_model)
     w1.setName("w1")
     expect(w1.setSubSurfaceType("FixedWindow")).to be(true)
@@ -5497,10 +5524,10 @@ RSpec.describe TBD do
     expect(w1.setConstruction(fenestration)).to be(true)
 
     vec = OpenStudio::Point3dVector.new
-    vec << OpenStudio::Point3d.new( -5.24, -3.52,  5.02)
-    vec << OpenStudio::Point3d.new( -2.72, -2.57,  1.74)
-    vec << OpenStudio::Point3d.new( -5.43, -5.13,  3.48)
-    vec << OpenStudio::Point3d.new( -6.27, -5.45,  4.57)
+    vec << OpenStudio::Point3d.new( -5.05, -1.78,  6.03)
+    vec << OpenStudio::Point3d.new( -2.72, -1.85,  2.48)
+    vec << OpenStudio::Point3d.new( -5.45, -3.70,  4.96)
+    vec << OpenStudio::Point3d.new( -6.22, -3.68,  6.15)
     w2 = OpenStudio::Model::SubSurface.new(vec, fd3_model)
     w2.setName("w2")
     expect(w2.setSubSurfaceType("FixedWindow")).to be(true)
@@ -5508,9 +5535,9 @@ RSpec.describe TBD do
     expect(w2.setConstruction(fenestration)).to be(true)
 
     vec = OpenStudio::Point3dVector.new
-    vec << OpenStudio::Point3d.new( -7.75, -2.51, 10.52)
-    vec << OpenStudio::Point3d.new( -8.07, -3.45, 10.00)
-    vec << OpenStudio::Point3d.new( -8.25, -3.11, 10.70)
+    vec << OpenStudio::Point3d.new( -7.07,  0.74, 11.25)
+    vec << OpenStudio::Point3d.new( -7.49, -0.28, 10.99)
+    vec << OpenStudio::Point3d.new( -7.59,  0.24, 11.59)
     w3 = OpenStudio::Model::SubSurface.new(vec, fd3_model)
     w3.setName("w3")
     expect(w3.setSubSurfaceType("FixedWindow")).to be(true)
@@ -5569,15 +5596,15 @@ RSpec.describe TBD do
     # with respect to the original subsurface coordinates. For acute angles,
     # the rough opening edge intersection can be far, far away from the glazing
     # coordinates (+1m).
-    expect(vec[0].x).to be_within(0.01).of(-2.92)
-    expect(vec[0].y).to be_within(0.01).of( 2.14)
-    expect(vec[0].z).to be_within(0.01).of( 7.53)
-    expect(vec[1].x).to be_within(0.01).of(-1.24)
-    expect(vec[1].y).to be_within(0.01).of( 1.96)
-    expect(vec[1].z).to be_within(0.01).of( 4.42)
-    expect(vec[2].x).to be_within(0.01).of(-5.25)
-    expect(vec[2].y).to be_within(0.01).of( 0.45)
-    expect(vec[2].z).to be_within(0.01).of( 9.60)
+    expect(vec[0].x).to be_within(0.01).of(-2.22)
+    expect(vec[0].y).to be_within(0.01).of( 4.14)
+    expect(vec[0].z).to be_within(0.01).of( 6.91)
+    expect(vec[1].x).to be_within(0.01).of(-0.80)
+    expect(vec[1].y).to be_within(0.01).of( 3.07)
+    expect(vec[1].z).to be_within(0.01).of( 3.86)
+    expect(vec[2].x).to be_within(0.01).of(-4.47)
+    expect(vec[2].y).to be_within(0.01).of( 3.19)
+    expect(vec[2].z).to be_within(0.01).of( 9.46) # SketchUp (-9.47)
 
     # Adding a Frame & Divider object for w2.
     expect(w2.allowWindowPropertyFrameAndDivider).to be(true)
@@ -5605,18 +5632,18 @@ RSpec.describe TBD do
     ptz.each { |p| vec << t * OpenStudio::Point3d.new(p.x, p.y, p.z) }
 
     # # This window would have 2 shared edges (@right angle) with the parent.
-    expect(vec[0].x).to be_within(0.01).of(-5.27)
-    expect(vec[0].y).to be_within(0.01).of(-3.38)
-    expect(vec[0].z).to be_within(0.01).of( 5.22)
-    expect(vec[1].x).to be_within(0.01).of(-2.23)
-    expect(vec[1].y).to be_within(0.01).of(-2.24)
-    expect(vec[1].z).to be_within(0.01).of( 1.28)
-    expect(vec[2].x).to be_within(0.01).of(-5.46)
-    expect(vec[2].y).to be_within(0.01).of(-5.29)
-    expect(vec[2].z).to be_within(0.01).of( 3.35)
-    expect(vec[3].x).to be_within(0.01).of(-6.50)
-    expect(vec[3].y).to be_within(0.01).of(-5.68)
-    expect(vec[3].z).to be_within(0.01).of( 4.69)
+    expect(vec[0].x).to be_within(0.01).of(-5.05)
+    expect(vec[0].y).to be_within(0.01).of(-1.59)
+    expect(vec[0].z).to be_within(0.01).of( 6.20)
+    expect(vec[1].x).to be_within(0.01).of(-2.25)
+    expect(vec[1].y).to be_within(0.01).of(-1.68)
+    expect(vec[1].z).to be_within(0.01).of( 1.92)
+    expect(vec[2].x).to be_within(0.01).of(-5.49)
+    expect(vec[2].y).to be_within(0.01).of(-3.88)
+    expect(vec[2].z).to be_within(0.01).of( 4.87)
+    expect(vec[3].x).to be_within(0.01).of(-6.45)
+    expect(vec[3].y).to be_within(0.01).of(-3.85)
+    expect(vec[3].z).to be_within(0.01).of( 6.33)
 
     # Adding a Frame & Divider object for w3.
     expect(w3.allowWindowPropertyFrameAndDivider).to be(true)
@@ -5643,16 +5670,16 @@ RSpec.describe TBD do
     vec = OpenStudio::Point3dVector.new
     ptz.each { |p| vec << t * OpenStudio::Point3d.new(p.x, p.y, p.z) }
 
-    # # This window would have 2 shared edges (@right angle) with the parent.
-    expect(vec[0].x).to be_within(0.01).of(-7.49)
-    expect(vec[0].y).to be_within(0.01).of(-2.06)
-    expect(vec[0].z).to be_within(0.01).of(10.59)
-    expect(vec[1].x).to be_within(0.01).of(-8.09)
-    expect(vec[1].y).to be_within(0.01).of(-3.81)
-    expect(vec[1].z).to be_within(0.01).of( 9.62)
-    expect(vec[2].x).to be_within(0.01).of(-8.42)
-    expect(vec[2].y).to be_within(0.01).of(-3.17)
-    expect(vec[2].z).to be_within(0.01).of(10.92)
+    # This window would have 2 shared edges (@right angle) with the parent.
+    expect(vec[0].x).to be_within(0.01).of(-6.78)
+    expect(vec[0].y).to be_within(0.01).of( 1.17)
+    expect(vec[0].z).to be_within(0.01).of(11.19)
+    expect(vec[1].x).to be_within(0.01).of(-7.56)
+    expect(vec[1].y).to be_within(0.01).of(-0.72)
+    expect(vec[1].z).to be_within(0.01).of(10.72)
+    expect(vec[2].x).to be_within(0.01).of(-7.75)
+    expect(vec[2].y).to be_within(0.01).of( 0.25)
+    expect(vec[2].z).to be_within(0.01).of(11.83)
   end
 
   it "can flag errors and integrate TBD logs in JSON output" do
@@ -6768,7 +6795,7 @@ RSpec.describe TBD do
     outP2 = File.dirname(__FILE__) + "/../json/tbd_warehouse13.out.json"
     File.open(outP2, "w") { |outP2| outP2.puts out2 }
 
-    # The JSON output file sare identical.
+    # The JSON output files are identical.
     expect(FileUtils.identical?(outP, outP2)).to be(true)
 
     time = Time.now
