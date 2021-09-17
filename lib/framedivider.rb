@@ -546,12 +546,10 @@ def openings(model, surface)
       vec = s.vertices
       area = gross
     else
+      fd = true
       width = s.windowPropertyFrameAndDivider.get.frameWidth
       ptz = offset(s.vertices, width)
-      # ptz = OpenStudio::buffer(s.vertices, width, TOL2)
-
-      fd = true
-
+      
       # Re-convert Topolys 3D points into OpenStudio 3D points.
       vec = OpenStudio::Point3dVector.new
       vec << OpenStudio::Point3d.new(ptz[:A][:p].x, ptz[:A][:p].y, ptz[:A][:p].z)
