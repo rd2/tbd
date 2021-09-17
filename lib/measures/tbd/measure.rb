@@ -115,9 +115,9 @@ def exitTBD(model, runner, gen_ua = false, ref = "", setpoints = false, out = fa
   TBD.logs.each do |l|
     tbd_msgs << { level: TBD.tag(l[:level]), message: l[:message] }
     if l[:level] > TBD::INFO
-      runner.registerWarning("(#{TBD.tag(l[:level])}) #{l[:message]}")
+      runner.registerWarning(l[:message])
     else
-      runner.registerInfo("(#{TBD.tag(l[:level])}) #{l[:message]}")
+      runner.registerInfo(l[:message])
     end
   end
   tbd_log[:messages] = tbd_msgs unless tbd_msgs.empty?
@@ -226,7 +226,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
   end
 
   # define the arguments that the user will input
-  def arguments(model)
+  def arguments(model = nil)
     args = OpenStudio::Measure::OSArgumentVector.new
 
     load_tbd_json = OpenStudio::Measure::OSArgument.makeBoolArgument("load_tbd_json", true, false)
@@ -247,7 +247,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
 
     alter_model = OpenStudio::Measure::OSArgument.makeBoolArgument("alter_model", true, false)
     alter_model.setDisplayName("Alter OpenStudio model (Apply Measures Now)")
-    alter_model.setDescription("If checked under Apply Measures Now, TBD will irrevocably alter the user's OpenStudio model.")
+    alter_model.setDescription("For EnergyPlus simulations, leave checked. For iterative exploration with Apply Measures Now, uncheck to preserve original OpenStudio model.")
     alter_model.setDefaultValue(true)
     args << alter_model
 

@@ -36,7 +36,7 @@ e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by 'tbd.json' fil
 **Model Dependent:** false
 
 ### Alter OpenStudio model (Apply Measures Now)
-If checked under Apply Measures Now, TBD will irrevocably alter the user's OpenStudio model.
+For EnergyPlus simulations, leave checked. For iterative exploration with Apply Measures Now, uncheck to preserve original OpenStudio model.
 **Name:** alter_model,
 **Type:** Boolean,
 **Units:** ,

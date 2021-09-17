@@ -2,8 +2,8 @@
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>5f42b107-1652-4469-9297-86b23ab65152</version_id>
-  <version_modified>20210822T191445Z</version_modified>
+  <version_id>7eae9044-a446-478a-b0f0-43e332c4a17f</version_id>
+  <version_modified>20210917T180639Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -71,7 +71,7 @@
     <argument>
       <name>alter_model</name>
       <display_name>Alter OpenStudio model (Apply Measures Now)</display_name>
-      <description>If checked under Apply Measures Now, TBD will irrevocably alter the user's OpenStudio model.</description>
+      <description>For EnergyPlus simulations, leave checked. For iterative exploration with Apply Measures Now, uncheck to preserve original OpenStudio model.</description>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -329,22 +329,22 @@
       <checksum>9B4F2407</checksum>
     </file>
     <file>
-      <filename>framedivider.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>7A5612C1</checksum>
-    </file>
-    <file>
       <filename>psi.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>BCCE78C9</checksum>
+      <checksum>E592DA51</checksum>
     </file>
     <file>
-      <filename>README.md</filename>
-      <filetype>md</filetype>
-      <usage_type>readme</usage_type>
-      <checksum>F3C828F3</checksum>
+      <filename>framedivider.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>ED2397F1</checksum>
+    </file>
+    <file>
+      <filename>ua.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>44471611</checksum>
     </file>
     <file>
       <version>
@@ -355,13 +355,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>AD2835DF</checksum>
+      <checksum>8570CF74</checksum>
     </file>
     <file>
-      <filename>ua.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>08BAA725</checksum>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>DF2509D6</checksum>
     </file>
   </files>
 </measure>

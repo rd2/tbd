@@ -5,258 +5,251 @@ require "openstudio"
 #
 # @param [Array] pts OpenStudio Point3D array/vector
 #
-# @return [Array] Flattened OS 3D points array
+# @return [Array] Flattened OpenStudio 3D points array
 def flatZ(pts)
   unless pts && (pts.is_a?(OpenStudio::Point3dVector) || pts.is_a?(Array))
-    TBD.log(TBD::DEBUG,
-      "Invalid pts to flatten (argument) - skipping")
-    return pts
+    TBD.log(TBD::DEBUG, "Invalid pts to flatten (argument) - skipping")
+    return OpenStudio::Point3dVector.new
   end
 
+  vec = OpenStudio::Point3dVector.new
   pts.each do |pt|
     unless pt.class == OpenStudio::Point3d
-      TBD.log(TBD::DEBUG,
-        "#{pt.class}? expected OSM 3D points to flatten - skipping")
-      next
+      msg = "#{pt.class}? expected OSM 3D points to flatten - skipping"
+      TBD.log(TBD::DEBUG, msg)
+      return OpenStudio::Point3dVector.new
     end
-    pt = OpenStudio::Point3d.new(pt.x, pt.y, 0)
+    vec << OpenStudio::Point3d.new(pt.x, pt.y, 0)
   end
-  pts
+  vec
 end
 
-##
-# Validate whether an OpenStudio subsurface can 'fit in' (vs parent, siblings)
+## Validates whether 1st OpenStudio polygon fits within 2nd polygon.
 #
-# @param [OpenStudio::Model::Model] model An OS model
-# @param [String] id SubSurface identifier
-# @param [Array] pts Point3D array of subsurface 'id'
+# @param [Array] poly1 Point3D array of convex polygon #1
+# @param [Array] poly2 Point3D array of convex polygon #2
+# @param [String] id1 Polygon #1 identifier (optional)
+# @param [String] id2 Polygon #2 identifier (optional)
 #
-# @return [Bool] Returns true if subsurface can fit in.
-def fit?(model, id, pts)
-  unless model && model.is_a?(OpenStudio::Model::Model)
-    TBD.log(TBD::DEBUG,
-      "Can't find or validate OSM (argument) for subsurface fit - skipping")
+# @return Returns true if 1st polygon fits entirely within the 2nd polygon.
+def fits?(poly1, poly2, id1 = "", id2 = "")
+  unless poly1 && (poly1.is_a?(OpenStudio::Point3dVector) || poly1.is_a?(Array))
+    msg = ""
+    msg << "'#{id1}': " unless id1.empty?
+    msg << "Invalid polygon (fits?, 1st argument) - skipping"
+    TBD.log(TBD::DEBUG, msg)
     return false
   end
-  unless pts && (pts.is_a?(OpenStudio::Point3dVector) || pts.is_a?(Array))
-    TBD.log(TBD::DEBUG,
-      "Invalid subsurface pts to fit (argument) - skipping")
+  unless poly2 && (poly2.is_a?(OpenStudio::Point3dVector) || poly2.is_a?(Array))
+    msg = ""
+    msg << "'#{id2}': " unless id2.empty?
+    msg << "Invalid polygon (fits?, 2nd argument) - skipping"
+    TBD.log(TBD::DEBUG, msg)
+    return false
+  end
+  if poly1.empty?
+    msg = ""
+    msg << "'#{id1}': " unless id1.empty?
+    msg << "Empty polygon (fits?, 1st argument) - skipping"
+    TBD.log(TBD::DEBUG, msg)
+    return false
+  end
+  if poly2.empty?
+    msg = ""
+    msg << "'#{id2}': " unless id2.empty?
+    msg << "Empty polygon (fits?, 2nd argument) - skipping"
+    TBD.log(TBD::DEBUG, msg)
     return false
   end
 
-  pts.each do |pt|
+  poly1.each do |pt|
     unless pt.class == OpenStudio::Point3d
-      TBD.log(TBD::DEBUG,
-        "#{pt.class}? expected OSM 3D points to fit - skipping")
+      msg = "#{pt.class}? "
+      msg << "for '#{id1}': " unless id1.empty?
+      msg << "Expected OpenStudio 3D points (fits?, 1st argument - skipping"
+      TBD.log(TBD::DEBUG, msg)
+      return false
+    end
+  end
+  poly2.each do |pt|
+    unless pt.class == OpenStudio::Point3d
+      msg = "#{pt.class}? "
+      msg << "for '#{id2}': " unless id2.empty?
+      msg << "Expected OpenStudio 3D points (fits?, 2nd argument - skipping"
+      TBD.log(TBD::DEBUG, msg)
       return false
     end
   end
 
-  s = model.getSubSurfaceByName(id)
-  if s.empty?
-    TBD.log(TBD::DEBUG,
-      "Can't find '#{id}' OSM subsurface to fit - skipping")
+  ft = OpenStudio::Transformation::alignFace(poly1).inverse
+  ft_poly1 = flatZ( (ft * poly1).reverse )
+  ft_poly2 = flatZ( (ft * poly2).reverse )
+
+  area1 = OpenStudio::getArea(ft_poly1)
+  if area1.empty?
+    msg = "#{pt.class}? "
+    msg << "for '#{id2}': " unless id2.empty?
+    msg << "Invalid polygon area (fits?, 1st argument) - skipping"
+    TBD.log(TBD::DEBUG, msg)
+    return false
+  end
+  area1 = area1.get
+
+  area2 = OpenStudio::getArea(ft_poly2)
+  if area2.empty?
+    msg = "#{pt.class}? "
+    msg << "for '#{id2}': " unless id2.empty?
+    msg << "Invalid polygon area (fits?, 2nd argument) - skipping"
+    TBD.log(TBD::DEBUG, msg)
+    return false
+  end
+  area2 = area2.get
+
+  union = OpenStudio::join(ft_poly1, ft_poly2, TOL2)
+  return false if union.empty?
+  union = union.get
+  area = OpenStudio::getArea(union)
+  if area.empty?
+    msg = "Can't determine if "
+    msg << "'#{id1}' " unless id1.empty?
+    msg << "fits? - skipping"
+    TBD.log(TBD::DEBUG, msg)
+    return false
+  end
+  area = area.get
+
+  return false if area < TOL
+  return true if (area - area2).abs < TOL
+  return false if (area - area2).abs > TOL
+  true
+end
+
+## Validates whether an OpenStudio polygon overlaps another polygon.
+#
+# @param [Array] poly1 Point3D array of convex polygon #1
+# @param [Array] poly1 Point3D array of convex polygon #2
+# @param [String] id1 Polygon #1 identifier (optional)
+# @param [String] id2 Polygon #2 identifier (optional)
+#
+# @return Returns true if polygons overlaps (or either fits into the other).
+def overlaps?(poly1, poly2, id1 = "", id2 = "")
+  unless poly1 && (poly1.is_a?(OpenStudio::Point3dVector) || poly1.is_a?(Array))
+    msg = ""
+    msg << "'#{id1}': " unless id1.empty?
+    msg << "Invalid polygon (overlaps?, 1st argument) - skipping"
+    TBD.log(TBD::DEBUG, msg)
+    return false
+  end
+  unless poly2 && (poly2.is_a?(OpenStudio::Point3dVector) || poly2.is_a?(Array))
+    msg = ""
+    msg << "'#{id2}': " unless id2.empty?
+    msg << "Invalid polygon (overlaps?, 2nd argument) - skipping"
+    TBD.log(TBD::DEBUG, msg)
+    return false
+  end
+  if poly1.empty?
+    msg = ""
+    msg << "'#{id1}': " unless id1.empty?
+    msg << "Empty polygon (overlaps?, 1st argument) - skipping"
+    TBD.log(TBD::DEBUG, msg)
+    return false
+  end
+  if poly2.empty?
+    msg = ""
+    msg << "'#{id2}': " unless id2.empty?
+    msg << "Empty polygon (overlaps?, 2nd argument) - skipping"
+    TBD.log(TBD::DEBUG, msg)
     return false
   end
 
-  s = s.get
-  if s.surface.empty?
-    TBD.log(TBD::DEBUG,
-      "Missing subsurface '#{id}' OSM parent surface entry - skipping")
-    return false
-  end
-
-  nom = s.surface.get.nameString
-  parent = model.getSurfaceByName(nom)
-  if parent.empty?
-    TBD.log(TBD::DEBUG,
-      "Can't find subsurface '#{id}' OSM parent surface '#{nom}' - skipping")
-    return false
-  end
-
-  parent = parent.get
-  ft = OpenStudio::Transformation::alignFace(parent.vertices).inverse
-  ft_parent = (ft * parent.vertices).reverse
-  ft_parent = flatZ(ft_parent)
-
-  siblings = []
-  model.getSubSurfaces.each do |sub|
-    next if sub.nameString == id
-    next if sub.surface.empty?
-    next unless sub.surface.get.nameString == parent.nameString
-    siblings << flatZ( (ft * sub.vertices).reverse )
-  end
-
-  ft_pts = flatZ(ft * pts)
-  ft_pts.each do |ft_pt|
-    return false unless OpenStudio::pointInPolygon(ft_pt, ft_parent, TOL)
-    siblings.each do |sibling|
-      return false if OpenStudio::pointInPolygon(ft_pt, sibling, TOL)
+  poly1.each do |pt|
+    unless pt.class == OpenStudio::Point3d
+      msg = "#{pt.class}? "
+      msg << "for '#{id1}': " unless id1.empty?
+      msg << "Expected OpenStudio 3D points (overlaps?, 1st argument - skipping"
+      TBD.log(TBD::DEBUG, msg)
+      return false
     end
   end
+  poly2.each do |pt|
+    unless pt.class == OpenStudio::Point3d
+      msg = "#{pt.class}? "
+      msg << "for '#{id2}': " unless id2.empty?
+      msg << "Expected OpenStudio 3D points (overlaps?, 2nd argument - skipping"
+      TBD.log(TBD::DEBUG, msg)
+      return false
+    end
+  end
+
+  ft = OpenStudio::Transformation::alignFace(poly1).inverse
+  ft_poly1 = flatZ( (ft * poly1).reverse )
+  ft_poly2 = flatZ( (ft * poly2).reverse )
+
+  area1 = OpenStudio::getArea(ft_poly1)
+  if area1.empty?
+    msg = "#{pt.class}? "
+    msg << "for '#{id2}': " unless id2.empty?
+    msg << "Invalid polygon area (fits?, 1st argument) - skipping"
+    TBD.log(TBD::DEBUG, msg)
+    return false
+  end
+  area1 = area1.get
+
+  area2 = OpenStudio::getArea(ft_poly2)
+  if area2.empty?
+    msg = "#{pt.class}? "
+    msg << "for '#{id2}': " unless id2.empty?
+    msg << "Invalid polygon area (fits?, 2nd argument) - skipping"
+    TBD.log(TBD::DEBUG, msg)
+    return false
+  end
+  area2 = area2.get
+
+  union = OpenStudio::join(ft_poly1, ft_poly2, TOL2)
+  return false if union.empty?
+  union = union.get
+  area = OpenStudio::getArea(union)
+  if area.empty?
+    msg = "Can't determine if "
+    msg << "'#{id1}' " unless id1.empty?
+    msg << "overlaps? - skipping"
+    TBD.log(TBD::DEBUG, msg)
+    return false
+  end
+  area = area.get
+
+  return false if area < TOL
   true
 end
 
 ##
-# Calculate triangle area.
+# Generate offset vertices by a certain width.
 #
-# @param [Array] pts Point3D array (3x)
+# @param [Array] pts OpenStudio Point3D array
+# @param [Float] width Offset width
 #
-# @return [Float] triangle area (m2)
-# @return [Array] subsurface rough opening sorted Topolys 3D points
-def areaHeron(pts)
-  unless pts && pts.is_a?(Array) && pts.size == 3
-    TBD.log(TBD::DEBUG,
-      "Invalid subsurface pts (argument) to calculate area - skipping")
-    return 0
+# @return [Array] Offset Topolys 3D points (original points if failed).
+def offset(pts, width)
+  unless pts && (pts.is_a?(OpenStudio::Point3dVector) || pts.is_a?(Array))
+    msg = "Invalid subsurface vertices to offset - skipping"
+    TBD.log(TBD::DEBUG, msg)
+    return pts
   end
 
-  pts.each do |pt|
-    unless pt.class == Topolys::Point3D
-      TBD.log(TBD::DEBUG,
-        "#{pt.class}? expected OSM 3D points to calculate area - skipping")
-      return 0
-    end
-  end
+  return pts if width < TOL
 
-  e = []
-  e << { v0: pts[0], v1: pts[1], mag: (pts[1] - pts[0]).magnitude }
-  e << { v0: pts[1], v1: pts[2], mag: (pts[2] - pts[1]).magnitude }
-  e << { v0: pts[2], v1: pts[0], mag: (pts[0] - pts[2]).magnitude }
+  four = true if pts.size == 4
+  ptz = {}
 
-  if matches?(e[0], e[1]) || matches?(e[1], e[2]) || matches?(e[2], e[0])
-    TBD.log(TBD::DEBUG,
-      "Unique triangle edges to calculate area - skipping")
-    return 0
-  end
-  e = e.sort_by{ |p| p[:mag] }
+  ptz[:A] = {}
+  ptz[:B] = {}
+  ptz[:C] = {}
+  ptz[:D] = {} if four
 
-  # Kahan's stable implementation of Heron's formula for triangle area.
-  # area = 1/4 sqrt( (a+(b+c)) (c-(a-b)) (c+(a-b)) (a+(b-c)) ) ... a > b > c
-  a = e[0][:mag]
-  b = e[1][:mag]
-  c = e[2][:mag]
-  0.25 * Math.sqrt( (a+(b+c)) * (c-(a-b)) * (c+(a-b)) * (a+(b-c)) )
-end
-
-##
-# Calculate subsurface rough opening area & vertices.
-#
-# @param [OpenStudio::Model::Model] model An OS model
-# @param [String] id A subsurface identifier
-#
-# @return [Float] Returns subsurface calculated U-factor (W/m2.K)
-# @return [Float] Returns subsurface rough opening area (m2)
-# @return [Array] Returns subsurface rough opening OpenStudio 3D points
-def opening(model, id)
-  unless model && model.is_a?(OpenStudio::Model::Model)
-    TBD.log(TBD::DEBUG,
-      "Can't find or validate OSM (argument) for area & vertices - skipping")
-    return 0, 0, nil
-  end
-
-  s = model.getSubSurfaceByName(id)
-  if s.empty?
-    TBD.log(TBD::DEBUG,
-      "Can't find OSM subsurface '#{id}' for area & vertices - skipping")
-    return 0, 0, nil
-  end
-  s = s.get
-
-  points = s.vertices
-  unless points.size == 3 || points.size == 4
-    TBD.log(TBD::ERROR,
-      "OSM subsurface '#{id}' vertex count (must be 3 or 4) - skipping")
-    return 0, 0, points
-  end
-
-  if s.surface.empty?
-    TBD.log(TBD::ERROR,
-      "Can't find OSM subsurface '#{id}' parent surface - skipping")
-    return 0, 0, points
-  end
-  dad = s.surface.get
-
-  area = s.grossArea
-  if area < TOL
-    TBD.log(TBD::ERROR,
-      "OSM subsurface '#{id}' gross area (< TOL) - skipping")
-    return 0, 0, points
-  end
-
-  constr = s.construction
-  if constr.empty?
-    TBD.log(TBD::ERROR,
-      "OSM subsurface '#{id}' missing construction - skipping")
-    return 0, 0, points
-  end
-  constr = constr.get.to_Construction.get
-
-  # A subsurface may have an overall U-factor set by the user - a less accurate
-  # option, yet easier to process (and often the only option available). With
-  # EnergyPlus' "simple window" model, a subsurface's construction has a single
-  # SimpleGlazing material/layer holding the whole product U-factor.
-  #
-  # https://bigladdersoftware.com/epx/docs/9-5/engineering-reference/
-  # window-calculation-module.html#simple-window-model
-  #
-  # In other cases, TBD will recover an 'additional property' tagged "uFactor",
-  # assigned either to the individual subsurface itself, or else assigned to
-  # its referenced construction (a more generic fallback).
-  #
-  # If all else fails, TBD will calculate an approximate whole product U-factor
-  # by adding up the subsurface's construction material thermal resistances (as
-  # well as the subsurface's parent surface film resistances). This is the least
-  # accurate option, especially if subsurfaces have Frame & Divider objects.
-  u = s.uFactor
-  u = s.additionalProperties.getFeatureAsDouble("uFactor") if u.empty?
-  u = constr.additionalProperties.getFeatureAsDouble("uFactor") if u.empty?
-  if u.empty?
-    r = rsi(constr, dad.filmResistance)
-    if r < TOL
-      TBD.log(TBD::ERROR,
-        "OSM subsurface '#{id}' U-factor unavailable - skipping")
-      return 0, 0, points
-    else
-      u = 1.0 / r
-    end
-  else
-    u = u.get
-  end
-
-  # Should verify convexity of vertex wire/face ...
-  #
-  #       A
-  #      / \
-  #     /   \
-  #    /     \
-  #   / C --- D    <<< allowed as OpenStudio/E+ subsurface?
-  #  / /
-  #  B
-  #
-  # Should convert (annoying) 4-point subsurface into triangle ...
-  #        A
-  #       / \
-  #      /   \
-  #     /     \
-  #    B - C - D   <<< allowed as OpenStudio/E+ subsurface?
-  #
-  return u, area, points if s.windowPropertyFrameAndDivider.empty?
-  width = s.windowPropertyFrameAndDivider.get.frameWidth
-  return u, area, points if width < TOL
-
-  four = true if s.vertices.size == 4
-  pts = {}
-
-  pts[:A] = {}
-  pts[:B] = {}
-  pts[:C] = {}
-  pts[:D] = {} if four
-
-  pts[:A][:pt] = Topolys::Point3D.new(points[0].x, points[0].y, points[0].z)
-  pts[:B][:pt] = Topolys::Point3D.new(points[1].x, points[1].y, points[1].z)
-  pts[:C][:pt] = Topolys::Point3D.new(points[2].x, points[2].y, points[2].z)
-  pts[:D][:pt] = Topolys::Point3D.new(points[3].x, points[3].y, points[3].z) if four
+  ptz[:A][:pt] = Topolys::Point3D.new(pts[0].x, pts[0].y, pts[0].z)
+  ptz[:B][:pt] = Topolys::Point3D.new(pts[1].x, pts[1].y, pts[1].z)
+  ptz[:C][:pt] = Topolys::Point3D.new(pts[2].x, pts[2].y, pts[2].z)
+  ptz[:D][:pt] = Topolys::Point3D.new(pts[3].x, pts[3].y, pts[3].z) if four
 
   # Generate vector pairs, from next point & from previous point.
   #
@@ -271,19 +264,19 @@ def opening(model, id)
   #                \
   #                 C (or D)
   #
-  pts[:A][:from_next] = pts[:A][:pt] - pts[:B][:pt]
-  pts[:A][:from_prev] = pts[:A][:pt] - pts[:C][:pt] unless four
-  pts[:A][:from_prev] = pts[:A][:pt] - pts[:D][:pt] if four
+  ptz[:A][:from_next] = ptz[:A][:pt] - ptz[:B][:pt]
+  ptz[:A][:from_prev] = ptz[:A][:pt] - ptz[:C][:pt] unless four
+  ptz[:A][:from_prev] = ptz[:A][:pt] - ptz[:D][:pt] if four
 
-  pts[:B][:from_next] = pts[:B][:pt] - pts[:C][:pt]
-  pts[:B][:from_prev] = pts[:B][:pt] - pts[:A][:pt]
+  ptz[:B][:from_next] = ptz[:B][:pt] - ptz[:C][:pt]
+  ptz[:B][:from_prev] = ptz[:B][:pt] - ptz[:A][:pt]
 
-  pts[:C][:from_next] = pts[:C][:pt] - pts[:A][:pt] unless four
-  pts[:C][:from_next] = pts[:C][:pt] - pts[:D][:pt] if four
-  pts[:C][:from_prev] = pts[:C][:pt] - pts[:B][:pt]
+  ptz[:C][:from_next] = ptz[:C][:pt] - ptz[:A][:pt] unless four
+  ptz[:C][:from_next] = ptz[:C][:pt] - ptz[:D][:pt] if four
+  ptz[:C][:from_prev] = ptz[:C][:pt] - ptz[:B][:pt]
 
-  pts[:D][:from_next] = pts[:D][:pt] - pts[:A][:pt] if four
-  pts[:D][:from_prev] = pts[:D][:pt] - pts[:C][:pt] if four
+  ptz[:D][:from_next] = ptz[:D][:pt] - ptz[:A][:pt] if four
+  ptz[:D][:from_prev] = ptz[:D][:pt] - ptz[:C][:pt] if four
 
   # Generate 3D plane from vectors.
   #
@@ -298,17 +291,17 @@ def opening(model, id)
   #             |  \
   #             |   C (or D)
   #
-  pts[:A][:pl_from_next] = Topolys::Plane3D.new(pts[:A][:pt], pts[:A][:from_next])
-  pts[:A][:pl_from_prev] = Topolys::Plane3D.new(pts[:A][:pt], pts[:A][:from_prev])
+  ptz[:A][:pl_from_next] = Topolys::Plane3D.new(ptz[:A][:pt], ptz[:A][:from_next])
+  ptz[:A][:pl_from_prev] = Topolys::Plane3D.new(ptz[:A][:pt], ptz[:A][:from_prev])
 
-  pts[:B][:pl_from_next] = Topolys::Plane3D.new(pts[:B][:pt], pts[:B][:from_next])
-  pts[:B][:pl_from_prev] = Topolys::Plane3D.new(pts[:B][:pt], pts[:B][:from_prev])
+  ptz[:B][:pl_from_next] = Topolys::Plane3D.new(ptz[:B][:pt], ptz[:B][:from_next])
+  ptz[:B][:pl_from_prev] = Topolys::Plane3D.new(ptz[:B][:pt], ptz[:B][:from_prev])
 
-  pts[:C][:pl_from_next] = Topolys::Plane3D.new(pts[:C][:pt], pts[:C][:from_next])
-  pts[:C][:pl_from_prev] = Topolys::Plane3D.new(pts[:C][:pt], pts[:C][:from_prev])
+  ptz[:C][:pl_from_next] = Topolys::Plane3D.new(ptz[:C][:pt], ptz[:C][:from_next])
+  ptz[:C][:pl_from_prev] = Topolys::Plane3D.new(ptz[:C][:pt], ptz[:C][:from_prev])
 
-  pts[:D][:pl_from_next] = Topolys::Plane3D.new(pts[:D][:pt], pts[:D][:from_next]) if four
-  pts[:D][:pl_from_prev] = Topolys::Plane3D.new(pts[:D][:pt], pts[:D][:from_prev]) if four
+  ptz[:D][:pl_from_next] = Topolys::Plane3D.new(ptz[:D][:pt], ptz[:D][:from_next]) if four
+  ptz[:D][:pl_from_prev] = Topolys::Plane3D.new(ptz[:D][:pt], ptz[:D][:from_prev]) if four
 
   # Project an extended point (pC) unto 3D plane.
   #
@@ -323,17 +316,17 @@ def opening(model, id)
   #             |  \
   #             |   C (or D)
   #
-  pts[:A][:prev_unto_next_pl] = pts[:A][:pl_from_next].project(pts[:A][:pt] + pts[:A][:from_prev])
-  pts[:A][:next_unto_prev_pl] = pts[:A][:pl_from_prev].project(pts[:A][:pt] + pts[:A][:from_next])
+  ptz[:A][:prev_unto_next_pl] = ptz[:A][:pl_from_next].project(ptz[:A][:pt] + ptz[:A][:from_prev])
+  ptz[:A][:next_unto_prev_pl] = ptz[:A][:pl_from_prev].project(ptz[:A][:pt] + ptz[:A][:from_next])
 
-  pts[:B][:prev_unto_next_pl] = pts[:B][:pl_from_next].project(pts[:B][:pt] + pts[:B][:from_prev])
-  pts[:B][:next_unto_prev_pl] = pts[:B][:pl_from_prev].project(pts[:B][:pt] + pts[:B][:from_next])
+  ptz[:B][:prev_unto_next_pl] = ptz[:B][:pl_from_next].project(ptz[:B][:pt] + ptz[:B][:from_prev])
+  ptz[:B][:next_unto_prev_pl] = ptz[:B][:pl_from_prev].project(ptz[:B][:pt] + ptz[:B][:from_next])
 
-  pts[:C][:prev_unto_next_pl] = pts[:C][:pl_from_next].project(pts[:C][:pt] + pts[:C][:from_prev])
-  pts[:C][:next_unto_prev_pl] = pts[:C][:pl_from_prev].project(pts[:C][:pt] + pts[:C][:from_next])
+  ptz[:C][:prev_unto_next_pl] = ptz[:C][:pl_from_next].project(ptz[:C][:pt] + ptz[:C][:from_prev])
+  ptz[:C][:next_unto_prev_pl] = ptz[:C][:pl_from_prev].project(ptz[:C][:pt] + ptz[:C][:from_next])
 
-  pts[:D][:prev_unto_next_pl] = pts[:D][:pl_from_next].project(pts[:D][:pt] + pts[:D][:from_prev]) if four
-  pts[:D][:next_unto_prev_pl] = pts[:D][:pl_from_prev].project(pts[:D][:pt] + pts[:D][:from_next]) if four
+  ptz[:D][:prev_unto_next_pl] = ptz[:D][:pl_from_next].project(ptz[:D][:pt] + ptz[:D][:from_prev]) if four
+  ptz[:D][:next_unto_prev_pl] = ptz[:D][:pl_from_prev].project(ptz[:D][:pt] + ptz[:D][:from_next]) if four
 
   # Generate vector from point (e.g. A) to projected extended point (pC).
   #
@@ -348,17 +341,17 @@ def opening(model, id)
   #             |  \
   #             |   C (or D)
   #
-  pts[:A][:n_prev_unto_next_pl] = pts[:A][:prev_unto_next_pl] - pts[:A][:pt]
-  pts[:A][:n_next_unto_prev_pl] = pts[:A][:next_unto_prev_pl] - pts[:A][:pt]
+  ptz[:A][:n_prev_unto_next_pl] = ptz[:A][:prev_unto_next_pl] - ptz[:A][:pt]
+  ptz[:A][:n_next_unto_prev_pl] = ptz[:A][:next_unto_prev_pl] - ptz[:A][:pt]
 
-  pts[:B][:n_prev_unto_next_pl] = pts[:B][:prev_unto_next_pl] - pts[:B][:pt]
-  pts[:B][:n_next_unto_prev_pl] = pts[:B][:next_unto_prev_pl] - pts[:B][:pt]
+  ptz[:B][:n_prev_unto_next_pl] = ptz[:B][:prev_unto_next_pl] - ptz[:B][:pt]
+  ptz[:B][:n_next_unto_prev_pl] = ptz[:B][:next_unto_prev_pl] - ptz[:B][:pt]
 
-  pts[:C][:n_prev_unto_next_pl] = pts[:C][:prev_unto_next_pl] - pts[:C][:pt]
-  pts[:C][:n_next_unto_prev_pl] = pts[:C][:next_unto_prev_pl] - pts[:C][:pt]
+  ptz[:C][:n_prev_unto_next_pl] = ptz[:C][:prev_unto_next_pl] - ptz[:C][:pt]
+  ptz[:C][:n_next_unto_prev_pl] = ptz[:C][:next_unto_prev_pl] - ptz[:C][:pt]
 
-  pts[:D][:n_prev_unto_next_pl] = pts[:D][:prev_unto_next_pl] - pts[:D][:pt] if four
-  pts[:D][:n_next_unto_prev_pl] = pts[:D][:next_unto_prev_pl] - pts[:D][:pt] if four
+  ptz[:D][:n_prev_unto_next_pl] = ptz[:D][:prev_unto_next_pl] - ptz[:D][:pt] if four
+  ptz[:D][:n_next_unto_prev_pl] = ptz[:D][:next_unto_prev_pl] - ptz[:D][:pt] if four
 
   # Fetch angle between both extended vectors (A>pC & A>pB), then normalize (Cn).
   #
@@ -373,10 +366,10 @@ def opening(model, id)
   #             |  \
   #             |   C (or D)
   #
-  pts[:A][:angle] = pts[:A][:n_prev_unto_next_pl].angle(pts[:A][:n_next_unto_prev_pl])
-  pts[:B][:angle] = pts[:B][:n_prev_unto_next_pl].angle(pts[:B][:n_next_unto_prev_pl])
-  pts[:C][:angle] = pts[:C][:n_prev_unto_next_pl].angle(pts[:C][:n_next_unto_prev_pl])
-  pts[:D][:angle] = pts[:D][:n_prev_unto_next_pl].angle(pts[:D][:n_next_unto_prev_pl]) if four
+  ptz[:A][:angle] = ptz[:A][:n_prev_unto_next_pl].angle(ptz[:A][:n_next_unto_prev_pl])
+  ptz[:B][:angle] = ptz[:B][:n_prev_unto_next_pl].angle(ptz[:B][:n_next_unto_prev_pl])
+  ptz[:C][:angle] = ptz[:C][:n_prev_unto_next_pl].angle(ptz[:C][:n_next_unto_prev_pl])
+  ptz[:D][:angle] = ptz[:D][:n_prev_unto_next_pl].angle(ptz[:D][:n_next_unto_prev_pl]) if four
 
   # Generate new 3D points A', B', C' (and D') ... zigzag.
   #
@@ -390,46 +383,256 @@ def opening(model, id)
   #         \      \
   #          \      \
   #           C'      C
-  pts[:A][:from_next].normalize!
-  pts[:A][:n_prev_unto_next_pl].normalize!
-  pts[:A][:p] = pts[:A][:pt] + (pts[:A][:n_prev_unto_next_pl] * width) + (pts[:A][:from_next] * width * Math.tan(pts[:A][:angle]/2))
+  ptz[:A][:from_next].normalize!
+  ptz[:A][:n_prev_unto_next_pl].normalize!
+  ptz[:A][:p] = ptz[:A][:pt] + (ptz[:A][:n_prev_unto_next_pl] * width) + (ptz[:A][:from_next] * width * Math.tan(ptz[:A][:angle]/2))
 
-  pts[:B][:from_next].normalize!
-  pts[:B][:n_prev_unto_next_pl].normalize!
-  pts[:B][:p] = pts[:B][:pt] + (pts[:B][:n_prev_unto_next_pl] * width) + (pts[:B][:from_next] * width * Math.tan(pts[:B][:angle]/2))
+  ptz[:B][:from_next].normalize!
+  ptz[:B][:n_prev_unto_next_pl].normalize!
+  ptz[:B][:p] = ptz[:B][:pt] + (ptz[:B][:n_prev_unto_next_pl] * width) + (ptz[:B][:from_next] * width * Math.tan(ptz[:B][:angle]/2))
 
-  pts[:C][:from_next].normalize!
-  pts[:C][:n_prev_unto_next_pl].normalize!
-  pts[:C][:p] = pts[:C][:pt] + (pts[:C][:n_prev_unto_next_pl] * width) + (pts[:C][:from_next] * width * Math.tan(pts[:C][:angle]/2))
+  ptz[:C][:from_next].normalize!
+  ptz[:C][:n_prev_unto_next_pl].normalize!
+  ptz[:C][:p] = ptz[:C][:pt] + (ptz[:C][:n_prev_unto_next_pl] * width) + (ptz[:C][:from_next] * width * Math.tan(ptz[:C][:angle]/2))
 
-  pts[:D][:from_next].normalize! if four
-  pts[:D][:n_prev_unto_next_pl].normalize! if four
-  pts[:D][:p] = pts[:D][:pt] + (pts[:D][:n_prev_unto_next_pl] * width) + (pts[:D][:from_next] * width * Math.tan(pts[:D][:angle]/2)) if four
+  ptz[:D][:from_next].normalize! if four
+  ptz[:D][:n_prev_unto_next_pl].normalize! if four
+  ptz[:D][:p] = ptz[:D][:pt] + (ptz[:D][:n_prev_unto_next_pl] * width) + (ptz[:D][:from_next] * width * Math.tan(ptz[:D][:angle]/2)) if four
 
-  # Re-convert Topolys 3D points into OpenStudio 3D points for fitting test.
-  vec = OpenStudio::Point3dVector.new
-  vec << OpenStudio::Point3d.new(pts[:A][:p].x, pts[:A][:p].y, pts[:A][:p].z)
-  vec << OpenStudio::Point3d.new(pts[:B][:p].x, pts[:B][:p].y, pts[:B][:p].z)
-  vec << OpenStudio::Point3d.new(pts[:C][:p].x, pts[:C][:p].y, pts[:C][:p].z)
-  vec << OpenStudio::Point3d.new(pts[:D][:p].x, pts[:D][:p].y, pts[:D][:p].z) if four
+  ptz
+end
 
-  return u, area, points unless fit?(model, id, vec)
+##
+# Fetch a surface's subsurface opening areas & vertices.
+#
+# @param [OpenStudio::Model::Model] model An OpenStudio model
+# @param [OpenStudio::Model::Surface] surface An OpenStudio surface
+#
+# @return [Hash] Returns surface with key attributes, including openings.
+def openings(model, surface)
+  surf = {}
 
-  tr1 = []
-  tr1 << pts[:A][:p]
-  tr1 << pts[:B][:p]
-  tr1 << pts[:C][:p]
-  area1 = areaHeron(tr1)
-
-  area2 = 0
-  if four
-    tr2 = []
-    tr2 << pts[:A][:p]
-    tr2 << pts[:C][:p]
-    tr2 << pts[:D][:p]
-    area2 = areaHeron(tr2)
+  unless model && model.is_a?(OpenStudio::Model::Model)
+    msg = "Can't find OpenStudio model for 'openings' - skipping"
+    TBD.log(TBD::DEBUG, msg)
+    return nil
   end
-  area = area1 + area2
+  unless surface && surface.is_a?(OpenStudio::Model::Surface)
+    msg = "Can't find OpenStudio surface for 'openings' - skipping"
+    TBD.log(TBD::DEBUG, msg)
+    return nil
+  end
 
-  return u, area, vec
+  identifier = surface.nameString
+
+  if surface.space.empty?
+    msg = "Can't find space holding '#{identifier}' - skipping"
+    TBD.log(TBD::ERROR, msg)
+    return nil
+  end
+  surf[:space] = surface.space.get
+
+  a = surf[:space].spaceType.empty?
+  surf[:stype] = surf[:space].spaceType.get unless a
+  a = surf[:space].buildingStory.empty?
+  surf[:story] = surf[:space].buildingStory.get unless a
+
+  # Site-specific (or absolute, or true) surface normal.
+  t, r = transforms(model, surf[:space])
+  unless t && r
+    msg = "Can't process '#{identifier}' space transformation"
+    TBD.log(TBD::FATAL, msg)
+    return nil
+  end
+
+  n = trueNormal(surface, r)
+  unless n
+    msg = "Can't process '#{identifier}' true normal"
+    TBD.log(TBD::FATAL, msg)
+    return nil
+  end
+  surf[:n] = n
+
+  surf[:gross] = surface.grossArea
+  fd = false
+  subs = {}
+
+  subsurfaces = surface.subSurfaces.sort_by { |s| s.nameString }
+  subsurfaces.each do |s|
+    id = s.nameString
+
+    unless s.vertices.size == 3 || s.vertices.size == 4
+      msg = "Subsurface '#{id}' vertex count (must be 3 or 4) - skipping"
+      TBD.log(TBD::ERROR, msg)
+      next
+    end
+
+    typ = s.subSurfaceType.downcase
+    type = :skylight
+    type = :window if typ.include?("window")
+    type = :door if typ.include?("door")
+    glazed = true if type == :door && typ.include?("glass")
+
+    gross = s.grossArea
+    if gross < TOL
+      msg = "Subsurface '#{id}' gross area (< TOL) - skipping"
+      TBD.log(TBD::ERROR, msg)
+      next
+    end
+
+    c = s.construction
+    if c.empty?
+      msg = "Subsurface '#{id}' missing construction - skipping"
+      TBD.log(TBD::ERROR, msg)
+      next
+    end
+    c = c.get.to_Construction.get
+
+    # A subsurface may have an overall U-factor set by the user - a less
+    # accurate option, yet easier to process (and often the only option
+    # available). With EnergyPlus' "simple window" model, a subsurface's
+    # construction has a single SimpleGlazing material/layer holding the whole
+    # product U-factor.
+    #
+    #   https://bigladdersoftware.com/epx/docs/9-5/engineering-reference/
+    #   window-calculation-module.html#simple-window-model
+    #
+    # In other cases, TBD will recover an 'additional property' tagged
+    # "uFactor", assigned either to the individual subsurface itself, or else
+    # assigned to its referenced construction (a more generic fallback).
+    #
+    # If all else fails, TBD will calculate an approximate whole product
+    # U-factor by adding up the subsurface's construction material thermal
+    # resistances (as well as the subsurface's parent surface film resistances).
+    # This is the least accurate option, especially if subsurfaces have Frame
+    # & Divider objects.
+
+    u = s.uFactor
+    u = s.additionalProperties.getFeatureAsDouble("uFactor") if u.empty?
+    u = c.additionalProperties.getFeatureAsDouble("uFactor") if u.empty?
+    if u.empty?
+      r = rsi(c, surface.filmResistance)
+      if r < TOL
+        msg = "Subsurface '#{id}' U-factor unavailable - skipping"
+        TBD.log(TBD::ERROR, msg)
+        next
+      else
+        u = 1.0 / r
+      end
+    else
+      u = u.get
+    end
+
+    # Should verify convexity of vertex wire/face ...
+    #
+    #       A
+    #      / \
+    #     /   \
+    #    /     \
+    #   / C --- D    <<< allowed as OpenStudio/E+ subsurface?
+    #  / /
+    #  B
+    #
+    # Should convert (annoying) 4-point subsurface into triangle ...
+    #        A
+    #       / \
+    #      /   \
+    #     /     \
+    #    B - C - D   <<< allowed as OpenStudio/E+ subsurface?
+    #
+    four = (s.vertices.size == 4)
+
+    if s.windowPropertyFrameAndDivider.empty?
+      vec = s.vertices
+      area = gross
+    else
+      fd = true
+      width = s.windowPropertyFrameAndDivider.get.frameWidth
+      ptz = offset(s.vertices, width)
+      
+      # Re-convert Topolys 3D points into OpenStudio 3D points.
+      vec = OpenStudio::Point3dVector.new
+      vec << OpenStudio::Point3d.new(ptz[:A][:p].x, ptz[:A][:p].y, ptz[:A][:p].z)
+      vec << OpenStudio::Point3d.new(ptz[:B][:p].x, ptz[:B][:p].y, ptz[:B][:p].z)
+      vec << OpenStudio::Point3d.new(ptz[:C][:p].x, ptz[:C][:p].y, ptz[:C][:p].z)
+      vec << OpenStudio::Point3d.new(ptz[:D][:p].x, ptz[:D][:p].y, ptz[:D][:p].z) if four
+      area = OpenStudio::getArea(vec).get
+    end
+
+    sub = { v:      s.vertices,
+            points: vec,
+            n:      n,
+            gross:  gross,
+            area:   area,
+            type:   type,
+            u:      u }
+
+    sub[:glazed] = true if glazed
+    subs[id] = sub
+  end
+
+  # Test for conflicts (with fits?, overlaps?) between surfaces to determine
+  # whether to keep original points or switch to std::vector of revised
+  # coordinates, offset by Frame & Divider frame width. This will also
+  # inadvertently catch pre-existing (yet nonetheless invalid) OpenStudio inputs
+  # (without Frame & Dividers).
+  valid = true
+  subs.each do |id, sub|
+    next unless fd
+    next unless valid
+    unless fits?(sub[:points], surface.vertices, id, identifier)
+      msg = "Subsurface '#{id}' can't fit in '#{identifier}' - skipping"
+      TBD.log(TBD::ERROR, msg)
+      valid = false
+    end
+    subs.each do |i, sb|
+      next unless valid
+      next if i == id
+      if overlaps?(sb[:points], sub[:points], id, identifier)
+        msg = "Subsurface '#{id}' overlaps sibling '#{i}' - skipping"
+        TBD.log(TBD::ERROR, msg)
+        valid = false
+      end
+    end
+  end
+
+  if fd
+    if valid
+      # No conflicts. Reset subsurface gross area.
+      subs.values.each { |sub| sub[:gross] = sub[:area] }
+    else
+      # One or more conflicts between the parent surface & one or more
+      # subsurfaces, or between subsurfaces. Ignore Frame & Divider offsets
+      # and revert to original vertices.
+      subs.values.each { |sub| sub[:points] = sub[:v] }
+      subs.values.each { |sub| sub[:area] = sub[:gross] }
+    end
+  end
+
+  subarea = 0
+  subs.values.each { |sub| subarea += sub[:area] }
+  surf[:net] = surf[:gross] - subarea
+
+  # Tranform final Point 3D sets, and store.
+  pts = (t * surface.vertices).map { |v| Topolys::Point3D.new(v.x, v.y, v.z) }
+  surf[:points] = pts
+  surf[:minz] = ( pts.map { |p| p.z } ).min
+
+  subs.each do |id, sub|
+    pts = (t * sub[:points]).map { |v| Topolys::Point3D.new(v.x, v.y, v.z) }
+    sub[:points] = pts
+    sub[:minz] = ( pts.map { |p| p.z } ).min
+
+    if sub[:type] == :window
+      surf[:windows] = {} unless surf.has_key?(:windows)
+      surf[:windows][id] = sub
+    elsif sub[:type] == :door
+      surf[:doors] = {} unless surf.has_key?(:doors)
+      surf[:doors][id] = sub
+    else # skylight
+      surf[:skylights] = {} unless surf.has_key?(:skylights)
+      surf[:skylights][id] = sub
+    end
+  end
+  surf
 end
