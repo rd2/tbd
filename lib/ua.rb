@@ -121,7 +121,7 @@ def ua_summary(surfaces, date = Time.now, version = "",
   languages = [:en, :fr]
   languages.each { |lang| ua[lang] = {} }
 
-  ua[:en][:notes] = "Automated assessment from the OpenStudio Measure, "      \
+  ua[:en][:notes] = "Automated assessment from the OpenStudio Measure, "       \
     "Thermal Bridging and Derating (TBD). Open source and MIT-licensed, TBD "  \
     "is provided as is (without warranty). Procedures are documented in "      \
     "the source code: https://github.com/rd2/tbd. "

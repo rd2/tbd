@@ -124,8 +124,6 @@ def exitTBD(model, runner, gen_ua = false, ref = "", setpoints = false, out = fa
 
   io[:log] = tbd_log
 
-  runner.registerInfo("out = #{out}")
-
   # User's may not be requesting detailed output - delete non-essential items.
   io.delete(:psis)        unless out
   io.delete(:khis)        unless out
@@ -249,7 +247,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
 
     alter_model = OpenStudio::Measure::OSArgument.makeBoolArgument("alter_model", true, false)
     alter_model.setDisplayName("Alter OpenStudio model (Apply Measures Now)")
-    alter_model.setDescription("If checked under Apply Measures Now, TBD will irrevocably alter the user's OpenStudio model.")
+    alter_model.setDescription("For EnergyPlus simulations, leave checked. For iterative exploration with Apply Measures Now, uncheck to preserve original OpenStudio model.")
     alter_model.setDefaultValue(true)
     args << alter_model
 
@@ -299,8 +297,6 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     ua_ref = runner.getStringArgumentValue("ua_reference", user_arguments)
     gen_kiva = runner.getBoolArgumentValue("gen_kiva", user_arguments)
     gen_kiva_force = runner.getBoolArgumentValue("gen_kiva_force", user_arguments)
-
-    runner.registerInfo("load_tbd_json : #{load_tbd_json}")
 
     # use the built-in error checking
     return false unless runner.validateUserArguments(arguments(user_model), user_arguments)
