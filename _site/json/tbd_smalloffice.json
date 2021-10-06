@@ -1,0 +1,22 @@
+{
+  "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
+  "description": "test_smalloffice.osm with building story PSI set",
+  "psis": [{
+    "id": "office PSI set",
+    "rimjoist": 0.300,
+    "parapet": 0.310,
+    "fenestration": 0.320,
+    "cornerconcave": 0.330,
+    "cornerconvex": 0.340,
+    "balcony": 0.350,
+    "party": 0.360,
+    "grade": 0.370
+  }],
+  "building": {
+    "psi": "regular (BETBG)"
+  },
+  "stories": [{
+    "id": "Building Story 1",
+    "psi": "office PSI set"
+  }]
+}

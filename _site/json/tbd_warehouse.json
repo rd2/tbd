@@ -1,0 +1,30 @@
+{
+  "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
+  "description": "testing TBD JSON for test_warehouse.osm",
+  "psis": [{
+      "id": "bad",
+      "fenestration": 0.9
+    },
+    {
+      "id": "compliant",
+      "rimjoist": 0.3,
+      "parapet": 0.325,
+      "fenestration": 0.35,
+      "corner": 0.45,
+      "balcony": 0.5,
+      "party": 0.5,
+      "grade": 0.45
+    }
+  ],
+  "building": {
+    "psi": "compliant"
+  },
+  "edges": [{
+    "psi": "bad",
+    "type": "fenestration",
+    "surfaces": [
+      "Office Left Wall Window1",
+      "Office Left Wall"
+    ]
+  }]
+}

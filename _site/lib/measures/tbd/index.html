@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset='utf-8'>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link rel="stylesheet" href="/assets/css/style.css?v=HEAD">
+    <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+<!-- Begin Jekyll SEO tag v2.7.1 -->
+<title>TBD | Thermal Bridging &amp; Derating</title>
+<meta name="generator" content="Jekyll v3.9.0" />
+<meta property="og:title" content="TBD" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Thermal Bridging &amp; Derating" />
+<meta property="og:description" content="Thermal Bridging &amp; Derating" />
+<link rel="canonical" href="http://localhost:4000/lib/measures/tbd/" />
+<meta property="og:url" content="http://localhost:4000/lib/measures/tbd/" />
+<meta property="og:site_name" content="TBD" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="TBD" />
+<script type="application/ld+json">
+{"@type":"WebPage","headline":"TBD","description":"Thermal Bridging &amp; Derating","url":"http://localhost:4000/lib/measures/tbd/","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
+
+<!-- Setup Google Analytics -->
+
+
+
+<!-- You can set your favicon here -->
+<!-- link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" -->
+
+<!-- end custom head snippets -->
+
+  </head>
+
+  <body>
+    <div id="container">
+      <div class="inner">
+
+        <header>
+          <h1>TBD</h1>
+          <h2>Thermal Bridging & Derating</h2>
+        </header>
+        <section id="downloads" class="clearfix">
+          
+	
+        </section>
+        <hr>
+        <section id="main_content">
+          
+<h6 id="automatically-generated-documentation">(Automatically generated documentation)</h6>
+
+<h1 id="thermal-bridging-and-derating---tbd">Thermal Bridging and Derating - TBD</h1>
+
+<h2 id="description">Description</h2>
+<p>Derates opaque constructions from major thermal bridges.</p>
+
+<h2 id="modeler-description">Modeler Description</h2>
+<p>(see github.com/rd2/tbd)</p>
+
+<h2 id="measure-type">Measure Type</h2>
+<p>ModelMeasure</p>
+
+<h2 id="taxonomy">Taxonomy</h2>
+
+<h2 id="arguments">Arguments</h2>
+
+<h3 id="load-tbdjson">Load ‘tbd.json’</h3>
+<p>Loads existing ‘tbd.json’ file from model ‘files’ directory, may override ‘default thermal bridge’ pull-down option.
+<strong>Name:</strong> load_tbd_json,
+<strong>Type:</strong> Boolean,
+<strong>Units:</strong> ,
+<strong>Required:</strong> true,
+<strong>Model Dependent:</strong> false</p>
+
+<h3 id="default-thermal-bridge-option">Default thermal bridge option</h3>
+<p>e.g. ‘poor’, ‘regular’, ‘efficient’, ‘code’ (may be overridden by ‘tbd.json’ file).
+<strong>Name:</strong> option,
+<strong>Type:</strong> Choice,
+<strong>Units:</strong> ,
+<strong>Required:</strong> true,
+<strong>Model Dependent:</strong> false</p>
+
+<h3 id="alter-openstudio-model-apply-measures-now">Alter OpenStudio model (Apply Measures Now)</h3>
+<p>For EnergyPlus simulations, leave checked. For iterative exploration with Apply Measures Now, uncheck to preserve original OpenStudio model.
+<strong>Name:</strong> alter_model,
+<strong>Type:</strong> Boolean,
+<strong>Units:</strong> ,
+<strong>Required:</strong> true,
+<strong>Model Dependent:</strong> false</p>
+
+<h3 id="write-tbdoutjson">Write ‘tbd.out.json’</h3>
+<p>Write ‘tbd.out.json’ file to customize for subsequent runs. Edit and place in model ‘files’ directory as ‘tbd.json’.
+<strong>Name:</strong> write_tbd_json,
+<strong>Type:</strong> Boolean,
+<strong>Units:</strong> ,
+<strong>Required:</strong> true,
+<strong>Model Dependent:</strong> false</p>
+
+<h3 id="generate-ua-report">Generate UA’ report</h3>
+<p>Compare ∑U•A + ∑PSI•L + ∑KHI•n (model vs UA’ reference - see pull-down option below).
+<strong>Name:</strong> gen_UA_report,
+<strong>Type:</strong> Boolean,
+<strong>Units:</strong> ,
+<strong>Required:</strong> true,
+<strong>Model Dependent:</strong> false</p>
+
+<h3 id="ua-reference">UA’ reference</h3>
+<p>e.g. ‘poor’, ‘regular’, ‘efficient’, ‘code’.
+<strong>Name:</strong> ua_reference,
+<strong>Type:</strong> Choice,
+<strong>Units:</strong> ,
+<strong>Required:</strong> true,
+<strong>Model Dependent:</strong> false</p>
+
+<h3 id="generate-kiva-inputs">Generate Kiva inputs</h3>
+<p>Generate Kiva settings &amp; objects for surfaces with ‘foundation’ boundary conditions (not ‘ground’).
+<strong>Name:</strong> gen_kiva,
+<strong>Type:</strong> Boolean,
+<strong>Units:</strong> ,
+<strong>Required:</strong> true,
+<strong>Model Dependent:</strong> false</p>
+
+<h3 id="force-generate-kiva-inputs">Force-generate Kiva inputs</h3>
+<p>Overwrites ‘ground’ boundary conditions as ‘foundation’ before generating Kiva inputs (recommended).
+<strong>Name:</strong> gen_kiva_force,
+<strong>Type:</strong> Boolean,
+<strong>Units:</strong> ,
+<strong>Required:</strong> true,
+<strong>Model Dependent:</strong> false</p>
+
+
+        </section>
+
+        <footer>
+        
+          TBD is maintained by <a href="https://github.com/rd2">rd2</a><br>
+        
+          This page was generated by <a href="https://pages.github.com">GitHub Pages</a>.
+        </footer>
+
+      </div>
+    </div>
+  </body>
+</html>
