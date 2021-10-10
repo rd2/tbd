@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=HEAD">
+    <link rel="stylesheet" href="/assets/css/style.css?v=5606d0e106461e88ce50bd91e5f92df2b69892f8">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -23,7 +23,7 @@
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="TBD" />
 <script type="application/ld+json">
-{"@type":"WebSite","headline":"TBD","description":"Thermal Bridging &amp; Derating","url":"http://localhost:4000/","name":"TBD","@context":"https://schema.org"}</script>
+{"@type":"WebSite","url":"http://localhost:4000/","name":"TBD","description":"Thermal Bridging &amp; Derating","headline":"TBD","@context":"https://schema.org"}</script>
 <!-- End Jekyll SEO tag -->
 
     <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
@@ -53,8 +53,49 @@
         </section>
         <hr>
         <section id="main_content">
-          <p>(work in progress)</p>
+          <p>A guide to <em>TBD</em> - an <a href="https://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/">OpenStudio Measure</a> that auto-detects <em>major</em> thermal bridges (like balconies, parapets and corners) and then <em>derates</em> outside-facing opaque constructions (walls, roofs and exposed floors).</p>
 
+<h3 id="in-a-nutshell-">In a nutshell …</h3>
+
+<p><em>Thermal bridges</em> are structural elements that interrupt the continuity of insulation in building envelopes. A curtain wall spandrel back pan may hold in place an R17 (RSi 3.0) batt of insulation, yet the spandrel’s overall R-value may trickle down to R5 (RSi 0.9) - less than a third of its nominal value. This drop in performance is due to highly conductive materials (e.g. galvanized steel, aluminium), spandrel height-to-width ratio, and how the back pan is held in place continuously along spandrel edges.</p>
+
+<p><em>Minor</em> thermal bridges are regularly-spaced supports or framing elements (such as studs and Z-bars): the initial <em>derated</em> R-value (from <em>minor</em> thermal bridging), generally known as a construction’s <em>clear-field effective R-value</em>, is largely independent of a surface’s actual geometry or adjacencies to other surfaces. This means design changes to surface geometry (e.g. floor-to-ceiling height, number of windows) can be made without having to alter a surface’s <em>clear-field effective R-value</em>. For a few simple 2D framing configurations, the ASHRAE Fundamentals and ISO standards support established hand-calculations like <em>parallel-path</em> and <em>isothermal-planes</em> methods. Yet in most cases, designers are better off consulting published collections of common configurations (with estimated <em>clear-field effective R-values</em>), such the <a href="https://www.bchydro.com/powersmart/business/programs/new-construction.html">BETBG</a> or <a href="https://thermalenvelope.ca">thermalenvelope.ca</a>.</p>
+
+<p><em>Major</em> thermal bridging instead relates to a surface’s geometry and its immediate adjacencies (e.g. thermal bridging along roof parapets, slab edges, corners, cantilevered balconies). While surface area heat loss (under <em>standard</em> test conditions) is best represented using U-values (or interchangeably U-factors) in W/K per square meter, linear thermal conductances from <em>major</em> thermal bridges are commonly symbolized using the greek letter PSI (units in W/K per meter) - KHI for point conductances (in W/K per point). Both <em>BETBG</em> and <em>thermalenvelope.ca</em> links above provide useful PSI and KHI data for common cases.</p>
+
+<p>Contrary to <em>minor</em> thermal bridging, changing a room’s height or adding windows should trigger a revised calculation of <em>major</em> thermal bridging effects. This can be quite daunting, time-consuming and error-prone to do by hand (per design iteration), given the hundreds (if not thousands) of <em>major</em> thermal bridges in a building model. The simple <a href="https://www.energy.gov/eere/buildings/commercial-reference-buildings">US DOE Commercial Reference Warehouse Model</a> illustrated here has over 300 of such <em>major</em> thermal bridges - mostly around fenestration.</p>
+
+<p><img src="./assets/images/warehouse.png" alt="US DOE Commercial Reference Warehouse" title="US DOE Commercial Reference Warehouse" /></p>
+
+<p>Relying on the <a href="https://github.com/automaticmagic/topolys">Topolys</a> gem, TBD automatically - and pretty instantaneously - identifies and manages <em>major</em> thermal bridges behind the scenes for OpenStudio users.</p>
+
+<h3 id="energy-simulation">Energy Simulation</h3>
+
+<p>While materials, constructions and envelope surfaces are well established variables in OpenStudio and energy simulation engines like EnergyPlus, <em>edges</em> and <em>points</em> are not! TBD automatically factors-in PSI and KHI losses from <em>major</em> thermal bridges it manages, by further <em>derating</em> a construction’s <em>clear-field effective R-value</em> - more specifically by further decreasing its insulating layer thickness. This approach, in line with published research and standards such as ASHRAE’s <a href="https://www.techstreet.com/standards/rp-1365-thermal-performance-of-building-envelope-details-for-mid-and-high-rise-buildings?product_id=1806751">RP-1365</a>, <em>BETBG</em> &amp; <em>thermalenvelope.ca</em>, as well as ISO <a href="https://www.iso.org/standard/65710.html">10211</a> and <a href="https://www.iso.org/standard/65706.html">14683</a>, is best summarized as follows:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Ut = Uo + ( ∑PSI•L )/A + ( ∑KHI•n )/A
+</code></pre></div></div>
+<p>… where:</p>
+
+<p><strong>Ut</strong> : final <em>derated</em> construction transmittance, in W/K per square meter<br />
+<strong>Uo</strong> : initial <em>clear field</em> transmittance, in W/K per square meter<br />
+<strong>PSI</strong> : linear transmittance for a given surface edge, in W/K per meter<br />
+<strong>L</strong> : length of the surface edge, in meters<br />
+<strong>KHI</strong> : point transmittance for a given beam, post, etc.<br />
+<strong>n</strong> : number of similar beams, posts, etc.<br />
+<strong>A</strong> : opaque surface area, in square meters</p>
+
+<p>As discussed in detail further on, TBD users are required to initially define generic <strong>PSI</strong> and <strong>KHI</strong> values that best characterize the <em>major</em> thermal bridges in their project - TBD/Topolys automatically identify individual <em>edge</em> occurrences in the OpenStudio model, just as geometric parameters like <strong>L</strong> and <strong>A</strong> (… <strong>n</strong> requires specific treatment, discussed a bit further).</p>
+
+<p>Each OpenStudio construction is usually comprised of multiple material layers (typically 2 or 3 at a minimum), each of which has a thermal resistance. Users are expected to have already factored in <em>minor</em> thermal bridging effects by decreasing the nominal thickness of the <em>insulating</em> layer of each construction - a standard technique in energy simulation. <strong>Uo</strong> is simply the inverse of the sum of resulting layer resistances (yet excluding the effect of surface air films). Behind the scenes, TBD automatically generates new <em>derated</em> materials and constructions - the latter having their unique <strong>Ut</strong>.</p>
+
+<p><strong>OpenStudio primer for TBD</strong><br />
+<strong>Gathering inputs</strong><br />
+<strong>Customization</strong><br />
+<strong>Reporting</strong><br />
+<strong>KIVA</strong><br />
+<strong>UA’</strong></p>
+
+<p><em>(in progress …)</em></p>
 
         </section>
 
