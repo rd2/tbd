@@ -1,5 +1,9 @@
 name: "TBD"
 title: "TBD"
 remote_theme: pages-themes/tactile@v0.2.0
-
-
+timezone: Canada/Eastern
+future: true
+show_downloads: true
+github:
+  zip_url: https://github.com/rd2/tbd/releases/download/v2.2.1/tbd.zip
+  tar_url: https://github.com/rd2/tbd/releases/download/v2.2.1/tbd.tar.gz
