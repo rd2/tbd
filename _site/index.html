@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=296410358ecc0af07a009264faadd2359ae6f7a7">
+    <link rel="stylesheet" href="/assets/css/style.css?v=bfdd561e5c920ebb74762447b1d7da931fd828b8">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -56,15 +56,15 @@
         </section>
         <hr>
         <section id="main_content">
-          <p>A guide to <em>TBD</em> - an <a href="https://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/">OpenStudio Measure</a> that auto-detects <em>major</em> thermal bridges (like balconies, parapets and corners) and then <em>derates</em> outside-facing opaque constructions (walls, roofs and exposed floors).</p>
+          <p>A guide to <a href="https://github.com/rd2/tbd">TBD</a> - an <a href="https://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/">OpenStudio Measure</a> that auto-detects <em>major</em> thermal bridges (like balconies, parapets and corners) and then <em>derates</em> outside-facing opaque constructions (walls, roofs and exposed floors).</p>
 
 <h3 id="in-a-nutshell-">In a nutshell …</h3>
 
 <p><em>Thermal bridges</em> are structural elements that interrupt the continuity of insulation in building envelopes. A curtain wall spandrel back pan may hold in place an R17 (RSi 3.0) batt of insulation, yet the spandrel’s overall R-value may trickle down to R5 (RSi 0.9) - less than a third of its nominal value. This drop in performance is due to highly conductive materials (e.g. galvanized steel, aluminium), spandrel height-to-width ratio, and how the back pan is held in place continuously along spandrel edges.</p>
 
-<p><em>Minor</em> thermal bridges are regularly-spaced supports or framing elements (such as studs and Z-bars): the initial <em>derated</em> R-value (from <em>minor</em> thermal bridging), generally known as a construction’s <em>clear-field effective R-value</em>, is largely independent of a surface’s actual geometry or adjacencies to other surfaces. This means design changes to surface geometry (e.g. floor-to-ceiling height, number of windows) can be made without having to alter a surface’s <em>clear-field effective R-value</em>. For a few simple 2D framing configurations, the ASHRAE Fundamentals and ISO standards support established hand-calculations like <em>parallel-path</em> and <em>isothermal-planes</em> methods. Yet in most cases, designers are better off consulting published collections of common configurations (with estimated <em>clear-field effective R-values</em>), such the <a href="https://www.bchydro.com/powersmart/business/programs/new-construction.html">BETBG</a> or <a href="https://thermalenvelope.ca">thermalenvelope.ca</a>.</p>
+<p><em>Minor</em> thermal bridges are regularly-spaced supports or framing elements (such as studs and Z-bars): the initial <em>derated</em> R-value (from <em>minor</em> thermal bridging), generally known as a construction’s <em>clear-field effective R-value</em>, is largely independent of a surface’s actual geometry or adjacencies to other surfaces. This means design changes to surface geometry (e.g. floor-to-ceiling height, number of windows) can be made without having to update surface <em>clear-field effective R-values</em> - very practical. For a few simple 2D framing configurations, the ASHRAE Fundamentals and ISO standards support established hand-calculations like <em>parallel-path</em> and <em>isothermal-planes</em> methods. Yet in most cases, designers are better off consulting published collections of common configurations (with estimated <em>clear-field effective R-values</em>), such the <a href="https://www.bchydro.com/powersmart/business/programs/new-construction.html">BETBG</a> or <a href="https://thermalenvelope.ca">thermalenvelope.ca</a>.</p>
 
-<p><em>Major</em> thermal bridging instead relates to a surface’s geometry and its immediate adjacencies (e.g. thermal bridging along roof parapets, slab edges, corners, cantilevered balconies). While surface area heat loss (under <em>standard</em> test conditions) is best represented using U-values (or interchangeably U-factors) in W/K per square meter, linear thermal conductances from <em>major</em> thermal bridges are commonly symbolized using the greek letter PSI (units in W/K per meter) - KHI for point conductances (in W/K per point). Both <em>BETBG</em> and <em>thermalenvelope.ca</em> links above provide useful PSI and KHI data for common cases.</p>
+<p><em>Major</em> thermal bridging instead relates to a surface’s geometry and its immediate adjacencies (e.g. thermal bridging along roof parapets, slab edges, corners, cantilevered balconies). While surface area heat loss (under <em>standard</em> test conditions) is best represented with U-values (or interchangeably U-factors) in W/K per square meter, linear thermal conductances from <em>major</em> thermal bridges are commonly annotated using the greek letter PSI (units in W/K per meter) - KHI for point conductances (in W/K per point). Both <em>BETBG</em> and <em>thermalenvelope.ca</em> links above provide useful PSI and KHI data for common cases.</p>
 
 <p>Contrary to <em>minor</em> thermal bridging, changing a room’s height or adding windows should trigger a revised calculation of <em>major</em> thermal bridging effects. This can be quite daunting, time-consuming and error-prone to do by hand (per design iteration), given the hundreds (if not thousands) of <em>major</em> thermal bridges in a building model. The simple <a href="https://www.energy.gov/eere/buildings/commercial-reference-buildings">US DOE Commercial Reference Warehouse Model</a> illustrated here has over 300 of such <em>major</em> thermal bridges - mostly around fenestration.</p>
 
@@ -87,16 +87,16 @@
 <strong>n</strong> : number of similar beams, posts, etc.<br />
 <strong>A</strong> : opaque surface area, in square meters</p>
 
-<p>As discussed in detail further on, TBD users are required to initially define generic <strong>PSI</strong> and <strong>KHI</strong> values that best characterize the <em>major</em> thermal bridges in their project - TBD/Topolys automatically identify individual <em>edge</em> occurrences in the OpenStudio model, just as geometric parameters like <strong>L</strong> and <strong>A</strong> (… <strong>n</strong> requires specific treatment, discussed a bit further).</p>
+<p>As discussed in some detail further on, TBD users are required to initially define generic <strong>PSI</strong> and <strong>KHI</strong> values that best characterize the <em>major</em> thermal bridges in their project - TBD/Topolys automatically identify individual <em>edge</em> occurrences in the OpenStudio model, just as with geometric variables like <strong>L</strong> and <strong>A</strong> (… <strong>n</strong> requires specific treatment, discussed a bit further).</p>
 
 <p>Each OpenStudio construction is usually comprised of multiple material layers (typically 2 or 3 at a minimum), each of which has a thermal resistance. Users are expected to have already factored in <em>minor</em> thermal bridging effects by decreasing the nominal thickness of the <em>insulating</em> layer of each construction - a standard technique in energy simulation. <strong>Uo</strong> is simply the inverse of the sum of resulting layer resistances (yet excluding the effect of surface air films). Behind the scenes, TBD automatically generates new <em>derated</em> materials and constructions - the latter having their unique <strong>Ut</strong>.</p>
 
-<p><strong>OpenStudio primer for TBD</strong><br />
-<strong>Gathering inputs</strong><br />
-<strong>Customization</strong><br />
-<strong>Reporting</strong><br />
-<strong>KIVA</strong><br />
-<strong>UA’</strong></p>
+<p><a href="./pages/openstudio.html" title="An OpenStudio primer for TBD users">OpenStudio primer for TBD</a> 
+<a href="./pages/inputs.html" title="Basic TBD inputs and workflow">Gathering inputs</a><br />
+<a href="./pages/custom.html" title="Customizing TBD inputs">Customization</a><br />
+<a href="./pages/reports.html" title="What TBD reports back">Reporting</a><br />
+<a href="./pages/kiva.html" title="Kiva support">KIVA</a><br />
+<a href="./pages/ua.html" title="UA' assessments">UA’</a></p>
 
 <p><em>(in progress …)</em></p>
 

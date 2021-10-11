@@ -34,11 +34,12 @@ As discussed in some detail further on, TBD users are required to initially defi
 
 Each OpenStudio construction is usually comprised of multiple material layers (typically 2 or 3 at a minimum), each of which has a thermal resistance. Users are expected to have already factored in _minor_ thermal bridging effects by decreasing the nominal thickness of the _insulating_ layer of each construction - a standard technique in energy simulation. __Uo__ is simply the inverse of the sum of resulting layer resistances (yet excluding the effect of surface air films). Behind the scenes, TBD automatically generates new _derated_ materials and constructions - the latter having their unique __Ut__.
 
-__OpenStudio primer for TBD__  
-__Gathering inputs__  
-__Customization__  
-__Reporting__  
-__KIVA__  
-__UA'__  
+[OpenStudio primer for TBD](./pages/openstudio.html "An OpenStudio primer for TBD users") 
+[Gathering inputs](./pages/inputs.html "Basic TBD inputs and workflow")  
+[Customization](./pages/custom.html "Customizing TBD inputs")  
+[Reporting](./pages/reports.html "What TBD reports back")  
+[KIVA](./pages/kiva.html "Kiva support")  
+[UA'](./pages/ua.html "UA' assessments")  
+
 
 _(in progress ...)_
