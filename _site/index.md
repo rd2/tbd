@@ -39,7 +39,7 @@ In summary, users are required to have:
 - materials and layered constructions
 - a shortlist of psi and khi values
 
-From there, TBD/Topolys will do the heavy lifting. Experienced OpenStudio users will be familiar with the first two items (the _OpenStudio primer_ below should help out newcomers). How to specify psi and khi is covered in TBD _basics_ and _customization_ sections.
+From there, TBD & Topolys will do the heavy lifting. Experienced OpenStudio users will be familiar with the first two items (the _OpenStudio primer_ below should help out newcomers). How to specify psi and khi is covered in TBD _basics_ and _customization_ sections.
 
 ### Next?
 
