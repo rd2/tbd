@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=9cb27790383d679e0268142857b1a9890312c4cb">
+    <link rel="stylesheet" href="/assets/css/style.css?v=54c0de8fce541c8894e3052d93862d8da344fa4c">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -77,15 +77,28 @@
 
 <p><strong>Materials &amp; constructions</strong>: Geometry is not enough. TBD must be able to retrieve referenced materials and multilayered constructions for all <em>envelope</em> surfaces. The easiest way is via <em>Default Construction Sets</em>.</p>
 
-<p><strong>Boundary conditions</strong>: It’s important that the OpenStudio model reflects intended exposure to surrouding environmental conditions, including which surfaces face outside air vs the interior, the ground, etc. TBD will do a better job if the model is accurate. TBD will only <em>derate</em> outside-facing <em>envelope</em> walls, roofs and exposed floors. Windows, doors and skylights are never derated. Adiabatic and ground-facing (or KIVA foundation) surfaces are also never derated.</p>
+<p><strong>Boundary conditions</strong>: It’s important that the OpenStudio model reflects intended exposure to surrouding environmental conditions, including which surfaces face the exterior vs the interior, the ground, etc. TBD will only seek to <em>derate</em> outdoor-facing <em>envelope</em> walls, roofs and exposed floors. Windows, doors and skylights are never derated. Adiabatic and ground-facing (or KIVA foundation) surfaces are also never derated.</p>
 
 <h3 id="optional-model-requirements">Optional model requirements</h3>
 
+<p>TBD does require additional OpenStudio inputs in some circumstances. Unheated or uncooled spaces (like attics and crawlspaces) are considered <em>unconditioned</em>: their outdoor-facing surfaces aren’t part of the <em>building envelope</em>, and therefore not targeted by TBD. On the other hand, outdoor-facing surfaces of <em>indirectly-conditioned</em> spaces like plenums are considered part of the <em>envelope</em>, and therefore should be derated. Sections 2.3.2 to 2.3.4 <a href="https://www.pnnl.gov/main/publications/external/technical_reports/PNNL-26917.pdf" title="90.1-2016 Performance Rating Method Reference Manual">here</a> provide a good overview of the question. Here’s the underlying logic that guides TBD in such cases:</p>
+
 <ul>
-  <li>thermal zoning</li>
-  <li>heating/cooling <em>setpoints</em></li>
+  <li>With <em>partial</em> OpenStudio models, TBD will seek to derate ALL outside-facing surfaces by positing that ALL spaces are <em>conditioned</em>, with <em>assumed</em> setpoints of ~21°C (heating) and ~24°C (cooling) à la BETBG. This is OK for most models (even those with plenums), yet not for those with attics or crawlspaces.</li>
+  <li>If a <em>more complete</em> OpenStudio model has at least one space linked to a <em>thermal zone</em> having temperature setpoints, TBD will instead seek to only derate outdoor-facing surfaces of such <em>conditioned</em> spaces. TBD will safely ignore outdoor-facing surfaces in <em>unconditioned</em> spaces like attics and crawlspaces, yet unfortunately also those of plenums.</li>
+  <li>With a <em>fairly complete</em> OpenStudio model (complete with thermal zones, temperature setpoints, and HVAC air loops), spaces will be tagged as indirectly-conditioned <em>plenums</em> if their linked thermal zones correspond to supply or return plenums as defined <a href="https://bigladdersoftware.com/epx/docs/9-6/input-output-reference/group-air-path.html#airloophvacreturnplenum" title="EnergyPlus return air plenums">here</a> and <a href="https://bigladdersoftware.com/epx/docs/9-6/input-output-reference/group-air-path.html#airloophvacsupplyplenum" title="EnergyPlus supply air plenums">here</a> (let’s call this <em>case A</em>).</li>
+  <li>In absence of HVAC air loops, 2x other cases trigger a <em>plenum</em> tag: <em>case B</em> where the space is considered excluded from building’s total floor area (an OpenStudio variable), while having its thermal zone referencing an <em>inactive</em> thermostat (i.e., can’t extract valid setpoints); or <em>case C</em> where the <em>spacetype</em> name is simply set to “plenum” (case insensitive).</li>
+</ul>
+
+<p>In summary, asking TBD to distinguish between <em>conditioned</em> vs <em>indirectly-conditioned</em> vs <em>unconditioned</em> spaces requires a combination of the following, depending on whether attics and/or crawlspaces are found in the OpenStudio model:</p>
+
+<ul>
+  <li>thermal zones</li>
+  <li>heating/cooling setpoints</li>
   <li>HVAC air loops</li>
 </ul>
+
+<p>This is a <em>lot</em> to ask of most technically-inclined architects, as these are pretty specific HVAC items. There are OpenStudio user scripts that will auto-generate thermal zones from spaces (one-to-one), but it’s unlikely to match what the HVAC designer has in mind (and therefore often not a great idea). So with <em>unconditioned</em> spaces, better off asking the HVAC engineer/modeller to complete the setup.</p>
 
 <h3 id="where-does-one-get-psi-data">Where does one get psi data?</h3>
 

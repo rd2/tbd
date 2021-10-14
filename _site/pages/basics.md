@@ -19,13 +19,24 @@ __Fully enclosed geometry__: OpenStudio (and to a large extent EnergyPlus) work 
 
 __Materials & constructions__: Geometry is not enough. TBD must be able to retrieve referenced materials and multilayered constructions for all _envelope_ surfaces. The easiest way is via _Default Construction Sets_.
 
-__Boundary conditions__: It's important that the OpenStudio model reflects intended exposure to surrouding environmental conditions, including which surfaces face outside air vs the interior, the ground, etc. TBD will do a better job if the model is accurate. TBD will only _derate_ outside-facing _envelope_ walls, roofs and exposed floors. Windows, doors and skylights are never derated. Adiabatic and ground-facing (or KIVA foundation) surfaces are also never derated.
+__Boundary conditions__: It's important that the OpenStudio model reflects intended exposure to surrouding environmental conditions, including which surfaces face the exterior vs the interior, the ground, etc. TBD will only seek to _derate_ outdoor-facing _envelope_ walls, roofs and exposed floors. Windows, doors and skylights are never derated. Adiabatic and ground-facing (or KIVA foundation) surfaces are also never derated.
 
 ### Optional model requirements
 
-- thermal zoning  
-- heating/cooling _setpoints_  
+TBD does require additional OpenStudio inputs in some circumstances. Unheated or uncooled spaces (like attics and crawlspaces) are considered _unconditioned_: their outdoor-facing surfaces aren't part of the _building envelope_, and therefore not targeted by TBD. On the other hand, outdoor-facing surfaces of _indirectly-conditioned_ spaces like plenums are considered part of the _envelope_, and therefore should be derated. Sections 2.3.2 to 2.3.4 [here](https://www.pnnl.gov/main/publications/external/technical_reports/PNNL-26917.pdf "90.1-2016 Performance Rating Method Reference Manual") provide a good overview of the question. Here's the underlying logic that guides TBD in such cases:
+
+- With _partial_ OpenStudio models, TBD will seek to derate ALL outside-facing surfaces by positing that ALL spaces are _conditioned_, with _assumed_ setpoints of ~21°C (heating) and ~24°C (cooling) à la BETBG. This is OK for most models (even those with plenums), yet not for those with attics or crawlspaces.  
+- If a _more complete_ OpenStudio model has at least one space linked to a _thermal zone_ having temperature setpoints, TBD will instead seek to only derate outdoor-facing surfaces of such _conditioned_ spaces. TBD will safely ignore outdoor-facing surfaces in _unconditioned_ spaces like attics and crawlspaces, yet unfortunately also those of plenums.  
+- With a _fairly complete_ OpenStudio model (complete with thermal zones, temperature setpoints, and HVAC air loops), spaces will be tagged as indirectly-conditioned _plenums_ if their linked thermal zones correspond to supply or return plenums as defined [here](https://bigladdersoftware.com/epx/docs/9-6/input-output-reference/group-air-path.html#airloophvacreturnplenum "EnergyPlus return air plenums") and [here](https://bigladdersoftware.com/epx/docs/9-6/input-output-reference/group-air-path.html#airloophvacsupplyplenum "EnergyPlus supply air plenums") (let's call this _case A_).
+- In absence of HVAC air loops, 2x other cases trigger a _plenum_ tag: _case B_ where the space is considered excluded from building's total floor area (an OpenStudio variable), while having its thermal zone referencing an _inactive_ thermostat (i.e., can't extract valid setpoints); or _case C_ where the _spacetype_ name is simply set to "plenum" (case insensitive).
+
+In summary, asking TBD to distinguish between _conditioned_ vs _indirectly-conditioned_ vs _unconditioned_ spaces requires a combination of the following, depending on whether attics and/or crawlspaces are found in the OpenStudio model:
+
+- thermal zones  
+- heating/cooling setpoints  
 - HVAC air loops  
+
+This is a _lot_ to ask of most technically-inclined architects, as these are pretty specific HVAC items. There are OpenStudio user scripts that will auto-generate thermal zones from spaces (one-to-one), but it's unlikely to match what the HVAC designer has in mind (and therefore often not a great idea). So with _unconditioned_ spaces, better off asking the HVAC engineer/modeller to complete the setup.
 
 ### Where does one get psi data?
 
