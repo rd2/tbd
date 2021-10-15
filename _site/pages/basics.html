@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=54c0de8fce541c8894e3052d93862d8da344fa4c">
+    <link rel="stylesheet" href="/assets/css/style.css?v=f89ecc20375cfaf755435ff34edf09426a9c066e">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -67,7 +67,7 @@
 
 <p>OpenStudio construction details and geometry are required architectural inputs for TBD. <em>Complete</em> OpenStudio models also hold abstract variables like thermal zones and schedules, in addition to electrical loads, lighting and HVAC systems. TBD works fine with such <em>complete</em> models, yet is well capable of handling <em>partial</em> or <em>minimal</em> OpenStudio models.</p>
 
-<p>Why? Let’s start by venturing that there’s more than one way to approach building energy modelling. One obvious scenario is to hire competent building energy modellers who take care of everything - they’re specialized and very good at what they do. Yet it has its drawbacks as a <em>centralized</em> solution. TBD works just as well within more <em>distributed</em> approaches, where specialists may contribute to the same collective energy model, yet at different stages of the design and on different parts of the model - ideally under supervisory versioning control (just like software development). Architectural professionals should be encouraged in updating and maintaining geometry and construction parameters (including thermal bridging) of an OpenStudio model throughout the design process. Same goes for lighting consultants, estimators, LCA assessors, etc.</p>
+<p>Why? Let’s start by venturing that there’s more than one way to approach building energy modelling. One obvious scenario is to hire competent building energy modellers who take care of everything - they’re specialized and very good at what they do. Yet it has its drawbacks as a <em>centralized</em> solution. TBD works just as well within more <em>distributed</em> approaches, where specialists may contribute to the same collective energy model, yet at different stages of the design and on different parts of the model - ideally under supervisory versioning control (just like software development). Architectural professionals should be encouraged to update and maintain geometry and construction parameters (including thermal bridging) of an OpenStudio model throughout the design process. Same goes for lighting consultants, estimators, LCA assessors, etc.</p>
 
 <p>In other cases, architects may simply wish to explore whether their designs comply with certain envelope prescriptive targets, which can be efficiently ascertained using OpenStudio &amp; TBD (and without running a single energy simulation). If they’re unsuccessful in achieving e.g., <a href="./ua.html" title="UA' assessments">UA’</a> trade-off targets, they can always hand off the model to lighting and HVAC modellers. For the latter, inheriting a complete <em>architectural</em> energy model can be a huge time saver. This fits in well with integrated design processes, while encouraging a healthy division of labour and fair distribution of professional liability. Let’s go over what TBD requires from a <em>minimal</em> OpenStudio model.</p>
 
@@ -77,7 +77,7 @@
 
 <p><strong>Materials &amp; constructions</strong>: Geometry is not enough. TBD must be able to retrieve referenced materials and multilayered constructions for all <em>envelope</em> surfaces. The easiest way is via <em>Default Construction Sets</em>.</p>
 
-<p><strong>Boundary conditions</strong>: It’s important that the OpenStudio model reflects intended exposure to surrouding environmental conditions, including which surfaces face the exterior vs the interior, the ground, etc. TBD will only seek to <em>derate</em> outdoor-facing <em>envelope</em> walls, roofs and exposed floors. Windows, doors and skylights are never derated. Adiabatic and ground-facing (or KIVA foundation) surfaces are also never derated.</p>
+<p><strong>Boundary conditions</strong>: It’s important that the OpenStudio model reflects intended exposure to surrounding environmental conditions, including which surfaces face the exterior vs the interior, the ground, etc. TBD will only seek to <em>derate</em> outdoor-facing <em>envelope</em> walls, roofs and exposed floors. Windows, doors and skylights are never derated. Adiabatic and ground-facing (or KIVA foundation) surfaces are also never derated.</p>
 
 <h3 id="optional-model-requirements">Optional model requirements</h3>
 
