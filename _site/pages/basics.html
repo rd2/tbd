@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=f89ecc20375cfaf755435ff34edf09426a9c066e">
+    <link rel="stylesheet" href="/assets/css/style.css?v=9182ac68ce6cc486da2cd12949954e74601968a4">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -67,7 +67,7 @@
 
 <p>OpenStudio construction details and geometry are required architectural inputs for TBD. <em>Complete</em> OpenStudio models also hold abstract variables like thermal zones and schedules, in addition to electrical loads, lighting and HVAC systems. TBD works fine with such <em>complete</em> models, yet is well capable of handling <em>partial</em> or <em>minimal</em> OpenStudio models.</p>
 
-<p>Why? Let’s start by venturing that there’s more than one way to approach building energy modelling. One obvious scenario is to hire competent building energy modellers who take care of everything - they’re specialized and very good at what they do. Yet it has its drawbacks as a <em>centralized</em> solution. TBD works just as well within more <em>distributed</em> approaches, where specialists may contribute to the same collective energy model, yet at different stages of the design and on different parts of the model - ideally under supervisory versioning control (just like software development). Architectural professionals should be encouraged to update and maintain geometry and construction parameters (including thermal bridging) of an OpenStudio model throughout the design process. Same goes for lighting consultants, estimators, LCA assessors, etc.</p>
+<p>Why? Let’s start by venturing that there’s more than one way to approach building energy modelling. One obvious scenario is to hire competent energy modellers who take care of everything - they’re specialized and very good at what they do. Yet it has its drawbacks as a <em>centralized</em> solution. TBD works just as well within more <em>distributed</em> approaches, where specialists may contribute to the same collective energy model, yet at different stages of the design and on different parts of the model - ideally under supervisory versioning control (just like software development). Architectural professionals should be encouraged to update and maintain geometry and construction parameters (including thermal bridging) of an OpenStudio model throughout the design process. Same goes for lighting consultants, estimators, LCA assessors, etc.</p>
 
 <p>In other cases, architects may simply wish to explore whether their designs comply with certain envelope prescriptive targets, which can be efficiently ascertained using OpenStudio &amp; TBD (and without running a single energy simulation). If they’re unsuccessful in achieving e.g., <a href="./ua.html" title="UA' assessments">UA’</a> trade-off targets, they can always hand off the model to lighting and HVAC modellers. For the latter, inheriting a complete <em>architectural</em> energy model can be a huge time saver. This fits in well with integrated design processes, while encouraging a healthy division of labour and fair distribution of professional liability. Let’s go over what TBD requires from a <em>minimal</em> OpenStudio model.</p>
 
@@ -86,8 +86,8 @@
 <ul>
   <li>With <em>partial</em> OpenStudio models, TBD will seek to derate ALL outside-facing surfaces by positing that ALL spaces are <em>conditioned</em>, with <em>assumed</em> setpoints of ~21°C (heating) and ~24°C (cooling) à la BETBG. This is OK for most models (even those with plenums), yet not for those with attics or crawlspaces.</li>
   <li>If a <em>more complete</em> OpenStudio model has at least one space linked to a <em>thermal zone</em> having temperature setpoints, TBD will instead seek to only derate outdoor-facing surfaces of such <em>conditioned</em> spaces. TBD will safely ignore outdoor-facing surfaces in <em>unconditioned</em> spaces like attics and crawlspaces, yet unfortunately also those of plenums.</li>
-  <li>With a <em>fairly complete</em> OpenStudio model (complete with thermal zones, temperature setpoints, and HVAC air loops), spaces will be tagged as indirectly-conditioned <em>plenums</em> if their linked thermal zones correspond to supply or return plenums as defined <a href="https://bigladdersoftware.com/epx/docs/9-6/input-output-reference/group-air-path.html#airloophvacreturnplenum" title="EnergyPlus return air plenums">here</a> and <a href="https://bigladdersoftware.com/epx/docs/9-6/input-output-reference/group-air-path.html#airloophvacsupplyplenum" title="EnergyPlus supply air plenums">here</a> (let’s call this <em>case A</em>).</li>
-  <li>In absence of HVAC air loops, 2x other cases trigger a <em>plenum</em> tag: <em>case B</em> where the space is considered excluded from building’s total floor area (an OpenStudio variable), while having its thermal zone referencing an <em>inactive</em> thermostat (i.e., can’t extract valid setpoints); or <em>case C</em> where the <em>spacetype</em> name is simply set to “plenum” (case insensitive).</li>
+  <li>With a <em>fairly complete</em> OpenStudio model (complete with thermal zones, temperature setpoints, and HVAC air loops), spaces will be tagged as indirectly-conditioned <em>plenums</em> if their linked thermal zones correspond to supply or return plenums as defined <a href="https://bigladdersoftware.com/epx/docs/9-6/input-output-reference/group-air-path.html#airloophvacreturnplenum" title="EnergyPlus return air plenums">here</a> and <a href="https://bigladdersoftware.com/epx/docs/9-6/input-output-reference/group-air-path.html#airloophvacsupplyplenum" title="EnergyPlus supply air plenums">here</a> (let’s call this <strong>case A</strong>).</li>
+  <li>In absence of HVAC air loops, 2x other cases trigger a <em>plenum</em> tag: <strong>case B</strong> where the space is considered excluded from the building’s <em>total floor area</em> (an OpenStudio variable), while having its thermal zone referencing an <em>inactive</em> thermostat (i.e. can’t extract valid setpoints); or finally <strong>case C</strong> where the <em>spacetype</em> name is simply set to “plenum” (case insensitive).</li>
 </ul>
 
 <p>In summary, asking TBD to distinguish between <em>conditioned</em> vs <em>indirectly-conditioned</em> vs <em>unconditioned</em> spaces requires a combination of the following, depending on whether attics and/or crawlspaces are found in the OpenStudio model:</p>
@@ -98,22 +98,300 @@
   <li>HVAC air loops</li>
 </ul>
 
-<p>This is a <em>lot</em> to ask of most technically-inclined architects, as these are pretty specific HVAC items. There are OpenStudio user scripts that will auto-generate thermal zones from spaces (one-to-one), but it’s unlikely to match what the HVAC designer has in mind (and therefore often not a great idea). So with <em>unconditioned</em> spaces, better off asking the HVAC engineer/modeller to complete the setup.</p>
-
-<h3 id="where-does-one-get-psi-data">Where does one get psi data?</h3>
-
-<ul>
-  <li>TBD defaults</li>
-  <li>envelope details &amp; specs</li>
-  <li>manufacturer data</li>
-  <li><a href="https://www.bchydro.com/powersmart/business/programs/new-construction.html" title="Building Envelope Thermal Bridging Guide">BETBG</a> &amp; <a href="https://thermalenvelope.ca">thermalenvelope.ca</a></li>
-  <li>past research projects</li>
-  <li>codes and standards</li>
-</ul>
+<p>This is a <em>lot</em> to ask of most technically proficient architects, as most items are pretty specific HVAC items. There are OpenStudio user scripts that will auto-generate thermal zones from spaces (one-to-one), but it’s unlikely to match what the HVAC designer has in mind (so not always a good idea). With <em>unconditioned</em> spaces, better off asking the HVAC engineer/modeller to complete the setup.</p>
 
 <h3 id="tbd-menu-options">TBD menu options</h3>
 
-<p>(to do)</p>
+<p>Whether TBD is accessed from the <em>OpenStudio Application</em> Measures’ tab or through a <a href="https://nrel.github.io/OpenStudio-user-documentation/reference/command_line_interface/" title="OpenStudio CLI">CLI</a> <em>workflow</em>, users have access to the same 8 menu options (shown here with their default values):</p>
+
+<p><img src="../assets/images/TBD-inputs.png" alt="TBD Menu Options" title="TBD Menu Options" /></p>
+
+<p>JSON input/output files, <em>UA’</em> reports and <em>KIVA</em> inputs are described in detail in the <em>TBD customization</em>, <em>UA’</em> and <em>KIVA</em> sections, respectively.</p>
+
+<p>The <strong>Default thermal bridge (set)</strong> pull-down menu of predefined, compact <em>psi</em> sets is key for newcomers, especially in the early design stages. Users simply need to switch between default sets (and rerun the measure) to get a sense of the degree of thermal <em>derating</em> that would take place, and how this affects energy simulation results. It’s easy, yet coarse as the entire building is treated uniformly (check the <em>TBD customization</em> section on handling multiple <em>psi</em> sets). Each default set holds a shortlist of common thermal bridge shorthands or keywords, as well as their respective values (in W/K per meter), that are applied by TBD:</p>
+
+<ul>
+  <li><em>rimjoist</em>: any wall/floor or sloped-roof/floor edge</li>
+  <li><em>parapet</em>: any wall/roof edge</li>
+  <li><em>fenestration</em>: any window, door, skylight perimeter edge</li>
+  <li><em>corner</em>: any wall/wall edge</li>
+  <li><em>balcony</em>: any floor/shading edge</li>
+  <li><em>party</em>: any adiabatic/wall edge (or /floor, or /roof)</li>
+  <li><em>grade</em>: any edge along a slab-on-grade or foundation wall</li>
+  <li><em>joint</em>: any <em>flat</em> edge that <em>derates</em> (e.g. roof curb)</li>
+  <li><em>transition</em>: any <em>flat</em> edge that is not a <em>joint</em></li>
+</ul>
+
+<p>A few of the above deserve explanation.</p>
+
+<p>A shared edge between 2 parallel, aligned surfaces is tagged as a (mild)<strong>transition</strong>. In every default <em>psi</em> set, <em>transition</em> edges have a value of 0 W/K per meter, i.e. no <em>derating</em> takes place. OpenStudio models can hold many such <em>flat</em> edges, which usually do not constitute <em>major</em> thermal bridges. For instance when they delineate plenum walls from those of the occupied space (above or below). In other cases, they’re simply artefacts of third-party software that generated the OpenStudio geometry (e.g. tessellation). Whenever TBD can’t easily label an edge, it relies on <em>transition</em> as a fallback.</p>
+
+<p>Some <em>flat</em> edges should not be labelled as <em>transitions</em>, like expansion <strong>joints</strong> (or roof curbs). They should be considered as major thermal bridges, yet TBD is unable to distinguish between <em>transitions</em> and <em>joints</em> from OpenStudio geometry alone. The <em>TBD customization</em> section shows users how to reset auto-labelled <em>transition</em> edges into <em>joints</em> when needed.</p>
+
+<p>When the angle between 2 exposed surfaces exceeds 45° around an edge, TBD tags it either as a <strong>corner</strong> or a <strong>parapet</strong> (depending on the situation).</p>
+
+<p>When an exposed surface holds an edge that isn’t shared by another exposed surface, it’s either a sign of geometric inconsistency (it happens), or that the building shares a demising (or <strong>party</strong>) partition with a neighbouring building - yet TBD expects a connected adiabatic wall (otherwise, it resorts to a <em>transition</em> fallback).</p>
+
+<p>What happens when an edge might be tagged with more than one label? For instance when an edge is shared between wall, door (sill), floor and balcony? TBD ultimately labels the edge according to the <em>psi</em> value that represents the greatest heat loss. So if the <em>fenestration</em> and <em>rimjoist</em> <em>psi</em> values are 0.5 W/K per meter, yet the <em>balcony psi</em> value is 0.8 W/K per meter, then the edge is tagged as a <em>balcony</em> thermal bridge.</p>
+
+<p>Such TBD rules are described in finer detail in the source code itself, which is publicly accessible and well documented: check for Ruby (.rb) files under the /lib folder of the TBD GitHub repository.</p>
+
+<h3 id="where-does-one-get-psi-data">Where does one get <em>psi</em> data?</h3>
+
+<p>The <a href="https://www.bchydro.com/powersmart/business/programs/new-construction.html" title="Building Envelope Thermal Bridging Guide">BETBG</a> &amp; <a href="https://thermalenvelope.ca">thermalenvelope.ca</a> collections are great resources to start with. They rely in part on past research initiatives, like ASHRAE’s RP-1365 (which is also great). Building energy codes and ISO standards are also relevant resources. TBD relies on all of these for its default <em>psi</em> sets:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: left"> </th>
+      <th style="text-align: left">W/K per m</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: left"><strong>poor (BETBG)</strong></td>
+      <td style="text-align: left"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left">rimjoist</td>
+      <td style="text-align: left">1.000</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">parapet</td>
+      <td style="text-align: left">0.800</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">fenestration</td>
+      <td style="text-align: left">0.500</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">corner</td>
+      <td style="text-align: left">0.850</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">balcony</td>
+      <td style="text-align: left">1.000</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">party</td>
+      <td style="text-align: left">0.850</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">grade</td>
+      <td style="text-align: left">0.850</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">joint</td>
+      <td style="text-align: left">0.300</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"> </td>
+      <td style="text-align: left"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><strong>regular (BETBG)</strong></td>
+      <td style="text-align: left"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left">rimjoist</td>
+      <td style="text-align: left">0.500</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">parapet</td>
+      <td style="text-align: left">0.450</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">fenestration</td>
+      <td style="text-align: left">0.350</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">corner</td>
+      <td style="text-align: left">0.450</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">balcony</td>
+      <td style="text-align: left">0.500</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">party</td>
+      <td style="text-align: left">0.450</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">grade</td>
+      <td style="text-align: left">0.450</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">joint</td>
+      <td style="text-align: left">0.200</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"> </td>
+      <td style="text-align: left"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><strong>efficient (BETBG)</strong></td>
+      <td style="text-align: left"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left">rimjoist</td>
+      <td style="text-align: left">0.200</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">parapet</td>
+      <td style="text-align: left">0.200</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">fenestration</td>
+      <td style="text-align: left">0.200</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">corner</td>
+      <td style="text-align: left">0.200</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">balcony</td>
+      <td style="text-align: left">0.200</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">party</td>
+      <td style="text-align: left">0.200</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">grade</td>
+      <td style="text-align: left">0.200</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">joint</td>
+      <td style="text-align: left">0.100</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"> </td>
+      <td style="text-align: left"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><strong>spandrel (BETBG)</strong></td>
+      <td style="text-align: left"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left">rimjoist</td>
+      <td style="text-align: left">0.615</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">parapet</td>
+      <td style="text-align: left">1.000</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">fenestration</td>
+      <td style="text-align: left">0.000</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">corner</td>
+      <td style="text-align: left">0.425</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">balcony</td>
+      <td style="text-align: left">1.110</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">party</td>
+      <td style="text-align: left">0.990</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">grade</td>
+      <td style="text-align: left">0.880</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">joint</td>
+      <td style="text-align: left">0.500</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"> </td>
+      <td style="text-align: left"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><strong>spandrel HP (BETBG)</strong></td>
+      <td style="text-align: left"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left">rimjoist</td>
+      <td style="text-align: left">0.170</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">parapet</td>
+      <td style="text-align: left">0.660</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">fenestration</td>
+      <td style="text-align: left">0.000</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">corner</td>
+      <td style="text-align: left">0.200</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">balcony</td>
+      <td style="text-align: left">0.400</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">party</td>
+      <td style="text-align: left">0.500</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">grade</td>
+      <td style="text-align: left">0.880</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">joint</td>
+      <td style="text-align: left">0.140</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"> </td>
+      <td style="text-align: left"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><strong>code (Québec)</strong></td>
+      <td style="text-align: left"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left">rimjoist</td>
+      <td style="text-align: left">0.300</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">parapet</td>
+      <td style="text-align: left">0.325</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">fenestration</td>
+      <td style="text-align: left">0.350</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">corner</td>
+      <td style="text-align: left">0.300</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">balcony</td>
+      <td style="text-align: left">0.500</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">party</td>
+      <td style="text-align: left">0.450</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">grade</td>
+      <td style="text-align: left">0.450</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">joint</td>
+      <td style="text-align: left">0.200</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"> </td>
+      <td style="text-align: left"> </td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The <em>poor</em>, <em>regular</em> and <em>efficient</em> general sets mirror those of the BETBG, laid out at the beginning the BETBG document. They provide a good sense of <em>bottom-of-the-barrel</em> vs <em>high-performance</em> technologies. The (basic) vs high-performance (HP) <em>spandrel</em> sets offer a range of values expected for curtain wall technologies (also from the BETBG). TBD provides support for the Québec building energy code (which holds explicit requirements on major thermal bridging). Finally, there is also a <em>(non thermal bridging)</em> set where all <em>psi</em> values are fixed at 0 W/K per meter - mainly used for quality control and debugging purposes.</p>
 
 <h3 id="running-tbd-energy-simulation-mode">Running TBD (energy simulation mode)</h3>
 

@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=f89ecc20375cfaf755435ff34edf09426a9c066e">
+    <link rel="stylesheet" href="/assets/css/style.css?v=9182ac68ce6cc486da2cd12949954e74601968a4">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -66,7 +66,7 @@
 
 <p><strong>Minor</strong> thermal bridges are regularly-spaced supports or framing elements (such as studs and Z-bars): the initial <em>derated</em> R-value stemming from <em>minor</em> thermal bridging, generally known as a construction’s <em>clear-field effective R-value</em>, is largely independent of a surface’s actual geometry or adjacencies to other surfaces. This means design changes to surface geometry (e.g. floor-to-ceiling height, number of windows) can be made without having to update surface <em>clear-field effective R-values</em> - very practical! For a few simple 2D framing configurations, the ASHRAE Fundamentals and ISO standards support established hand-calculations like <em>parallel-path</em> and <em>isothermal-planes</em> methods. Yet in most cases, designers are better off consulting published collections of common configurations (with unique <em>clear-field effective R-values</em>), such as <a href="https://www.bchydro.com/powersmart/business/programs/new-construction.html" title="Building Envelope Thermal Bridging Guide">BETBG</a> or <a href="https://thermalenvelope.ca">thermalenvelope.ca</a>.</p>
 
-<p><strong>Major</strong> thermal bridging instead relates to a surface’s geometry and its immediate adjacencies (e.g. thermal bridging along roof parapets, slab edges, corners, cantilevered balconies). While U-values (or interchangeably U-factors, in W/K per square meters) are suitable metrics for surface area heat loss (under <em>standard</em> winter rating conditions), linear thermal conductances from <em>major</em> thermal bridges are commonly annotated using the greek letter <strong>psi</strong> (units in W/K per meter) - <strong>khi</strong> for point conductances (e.g. a cantilevered beam or a column, in W/K per point). Both <em>BETBG</em> and <em>thermalenvelope.ca</em> links above provide useful psi and khi data for common cases.</p>
+<p><strong>Major</strong> thermal bridging instead relates to a surface’s geometry and its immediate adjacencies (e.g. thermal bridging along roof parapets, slab edges, corners, cantilevered balconies). While U-values (or interchangeably U-factors, in W/K per square meters) are suitable metrics for surface area heat loss (under <em>standard</em> winter rating conditions), linear thermal conductances from <em>major</em> thermal bridges are commonly annotated using the greek letter <strong>psi</strong> (units in W/K per meter) - <strong>khi</strong> for point conductances (e.g. a cantilevered beam or a column, in W/K per point). Both <em>BETBG</em> and <em>thermalenvelope.ca</em> links above provide useful <em>psi</em> and khi data for common cases.</p>
 
 <p>Contrary to <em>minor</em> thermal bridging, changing a room’s height or adding windows should trigger a revised calculation of <em>major</em> thermal bridging effects. This can be quite daunting, time-consuming and error-prone to do by hand (per design iteration), given the hundreds (if not thousands) of <em>major</em> thermal bridges in a building model. The simple <a href="https://www.energy.gov/eere/buildings/commercial-reference-buildings" title="US DOE Commercial References">US DOE Commercial Reference Warehouse Model</a> has over 300 of such <em>major</em> thermal bridges - mostly around fenestration.</p>
 
@@ -76,7 +76,7 @@
 
 <h3 id="energy-simulation">Energy Simulation</h3>
 
-<p>While materials, constructions and envelope surfaces are well defined variables in OpenStudio and energy simulation engines like EnergyPlus, <em>edges</em> and <em>points</em> are simply not! TBD automatically factors in psi and khi losses from <em>major</em> thermal bridges it manages, by further <em>derating</em> a construction’s <em>clear-field effective R-value</em> - more specifically by further decreasing its insulating layer thickness. This approach, in line with published research and standards such as ASHRAE’s <a href="https://www.techstreet.com/standards/rp-1365-thermal-performance-of-building-envelope-details-for-mid-and-high-rise-buildings?product_id=1806751">RP-1365</a>, <em>BETBG</em> &amp; <em>thermalenvelope.ca</em>, as well as ISO <a href="https://www.iso.org/standard/65710.html">10211</a> and <a href="https://www.iso.org/standard/65706.html">14683</a> Standards, is best summarized as follows:</p>
+<p>While materials, constructions and envelope surfaces are well defined variables in OpenStudio and energy simulation engines like EnergyPlus, <em>edges</em> and <em>points</em> are simply not! TBD automatically factors in <em>psi</em> and khi losses from <em>major</em> thermal bridges it manages, by further <em>derating</em> a construction’s <em>clear-field effective R-value</em> - more specifically by further decreasing its insulating layer thickness. This approach, in line with published research and standards such as ASHRAE’s <a href="https://www.techstreet.com/standards/rp-1365-thermal-performance-of-building-envelope-details-for-mid-and-high-rise-buildings?product_id=1806751">RP-1365</a>, <em>BETBG</em> &amp; <em>thermalenvelope.ca</em>, as well as ISO <a href="https://www.iso.org/standard/65710.html">10211</a> and <a href="https://www.iso.org/standard/65706.html">14683</a> Standards, is best summarized as follows:</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Ut = Uo + ( ∑psi•L )/A + ( ∑khi•n )/A
 </code></pre></div></div>
 <p>… where:</p>
@@ -97,7 +97,7 @@
 <ul>
   <li>fully-enclosed OpenStudio model</li>
   <li>materials and layered constructions</li>
-  <li>a shortlist of psi and khi values</li>
+  <li>a shortlist of <em>psi</em> and khi values</li>
 </ul>
 
 <p>From there, TBD &amp; Topolys will do the heavy lifting. Experienced OpenStudio users will be familiar with the first two items (the <em>OpenStudio primer</em> below should help out newcomers). How to specify psi and khi is covered in TBD <em>basics</em> and <em>customization</em> sections.</p>
@@ -119,7 +119,14 @@
 
 <p><em>Merci !</em> to the following organizations</p>
 
-<p><a href="https://transitionenergetique.gouv.qc.ca" title="Transition énergétique Québec"><img src="/sponsors/quebec.png" alt="" /></a> <a href="https://nrc.canada.ca/en/research-development/research-collaboration/research-centres/construction-research-centre" title="CNRC"><img src="/sponsors/canada.png" alt="" /></a></p>
+<table>
+  <tbody>
+    <tr>
+      <td><a href="https://transitionenergetique.gouv.qc.ca" title="Transition énergétique Québec"><img src="/sponsors/quebec.png" alt="" /></a></td>
+      <td><a href="https://nrc.canada.ca/en/research-development/research-collaboration/research-centres/construction-research-centre" title="CNRC"><img src="/sponsors/canada.png" alt="" /></a></td>
+    </tr>
+  </tbody>
+</table>
 
         </section>
 
