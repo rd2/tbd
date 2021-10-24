@@ -8,7 +8,7 @@ __Thermal bridges__ are structural elements that interrupt the continuity of ins
 
 __Minor__ thermal bridges are regularly-spaced supports or framing elements (such as studs and Z-bars): the initial _derated_ R-value stemming from _minor_ thermal bridging, generally known as a construction's _clear-field effective R-value_, is largely independent of a surface's actual geometry or adjacencies to other surfaces. This means design changes to surface geometry (e.g. floor-to-ceiling height, number of windows) can be made without having to update surface _clear-field effective R-values_ - very practical! For a few simple 2D framing configurations, the ASHRAE Fundamentals and ISO standards support established hand-calculations like _parallel-path_ and _isothermal-planes_ methods. Yet in most cases, designers are better off consulting published collections of common configurations (with unique _clear-field effective R-values_), such as [BETBG](https://www.bchydro.com/powersmart/business/programs/new-construction.html "Building Envelope Thermal Bridging Guide") or [thermalenvelope.ca](https://thermalenvelope.ca).
 
-__Major__ thermal bridging instead relates to a surface's geometry and its immediate adjacencies (e.g. thermal bridging along roof parapets, slab edges, corners, cantilevered balconies). While U-values (or interchangeably U-factors, in W/K per square meters) are suitable metrics for surface area heat loss (under _standard_ winter rating conditions), linear thermal conductances from _major_ thermal bridges are commonly annotated using the greek letter __psi__ (units in W/K per meter) - __khi__ for point conductances (e.g. a cantilevered beam or a column, in W/K per point). Both _BETBG_ and _thermalenvelope.ca_ links above provide useful _psi_ and khi data for common cases.
+__Major__ thermal bridging instead relates to a surface's geometry and its immediate adjacencies (e.g. thermal bridging along roof parapets, slab edges, corners, cantilevered balconies). While U-values (or interchangeably U-factors, in W/K per square meters) are suitable metrics for surface area heat loss (under _standard_ winter rating conditions), linear thermal conductances from _major_ thermal bridges are commonly annotated using the greek letter __psi__ (units in W/K per meter) - __khi__ for point conductances (e.g. a cantilevered beam or a column, in W/K per point). Both _BETBG_ and _thermalenvelope.ca_ links above provide useful _psi_ and _khi_ data for common cases.
 
 Contrary to _minor_ thermal bridging, changing a room's height or adding windows should trigger a revised calculation of _major_ thermal bridging effects. This can be quite daunting, time-consuming and error-prone to do by hand (per design iteration), given the hundreds (if not thousands) of _major_ thermal bridges in a building model. The simple [US DOE Commercial Reference Warehouse Model](https://www.energy.gov/eere/buildings/commercial-reference-buildings "US DOE Commercial References") has over 300 of such _major_ thermal bridges - mostly around fenestration.
 
@@ -16,9 +16,9 @@ Contrary to _minor_ thermal bridging, changing a room's height or adding windows
 
 Relying on the OpenStudio [API](https://openstudio-sdk-documentation.s3.amazonaws.com/index.html "OpenStudio SDK") and the [Topolys](https://github.com/automaticmagic/topolys "Topolys source code repository on GitHub") gem, TBD automatically - and pretty instantaneously - identifies and manages _major_ thermal bridges behind the scenes for OpenStudio users.
 
-### Energy Simulation
+### Energy simulation
 
-While materials, constructions and envelope surfaces are well defined variables in OpenStudio and energy simulation engines like EnergyPlus, _edges_ and _points_ are simply not! TBD automatically factors in _psi_ and khi losses from _major_ thermal bridges it manages, by further _derating_ a construction's _clear-field effective R-value_ - more specifically by further decreasing its insulating layer thickness. This approach, in line with published research and standards such as ASHRAE's [RP-1365](https://www.techstreet.com/standards/rp-1365-thermal-performance-of-building-envelope-details-for-mid-and-high-rise-buildings?product_id=1806751), _BETBG_ & _thermalenvelope.ca_, as well as ISO [10211](https://www.iso.org/standard/65710.html) and [14683](https://www.iso.org/standard/65706.html) Standards, is best summarized as follows:
+While materials, constructions and envelope surfaces are well-defined variables in OpenStudio (and energy simulation engines like EnergyPlus), common _edges_ and _points_ are simply not! TBD automatically factors in _psi_ and _khi_ losses from _major_ thermal bridges it manages, by further _derating_ a construction's _clear-field effective R-value_ - more specifically by further decreasing its insulating layer thickness. This approach, in line with published research and standards such as ASHRAE's [RP-1365](https://www.techstreet.com/standards/rp-1365-thermal-performance-of-building-envelope-details-for-mid-and-high-rise-buildings?product_id=1806751), _BETBG_ & _thermalenvelope.ca_, as well as ISO [10211](https://www.iso.org/standard/65710.html) and [14683](https://www.iso.org/standard/65706.html) Standards, is best summarized as follows:
 ```
 Ut = Uo + ( ∑psi•L )/A + ( ∑khi•n )/A
 ```
@@ -32,16 +32,16 @@ __khi__ : e.g. column _point_ transmittance
 __n__ : number of similar columns  
 __A__ : opaque surface area  
 
-TBD users are required to initially define generic __psi__ and __khi__ values that best characterize the _major_ thermal bridges in their project. TBD will apply these values against individual _edge_ occurrences Topolys identifies in the OpenStudio model. Geometric variables like __L__ and __A__ are also automatically extracted by TBD from the model (... __n__ requires special treatment, discussed a bit further).
+TBD users are required to initially select generic __psi__ and __khi__ values that best characterize the _major_ thermal bridges in their project. TBD will apply these values against individual _edge_ occurrences Topolys identifies in the OpenStudio model. Geometric variables like __L__ and __A__ are also automatically extracted from the model (... __n__ requires special treatment, discussed in the _TBD customization section_).
 
 Each OpenStudio construction is comprised of multiple material layers (typically 2 or 3 at a minimum), each of which has a thermal resistance. Users are expected to have already factored in _minor_ thermal bridging effects by decreasing the nominal thickness of the _insulating_ layer of each construction - a standard technique in energy simulation (discussed further in the _OpenStudio primer_). __Uo__ is simply the inverse of the sum of resulting layer resistances (while excluding the effect of surface air films). Behind the scenes, TBD automatically generates new _derated_ materials and constructions - the latter having their own unique __Ut__.
 
 In summary, users are required to have:
-- fully-enclosed OpenStudio model
+- a fully-enclosed OpenStudio model
 - materials and layered constructions
-- a shortlist of _psi_ and khi values
+- a shortlist of _psi_ and _khi_ values
 
-From there, TBD & Topolys will do the heavy lifting. Experienced OpenStudio users will be familiar with the first two items (the _OpenStudio primer_ below should help out newcomers). How to specify psi and khi is covered in TBD _basics_ and _customization_ sections.
+From there, TBD & Topolys will do the heavy lifting.
 
 ### Next?
 
@@ -51,6 +51,8 @@ From there, TBD & Topolys will do the heavy lifting. Experienced OpenStudio user
 - [TBD reporting](./pages/reports.html "What TBD reports back")  
 - [KIVA](./pages/kiva.html "Kiva support")  
 - [UA'](./pages/ua.html "UA' assessments")  
+
+Experienced OpenStudio users will be familiar with the first two items (the _OpenStudio primer_ should help out newcomers). How to specify _psi_ and _khi_ is covered in TBD _basics_ and _customization_ sections.
 
 _As with many [publicly](https://bcl.nrel.gov/dashboard "OpenStudio's Building Component Library") available OpenStudio Measures, TBD is open source, [MIT-licensed](https://github.com/rd2/tbd/blob/master/LICENSE "TBD's MIT license") and so provided "as is" (without warranty)._
 

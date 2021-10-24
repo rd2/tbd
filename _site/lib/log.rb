@@ -1,5 +1,5 @@
 # In most cases, critical (and many non-critical) OSM anomalies would be caught
-# by EnergyPlus at the start of a simulation (e.g., 5-sided windows). As TBD is
+# by EnergyPlus at the start of a simulation (e.g., 5-sided windows). As TBD
 # is designed to run 'standalone' (e.g. Apply Measures Now), TBD shouldn't
 # (or couldn't) strictly rely on EnergyPlus to catch such errors (and somehow
 # warn users of potentially invalid results). TBD is designed to minimally log
@@ -14,7 +14,7 @@ module TBD
   # triggers an ERROR in EnergyPlus, but it's up to users to decide what to do
   # with simulation results. TBD attempts something similar.
   #
-  # FATAL errors halts all TBD processes and prevents OpenStudio from launching
+  # FATAL errors halt all TBD processes and prevents OpenStudio from launching
   # an EnergyPlus simulation. TBD will have but a few checks which would raise
   # FATAL cases. These would be mainly linked to missing, structurally invalid
   # or incomplete OSM or TBD files (or key file entries) e.g., badly structured
@@ -44,14 +44,14 @@ module TBD
   # neither OpenStudio nor EnergyPlus will necessarily warn users of such
   # occurrences. It's up to users to decide on the suitable course of action.
   #
-  # TBD also offers the possiblity of logging informative messages (although
+  # TBD also offers the possibility of logging informative messages (although
   # currently unused). Finally, TBD integrates a number of sanity checks to
   # ensure Ruby doesn't crash (e.g. invalid access to uninitialized variables),
   # especially for lower-level functions. When this occurs, there are safe
-  # fallbacks and exists, but the DEBUG error is nonetheless logged by TBD.
-  # DEBUG errors are almost always signs of a bug (to be fixed). This is for
-  # strictly made available for development purposes - TBD does not offer a
-  # 'production debugging' mode.
+  # fallbacks, but the DEBUG error is nonetheless logged by TBD. DEBUG errors
+  # are almost always signs of a bug (to be fixed). This is strictly made
+  # available for development purposes - TBD does not offer a 'production
+  # debugging' mode.
   DEBUG = 1 # for debugging
   INFO  = 2 # informative
   WARN  = 3 # e.g. unable to derate a material (too thin, too small)
