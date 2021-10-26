@@ -1,8 +1,6 @@
 ### Basics
 
-This section goes over the _bare bones minimum_ of what's needed to run TBD as an OpenStudio Measure, including minimal OpenStudio model requirements, what optional inputs may be needed, and finally how to actually run the measure.
-
-Experienced OpenStudio users should feel comfortable jumping right in. Newcomers to OpenStudio are encouraged to first check out official online documentation and tutorials for [OpenStudio](https://openstudio.net "OpenStudio"), including the [OpenStudio Application](https://openstudiocoalition.org// "OpenStudio Application") - more than useful!
+This section goes over the _bare bones minimum_ of what's needed to run TBD as an OpenStudio Measure, including minimal OpenStudio model requirements, what optional inputs may be needed, and finally how to actually run the measure. Experienced OpenStudio users should feel comfortable jumping right in. Newcomers to OpenStudio are encouraged to first check out official online documentation and tutorials for [OpenStudio](https://openstudio.net "OpenStudio"), including the [OpenStudio Application](https://openstudiocoalition.org// "OpenStudio Application") - more than useful!
 
 ### Context
 
@@ -68,9 +66,7 @@ When the angle between 2 _exposed_ surfaces exceeds 45° around an edge, TBD tag
 
 When an _exposed_ surface holds an edge that isn't shared by another _exposed_ surface, it's either a sign of geometric inconsistency (it happens), or that the building shares a demising (or __party__) partition with a neighbouring building. If the edge links an adiabatic surface, TBD tags it as a _party_ thermal bridge - otherwise it falls back to _transition_.
 
-What happens when an edge can be tagged with more than one label? For instance when an edge is shared between wall, door (sill), floor and balcony? TBD ultimately labels the edge according to the _psi_ value that represents the greatest heat loss. So if the _fenestration_ and _rimjoist psi_ values are 0.5 W/K per meter, yet the _balcony psi_ value is 0.8 W/K per meter, then the edge is tagged as a _balcony_ thermal bridge.
-
-Such TBD rules are described in finer detail in the source code itself, which is publicly accessible and well documented: check for Ruby (.rb) files under the /lib folder of the TBD GitHub repository.
+What happens when an edge can be tagged with more than one label? For instance when an edge is shared between wall, door (sill), floor and balcony? TBD ultimately labels the edge according to the _psi_ value that represents the greatest heat loss. So if the _fenestration_ and _rimjoist psi_ values are 0.5 W/K per meter, yet the _balcony psi_ value is 0.8 W/K per meter, then the edge is tagged as a _balcony_ thermal bridge. Such TBD rules are described in finer detail in the source code itself, which is publicly accessible and well documented: check for Ruby (.rb) files under the /lib folder of the TBD GitHub repository.
 
 ### Where does one get _psi_ data?
 

@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=a5ffd3a92df6b18c4be9e0f6e15b681a39f91ddc">
+    <link rel="stylesheet" href="/assets/css/style.css?v=2c4e6fe1c845ed02f0df6f86ecc8029b405a73e8">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -63,11 +63,11 @@
 <h3 id="dimensionning">Dimensionning</h3>
 
 <p>Envelope surfaces are either modelled in OpenStudio based on <em>outer</em> dimensions (i.e. following the exterior cladding, as in ASHRAE 90.1), or on <em>inner</em> dimensions (i.e. following the interior finishing, as in the Canadian NECB). For most <em>flat</em> edges, this isn’t critical. But for concave or convex corners and parapets, adjustments to <em>psi</em> values may be warranted if there is a mismatch in conventions between the OpenStudio model vs published <em>psi</em> data (e.g. BETBG). For instance, BETBG data reflects an <em>inner</em> dimensioning convention, while ISO 14683 reports <em>psi</em> values for both conventions. The following equation may be used to adjust BETBG <em>psi</em> values for e.g., convex corners, when relying on <em>outer</em> dimensions in OpenStudio.</p>
-<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>PSIe = PSIi + U * 2(Li - Le), where:
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>PSIe = PSIi + Uo * 2(Li - Le), where:
 
-PSIe = adjusted PSI
-PSIi = published PSI value
-   U = average clear field wall U-value
+PSIe = adjusted PSI (W/K per m)
+PSIi = published PSI value (W/K per m)
+  Uo = average clear field effective U-value (W/K per m2)
   Li = from interior corner to "zone of influence" limits (m)
   Le = from exterior corner to "zone of influence" limits (m)
 </code></pre></div></div>

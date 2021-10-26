@@ -41,7 +41,7 @@ In summary, users are required to have:
 - materials and layered constructions
 - a shortlist of _psi_ and _khi_ values
 
-From there, TBD & Topolys will do the heavy lifting.
+... from there, TBD & Topolys will do the heavy lifting !
 
 ### Next?
 
