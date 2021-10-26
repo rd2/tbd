@@ -2,7 +2,7 @@
 
 This section goes over the _bare bones minimum_ of what's needed to run TBD as an OpenStudio Measure, including minimal OpenStudio model requirements, what optional inputs may be needed, and finally how to actually run the measure.
 
-Experienced OpenStudio users should feel comfortable jumping right in. Newcomers to OpenStudio are encouraged to first check out the [OpenStudio primer](./openstudio.html "An OpenStudio primer for TBD users") and/or official online documentation for [OpenStudio](https://openstudio.net "OpenStudio"), including the [OpenStudio Application](https://openstudiocoalition.org// "OpenStudio Application") - more than useful!
+Experienced OpenStudio users should feel comfortable jumping right in. Newcomers to OpenStudio are encouraged to first check out official online documentation and tutorials for [OpenStudio](https://openstudio.net "OpenStudio"), including the [OpenStudio Application](https://openstudiocoalition.org// "OpenStudio Application") - more than useful!
 
 ### Context
 
@@ -14,7 +14,7 @@ In other cases, architects may simply wish to explore whether their designs comp
 
 ### Minimal model requirements
 
-__Fully enclosed geometry__: OpenStudio (and to a large extent EnergyPlus) work much better in general when a building model is _geometrically enclosed_ i.e., _air tight_ (no gaps between surfaces). This also means no unintentional surface overlaps or loosely intersecting edges, windows properly _fitting_ within the limits of their parent (or host) wall, etc. The example [warehouse](../index.html "Thermal Bridging & Derating") is a good visual of what this all means. It's worth mentioning, as some third-party design software offer mixed results with _enclosed geometry_ when auto-generating BIM-to-BEM models. TBD & Topolys do have some built-in tolerances (25 mm), but they can only do their job if vertices, edges and surfaces are well connected. Note that _partial_ OpenStudio models are not required to holds ALL building surfaces - just those that comprise the _building envelope_, in addition to interior floor surfaces. If a building has cantilevered balconies for instance, it's also a good idea to include those as shading surfaces (to _align_ with floor surfaces).
+__Fully enclosed geometry__: OpenStudio (and to a large extent EnergyPlus) work much better in general when a building model is _geometrically enclosed_ i.e., _air tight_ (no gaps between surfaces). This also means no unintentional surface overlaps or loosely intersecting edges, windows properly _fitting_ within the limits of their parent (or host) wall, etc. The example [warehouse](../index.html "Thermal Bridging & Derating") is a good visual of what this all means. It's worth mentioning, as some third-party design software offer mixed results with _enclosed geometry_ when auto-generating BIM-to-BEM models. TBD & Topolys do have some built-in tolerances (25 mm), but they can only do their job if vertices, edges and surfaces are well connected. Note that _partial_ OpenStudio models are not required to holds ALL building surfaces - just those that comprise the _building envelope_, in addition to interior floor surfaces. If a building has cantilevered balconies for instance, it's also a good idea to include those as shading surfaces (which must _align_ with floor surfaces).
 
 __Materials & constructions__: Geometry is not enough. TBD must also be able to retrieve referenced materials and multilayered constructions for all _envelope_ surfaces. The easiest way is via _Default Construction Sets_.
 
@@ -151,7 +151,7 @@ Users need to specify where all their OpenStudio _measures_ are stored on their 
 
 As with most OpenStudio measures, TBD does not modify the original OpenStudio building model (e.g. adding/referencing new _derated_ constructions) before running an EnergyPlus simulation. OpenStudio makes a behind-the-scenes copy of the model, which is in turn modified before simulation. Although the terminology may be confusing, leave the _Alter OpenStudio model_ option checked for EnergyPlus simulations - this option is there for _Apply Measures Now_ cases. Once the _Default thermal bridge (set)_ is selected, save the model and run the simulation.
 
-Results should show an increase in heating loads for cold climates. For ASHRAE climate zone 7, heating should increase generally between 3% to 13% (depending on the building type) for _poor_ to _regular_ thermal bridging details in an otherwise well-insulated envelope. Consult the _TBD Reporting_ section to learn more on TBD feedback.
+Results should show an increase in heating loads for cold climates. For ASHRAE climate zone 7, heating should increase generally between 5% to 15% (depending on the building type) for _poor_ to _regular_ thermal bridging details in an otherwise well-insulated envelope. Consult the _TBD Reporting_ section to learn more on TBD feedback.
 
 ### Apply Measures Now
 
@@ -161,8 +161,8 @@ However, there are _Apply Measures Now_ situations where permanent changes to an
 
 __Iterative investigation__: Users may simply want to get a status report of how well they're doing in managing thermal bridging in their projects. TBD provides the same user feedback (including errors & warnings) in either mode. Consult the _TBD reporting_ section.
 
-__UA' reports__: Similarly, TBD can generate at any moment _UA'_ summaries (often admissible building energy code paths). See the _UA'_ section to learn more.
+__UA' reports__: Similarly, TBD can generate at any moment _UA'_ summaries (often admissible building energy code compliance paths). See the _UA'_ section to learn more.
 
-__JSON output__: Users can generate a complete, detailed list of _major_ thermal bridges in their OpenStudio model, which can be useful for cost estimation or simply for further _customization_.
+__JSON output__: Users can generate a complete, detailed list of every _major_ thermal bridge in their OpenStudio model, which can be useful for cost estimation or simply for further _customization_.
 
 [back](../index.html "Thermal Bridging & Derating")  

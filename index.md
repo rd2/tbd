@@ -32,9 +32,9 @@ __khi__ : e.g. column _point_ transmittance
 __n__ : number of similar columns  
 __A__ : opaque surface area  
 
-TBD users are required to initially select generic __psi__ and __khi__ values that best characterize the _major_ thermal bridges in their project. TBD will apply these values against individual _edge_ occurrences Topolys identifies in the OpenStudio model. Geometric variables like __L__ and __A__ are also automatically extracted from the model (... __n__ requires special treatment, discussed in the _TBD customization section_).
+TBD users are required to initially select generic __psi__ and __khi__ values that best characterize the _major_ thermal bridges in their project. TBD will apply these values against individual _edge_ occurrences Topolys identifies in the OpenStudio model. Geometric variables like __L__ and __A__ are also automatically extracted from the model (... __n__ requires special treatment, discussed in the _TBD customization_ section).
 
-Each OpenStudio construction is comprised of multiple material layers (typically 2 or 3 at a minimum), each of which has a thermal resistance. Users are expected to have already factored in _minor_ thermal bridging effects by decreasing the nominal thickness of the _insulating_ layer of each construction - a standard technique in energy simulation (discussed further in the _OpenStudio primer_). __Uo__ is simply the inverse of the sum of resulting layer resistances (while excluding the effect of surface air films). Behind the scenes, TBD automatically generates new _derated_ materials and constructions - the latter having their own unique __Ut__.
+Each OpenStudio construction is comprised of multiple material layers (typically 2 or 3 at a minimum), each of which has a thermal resistance. Users are expected to have already factored in _minor_ thermal bridging effects by decreasing the nominal thickness of the _insulating_ layer of each construction - a standard technique in energy simulation. __Uo__ is simply the inverse of the sum of resulting layer resistances (while excluding the effect of surface air films). Behind the scenes, TBD automatically generates new _derated_ materials and constructions - the latter having their own unique __Ut__.
 
 In summary, users are required to have:
 - a fully-enclosed OpenStudio model
@@ -45,19 +45,16 @@ From there, TBD & Topolys will do the heavy lifting.
 
 ### Next?
 
-- [OpenStudio primer](./pages/openstudio.html "An OpenStudio primer for TBD users")  
 - [TBD basics](./pages/basics.html "Basic TBD workflow")  
 - [TBD customization](./pages/custom.html "Customizing TBD inputs")  
 - [TBD reporting](./pages/reports.html "What TBD reports back")  
 - [KIVA](./pages/kiva.html "Kiva support")  
 - [UA'](./pages/ua.html "UA' assessments")  
 
-Experienced OpenStudio users will be familiar with the first two items (the _OpenStudio primer_ should help out newcomers). How to specify _psi_ and _khi_ is covered in TBD _basics_ and _customization_ sections.
-
-_As with many [publicly](https://bcl.nrel.gov/dashboard "OpenStudio's Building Component Library") available OpenStudio Measures, TBD is open source, [MIT-licensed](https://github.com/rd2/tbd/blob/master/LICENSE "TBD's MIT license") and so provided "as is" (without warranty)._
-
 ### Support
 
 _Merci !_ to the following organizations
 
-| [![](./sponsors/quebec.png)](https://transitionenergetique.gouv.qc.ca "Transition énergétique Québec") | [![](./sponsors/canada.png)](https://nrc.canada.ca/en/research-development/research-collaboration/research-centres/construction-research-centre "CNRC") |
+| [![](./sponsors/quebec.png)](https://transitionenergetique.gouv.qc.ca "Transition énergétique Québec") | [![](./sponsors/canada.png)](https://nrc.canada.ca/en/research-development/research-collaboration/research-centres/construction-research-centre "CNRC") |  
+
+_As with many [publicly](https://bcl.nrel.gov/dashboard "OpenStudio's Building Component Library") available OpenStudio Measures, TBD is open source, [MIT-licensed](https://github.com/rd2/tbd/blob/master/LICENSE "TBD's MIT license") and so provided "as is" (without warranty)._

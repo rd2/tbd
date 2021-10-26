@@ -1,3 +1,3 @@
-[back](../index.html "Thermal Bridging & Derating")  
+### KIVA
 
-_Future overview of how TBD supports KIVA inputs_
+[back](../index.html "Thermal Bridging & Derating")  

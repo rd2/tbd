@@ -4,16 +4,16 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=2a1ec9a8985dea93876b30658864f4b32c89720b">
+    <link rel="stylesheet" href="/assets/css/style.css?v=a5ffd3a92df6b18c4be9e0f6e15b681a39f91ddc">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
 
 <!-- Begin Jekyll SEO tag v2.7.1 -->
-<title>TBD | Thermal Bridging &amp; Derating</title>
+<title>Customization | TBD</title>
 <meta name="generator" content="Jekyll v3.9.0" />
-<meta property="og:title" content="TBD" />
+<meta property="og:title" content="Customization" />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Thermal Bridging &amp; Derating" />
 <meta property="og:description" content="Thermal Bridging &amp; Derating" />
@@ -21,9 +21,9 @@
 <meta property="og:url" content="http://localhost:4000/pages/custom.html" />
 <meta property="og:site_name" content="TBD" />
 <meta name="twitter:card" content="summary" />
-<meta property="twitter:title" content="TBD" />
+<meta property="twitter:title" content="Customization" />
 <script type="application/ld+json">
-{"@type":"WebPage","headline":"TBD","description":"Thermal Bridging &amp; Derating","url":"http://localhost:4000/pages/custom.html","@context":"https://schema.org"}</script>
+{"@type":"WebPage","headline":"Customization","description":"Thermal Bridging &amp; Derating","url":"http://localhost:4000/pages/custom.html","@context":"https://schema.org"}</script>
 <!-- End Jekyll SEO tag -->
 
     <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
@@ -44,7 +44,7 @@
       <div class="inner">
 
         <header>
-          <h1>TBD</h1>
+          <h1>Customization</h1>
           <h2>Thermal Bridging & Derating</h2>
         </header>
         <section id="downloads" class="clearfix">
@@ -56,11 +56,24 @@
         </section>
         <hr>
         <section id="main_content">
-          <p><a href="../index.html" title="Thermal Bridging &amp; Derating">back</a></p>
+          <h3 id="customization">Customization</h3>
 
-<p><em>Future introduction to custom inputs (JSON)</em></p>
+<p><em>placeholder for JSON file validation : https://jsonschemalint.com/#!/version/draft-04/markup/json</em></p>
 
-<p>placeholder for JSON file validation : https://jsonschemalint.com/#!/version/draft-04/markup/json</p>
+<h3 id="dimensionning">Dimensionning</h3>
+
+<p>Envelope surfaces are either modelled in OpenStudio based on <em>outer</em> dimensions (i.e. following the exterior cladding, as in ASHRAE 90.1), or on <em>inner</em> dimensions (i.e. following the interior finishing, as in the Canadian NECB). For most <em>flat</em> edges, this isn’t critical. But for concave or convex corners and parapets, adjustments to <em>psi</em> values may be warranted if there is a mismatch in conventions between the OpenStudio model vs published <em>psi</em> data (e.g. BETBG). For instance, BETBG data reflects an <em>inner</em> dimensioning convention, while ISO 14683 reports <em>psi</em> values for both conventions. The following equation may be used to adjust BETBG <em>psi</em> values for e.g., convex corners, when relying on <em>outer</em> dimensions in OpenStudio.</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>PSIe = PSIi + U * 2(Li - Le), where:
+
+PSIe = adjusted PSI
+PSIi = published PSI value
+   U = average clear field wall U-value
+  Li = from interior corner to "zone of influence" limits (m)
+  Le = from exterior corner to "zone of influence" limits (m)
+</code></pre></div></div>
+<p>The <em>zone of influence</em> usually ranges between ~1.0 to 1.2 meters - but the key parameter here is really the resulting wall thickness, and whether the sign is positive or negative - depending if it’s a convex or concave corner. The BETBG and ISO standards provide detailed discussions on the subject.</p>
+
+<p><a href="../index.html" title="Thermal Bridging &amp; Derating">back</a></p>
 
         </section>
 
