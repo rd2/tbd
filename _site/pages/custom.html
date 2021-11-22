@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=e39a690316a460851cf70d82e21e193ca8e0672c">
+    <link rel="stylesheet" href="/assets/css/style.css?v=8f9851aa51332be8107985a75706754ad92bc60b">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -65,7 +65,6 @@
 <h3 id="custom-building-psi-set">Custom building <em>psi</em> set</h3>
 
 <p>As a first example, consider the definition of a custom “building” <em>psi</em> set - instead of TBD’s pull-down menu options:</p>
-
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>{
   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
   "description": "Custom PSI set for a building",
@@ -88,8 +87,21 @@
   }
 }
 </code></pre></div></div>
+<p><strong>SCHEMA</strong>: Let’s start with the tough part. TBD output &amp; input files are:</p>
 
-<p><strong>SCHEMA</strong>: Let’s start with the tough part. TBD output &amp; input files are (a) JSON formatted, and (b) structured following a TBD-specific JSON <em>schema</em> … a <em>schema</em>? See this as a set of coded instructions of (a) what’s allowed as TBD input, and (b) how this input should be JSON-formatted. Pretty much every compiled or assembled computer language has JSON functionality capable of reading in and validating JSON-formatted data. This ensures portability between machine architectures, computer languages and third-party software.</p>
+<ul>
+  <li>JSON formatted</li>
+  <li>structured following a TBD-specific JSON <em>schema</em></li>
+</ul>
+
+<p><em>Schema</em>? See this as a set of coded instructions of:</p>
+
+<ul>
+  <li>what’s allowed as TBD input</li>
+  <li>how this input should be JSON-formatted.</li>
+</ul>
+
+<p>Pretty much every compiled or assembled computer language has JSON functionality capable of reading in and validating JSON-formatted data. This ensures portability between machine architectures, computer languages and third-party software.</p>
 
 <p>Currently, designers are yet to have access to online tools or BIM-integrated features that would help with JSON formatting and validating of TBD custom inputs. In the meantime, one can copy the content of TBD’s <a href="https://github.com/rd2/tbd/blob/master/tbd.schema.json">schema</a> and paste it in the left-side window of this free, online JSON <a href="https://jsonschemalint.com/#!/version/draft-04/markup/json">Linter</a>. Then copy the example <em>tbd.json</em> content above, and paste in the right-side window:</p>
 
@@ -105,54 +117,55 @@
 
 <p>OpenStudio allows users to set default construction sets for an entire building model, which means any new wall surface added to a model automatically inherits the default wall construction - very handy. OpenStudio also allows users to further refine the solution by allowing default construction sets per individual <em>building story</em> (e.g. ground floor surfaces vs the rest of the building), or on a <em>spacetype</em> basis (e.g. housing units vs common spaces), and so on … down to the individual surface.</p>
 
-<p>TBD offers a mirror solution: custom <em>psi</em> sets …</p>
+<p>TBD offers a mirror solution - custom <em>psi</em> sets:</p>
+
 <ul>
   <li>for the OpenStudio building as a whole</li>
   <li>per OpenStudio story</li>
   <li>per OpenStudio spacetype</li>
   <li>per OpenStudio space</li>
-  <li>per OpenStudio surface</li>
+  <li>per OpenStudio surface
+    <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>{
+"schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
+"description": "Benchmark warehouse with custom spacetype psi sets",
+"psis":
+[
+  {
+    "id": "Warehouse Office",
+    "parapet": 0.300,
+    "corner": 0.300,
+    "grade": 0.300
+  },
+  {
+    "id": "Warehouse Fine",
+    "parapet": 0.500,
+    "corner": 0.500,
+    "grade": 0.500
+  }
+],
+"building":
+{
+  "psi": "regular (BETBG)"
+},
+"spacetypes":
+[
+  {
+    "id": "Warehouse Office",
+    "psi": "Warehouse Office"
+  },
+  {
+    "id": "Warehouse Fine",
+    "psi": "Warehouse Fine"
+  }
+]
+}
+</code></pre></div>    </div>
+    <p>Successfully linking custom <em>psi</em> sets and OpenStudio objects relies on their unique <em>id</em>’s - “Warehouse Office” &amp; “Warehouse Fine” here are unique OpenStudio model object string identifiers.</p>
+  </li>
 </ul>
 
-<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>{
-  "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
-  "description": "Benchmark warehouse with custom spacetype psi sets",
-  "psis":
-  [
-    {
-      "id": "Warehouse Office",
-      "parapet": 0.300,
-      "corner": 0.300,
-      "grade": 0.300
-    },
-    {
-      "id": "Warehouse Fine",
-      "parapet": 0.500,
-      "corner": 0.500,
-      "grade": 0.500
-    }
-  ],
-  "building":
-  {
-    "psi": "regular (BETBG)"
-  },
-  "spacetypes":
-  [
-    {
-      "id": "Warehouse Office",
-      "psi": "Warehouse Office"
-    },
-    {
-      "id": "Warehouse Fine",
-      "psi": "Warehouse Fine"
-    }
-  ]
-}
-</code></pre></div></div>
-
-<p>Successfully linking custom <em>psi</em> sets and OpenStudio objects depends on their unique “id’s” - “Warehouse Office” &amp; “Warehouse Fine” here are unique OpenStudio model object string identifiers.</p>
-
 <p>A few additional notes:</p>
+
 <ul>
   <li>here, the “building” <em>psi</em> set refers to a TBD pull-down option</li>
   <li>therefore not necessary to define it as a custom <em>psi</em> set</li>
@@ -162,7 +175,6 @@
 </ul>
 
 <p>One can also customize individual edges (e.g. expansion <em>joints</em>), which do not have corresponding OpenStudio identified objects:</p>
-
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>{
   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
   "description": "Demonstrating a custom edge",
@@ -187,11 +199,9 @@
   ]
 }
 </code></pre></div></div>
-
 <h3 id="khi-inputs"><em>khi</em> inputs</h3>
 
 <p>Cantilevered beams, columns, rooftop support blocks, etc. that partially or entirely traverse building envelope surfaces are best represented as point conductances, or <em>khi</em> values (in W/K per point). As there are no corresponding OpenStudio objects, TBD users must fall back onto custom surface attributes:</p>
-
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>{
   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
   "description": "Adding khi items",
@@ -225,13 +235,11 @@
   ]
 }
 </code></pre></div></div>
-
 <p>Here, the OpenStudio surface “exposed floor 1” will inherit 10x 0.7 W/K (= 7 W/K) + 4x 0.5 W/K (= 2 W/K): an extra 9 W/K, in addition to the total W/K per m from surrounding edges (i.e. linear thermal bridges), automatically calculated by TBD.</p>
 
 <h3 id="extended-shorthands">Extended <em>shorthands</em></h3>
 
 <p>If one carefully examines a detailed <em>tbd.out.json</em> file, one will notice new or altered TBD <em>shorthands</em> for individual edges e.g., “jamb”, “sill” &amp; “head” instead of “fenestration”, as well as “concave” or “convex” variants e.g.:</p>
-
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>{
   "psi": "poor (BETBG)",
   "type": "jamb",
@@ -264,11 +272,9 @@
   "v1z": 8.53398380454007
 },
 </code></pre></div></div>
-
 <p>Here, “type” designates one of the possible (extended) TBD <em>shorthands</em>. Users may have simply relied on a general “fenestration” <em>psi</em> value, TBD will nonetheless differentiate between fenestration <em>heads</em>, <em>jambs</em> and <em>sills</em>. In addition, TBD will add a “convex” or “concave” suffix to edges linking <em>deratable</em> surface pairs that aren’t on the same 3D plane. A simple, rectangular building would have a minimum of 4 <em>convex</em> parapets, but a one-story extension to a 2-story building would (also) have at least one <em>concave</em> parapet.</p>
 
-<p>If one comes across published <em>psi</em> data that distinguishes between fenestration <em>heads</em>, <em>sills</em> and <em>jambs</em> (the BETBG does contain some of these), and/or differences between <em>convex</em> vs <em>concave</em> corners, then one can customize a <em>tbd.json</em> file as follows:</p>
-
+<p>If one comes across published <em>psi</em> data that distinguishes between fenestration <em>heads</em>, <em>sills</em> and <em>jambs</em> (the BETBG does contain some of these), and/or differences between <em>convex</em> vs <em>concave</em> corners, then one could customize a <em>tbd.json</em> file as follows:</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>{
   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
   "description": "Enhanced, custom PSI set for a building",
@@ -294,13 +300,11 @@
   }
 }
 </code></pre></div></div>
-
 <p>There are obviously many, many possible combinations. TBD’s GitHub repository contains several additional <a href="https://github.com/rd2/tbd/tree/master/json">examples</a>. Although this may at first seem complex and intimidating for the average designer or modeller, it remains similar to OpenStudio with regards to default construction sets: it can be very simple, and it only needs to be as complex as the actual design. With such freedom (with both OpenStudio and TBD inputs) comes responsibility - something users and modellers must carefully consider and plan out accordingly.</p>
 
 <h3 id="a-side-note-on-dimensioning">A side note on dimensioning</h3>
 
 <p>Envelope surfaces are usually modelled in OpenStudio based on <em>outer</em> dimensions (i.e. following the exterior cladding, as in ASHRAE 90.1 and Quebec’s energy code), or on <em>inner</em> dimensions (i.e. following the interior finishing, as in the Canadian NECB). For most <em>flat</em> edges, this isn’t critical. But for concave or convex corners and parapets, adjustments to <em>psi</em> values may be warranted if there is a mismatch in conventions between the OpenStudio model vs published <em>psi</em> data. For instance, BETBG data reflects an <em>inner</em> dimensioning convention, while ISO 14683 reports <em>psi</em> values for both conventions. The following equation may be used to adjust BETBG <em>psi</em> values for e.g., convex corners, when relying on <em>outer</em> dimensions in OpenStudio.</p>
-
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>PSIe = PSIi + Uo * 2(Li - Le), where:
 
 PSIe = adjusted PSI (W/K per m), as TBD input
@@ -309,8 +313,7 @@ PSIi = published PSI value (W/K per m)
   Li = from interior corner to "zone of influence" limits (m)
   Le = from exterior corner to "zone of influence" limits (m)
 </code></pre></div></div>
-
-<p>The <em>zone of influence</em> usually ranges between ~1.0 to 1.2 meters - but the key parameter here is really the resulting wall thickness, and whether the sign is positive or negative - depending if it’s a convex or concave corner. In some cases, this may even produce negative <em>psi</em> values - which TBD allows. The BETBG and ISO standards provide detailed discussions on the subject.</p>
+<p>The <em>zone of influence</em> usually ranges between 1.0 to 1.2 meters. But the key parameter here is really the resulting wall thickness, and whether the sign is positive or negative - depending if it’s a convex or concave corner. In some cases, this may even produce negative <em>psi</em> values - which TBD allows. The BETBG and ISO standards provide detailed discussions on the subject.</p>
 
 <p><a href="../index.html" title="Thermal Bridging &amp; Derating">back</a></p>
 

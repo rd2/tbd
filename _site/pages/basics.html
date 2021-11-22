@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=e39a690316a460851cf70d82e21e193ca8e0672c">
+    <link rel="stylesheet" href="/assets/css/style.css?v=8f9851aa51332be8107985a75706754ad92bc60b">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -70,7 +70,7 @@
 
 <h3 id="minimal-model-requirements">Minimal model requirements</h3>
 
-<p><strong>Fully enclosed geometry</strong>: OpenStudio (and to a large extent EnergyPlus) work much better in general when a building model is <em>geometrically enclosed</em> i.e., <em>air tight</em> (no gaps between surfaces). This also means no unintentional surface overlaps or loosely intersecting edges, windows properly <em>fitting</em> within the limits of their parent (or host) wall, etc. The example <a href="../index.html" title="Thermal Bridging &amp; Derating">warehouse</a> is a good visual of what this all means. It’s worth mentioning, as some third-party design software offer mixed results with <em>enclosed geometry</em> when auto-generating BIM-to-BEM models. TBD &amp; Topolys do have some built-in tolerances (25 mm), but they can only do their job if vertices, edges and surfaces are well connected. Note that <em>partial</em> OpenStudio models are not required to holds ALL building surfaces - just those that comprise the <em>building envelope</em>, in addition to interior floor surfaces. If a building has cantilevered balconies for instance, it’s also a good idea to include those as shading surfaces (which must <em>align</em> with floor surfaces).</p>
+<p><strong>Fully enclosed geometry</strong>: OpenStudio (and to a large extent EnergyPlus) work much better in general when a building model is <em>geometrically enclosed</em> i.e., <em>air tight</em> (no gaps between surfaces). This also means no unintentional surface overlaps or loosely intersecting edges, windows properly <em>fitting</em> within the limits of their parent (or host) wall, etc. The example <a href="../index.html" title="Thermal Bridging &amp; Derating">warehouse</a> is a good visual of what this all means. It’s worth mentioning, as some third-party design software offer mixed results with <em>enclosed geometry</em> when auto-generating BIM-to-BEM models. TBD &amp; Topolys do have some built-in tolerances (25 mm), but they can only do their job if vertices, edges and surfaces are well connected. Note that <em>partial</em> OpenStudio models are not required to hold ALL building surfaces - just those that comprise the <em>building envelope</em>, in addition to interior floor surfaces. If a building has cantilevered balconies for instance, it’s also a good idea to include those as shading surfaces (which must <em>align</em> with floor surfaces).</p>
 
 <p><strong>Materials &amp; constructions</strong>: Geometry is not enough. TBD must also be able to retrieve referenced materials and multilayered constructions for all <em>envelope</em> surfaces. The easiest way is via <em>Default Construction Sets</em>.</p>
 
@@ -129,10 +129,10 @@ fenestration | window, door, skylight perimeter
 
 <h3 id="where-does-one-get-psi-data">Where does one get <em>psi</em> data?</h3>
 
-<p>The <a href="https://www.bchydro.com/powersmart/business/programs/new-construction.html" title="Building Envelope Thermal Bridging Guide">BETBG</a> &amp; <a href="https://thermalenvelope.ca">thermalenvelope.ca</a> collections are great resources to start with. They rely in part on past research initiatives, like ASHRAE’s RP-1365 (which is also great). Building energy codes and ISO standards are also relevant resources. TBD relies on all of these for its default <em>psi</em> sets.</p>
+<p>The <a href="https://www.bchydro.com/powersmart/business/programs/new-construction.html" title="Building Envelope Thermal Bridging Guide">BETBG</a> &amp; <a href="https://thermalenvelope.ca">thermalenvelope.ca</a> collections are great resources to start with. They rely in part on past research initiatives, like ASHRAE’s RP-1365 (which is also great). Building energy codes and ISO standards are also relevant resources. TBD relies on all of these for its default <em>psi</em> sets (in W/K per meter):</p>
 
 <p><strong>poor (BETBG)</strong></p>
-<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    rimjoist | 1.000 W/K per m
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    rimjoist | 1.000
      parapet | 0.800
 fenestration | 0.500
       corner | 0.850
@@ -206,9 +206,9 @@ fenestration | 0.350
 
 <p>The original intent of an <em>Apply Measures Now</em> feature in OpenStudio is to irreversibly alter a building model without the need to run an EnergyPlus simulation. For instance, the KIVA options in TBD work best in <em>Apply Measures Now</em> mode. So best leave the <em>Alter OpenStudio model</em> option CHECKED in such cases.</p>
 
-<p>However, there are <em>Apply Measures Now</em> situations where permanent changes to an OpenStudio model aren’t warranted or desirable, in which case it becomes critical to UNCHECK the <em>Alter OpenStudio model</em> option.</p>
+<p>However, there are <em>Apply Measures Now</em> situations where permanent changes to an OpenStudio model aren’t warranted or desirable, in which case it becomes critical to UNCHECK the <em>Alter OpenStudio model</em> option:</p>
 
-<p><strong>Iterative investigation</strong>: Users may simply want to get a status report of how well they’re doing in managing thermal bridging in their projects. TBD provides the same user feedback (including errors &amp; warnings) in either mode. Consult the <em>TBD reporting</em> section.</p>
+<p><strong>Iterative investigations</strong>: Users may simply want to get a status report of how well they’re doing in managing thermal bridging in their projects. TBD provides the same user feedback (including errors &amp; warnings) in either mode. Consult the <em>TBD reporting</em> section.</p>
 
 <p><strong>UA’ reports</strong>: Similarly, TBD can generate at any moment <em>UA’</em> summaries (often admissible building energy code compliance paths). See the <em>UA’</em> section to learn more.</p>
 

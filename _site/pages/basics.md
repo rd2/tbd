@@ -12,7 +12,7 @@ In other cases, architects may simply wish to explore whether their designs comp
 
 ### Minimal model requirements
 
-__Fully enclosed geometry__: OpenStudio (and to a large extent EnergyPlus) work much better in general when a building model is _geometrically enclosed_ i.e., _air tight_ (no gaps between surfaces). This also means no unintentional surface overlaps or loosely intersecting edges, windows properly _fitting_ within the limits of their parent (or host) wall, etc. The example [warehouse](../index.html "Thermal Bridging & Derating") is a good visual of what this all means. It's worth mentioning, as some third-party design software offer mixed results with _enclosed geometry_ when auto-generating BIM-to-BEM models. TBD & Topolys do have some built-in tolerances (25 mm), but they can only do their job if vertices, edges and surfaces are well connected. Note that _partial_ OpenStudio models are not required to holds ALL building surfaces - just those that comprise the _building envelope_, in addition to interior floor surfaces. If a building has cantilevered balconies for instance, it's also a good idea to include those as shading surfaces (which must _align_ with floor surfaces).
+__Fully enclosed geometry__: OpenStudio (and to a large extent EnergyPlus) work much better in general when a building model is _geometrically enclosed_ i.e., _air tight_ (no gaps between surfaces). This also means no unintentional surface overlaps or loosely intersecting edges, windows properly _fitting_ within the limits of their parent (or host) wall, etc. The example [warehouse](../index.html "Thermal Bridging & Derating") is a good visual of what this all means. It's worth mentioning, as some third-party design software offer mixed results with _enclosed geometry_ when auto-generating BIM-to-BEM models. TBD & Topolys do have some built-in tolerances (25 mm), but they can only do their job if vertices, edges and surfaces are well connected. Note that _partial_ OpenStudio models are not required to hold ALL building surfaces - just those that comprise the _building envelope_, in addition to interior floor surfaces. If a building has cantilevered balconies for instance, it's also a good idea to include those as shading surfaces (which must _align_ with floor surfaces).
 
 __Materials & constructions__: Geometry is not enough. TBD must also be able to retrieve referenced materials and multilayered constructions for all _envelope_ surfaces. The easiest way is via _Default Construction Sets_.
 
@@ -70,11 +70,11 @@ What happens when an edge can be tagged with more than one label? For instance w
 
 ### Where does one get _psi_ data?
 
-The [BETBG](https://www.bchydro.com/powersmart/business/programs/new-construction.html "Building Envelope Thermal Bridging Guide") & [thermalenvelope.ca](https://thermalenvelope.ca) collections are great resources to start with. They rely in part on past research initiatives, like ASHRAE's RP-1365 (which is also great). Building energy codes and ISO standards are also relevant resources. TBD relies on all of these for its default _psi_ sets.
+The [BETBG](https://www.bchydro.com/powersmart/business/programs/new-construction.html "Building Envelope Thermal Bridging Guide") & [thermalenvelope.ca](https://thermalenvelope.ca) collections are great resources to start with. They rely in part on past research initiatives, like ASHRAE's RP-1365 (which is also great). Building energy codes and ISO standards are also relevant resources. TBD relies on all of these for its default _psi_ sets (in W/K per meter):
 
 __poor (BETBG)__
 ```
-    rimjoist | 1.000 W/K per m
+    rimjoist | 1.000
      parapet | 0.800
 fenestration | 0.500
       corner | 0.850
@@ -153,9 +153,9 @@ Results should show an increase in heating loads for cold climates. For ASHRAE c
 
 The original intent of an _Apply Measures Now_ feature in OpenStudio is to irreversibly alter a building model without the need to run an EnergyPlus simulation. For instance, the KIVA options in TBD work best in _Apply Measures Now_ mode. So best leave the _Alter OpenStudio model_ option CHECKED in such cases.
 
-However, there are _Apply Measures Now_ situations where permanent changes to an OpenStudio model aren't warranted or desirable, in which case it becomes critical to UNCHECK the _Alter OpenStudio model_ option.
+However, there are _Apply Measures Now_ situations where permanent changes to an OpenStudio model aren't warranted or desirable, in which case it becomes critical to UNCHECK the _Alter OpenStudio model_ option:
 
-__Iterative investigation__: Users may simply want to get a status report of how well they're doing in managing thermal bridging in their projects. TBD provides the same user feedback (including errors & warnings) in either mode. Consult the _TBD reporting_ section.
+__Iterative investigations__: Users may simply want to get a status report of how well they're doing in managing thermal bridging in their projects. TBD provides the same user feedback (including errors & warnings) in either mode. Consult the _TBD reporting_ section.
 
 __UA' reports__: Similarly, TBD can generate at any moment _UA'_ summaries (often admissible building energy code compliance paths). See the _UA'_ section to learn more.
 

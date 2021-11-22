@@ -7,7 +7,6 @@ As detailed in the TBD __Reporting__ section, a unique _tbd.out.json_ output fil
 ### Custom building _psi_ set
 
 As a first example, consider the definition of a custom "building" _psi_ set - instead of TBD's pull-down menu options:
-
 ```
 {
   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
@@ -30,9 +29,18 @@ As a first example, consider the definition of a custom "building" _psi_ set - i
     "psi": "not bad"
   }
 }
-```  
+```
+__SCHEMA__: Let's start with the tough part. TBD output & input files are:  
 
-__SCHEMA__: Let's start with the tough part. TBD output & input files are (a) JSON formatted, and (b) structured following a TBD-specific JSON _schema_ ... a _schema_? See this as a set of coded instructions of (a) what's allowed as TBD input, and (b) how this input should be JSON-formatted. Pretty much every compiled or assembled computer language has JSON functionality capable of reading in and validating JSON-formatted data. This ensures portability between machine architectures, computer languages and third-party software.
+- JSON formatted
+- structured following a TBD-specific JSON _schema_  
+
+_Schema_? See this as a set of coded instructions of:  
+
+- what's allowed as TBD input
+- how this input should be JSON-formatted.  
+
+Pretty much every compiled or assembled computer language has JSON functionality capable of reading in and validating JSON-formatted data. This ensures portability between machine architectures, computer languages and third-party software.
 
 Currently, designers are yet to have access to online tools or BIM-integrated features that would help with JSON formatting and validating of TBD custom inputs. In the meantime, one can copy the content of TBD's [schema](https://github.com/rd2/tbd/blob/master/tbd.schema.json) and paste it in the left-side window of this free, online JSON [Linter](https://jsonschemalint.com/#!/version/draft-04/markup/json). Then copy the example _tbd.json_ content above, and paste in the right-side window:
 
@@ -48,13 +56,13 @@ __BUILDING__: TBD allows a single "building" JSON entry, where one simply refers
 
 OpenStudio allows users to set default construction sets for an entire building model, which means any new wall surface added to a model automatically inherits the default wall construction - very handy. OpenStudio also allows users to further refine the solution by allowing default construction sets per individual _building story_ (e.g. ground floor surfaces vs the rest of the building), or on a _spacetype_ basis (e.g. housing units vs common spaces), and so on ... down to the individual surface.
 
-TBD offers a mirror solution: custom _psi_ sets ...
+TBD offers a mirror solution - custom _psi_ sets:  
+
 - for the OpenStudio building as a whole
 - per OpenStudio story
 - per OpenStudio spacetype
 - per OpenStudio space
-- per OpenStudio surface  
-
+- per OpenStudio surface
 ```
 {
   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
@@ -90,19 +98,18 @@ TBD offers a mirror solution: custom _psi_ sets ...
     }
   ]
 }
-```  
+```
+Successfully linking custom _psi_ sets and OpenStudio objects relies on their unique _id_'s - "Warehouse Office" & "Warehouse Fine" here are unique OpenStudio model object string identifiers.  
 
-Successfully linking custom _psi_ sets and OpenStudio objects depends on their unique "id's" - "Warehouse Office" & "Warehouse Fine" here are unique OpenStudio model object string identifiers.  
+A few additional notes:  
 
-A few additional notes:
 - here, the "building" _psi_ set refers to a TBD pull-down option
 - therefore not necessary to define it as a custom _psi_ set
 - this nonetheless overrides the selected pull-down option
 - except for "building", custom _psi_ sets can be _partial_
 - e.g. all _fenestration_ edges inherit from the "building" set  
 
-One can also customize individual edges (e.g. expansion _joints_), which do not have corresponding OpenStudio identified objects:  
-
+One can also customize individual edges (e.g. expansion _joints_), which do not have corresponding OpenStudio identified objects:
 ```
 {
   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
@@ -127,12 +134,10 @@ One can also customize individual edges (e.g. expansion _joints_), which do not 
     }
   ]
 }
-```  
-
+```
 ### _khi_ inputs
 
-Cantilevered beams, columns, rooftop support blocks, etc. that partially or entirely traverse building envelope surfaces are best represented as point conductances, or _khi_ values (in W/K per point). As there are no corresponding OpenStudio objects, TBD users must fall back onto custom surface attributes:  
-
+Cantilevered beams, columns, rooftop support blocks, etc. that partially or entirely traverse building envelope surfaces are best represented as point conductances, or _khi_ values (in W/K per point). As there are no corresponding OpenStudio objects, TBD users must fall back onto custom surface attributes:
 ```
 {
   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
@@ -166,14 +171,12 @@ Cantilevered beams, columns, rooftop support blocks, etc. that partially or enti
     }
   ]
 }
-```  
-
+```
 Here, the OpenStudio surface "exposed floor 1" will inherit 10x 0.7 W/K (= 7 W/K) + 4x 0.5 W/K (= 2 W/K): an extra 9 W/K, in addition to the total W/K per m from surrounding edges (i.e. linear thermal bridges), automatically calculated by TBD.
 
 ### Extended _shorthands_
 
-If one carefully examines a detailed _tbd.out.json_ file, one will notice new or altered TBD _shorthands_ for individual edges e.g., "jamb", "sill" & "head" instead of "fenestration", as well as "concave" or "convex" variants e.g.:  
-
+If one carefully examines a detailed _tbd.out.json_ file, one will notice new or altered TBD _shorthands_ for individual edges e.g., "jamb", "sill" & "head" instead of "fenestration", as well as "concave" or "convex" variants e.g.:
 ```
 {
   "psi": "poor (BETBG)",
@@ -206,12 +209,10 @@ If one carefully examines a detailed _tbd.out.json_ file, one will notice new or
   "v1y": 100.579094839222,
   "v1z": 8.53398380454007
 },
-```  
-
+```
 Here, "type" designates one of the possible (extended) TBD _shorthands_. Users may have simply relied on a general "fenestration" _psi_ value, TBD will nonetheless differentiate between fenestration _heads_, _jambs_ and _sills_. In addition, TBD will add a "convex" or "concave" suffix to edges linking _deratable_ surface pairs that aren't on the same 3D plane. A simple, rectangular building would have a minimum of 4 _convex_ parapets, but a one-story extension to a 2-story building would (also) have at least one _concave_ parapet.
 
-If one comes across published _psi_ data that distinguishes between fenestration _heads_, _sills_ and _jambs_ (the BETBG does contain some of these), and/or differences between _convex_ vs _concave_ corners, then one can customize a _tbd.json_ file as follows:  
-
+If one comes across published _psi_ data that distinguishes between fenestration _heads_, _sills_ and _jambs_ (the BETBG does contain some of these), and/or differences between _convex_ vs _concave_ corners, then one could customize a _tbd.json_ file as follows:
 ```
 {
   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
@@ -237,14 +238,12 @@ If one comes across published _psi_ data that distinguishes between fenestration
     "psi": "not bad"
   }
 }
-```  
-
+```
 There are obviously many, many possible combinations. TBD's GitHub repository contains several additional [examples](https://github.com/rd2/tbd/tree/master/json). Although this may at first seem complex and intimidating for the average designer or modeller, it remains similar to OpenStudio with regards to default construction sets: it can be very simple, and it only needs to be as complex as the actual design. With such freedom (with both OpenStudio and TBD inputs) comes responsibility - something users and modellers must carefully consider and plan out accordingly.
 
 ### A side note on dimensioning
 
-Envelope surfaces are usually modelled in OpenStudio based on _outer_ dimensions (i.e. following the exterior cladding, as in ASHRAE 90.1 and Quebec's energy code), or on _inner_ dimensions (i.e. following the interior finishing, as in the Canadian NECB). For most _flat_ edges, this isn't critical. But for concave or convex corners and parapets, adjustments to _psi_ values may be warranted if there is a mismatch in conventions between the OpenStudio model vs published _psi_ data. For instance, BETBG data reflects an _inner_ dimensioning convention, while ISO 14683 reports _psi_ values for both conventions. The following equation may be used to adjust BETBG _psi_ values for e.g., convex corners, when relying on _outer_ dimensions in OpenStudio.  
-
+Envelope surfaces are usually modelled in OpenStudio based on _outer_ dimensions (i.e. following the exterior cladding, as in ASHRAE 90.1 and Quebec's energy code), or on _inner_ dimensions (i.e. following the interior finishing, as in the Canadian NECB). For most _flat_ edges, this isn't critical. But for concave or convex corners and parapets, adjustments to _psi_ values may be warranted if there is a mismatch in conventions between the OpenStudio model vs published _psi_ data. For instance, BETBG data reflects an _inner_ dimensioning convention, while ISO 14683 reports _psi_ values for both conventions. The following equation may be used to adjust BETBG _psi_ values for e.g., convex corners, when relying on _outer_ dimensions in OpenStudio.
 ```
 PSIe = PSIi + Uo * 2(Li - Le), where:
 
@@ -253,8 +252,7 @@ PSIi = published PSI value (W/K per m)
   Uo = average clear field effective U-value (W/K per m2)
   Li = from interior corner to "zone of influence" limits (m)
   Le = from exterior corner to "zone of influence" limits (m)
-```  
-
-The _zone of influence_ usually ranges between ~1.0 to 1.2 meters - but the key parameter here is really the resulting wall thickness, and whether the sign is positive or negative - depending if it's a convex or concave corner. In some cases, this may even produce negative _psi_ values - which TBD allows. The BETBG and ISO standards provide detailed discussions on the subject.
+```
+The _zone of influence_ usually ranges between 1.0 to 1.2 meters. But the key parameter here is really the resulting wall thickness, and whether the sign is positive or negative - depending if it's a convex or concave corner. In some cases, this may even produce negative _psi_ values - which TBD allows. The BETBG and ISO standards provide detailed discussions on the subject.
 
 [back](../index.html "Thermal Bridging & Derating")

@@ -1,7 +1,5 @@
 A guide to [TBD](https://github.com/rd2/tbd "TBD source code repository on GitHub") - an [OpenStudio Measure](https://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/ "A guide to writing OpenStudio Measures") that auto-detects __major__ thermal bridges (like balconies, parapets and corners) and then __derates__ outside-facing opaque constructions (walls, roofs and exposed floors). The guide is mainly written for architects, technologists and envelope consultants who are new to energy simulation, and to OpenStudio in particular.
 
-_(in progress ...)_
-
 ### In a nutshell ...
 
 __Thermal bridges__ are structural elements that interrupt the continuity of insulation in building envelopes. A curtain wall spandrel back pan may hold in place an R17 (RSi 3.0) batt of insulation, yet the spandrel's overall R-value may trickle down to R5 (RSi 0.9) - less than a third of its nominal value. This drop in spandrel performance is due to its reliance on highly conductive materials (e.g. galvanized steel, aluminium), spandrel height-to-width ratio, and how the back pan is held in place continuously along spandrel edges.
