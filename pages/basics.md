@@ -44,9 +44,9 @@ Whether TBD is accessed from the _OpenStudio Application_ Measures' tab or throu
 
 ![TBD Menu Options](../assets/images/TBD-inputs.png "TBD Menu Options")
 
-JSON input/output files, _UA'_ reports and _KIVA_ inputs are described in detail in the _TBD customization_, _UA'_ and _KIVA_ sections, respectively.
+JSON input/output files, _UA'_ reports and _KIVA_ inputs are described in detail in the [Customization](./custom.html "TBD customization"), [UA'](./ua.html "UA' assessments") and [KIVA](./kiva.html "KIVA support") sections, respectively.
 
-The __Default thermal bridge (set)__ pull-down menu of predefined, compact _psi_ sets is key for newcomers, especially in the early design stages. Users simply need to switch between default sets (and rerun the measure) to get a sense of the degree of thermal _derating_ that would take place in their building, and how this affects energy simulation results. It's easy, yet coarse as the entire building is treated uniformly (check the _TBD customization_ section on handling multiple _psi_ sets). Each default set must hold a minimal shortlist of common thermal bridge _shorthands_ for each _edge_ TBD identifies:
+The __Default thermal bridge (set)__ pull-down menu of prepackaged, compact _psi_ sets is key for newcomers, especially in the early design stages. Users simply need to switch between default sets (and rerun the measure) to get a sense of the degree of thermal _derating_ that would take place in their building, and how this affects energy simulation results. It's easy, yet coarse as the entire building is treated uniformly (check the [Customization](./custom.html "TBD customization") section on handling multiple _psi_ sets). Each default set must hold a minimal shortlist of common thermal bridge _shorthands_ for each _edge_ TBD identifies:
 ```
     rimjoist | wall/floor or sloped-roof/floor edge
      parapet | wall/roof edge
@@ -60,7 +60,7 @@ fenestration | window, door, skylight perimeter
 ```
 A _flat_ edge shared between 2 parallel, aligned surfaces is tagged as a (mild) __transition__. In every default _psi_ set, _transition_ edges have a value of 0 W/K per meter, i.e. no _derating_ takes place. OpenStudio models can hold many such _flat_ edges, which usually do not constitute _major_ thermal bridges. For instance when they delineate plenum walls from those of the occupied space (above or below). In other cases, they're simply artifacts of third-party software e.g., tessellation. Whenever TBD can't easily label an edge, it relies on _transition_ as a fallback.
 
-Some _flat_ edges aren't mild _transitions_ at all, like expansion __joints__ or roof curbs - definitely _major_ thermal bridges. Yet TBD is unable to distinguish between _transitions_ and _joints_ from OpenStudio geometry alone. The _TBD customization_ section shows users how to reset _transition_ edges into _joints_ when needed.
+Some _flat_ edges aren't mild _transitions_ at all, like expansion __joints__ or roof curbs - definitely _major_ thermal bridges. Yet TBD is unable to distinguish between _transitions_ and _joints_ from OpenStudio geometry alone. The [Customization](./custom.html "TBD customization") section shows users how to reset _transition_ edges into _joints_ when needed.
 
 When the angle between 2 _exposed_ surfaces exceeds 45° around an edge, TBD tags it either as a __corner__ or a __parapet__ (depending on the situation).
 
@@ -70,7 +70,7 @@ What happens when an edge can be tagged with more than one label? For instance w
 
 ### Where does one get _psi_ data?
 
-The [BETBG](https://www.bchydro.com/powersmart/business/programs/new-construction.html "Building Envelope Thermal Bridging Guide") & [thermalenvelope.ca](https://thermalenvelope.ca) collections are great resources to start with. They rely in part on past research initiatives, like ASHRAE's RP-1365 (which is also great). Building energy codes and ISO standards are also relevant resources. TBD relies on all of these for its default _psi_ sets (in W/K per meter):
+The [BETBG](https://www.bchydro.com/powersmart/business/programs/new-construction.html "Building Envelope Thermal Bridging Guide") & [thermalenvelope.ca](https://thermalenvelope.ca) collections are great resources to start with. They rely in part on past research initiatives, like ASHRAE's RP-1365 (which is also great), and are regularly updated. Building energy codes and ISO standards are also relevant resources. TBD relies on all of these for its default _psi_ sets (values in W/K per meter):
 
 __poor (BETBG)__
 ```
@@ -145,9 +145,9 @@ The _poor_, _regular_ and _efficient_ general sets mirror those of the BETBG, la
 
 Users need to specify where all their OpenStudio _measures_ are stored on their computer (_Preferences_ > _Change My Measures Directory_) - just download TBD in there (from GitHub or BCL). Then in the OpenStudio Application, simply drag & drop TBD in the _Measures_ tab.
 
-As with most OpenStudio measures, TBD does not modify the original OpenStudio building model (e.g. adding/referencing new _derated_ constructions) before running an EnergyPlus simulation. OpenStudio makes a behind-the-scenes copy of the model, which is in turn modified before simulation. Although the terminology may be confusing, leave the _Alter OpenStudio model_ option checked for EnergyPlus simulations - this option is there for _Apply Measures Now_ cases. Once the _Default thermal bridge (set)_ is selected, save the model and run the simulation.
+As with most OpenStudio measures, TBD does not modify the original OpenStudio building model (e.g. adding/referencing new _derated_ constructions). OpenStudio makes a behind-the-scenes copy of the model, which is in turn modified before simulation. Although the terminology may be confusing, leave the _Alter OpenStudio model_ option checked for EnergyPlus simulations - this option is there for _Apply Measures Now_ cases. Once the _Default thermal bridge (set)_ is selected, save the model and run the simulation.
 
-Results should show an increase in heating loads for cold climates. For ASHRAE climate zone 7, heating should increase generally between 5% to 15% (depending on the building type) for _poor_ to _regular_ thermal bridging details in an otherwise well-insulated envelope. Consult the _TBD Reporting_ section to learn more on TBD feedback.
+Results should show an increase in heating loads for cold climates. For ASHRAE climate zone 7, heating should increase generally between 5% to 15% (depending on the building type) for _poor_ to _regular_ thermal bridging details in an otherwise well-insulated envelope. Consult the [Reporting](./reports.html "What TBD reports back") section to learn more on TBD feedback.
 
 ### Apply Measures Now
 
@@ -155,10 +155,10 @@ The original intent of an _Apply Measures Now_ feature in OpenStudio is to irrev
 
 However, there are _Apply Measures Now_ situations where permanent changes to an OpenStudio model aren't warranted or desirable, in which case it becomes critical to UNCHECK the _Alter OpenStudio model_ option:
 
-__Iterative investigations__: Users may simply want to get a status report of how well they're doing in managing thermal bridging in their projects. TBD provides the same user feedback (including errors & warnings) in either mode. Consult the _TBD reporting_ section.
+__Iterative investigations__: Users may simply want to get a status report of how well they're doing in managing thermal bridging in their projects. TBD provides the same user feedback (including errors & warnings) in either mode. Consult the [Reporting](./reports.html "What TBD reports back") section.
 
-__UA' reports__: Similarly, TBD can generate at any moment _UA'_ summaries (often admissible building energy code compliance paths). See the _UA'_ section to learn more.
+__UA' reports__: Similarly, TBD can generate at any moment _UA'_ summaries (often admissible building energy code compliance paths). See the [UA'](./ua.html "UA' assessments") section to learn more.
 
-__JSON output__: Users can generate a complete, detailed list of every _major_ thermal bridge in their OpenStudio model, which can be useful for cost estimation or simply for further _customization_.
+__JSON output__: Users can generate a complete, detailed list of every _major_ thermal bridge in their OpenStudio model, which can be useful for cost estimation or simply for further [customization](./custom.html "TBD customization").
 
 [back](../index.html "Thermal Bridging & Derating")  

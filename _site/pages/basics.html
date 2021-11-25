@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=508a33bde4380e34f5630ff32a71b5a208b0c338">
+    <link rel="stylesheet" href="/assets/css/style.css?v=30db83b9f836d847cb5df351589cd42b16f7fe1e">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -104,9 +104,9 @@
 
 <p><img src="../assets/images/TBD-inputs.png" alt="TBD Menu Options" title="TBD Menu Options" /></p>
 
-<p>JSON input/output files, <em>UA’</em> reports and <em>KIVA</em> inputs are described in detail in the <em>TBD customization</em>, <em>UA’</em> and <em>KIVA</em> sections, respectively.</p>
+<p>JSON input/output files, <em>UA’</em> reports and <em>KIVA</em> inputs are described in detail in the <a href="./custom.html" title="TBD customization">Customization</a>, <a href="./ua.html" title="UA' assessments">UA’</a> and <a href="./kiva.html" title="KIVA support">KIVA</a> sections, respectively.</p>
 
-<p>The <strong>Default thermal bridge (set)</strong> pull-down menu of predefined, compact <em>psi</em> sets is key for newcomers, especially in the early design stages. Users simply need to switch between default sets (and rerun the measure) to get a sense of the degree of thermal <em>derating</em> that would take place in their building, and how this affects energy simulation results. It’s easy, yet coarse as the entire building is treated uniformly (check the <em>TBD customization</em> section on handling multiple <em>psi</em> sets). Each default set must hold a minimal shortlist of common thermal bridge <em>shorthands</em> for each <em>edge</em> TBD identifies:</p>
+<p>The <strong>Default thermal bridge (set)</strong> pull-down menu of prepackaged, compact <em>psi</em> sets is key for newcomers, especially in the early design stages. Users simply need to switch between default sets (and rerun the measure) to get a sense of the degree of thermal <em>derating</em> that would take place in their building, and how this affects energy simulation results. It’s easy, yet coarse as the entire building is treated uniformly (check the <a href="./custom.html" title="TBD customization">Customization</a> section on handling multiple <em>psi</em> sets). Each default set must hold a minimal shortlist of common thermal bridge <em>shorthands</em> for each <em>edge</em> TBD identifies:</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    rimjoist | wall/floor or sloped-roof/floor edge
      parapet | wall/roof edge
 fenestration | window, door, skylight perimeter
@@ -119,7 +119,7 @@ fenestration | window, door, skylight perimeter
 </code></pre></div></div>
 <p>A <em>flat</em> edge shared between 2 parallel, aligned surfaces is tagged as a (mild) <strong>transition</strong>. In every default <em>psi</em> set, <em>transition</em> edges have a value of 0 W/K per meter, i.e. no <em>derating</em> takes place. OpenStudio models can hold many such <em>flat</em> edges, which usually do not constitute <em>major</em> thermal bridges. For instance when they delineate plenum walls from those of the occupied space (above or below). In other cases, they’re simply artifacts of third-party software e.g., tessellation. Whenever TBD can’t easily label an edge, it relies on <em>transition</em> as a fallback.</p>
 
-<p>Some <em>flat</em> edges aren’t mild <em>transitions</em> at all, like expansion <strong>joints</strong> or roof curbs - definitely <em>major</em> thermal bridges. Yet TBD is unable to distinguish between <em>transitions</em> and <em>joints</em> from OpenStudio geometry alone. The <em>TBD customization</em> section shows users how to reset <em>transition</em> edges into <em>joints</em> when needed.</p>
+<p>Some <em>flat</em> edges aren’t mild <em>transitions</em> at all, like expansion <strong>joints</strong> or roof curbs - definitely <em>major</em> thermal bridges. Yet TBD is unable to distinguish between <em>transitions</em> and <em>joints</em> from OpenStudio geometry alone. The <a href="./custom.html" title="TBD customization">Customization</a> section shows users how to reset <em>transition</em> edges into <em>joints</em> when needed.</p>
 
 <p>When the angle between 2 <em>exposed</em> surfaces exceeds 45° around an edge, TBD tags it either as a <strong>corner</strong> or a <strong>parapet</strong> (depending on the situation).</p>
 
@@ -129,7 +129,7 @@ fenestration | window, door, skylight perimeter
 
 <h3 id="where-does-one-get-psi-data">Where does one get <em>psi</em> data?</h3>
 
-<p>The <a href="https://www.bchydro.com/powersmart/business/programs/new-construction.html" title="Building Envelope Thermal Bridging Guide">BETBG</a> &amp; <a href="https://thermalenvelope.ca">thermalenvelope.ca</a> collections are great resources to start with. They rely in part on past research initiatives, like ASHRAE’s RP-1365 (which is also great). Building energy codes and ISO standards are also relevant resources. TBD relies on all of these for its default <em>psi</em> sets (in W/K per meter):</p>
+<p>The <a href="https://www.bchydro.com/powersmart/business/programs/new-construction.html" title="Building Envelope Thermal Bridging Guide">BETBG</a> &amp; <a href="https://thermalenvelope.ca">thermalenvelope.ca</a> collections are great resources to start with. They rely in part on past research initiatives, like ASHRAE’s RP-1365 (which is also great), and are regularly updated. Building energy codes and ISO standards are also relevant resources. TBD relies on all of these for its default <em>psi</em> sets (values in W/K per meter):</p>
 
 <p><strong>poor (BETBG)</strong></p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    rimjoist | 1.000
@@ -198,9 +198,9 @@ fenestration | 0.350
 
 <p>Users need to specify where all their OpenStudio <em>measures</em> are stored on their computer (<em>Preferences</em> &gt; <em>Change My Measures Directory</em>) - just download TBD in there (from GitHub or BCL). Then in the OpenStudio Application, simply drag &amp; drop TBD in the <em>Measures</em> tab.</p>
 
-<p>As with most OpenStudio measures, TBD does not modify the original OpenStudio building model (e.g. adding/referencing new <em>derated</em> constructions) before running an EnergyPlus simulation. OpenStudio makes a behind-the-scenes copy of the model, which is in turn modified before simulation. Although the terminology may be confusing, leave the <em>Alter OpenStudio model</em> option checked for EnergyPlus simulations - this option is there for <em>Apply Measures Now</em> cases. Once the <em>Default thermal bridge (set)</em> is selected, save the model and run the simulation.</p>
+<p>As with most OpenStudio measures, TBD does not modify the original OpenStudio building model (e.g. adding/referencing new <em>derated</em> constructions). OpenStudio makes a behind-the-scenes copy of the model, which is in turn modified before simulation. Although the terminology may be confusing, leave the <em>Alter OpenStudio model</em> option checked for EnergyPlus simulations - this option is there for <em>Apply Measures Now</em> cases. Once the <em>Default thermal bridge (set)</em> is selected, save the model and run the simulation.</p>
 
-<p>Results should show an increase in heating loads for cold climates. For ASHRAE climate zone 7, heating should increase generally between 5% to 15% (depending on the building type) for <em>poor</em> to <em>regular</em> thermal bridging details in an otherwise well-insulated envelope. Consult the <em>TBD Reporting</em> section to learn more on TBD feedback.</p>
+<p>Results should show an increase in heating loads for cold climates. For ASHRAE climate zone 7, heating should increase generally between 5% to 15% (depending on the building type) for <em>poor</em> to <em>regular</em> thermal bridging details in an otherwise well-insulated envelope. Consult the <a href="./reports.html" title="What TBD reports back">Reporting</a> section to learn more on TBD feedback.</p>
 
 <h3 id="apply-measures-now">Apply Measures Now</h3>
 
@@ -208,11 +208,11 @@ fenestration | 0.350
 
 <p>However, there are <em>Apply Measures Now</em> situations where permanent changes to an OpenStudio model aren’t warranted or desirable, in which case it becomes critical to UNCHECK the <em>Alter OpenStudio model</em> option:</p>
 
-<p><strong>Iterative investigations</strong>: Users may simply want to get a status report of how well they’re doing in managing thermal bridging in their projects. TBD provides the same user feedback (including errors &amp; warnings) in either mode. Consult the <em>TBD reporting</em> section.</p>
+<p><strong>Iterative investigations</strong>: Users may simply want to get a status report of how well they’re doing in managing thermal bridging in their projects. TBD provides the same user feedback (including errors &amp; warnings) in either mode. Consult the <a href="./reports.html" title="What TBD reports back">Reporting</a> section.</p>
 
-<p><strong>UA’ reports</strong>: Similarly, TBD can generate at any moment <em>UA’</em> summaries (often admissible building energy code compliance paths). See the <em>UA’</em> section to learn more.</p>
+<p><strong>UA’ reports</strong>: Similarly, TBD can generate at any moment <em>UA’</em> summaries (often admissible building energy code compliance paths). See the <a href="./ua.html" title="UA' assessments">UA’</a> section to learn more.</p>
 
-<p><strong>JSON output</strong>: Users can generate a complete, detailed list of every <em>major</em> thermal bridge in their OpenStudio model, which can be useful for cost estimation or simply for further <em>customization</em>.</p>
+<p><strong>JSON output</strong>: Users can generate a complete, detailed list of every <em>major</em> thermal bridge in their OpenStudio model, which can be useful for cost estimation or simply for further <a href="./custom.html" title="TBD customization">customization</a>.</p>
 
 <p><a href="../index.html" title="Thermal Bridging &amp; Derating">back</a></p>
 

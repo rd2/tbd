@@ -4,6 +4,7 @@ remote_theme: pages-themes/tactile@v0.2.0
 timezone: Canada/Eastern
 future: true
 show_downloads: true
+exclude: [spec, lib, json, Rakefile, tbd.gemspec, README.md, v291_MacOS.md, v291_MacOS.html, Gemfile, Gemfile.lock]
 github:
   zip_url: https://github.com/rd2/tbd/releases/download/v2.2.1/tbd.zip
   tar_url: https://github.com/rd2/tbd/releases/download/v2.2.1/tbd.tar.gz

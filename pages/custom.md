@@ -1,12 +1,13 @@
 ### Customization
 
-TBD offers a pull-down menu list of predefined _psi_ sets - key for newcomers, especially in the early design stages (see __Basics__). What happens when design choices aren't well represented by any of these predefined sets? TBD allows users to define multiple custom _psi_ sets, refine them beyond the basic 7 TBD _shorthands_, and attribute them to different parts of a building model.
+TBD offers a pull-down menu list of prepackaged _psi_ sets - key for newcomers, especially in the early design stages (see [Basics](./basics.html "Basic TBD workflow")). What happens when design choices aren't well represented by any of these prepackaged sets? TBD allows users to define multiple custom _psi_ sets, refine them beyond the basic 7 TBD _shorthands_, and attribute them to different parts of a building model.
 
-As detailed in the TBD __Reporting__ section, a unique _tbd.out.json_ output file is generated (or regenerated) for every TBD run, under an OpenStudio model's _files_ folder. If one drops a _tbd.json_ file in the same _files_ folder and checks the __Load 'tbd.json'__ menu option, TBD will read in custom inputs defined in that file.
+As detailed in the [Reporting](./reports.html "What TBD reports back") section, a unique _tbd.out.json_ output file is generated (or regenerated) for every TBD run, under an OpenStudio model's _files_ folder. If one drops a _tbd.json_ file in the same _files_ folder and checks the __Load 'tbd.json'__ menu option, TBD will read in custom inputs defined in that file.
 
 ### Custom building _psi_ set
 
-As a first example, consider the definition of a custom "building" _psi_ set - instead of TBD's pull-down menu options:
+As a first example, consider the definition of a custom "building" _psi_ set - instead of TBD's pull-down menu options:  
+
 ```
 {
   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
@@ -54,7 +55,7 @@ __BUILDING__: TBD allows a single "building" JSON entry, where one simply refers
 
 ### Multiple custom _psi_ sets
 
-OpenStudio allows users to set default construction sets for an entire building model, which means any new wall surface added to a model automatically inherits the default wall construction - very handy. OpenStudio also allows users to further refine the solution by allowing default construction sets per individual _building story_ (e.g. ground floor surfaces vs the rest of the building), or on a _spacetype_ basis (e.g. housing units vs common spaces), and so on ... down to the individual surface.
+OpenStudio allows users to define default construction sets for an entire building model, which means any new wall surface added to a model automatically inherits the default wall construction - very handy. OpenStudio also allows users to further refine the solution by allowing default construction sets per individual _building story_ (e.g. ground floor surfaces vs the rest of the building), or on a _spacetype_ basis (e.g. housing units vs common spaces), and so on ... down to the individual surface.
 
 TBD offers a mirror solution - custom _psi_ sets:  
 
@@ -62,7 +63,8 @@ TBD offers a mirror solution - custom _psi_ sets:
 - per OpenStudio story
 - per OpenStudio spacetype
 - per OpenStudio space
-- per OpenStudio surface
+- per OpenStudio surface  
+
 ```
 {
   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
@@ -99,7 +101,7 @@ TBD offers a mirror solution - custom _psi_ sets:
   ]
 }
 ```
-Successfully linking custom _psi_ sets and OpenStudio objects relies on their unique _id_'s - "Warehouse Office" & "Warehouse Fine" here are unique OpenStudio model object string identifiers.  
+Successfully linking custom _psi_ sets and OpenStudio objects relies on their unique _id_'s - "Warehouse Office" & "Warehouse Fine" here are unique OpenStudio model _spacetype_ object string identifiers.  
 
 A few additional notes:  
 
@@ -172,7 +174,7 @@ Cantilevered beams, columns, rooftop support blocks, etc. that partially or enti
   ]
 }
 ```
-Here, the OpenStudio surface "exposed floor 1" will inherit 10x 0.7 W/K (= 7 W/K) + 4x 0.5 W/K (= 2 W/K): an extra 9 W/K, in addition to the total W/K per m from surrounding edges (i.e. linear thermal bridges), automatically calculated by TBD.
+Here, the OpenStudio surface "exposed floor 1" will inherit 10x 0.7 W/K (= 7 W/K) + 4x 0.5 W/K (= 2 W/K): an extra 9 W/K, in addition to the total W/K per m from surrounding edges (i.e. linear thermal bridges) - automatically calculated by TBD.
 
 ### Extended _shorthands_
 
@@ -210,9 +212,9 @@ If one carefully examines a detailed _tbd.out.json_ file, one will notice new or
   "v1z": 8.53398380454007
 },
 ```
-Here, "type" designates one of the possible (extended) TBD _shorthands_. Users may have simply relied on a general "fenestration" _psi_ value, TBD will nonetheless differentiate between fenestration _heads_, _jambs_ and _sills_. In addition, TBD will add a "convex" or "concave" suffix to edges linking _deratable_ surface pairs that aren't on the same 3D plane. A simple, rectangular building would have a minimum of 4 _convex_ parapets, but a one-story extension to a 2-story building would (also) have at least one _concave_ parapet.
+Here, "type" designates one of the possible (extended) TBD _shorthands_. Users may have simply relied on a general "fenestration" _psi_ value, TBD will nonetheless differentiate between fenestration _heads_, _jambs_ and _sills_. In addition, TBD will add a "convex" or "concave" suffix to edges linking surfaces that aren't on the same 3D plane. A simple, rectangular building would have a minimum of 4 _convex_ parapets, but a one-story extension to a 2-story building would (also) have at least one _concave_ parapet.
 
-If one comes across published _psi_ data that distinguishes between fenestration _heads_, _sills_ and _jambs_ (the BETBG does contain some of these), and/or differences between _convex_ vs _concave_ corners, then one could customize a _tbd.json_ file as follows:
+If one comes across published _psi_ data that distinguishes between fenestration _heads_, _sills_ and _jambs_ (the BETBG does hold some examples), and/or differences between _convex_ vs _concave_ corners, then one could customize a _tbd.json_ file as follows:
 ```
 {
   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
@@ -243,7 +245,7 @@ There are obviously many, many possible combinations. TBD's GitHub repository co
 
 ### A side note on dimensioning
 
-Envelope surfaces are usually modelled in OpenStudio based on _outer_ dimensions (i.e. following the exterior cladding, as in ASHRAE 90.1 and Quebec's energy code), or on _inner_ dimensions (i.e. following the interior finishing, as in the Canadian NECB). For most _flat_ edges, this isn't critical. But for concave or convex corners and parapets, adjustments to _psi_ values may be warranted if there is a mismatch in conventions between the OpenStudio model vs published _psi_ data. For instance, BETBG data reflects an _inner_ dimensioning convention, while ISO 14683 reports _psi_ values for both conventions. The following equation may be used to adjust BETBG _psi_ values for e.g., convex corners, when relying on _outer_ dimensions in OpenStudio.
+Envelope surfaces are usually modelled in OpenStudio based on _outer_ dimensions (i.e. following the exterior cladding, as in ASHRAE 90.1 and Québec's energy code), or on _inner_ dimensions (i.e. following the interior finishing, as in the Canadian NECB). For most _flat_ edges, this isn't critical. But for concave or convex corners and parapets, adjustments to _psi_ values may be warranted if there is a mismatch in conventions between the OpenStudio model vs published _psi_ data. For instance, BETBG data reflect an _inner_ dimensioning convention, while ISO 14683 reports _psi_ values for both conventions. The following equation may be used to adjust BETBG _psi_ values for e.g., convex corners, when relying on _outer_ dimensions in OpenStudio.
 ```
 PSIe = PSIi + Uo * 2(Li - Le), where:
 
