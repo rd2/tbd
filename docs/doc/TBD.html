@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>
+  Module: TBD
+  
+    &mdash; Documentation by YARD 0.9.26
+  
+</title>
+
+  <link rel="stylesheet" href="css/style.css" type="text/css" />
+
+  <link rel="stylesheet" href="css/common.css" type="text/css" />
+
+<script type="text/javascript">
+  pathId = "TBD";
+  relpath = '';
+</script>
+
+
+  <script type="text/javascript" charset="utf-8" src="js/jquery.js"></script>
+
+  <script type="text/javascript" charset="utf-8" src="js/app.js"></script>
+
+
+  </head>
+  <body>
+    <div class="nav_wrap">
+      <iframe id="nav" src="class_list.html?1"></iframe>
+      <div id="resizer"></div>
+    </div>
+
+    <div id="main" tabindex="-1">
+      <div id="header">
+        <div id="menu">
+  
+    <a href="_index.html">Index (T)</a> &raquo;
+    
+    
+    <span class="title">TBD</span>
+  
+</div>
+
+        <div id="search">
+  
+    <a class="full_list_link" id="class_list_link"
+        href="class_list.html">
+
+        <svg width="24" height="24">
+          <rect x="0" y="4" width="24" height="4" rx="1" ry="1"></rect>
+          <rect x="0" y="12" width="24" height="4" rx="1" ry="1"></rect>
+          <rect x="0" y="20" width="24" height="4" rx="1" ry="1"></rect>
+        </svg>
+    </a>
+  
+</div>
+        <div class="clear"></div>
+      </div>
+
+      <div id="content"><h1>Module: TBD
+  
+  
+  
+</h1>
+<div class="box_info">
+  
+
+  
+  
+  
+  
+  
+
+  
+
+  
+  <dl>
+    <dt>Defined in:</dt>
+    <dd>lib/log.rb</dd>
+  </dl>
+  
+</div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    
+<p>In most cases, critical (and many non-critical) OSM anomalies would be
+caught by EnergyPlus at the start of a simulation (should list a few
+examples). As TBD is designed to run &#39;standalone&#39; (e.g. Apply
+Measures Now), TBD shouldn&#39;t (or couldn&#39;t) strictly rely on
+EnergyPlus to catch such errors (and somehow warn users of potentially
+invalid results). TBD is designed to minimally log warnings, non-fatal
+&amp; fatal errors that may put its internal processes at risk (should list
+a few examples). The presence of a “tbd.log” file in an OSM project
+&#39;files&#39; folder should be interpreted as &#39;bad&#39; - something
+to look into and/or remediate.</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+  
+    <h2>
+      Constant Summary
+      <small><a href="#" class="constants_summary_toggle">collapse</a></small>
+    </h2>
+
+    <dl class="constants">
+      
+        <dt id="DEBUG-constant" class="">DEBUG =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>placeholder</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>1</span></pre></dd>
+      
+        <dt id="INFO-constant" class="">INFO =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>placeholder</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>2</span></pre></dd>
+      
+        <dt id="WARN-constant" class="">WARN =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>very few …</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>3</span></pre></dd>
+      
+        <dt id="ERROR-constant" class="">ERROR =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>e.g. out-of-range material conductivity, 5-sided window, TBD file</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>4</span></pre></dd>
+      
+        <dt id="FATAL-constant" class="">FATAL =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>e.g. fail to find/open OSM file, fail to translate file to OSM</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>5</span></pre></dd>
+      
+        <dt id="logs-classvariable" class="">@@logs =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>Aiming for similar OS/E+ logic concerning anomalies. For instance, E+ will
+still run with out-of-range material or fluid properties. This triggers an
+ERROR in E+, but it&#39;s up to users to decide what to do with sim
+results.</p>
+
+<p>Given that, TBD will have but a few checks which could raise FATAL cases
+(see examples above). The remainder of TBD checks would trigger ERROR logs,
+where either part of an OSM is ignored (e.g., 5-sided window) or TBD exits
+without derating altogether (yet still have an E+ simulation run).
+Consequently, TBD will emit very few WARN log messages.</p>
+
+<p><a
+href="https://energyplus.net/sites/default/files/docs/site_v8.3.0">energyplus.net/sites/default/files/docs/site_v8.3.0</a>/
+Tips_and_Tricks_Using_EnergyPlus/Tips_and_Tricks_Using_EnergyPlus/
+index.html#example-error-messages-for-the-input-processor</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='lbracket'>[</span><span class='rbracket'>]</span></pre></dd>
+      
+        <dt id="log_level-classvariable" class="">@@log_level =
+          
+        </dt>
+        <dd><pre class="code"><span class='const'><span class='object_link'><a href="#WARN-constant" title="TBD::WARN (constant)">WARN</a></span></span></pre></dd>
+      
+        <dt id="tag-classvariable" class="">@@tag =
+          
+        </dt>
+        <dd><pre class="code"><span class='lbracket'>[</span><span class='rbracket'>]</span></pre></dd>
+      
+        <dt id="log_status-classvariable" class="">@@log_status =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>Highest log level reached so far in TBD process sequence. Setting this to
+lower than WARN (i.e., below minimal level triggering a “tbd.log” file).</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='const'><span class='object_link'><a href="#INFO-constant" title="TBD::INFO (constant)">INFO</a></span></span></pre></dd>
+      
+    </dl>
+  
+
+
+
+
+
+
+
+  
+    <h2>
+      Class Method Summary
+      <small><a href="#" class="summary_toggle">collapse</a></small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#fatal%3F-class_method" title="fatal? (class method)">.<strong>fatal?</strong>  &#x21d2; Boolean </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'>
+<p>To trigger an exit (e.g. failed OSM), e.g.</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#log-class_method" title="log (class method)">.<strong>log</strong>(log_level, message)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#log_level-class_method" title="log_level (class method)">.<strong>log_level</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#logs-class_method" title="logs (class method)">.<strong>logs</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#set_log_level-class_method" title="set_log_level (class method)">.<strong>set_log_level</strong>(log_level)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#status-class_method" title="status (class method)">.<strong>status</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#tag-class_method" title="tag (class method)">.<strong>tag</strong>(log_level)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+    </ul>
+  
+
+
+
+  <div id="class_method_details" class="method_details_list">
+    <h2>Class Method Details</h2>
+
+    
+      <div class="method_details first">
+  <h3 class="signature first" id="fatal?-class_method">
+  
+    .<strong>fatal?</strong>  &#x21d2; <tt>Boolean</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+<p>To trigger an exit (e.g. failed OSM), e.g. “if/unless TBD.log.fatal?” The
+TBD Measure receives “io” &amp; “surfaces” from processTBD(). If a FATAL
+error occurs, processTBD would return nil for both “io” &amp; “surfaces”,
+which would trigger a “tbd.log” file (with informative FATAL error
+messages).</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+62
+63
+64</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/log.rb', line 62</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_fatal?'>fatal?</span>
+  <span class='kw'>return</span> <span class='cvar'>@@log_status</span> <span class='op'>==</span> <span class='const'><span class='object_link'><a href="#FATAL-constant" title="TBD::FATAL (constant)">FATAL</a></span></span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="log-class_method">
+  
+    .<strong>log</strong>(log_level, message)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+75
+76
+77
+78
+79
+80
+81
+82</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/log.rb', line 75</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_log'>log</span><span class='lparen'>(</span><span class='id identifier rubyid_log_level'>log_level</span><span class='comma'>,</span> <span class='id identifier rubyid_message'>message</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_log_level'>log_level</span> <span class='op'>&gt;=</span> <span class='cvar'>@@log_level</span>
+    <span class='cvar'>@@logs</span> <span class='op'>&lt;&lt;</span> <span class='lbrace'>{</span> <span class='label'>time:</span> <span class='const'>Time</span><span class='period'>.</span><span class='id identifier rubyid_now'>now</span><span class='comma'>,</span> <span class='label'>level:</span> <span class='id identifier rubyid_log_level'>log_level</span><span class='comma'>,</span> <span class='label'>msg:</span> <span class='id identifier rubyid_message'>message</span> <span class='rbrace'>}</span>
+
+    <span class='comment'># May go from INFO to WARN, or to ERROR, or to FATAL
+</span>    <span class='cvar'>@@log_status</span> <span class='op'>=</span> <span class='id identifier rubyid_log_level'>log_level</span> <span class='kw'>if</span> <span class='id identifier rubyid_log_level'>log_level</span> <span class='op'>&gt;</span> <span class='cvar'>@@log_status</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="log_level-class_method">
+  
+    .<strong>log_level</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+50
+51
+52</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/log.rb', line 50</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_log_level'>log_level</span>
+  <span class='cvar'>@@log_level</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="logs-class_method">
+  
+    .<strong>logs</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+46
+47
+48</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/log.rb', line 46</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_logs'>logs</span>
+  <span class='cvar'>@@logs</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="set_log_level-class_method">
+  
+    .<strong>set_log_level</strong>(log_level)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+71
+72
+73</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/log.rb', line 71</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_set_log_level'>set_log_level</span><span class='lparen'>(</span><span class='id identifier rubyid_log_level'>log_level</span><span class='rparen'>)</span>
+  <span class='cvar'>@@log_level</span> <span class='op'>=</span> <span class='id identifier rubyid_log_level'>log_level</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="status-class_method">
+  
+    .<strong>status</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+54
+55
+56</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/log.rb', line 54</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_status'>status</span>
+  <span class='cvar'>@@log_status</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="tag-class_method">
+  
+    .<strong>tag</strong>(log_level)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+66
+67
+68
+69</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/log.rb', line 66</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_tag'>tag</span><span class='lparen'>(</span><span class='id identifier rubyid_log_level'>log_level</span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='cvar'>@@tag</span><span class='lbracket'>[</span><span class='id identifier rubyid_log_level'>log_level</span><span class='rbracket'>]</span> <span class='kw'>if</span> <span class='id identifier rubyid_log_level'>log_level</span> <span class='op'>&gt;=</span> <span class='const'><span class='object_link'><a href="#DEBUG-constant" title="TBD::DEBUG (constant)">DEBUG</a></span></span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_log_level'>log_level</span> <span class='op'>&lt;=</span> <span class='const'><span class='object_link'><a href="#FATAL-constant" title="TBD::FATAL (constant)">FATAL</a></span></span>
+  <span class='kw'>return</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_end'>&quot;</span></span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+
+      <div id="footer">
+  Generated on Sat Jun 26 18:29:40 2021 by
+  <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.9.26 (ruby-2.2.5).
+</div>
+
+    </div>
+  </body>
+</html>

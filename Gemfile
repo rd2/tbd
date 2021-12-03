@@ -7,3 +7,5 @@ gem "topolys", github: "automaticmagic/topolys", tag: '0.5.1'
 #gem "topolys", path: "../topolys/"
 
 gemspec
+
+gem "github-pages", "~> 219", group: :jekyll_plugins
