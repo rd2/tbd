@@ -8,5 +8,3 @@ exclude: [spec, lib, json, Rakefile, tbd.gemspec, Gemfile, Gemfile.lock, README.
 github:
   zip_url: https://github.com/rd2/tbd/releases/download/v2.2.1/tbd.zip
   tar_url: https://github.com/rd2/tbd/releases/download/v2.2.1/tbd.tar.gz
-
-theme: jekyll-theme-tactile
