@@ -1,28 +1,24 @@
-# Thermal Bridging & Derating (TBD)
-This is a repo for an OpenStudio Measure that thermally _derates_ outside-facing opaque constructions (walls, roofs and exposed floors), due to _major_ thermal bridges (balconies, corners, fenestration perimeters, and so on). It relies on both the OpenStudio API and the AutomaticMagic [Topolys](https://github.com/automaticmagic/topolys) gem.
+# Thermal Bridging & Derating (TBD)  
 
-Within the context of building energy simulation (and as required by recent building energy codes and standards) a construction's nominal R-value (or inversely, its nominal U-value) should ideally be _derated_ to adequately factor-in _minor_ and _major_ thermal bridging. _Minor_ thermal bridging is attributable to regularly-spaced framing (such as studs and Z-bars): the resulting derated R-value from minor thermal bridging, generally known as a construction's _clear-field effective R-value_, is typically independent of a surface's actual geometry or adjacencies to other surfaces. _Major_ thermal bridging instead relates to a surface's geometry and its immediate adjacencies (e.g. parapet along a roof/wall intersection, rim joists, wall corners), protruding surfaces and penetrations (e.g. cantilevered balconies), etc. The measure loops through an OpenStudio model's outside-facing surfaces, identifies shared _edges_ with nearby envelope, floor slab and shading surfaces (a proxy for cantilevered balconies), applies (from a list of arguments - e.g. _poor_, _regular_, _efficient_) predefined linear conductance sets (PSI-values, in W/K per linear meter) to individual edge lengths (in m), and consequently derates a construction's clear-field effective R-value. Users of the measure should observe new, surface-specific constructions added to their OSM model and/or file, as well as systematic increases in construction U-values (i.e. decreases in insulating material thickness). The method and predefined values are taken from published research and standards such as ASHRAE's [RP-1365](https://www.techstreet.com/standards/rp-1365-thermal-performance-of-building-envelope-details-for-mid-and-high-rise-buildings?product_id=1806751), [BETBG](https://www.bchydro.com/powersmart/business/programs/new-construction.html) & [thermalenvelope.ca](https://thermalenvelope.ca), as well as ISO [10211](https://www.iso.org/standard/65710.html) and [14683](https://www.iso.org/standard/65706.html).
+... is an [OpenStudio Measure](https://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/) that first auto-detects _major_ thermal bridges (like balconies, parapets and corners) in an OpenStudio model (.osm), and then _derates_ outside-facing, opaque surface constructions (walls, roofs and exposed floors). It relies on both the [OpenStudio SDK](https://openstudio-sdk-documentation.s3.amazonaws.com/index.html) and the AutomaticMagic [Topolys](https://github.com/automaticmagic/topolys) gem.
 
+## Guide & Downloads
 
-## TO DO
-[Enhancements](https://github.com/rd2/tbd/issues) and documentation are planned over the next few weeks and months, including:
-1. JSON customization and output - _completed_
-2. ground-facing surfaces (e.g. KIVA foundations) - _completed_
-3. fully-glazed surfaces with thermal bridges
-4. adding point conductances - _completed_
-5. generating building-level clear-field R-values
-6. dealing with multipliers and spanners
-7. logging warnings and errors - _completed_
-8. guide material, case examples, how-to's
+Building professionals and energy modellers are encouraged to first consult the online [Guide](https://rd2.github.io/tbd/) - it provides an overview of the underlying theory, references, workflows, etc. Users can download the latest _TBD_ version directly from the Guide itself, or under [releases](https://github.com/rd2/tbd/releases), or via NREL's [BCL](https://bcl.nrel.gov) ... search for "bridging" or "rd2".
 
-Submit [here](https://github.com/automaticmagic/topolys/issues) issues or desired enhancements more closely linked to Topolys.
+Questions can be posted on [UnmetHours](https://unmethours.com) - a very useful online resource for OpenStudio users.
 
+TBD is also available as a Ruby gem (something along these [lines](https://github.com/automaticmagic/topolys#installation) - TO DO).
 
-## Instructions
+## New Features  
 
-Energy modellers simply interested in using TBD as an OpenStudio Measure can either download the latest [release](https://github.com/rd2/tbd/releases) or access the measure via NREL's [BCL](https://bcl.nrel.gov) ... search for _bridging_ or _rd2_. The following installation and testing instructions are instead for those interested in exploring/tweaking a cloned/forked version of the source code.
+Upcoming enhancements are in the works. Bugs and new feature requests for _TBD_ should be submitted [here](https://github.com/rd2/tbd/issues), while those more closely linked to _Topolys_ should be submitted [here](https://github.com/automaticmagic/topolys/issues).
 
-TBD is systematically tested against updated OpenStudio versions (since v2.9.1). The instructions refer to OpenStudio v3.2.1 (requiring Ruby v2.7.2) strictly as an example. Adapt the instructions for more recent versions - see OpenStudio's [compatibility matrix](https://github.com/NREL/OpenStudio/wiki/OpenStudio-SDK-Version-Compatibility-Matrix).
+## Development
+
+The installation and testing instructions in this section are for developers interested in exploring/tweaking a cloned/forked version of the source code.
+
+TBD is systematically tested against updated OpenStudio versions (since v2.9.1). The following instructions refer to OpenStudio v3.2.1 (requiring Ruby v2.7.2), strictly as an example. Adapt the instructions for more recent versions - see OpenStudio's [compatibility matrix](https://github.com/NREL/OpenStudio/wiki/OpenStudio-SDK-Version-Compatibility-Matrix).
 
 ### Windows Installation
 
@@ -40,7 +36,7 @@ gem install bundler -v 2.1
 
 Install the OpenStudio SDK [3.2.1](https://github.com/NREL/OpenStudio/releases/tag/v3.2.1).
 
-Create a file ```C:\Ruby27-x64\lib\ruby\site_ruby\openstudio.rb```  (path may be different depending on the environment) and _point it_ to your OpenStudio installation by editing the contents e.g.:
+Create a new file ```C:\Ruby27-x64\lib\ruby\site_ruby\openstudio.rb```  (path may be different depending on the environment), and edit it so it _points_ to your new OpenStudio installation:
 
 ```
 require 'C:\openstudio-3.2.1\Ruby\openstudio.rb'
@@ -56,7 +52,7 @@ Run basic tests to ensure the measure operates properly (see end of this README)
 
 ### MacOS Installation
 
-MacOS already comes with Ruby, but maybe not the right Ruby version for the desired OpenStudio measure development [environment](https://github.com/NREL/OpenStudio/wiki/OpenStudio-SDK-Version-Compatibility-Matrix). Instructions here show how to install Ruby v2.7.2 alongside MacOS's own Ruby version. An OpenStudio v2.9.1 setup is described [here](https://github.com/rd2/tbd/blob/ua/v291_MacOS.md).
+MacOS already comes with Ruby, but maybe not the right Ruby version for the desired OpenStudio measure development [environment](https://github.com/NREL/OpenStudio/wiki/OpenStudio-SDK-Version-Compatibility-Matrix). Instructions here show how to install Ruby v2.7.2 alongside MacOS's own Ruby version. An OpenStudio v2.9.1 setup is described [here](https://github.com/rd2/tbd/blob/master/v291_MacOS.md).
 
 From a Terminal, install [Homebrew](https://brew.sh/index) - nice for package distribution and management. Using Homebrew, install _rbenv_ (which allows users to manage multiple Ruby versions) and finally Ruby:
 
@@ -96,9 +92,9 @@ ruby -ropen-uri -e 'eval URI.open("https://git.io/vQhWq").read'
 
 If successful, one should get a ```Hooray!``` from both Ruby versions confirming valid communication with [Rubygems](https://rubygems.org/).
 
-Install the [OpenStudio SDK](https://www.openstudio.net/downloads).
+Install the OpenStudio SDK [3.2.1](https://github.com/NREL/OpenStudio/releases/tag/v3.2.1).
 
-Then create the file _~/.rbenv/versions/2.7.2/lib/ruby/site_ruby/openstudio.rb_, and _point it_ to your OpenStudio installation by editing the contents, e.g.:
+Create a new file ```~/.rbenv/versions/2.7.2/lib/ruby/site_ruby/openstudio.rb```  (path may be different depending on the environment), and edit it so it _points_ to your new OpenStudio installation:
 
 ```
 require '/Applications/OpenStudio-3.2.1/Ruby/openstudio.rb'
