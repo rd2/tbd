@@ -5,9 +5,9 @@
 /spec/reports/
 /spec/test/
 /spec/*_suite_runs/
-/spec/files/alt_warehouse.osm
-/spec/files/alt2_warehouse.osm
-#/spec/files/*/
+/spec/files/osms/out/*
+/spec/files/ua/*
+/json/*out.json
 /test/
 /tmp/
 
@@ -42,13 +42,6 @@ lib/measures/*/tests/output
 /lib/measures/test_results
 /lib/measures/.rubocop*
 /lib/measures/*/tests/tbd.json
-json/*out.json
-spec/files/osms/tbd.out.json
-os_model_KIVA.osm
-warehouse_KIVA.osm
-os_model_test.osm
-os_model_FD.osm
-#*.md
 
 runner.conf
 

@@ -50,6 +50,7 @@ class KHI
     @point[ "regular (BETBG)" ]         = 0.500 # detail 5.7.4 BETBG
     @point[ "efficient (BETBG)" ]       = 0.150 # detail 5.7.3 BETBG
     @point[ "code (Quebec)" ]           = 0.500 # art. 3.3.1.3. NECB-QC
+    @point[ "uncompliant (Quebec)" ]    = 1.000 # Guide
     @point[ "(non thermal bridging)" ]  = 0.000
   end
 
@@ -191,15 +192,29 @@ class PSI
     {
       rimjoist:      0.300, # *
       parapet:       0.325, # *
-      fenestration:  0.350, # ** "regular (BETBG)"
+      fenestration:  0.200, # *
       corner:        0.300, # ** "regular (BETBG)", adjusted for ext. dimension
       balcony:       0.500, # *
-      party:         0.450, # ** "regular (BETBG)"
+      party:         0.450, # *
       grade:         0.450, # *
-      joint:         0.200, # ** "regular (BETBG)"
+      joint:         0.200, # *
       transition:    0.000
     }.freeze               # based on EXTERIOR dimensions (art. 3.1.1.6)
     self.genShorthands("code (Quebec)")
+
+    @set["uncompliant (Quebec)"] = # NECB-QC (non-code-compliant) defaults:
+    {
+      rimjoist:      0.850, # *
+      parapet:       0.800, # *
+      fenestration:  0.500, # *
+      corner:        0.850, # ** ... not stated
+      balcony:       1.000, # *
+      party:         0.850, # *
+      grade:         0.850, # *
+      joint:         0.500, # *
+      transition:    0.000
+    }.freeze               # based on EXTERIOR dimensions (art. 3.1.1.6)
+    self.genShorthands("uncompliant (Quebec)")
 
     @set["(non thermal bridging)"] = # ... would not derate surfaces:
     {

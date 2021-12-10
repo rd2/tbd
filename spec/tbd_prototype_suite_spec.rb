@@ -28,16 +28,15 @@ RSpec.describe TBD do
   force_clean = false
 
   # number of processors to use
-  nproc = [1, Parallel.processor_count - 1].max
-
-  test_suite_runs_dir = File.join(File.dirname(__FILE__), 'prototype_suite_runs')
+  nproc = [1, Parallel.processor_count - 2].max
 
   template_osw = nil
-  template_osw_file = File.join(File.dirname(__FILE__), 'files/prototype_suite.osw')
+  template_osw_file = File.join(__dir__, 'files/osws/prototype_suite.osw')
   File.open(template_osw_file, 'r') do |f|
     template_osw = JSON.parse(f.read, {symbolize_names: true})
   end
 
+  test_suite_runs_dir = File.join(__dir__, 'prototype_suite_runs')
   if force_clean
     FileUtils.rm_rf(test_suite_runs_dir) if File.exists?(test_suite_runs_dir)
   end
@@ -51,7 +50,7 @@ RSpec.describe TBD do
   #building_types << 'LargeOffice'
   #building_types << 'SmallHotel'
   #building_types << 'LargeHotel'
-  #building_types << 'Warehouse'
+  building_types << 'Warehouse'
   #building_types << 'RetailStandalone'
   #building_types << 'RetailStripmall'
   #building_types << 'QuickServiceRestaurant'
@@ -63,10 +62,13 @@ RSpec.describe TBD do
 
   tbd_options = []
   tbd_options << "skip"
-  tbd_options << "poor (BETBG)"
-  tbd_options << "regular (BETBG)"
-  tbd_options << "efficient (BETBG)"
+  #tbd_options << "poor (BETBG)"
+  #tbd_options << "regular (BETBG)"
+  #tbd_options << "efficient (BETBG)"
+  tbd_options << "spandrel (BETBG)"
+  tbd_options << "spandrel HP (BETBG)"
   tbd_options << "code (Quebec)"
+  tbd_options << "uncompliant (Quebec)"
   tbd_options << "(non thermal bridging)"
 
   combos = []
@@ -85,7 +87,7 @@ RSpec.describe TBD do
     if File.exist?(test_dir) && File.exist?(File.join(test_dir, 'out.osw'))
       next
     end
-
+    
     FileUtils.mkdir_p(test_dir)
 
     osw = Marshal.load( Marshal.dump(template_osw) )

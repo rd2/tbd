@@ -1,9 +1,10 @@
+<?xml version="1.0"?>
 <measure>
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>7eae9044-a446-478a-b0f0-43e332c4a17f</version_id>
-  <version_modified>20210917T180639Z</version_modified>
+  <version_id>a4183cdf-d4fd-447e-afb6-6b139f1b4023</version_id>
+  <version_modified>20211210T112449Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -61,6 +62,10 @@
         <choice>
           <value>code (Quebec)</value>
           <display_name>code (Quebec)</display_name>
+        </choice>
+        <choice>
+          <value>uncompliant (Quebec)</value>
+          <display_name>uncompliant (Quebec)</display_name>
         </choice>
         <choice>
           <value>(non thermal bridging)</value>
@@ -159,6 +164,10 @@
           <display_name>code (Quebec)</display_name>
         </choice>
         <choice>
+          <value>uncompliant (Quebec)</value>
+          <display_name>uncompliant (Quebec)</display_name>
+        </choice>
+        <choice>
           <value>(non thermal bridging)</value>
           <display_name>(non thermal bridging)</display_name>
         </choice>
@@ -203,8 +212,8 @@
       </choices>
     </argument>
   </arguments>
-  <outputs/>
-  <provenances/>
+  <outputs />
+  <provenances />
   <tags>
     <tag>Envelope.Opaque</tag>
   </tags>
@@ -329,12 +338,6 @@
       <checksum>9B4F2407</checksum>
     </file>
     <file>
-      <filename>psi.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>E592DA51</checksum>
-    </file>
-    <file>
       <filename>framedivider.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
@@ -362,6 +365,12 @@
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
       <checksum>DF2509D6</checksum>
+    </file>
+    <file>
+      <filename>psi.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>2E00B9CA</checksum>
     </file>
   </files>
 </measure>
