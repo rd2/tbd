@@ -1,8 +1,0 @@
-{
-  "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
-  "description": "seb.osm",
-  "log": {
-    "date": "2021-12-10 06:56:23 -0500",
-    "status": "Success! No errors, no warnings"
-  }
-}
