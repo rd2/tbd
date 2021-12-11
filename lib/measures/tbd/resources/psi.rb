@@ -1418,12 +1418,12 @@ end
 ##
 # Returns a construction's standard thermal resistance (with air films).
 #
-# @param [OpenStudio::Model::Construction] construction An OS construction
+# @param [OpenStudio::Model::LayeredConstruction] lc An OS layered construction
 # @param [Float] film_RSi Thermal resistance of surface air films (m2.K/W)
 # @param [Float] temperature Gas temperature (°C) [optional]
 #
 # @return [Float] Returns construction's calculated RSi; 0 if error
-def rsi(construction, film_RSi, temperature = 0.0)
+def rsi(lc, film_RSi, temperature = 0.0)
   # This is adapted from BTAP's Material Module's "get_conductance" (Phyl Lopez)
   # https://github.com/NREL/OpenStudio-Prototype-Buildings/blob/
   # c3d5021d8b7aef43e560544699fb5c559e6b721d/lib/btap/measures/
@@ -1433,7 +1433,8 @@ def rsi(construction, film_RSi, temperature = 0.0)
   t =  temperature + 273.0
 
   rsi = 0
-  unless construction && construction.is_a?(OpenStudio::Model::Construction)
+  cl = OpenStudio::Model::LayeredConstruction
+  unless lc && lc.is_a?(cl)
     TBD.log(TBD::DEBUG,
       "Invalid construction, can't calculate RSi - skipping")
     return rsi
@@ -1445,7 +1446,7 @@ def rsi(construction, film_RSi, temperature = 0.0)
   end
   rsi = film_RSi
 
-  construction.layers.each do |m|
+  lc.layers.each do |m|
     # Fenestration materials first (ignoring shades, screens, etc.)
     unless m.to_SimpleGlazing.empty?
       return 1.0 / m.to_SimpleGlazing.get.uFactor              # no need to loop
@@ -1484,24 +1485,25 @@ end
 ##
 # Identifies a layered construction's insulating (or deratable) layer.
 #
-# @param [OpenStudio::Model::Construction] construction An OS construction
+# @param [OpenStudio::Model::LayeredConstruction] lc An OS layered construction
 #
 # @return [Integer] Returns index of insulating material within construction
 # @return [Symbol] Returns type of insulating material (:standard or :massless)
 # @return [Float] Returns insulating layer thermal resistance [m2.K/W]
-def deratableLayer(construction)
+def deratableLayer(lc)
   r                = 0.0                        # R-value of insulating material
   index            = nil                        # index of insulating material
   type             = nil                        # nil, :massless; :standard
   i                = 0                          # iterator
 
-  unless construction && construction.is_a?(OpenStudio::Model::Construction)
+  cl = OpenStudio::Model::LayeredConstruction
+  unless lc && lc.is_a?(cl)
     TBD.log(TBD::DEBUG,
       "Invalid construction, can't derate insulation layer - skipping")
     return index, type, r
   end
 
-  construction.layers.each do |m|
+  lc.layers.each do |m|
     unless m.to_MasslessOpaqueMaterial.empty?
       m            = m.to_MasslessOpaqueMaterial.get
       if m.thermalResistance < 0.001 || m.thermalResistance < r
@@ -1539,15 +1541,15 @@ end
 # @param [OpenStudio::Model::Model] model An OS model
 # @param [String] id Surface identifier
 # @param [Hash] surface A TBD surface
-# @param [OpenStudio::Model::Construction] c An OS construction
+# @param [OpenStudio::Model::LayeredConstruction] lc An OS layered construction
 #
 # @return [OpenStudio::Model::Material] Returns derated (cloned) material
-def derate(model, id, surface, c)
+def derate(model, id, surface, lc)
   m = nil
   cl1 = OpenStudio::Model::Model
-  cl2 = OpenStudio::Model::Construction
+  cl2 = OpenStudio::Model::LayeredConstruction
 
-  unless model && id && surface && c
+  unless model && id && surface && lc
     TBD.log(TBD::DEBUG,
       "Can't derate insulation, invalid arguments - skipping")
     return m
@@ -1567,7 +1569,7 @@ def derate(model, id, surface, c)
       "Can't derate '#{id}', #{surface.class}? expected a Hash - skipping")
     return m
   end
-  unless c.is_a?(cl2)
+  unless lc.is_a?(cl2)
     TBD.log(TBD::DEBUG,
       "Can't derate '#{id}', #{c.class}? expected #{cl2} - skipping")
     return m
@@ -1652,7 +1654,7 @@ def derate(model, id, surface, c)
       "Won't derate '#{id}', material RSi value below MIN - skipping")
     return m
   end
-  unless / tbd/i.match(c.nameString) == nil
+  unless / tbd/i.match(lc.nameString) == nil
     TBD.log(TBD::WARN,
       "Won't derate '#{id}', material already derated - skipping")
     return m
@@ -1667,7 +1669,7 @@ def derate(model, id, surface, c)
   de_r           = 1.0 / de_u                                        # derated R
 
   if ltype == :massless
-    m            = c.getLayer(index).to_MasslessOpaqueMaterial
+    m            = lc.getLayer(index).to_MasslessOpaqueMaterial
 
     unless m.empty?
       m          = m.get
@@ -1683,7 +1685,7 @@ def derate(model, id, surface, c)
     end
 
   else                                                      # ltype == :standard
-    m            = c.getLayer(index).to_StandardOpaqueMaterial
+    m            = lc.getLayer(index).to_StandardOpaqueMaterial
     unless m.empty?
       m          = m.get
       m          = m.clone(model)
@@ -1850,17 +1852,22 @@ def processTBD(
     surface[:type] = :wall if typ.include?("wall")
 
     unless s.construction.empty?
-      construction = s.construction.get.to_ConstructionBase.get
-      # index  - of layer/material (to derate) in construction
-      # ltype  - either massless (RSi) or standard (k + d)
-      # r      - initial RSi value of the indexed layer to derate
-      index, ltype, r = deratableLayer(construction)
-      index = nil unless index.is_a?(Numeric) && index >= 0
-      if index
-        surface[:construction] = construction
-        surface[:index]        = index
-        surface[:ltype]        = ltype
-        surface[:r]            = r
+      construction = s.construction.get.to_LayeredConstruction
+      unless construction.empty?
+        construction = construction.get
+        # index  - of layer/material (to derate) in construction
+        # ltype  - either massless (RSi) or standard (k + d)
+        # r      - initial RSi value of the indexed layer to derate
+        index, ltype, r = deratableLayer(construction)
+        index = nil unless index.is_a?(Numeric)
+        index = nil unless index >= 0
+        index = nil unless index < construction.layers.size
+        if index
+          surface[:construction] = construction
+          surface[:index]        = index
+          surface[:ltype]        = ltype
+          surface[:r]            = r
+        end
       end
     end
     surfaces[id] = surface
@@ -3017,7 +3024,7 @@ def processTBD(
         surface[:ratio] = ratio if ratio.abs > TOL
 
         # Storing underated U-factors value (for UA').
-        surface[:u] = 1/current_R
+        surface[:u] = 1.0 / current_R
       end
     end
   end

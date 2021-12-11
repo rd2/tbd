@@ -43,30 +43,30 @@ RSpec.describe TBD do
   FileUtils.mkdir_p(test_suite_runs_dir)
 
   building_types = []
-  #building_types << 'SecondarySchool'
-  #building_types << 'PrimarySchool'
+  building_types << 'SecondarySchool'
+  building_types << 'PrimarySchool'
   building_types << 'SmallOffice'
-  #building_types << 'MediumOffice'
-  #building_types << 'LargeOffice'
-  #building_types << 'SmallHotel'
-  #building_types << 'LargeHotel'
+  building_types << 'MediumOffice'
+  building_types << 'LargeOffice'
+  building_types << 'SmallHotel'
+  building_types << 'LargeHotel'
   building_types << 'Warehouse'
-  #building_types << 'RetailStandalone'
-  #building_types << 'RetailStripmall'
-  #building_types << 'QuickServiceRestaurant'
-  #building_types << 'FullServiceRestaurant'
-  #building_types << 'MidriseApartment'
-  #building_types << 'HighriseApartment'
-  #building_types << 'Hospital'
-  #building_types << 'Outpatient'
+  building_types << 'RetailStandalone'
+  building_types << 'RetailStripmall'
+  building_types << 'QuickServiceRestaurant'
+  building_types << 'FullServiceRestaurant'
+  building_types << 'MidriseApartment'
+  building_types << 'HighriseApartment'
+  building_types << 'Hospital'
+  building_types << 'Outpatient'
 
   tbd_options = []
   tbd_options << "skip"
   #tbd_options << "poor (BETBG)"
   #tbd_options << "regular (BETBG)"
   #tbd_options << "efficient (BETBG)"
-  tbd_options << "spandrel (BETBG)"
-  tbd_options << "spandrel HP (BETBG)"
+  #tbd_options << "spandrel (BETBG)"
+  #tbd_options << "spandrel HP (BETBG)"
   tbd_options << "code (Quebec)"
   tbd_options << "uncompliant (Quebec)"
   tbd_options << "(non thermal bridging)"

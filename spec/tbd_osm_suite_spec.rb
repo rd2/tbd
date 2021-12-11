@@ -36,25 +36,25 @@ RSpec.describe TBD do
 
   seed_osms = []
   seed_osms << 'seb.osm'
-  #seed_osms << 'test_seb.osm'
-  #seed_osms << 'test_secondaryschool.osm'
-  #seed_osms << 'test_smalloffice.osm'
-  #seed_osms << 'test_warehouse.osm'
+  seed_osms << 'test_seb.osm'
+  seed_osms << 'test_secondaryschool.osm'
+  seed_osms << 'test_smalloffice.osm'
+  seed_osms << 'test_warehouse.osm'
 
   weather_files = {}
   weather_files['seb.osm'] = 'srrl_2013_amy.epw'
-  #weather_files['test_seb.osm'] = 'srrl_2013_amy.epw'
-  #weather_files['test_secondaryschool.osm'] = 'USA_TX_El.Paso.Intl.AP.722700_TMY3.epw'
-  #weather_files['test_smalloffice.osm'] = 'USA_TX_El.Paso.Intl.AP.722700_TMY3.epw'
-  #weather_files['test_warehouse.osm'] = 'USA_TX_El.Paso.Intl.AP.722700_TMY3.epw'
+  weather_files['test_seb.osm'] = 'srrl_2013_amy.epw'
+  weather_files['test_secondaryschool.osm'] = 'USA_TX_El.Paso.Intl.AP.722700_TMY3.epw'
+  weather_files['test_smalloffice.osm'] = 'USA_TX_El.Paso.Intl.AP.722700_TMY3.epw'
+  weather_files['test_warehouse.osm'] = 'USA_TX_El.Paso.Intl.AP.722700_TMY3.epw'
 
   tbd_options = []
   tbd_options << "skip"
   #tbd_options << "poor (BETBG)"
   #tbd_options << "regular (BETBG)"
   #tbd_options << "efficient (BETBG)"
-  tbd_options << "spandrel (BETBG)"
-  tbd_options << "spandrel HP (BETBG)"
+  #tbd_options << "spandrel (BETBG)"
+  #tbd_options << "spandrel HP (BETBG)"
   tbd_options << "code (Quebec)"
   tbd_options << "uncompliant (Quebec)"
   tbd_options << "(non thermal bridging)"
