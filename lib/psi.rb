@@ -1850,19 +1850,25 @@ def processTBD(
     surface[:type] = :wall if typ.include?("wall")
 
     unless s.construction.empty?
-      construction = s.construction.get.to_Construction.get
-      # index  - of layer/material (to derate) in construction
-      # ltype  - either massless (RSi) or standard (k + d)
-      # r      - initial RSi value of the indexed layer to derate
-      index, ltype, r = deratableLayer(construction)
-      index = nil unless index.is_a?(Numeric)
-      index = nil unless index >= 0
-      index = nil unless index < construction.layers.size
-      if index
-        surface[:construction] = construction
-        surface[:index]        = index
-        surface[:ltype]        = ltype
-        surface[:r]            = r
+      construction = s.construction.get.to_Construction
+      if construction.empty?
+        TBD.log(TBD::ERROR, "Surface #{s.name} has construction #{s.construction.get} which is not deratable")
+      else
+        construction = construction.get
+
+        # index  - of layer/material (to derate) in construction
+        # ltype  - either massless (RSi) or standard (k + d)
+        # r      - initial RSi value of the indexed layer to derate
+        index, ltype, r = deratableLayer(construction)
+        index = nil unless index.is_a?(Numeric)
+        index = nil unless index >= 0
+        index = nil unless index < construction.layers.size
+        if index
+          surface[:construction] = construction
+          surface[:index]        = index
+          surface[:ltype]        = ltype
+          surface[:r]            = r
+        end
       end
     end
     surfaces[id] = surface

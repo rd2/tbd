@@ -87,7 +87,7 @@ RSpec.describe TBD do
     if File.exist?(test_dir) && File.exist?(File.join(test_dir, 'out.osw'))
       next
     end
-    
+
     FileUtils.mkdir_p(test_dir)
 
     osw = Marshal.load( Marshal.dump(template_osw) )
@@ -125,12 +125,12 @@ RSpec.describe TBD do
     it "compares results for #{building_type}" do
       puts "building_type = #{building_type}"
       tbd_options.each do |tbd_option|
+        puts "  tbd_option = #{tbd_option}"
         completed_status = results[tbd_option][:completed_status]
         expect(completed_status).to eq("Success")
         tbd_result = results[tbd_option][:steps][1][:result]
         os_result = results[tbd_option][:steps][2][:result]
         total_site_energy = os_result[:step_values].select{|v| v[:name] == 'total_site_energy'}
-        puts "  tbd_option = #{tbd_option}"
         puts "    tbd_success = #{tbd_result[:step_result]}"
         puts "    os_success = #{os_result[:step_result]}"
         puts "    total_site_energy = #{total_site_energy[0][:value]}"
