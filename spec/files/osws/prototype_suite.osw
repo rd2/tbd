@@ -5,7 +5,7 @@
     "../../files/measures",
     "../../../lib/measures"
   ],
-	"file_paths": ["../../files/epws", ""],
+	"file_paths": [".", "../../files/epws", ""],
 	"run_directory": null,
 	"steps": [
     {
