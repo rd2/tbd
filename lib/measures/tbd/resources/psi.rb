@@ -1850,14 +1850,12 @@ def processTBD(
     surface[:type] = :wall if typ.include?("wall")
 
     unless s.construction.empty?
-      construction = s.construction.get.to_Construction.get
+      construction = s.construction.get.to_ConstructionBase.get
       # index  - of layer/material (to derate) in construction
       # ltype  - either massless (RSi) or standard (k + d)
       # r      - initial RSi value of the indexed layer to derate
       index, ltype, r = deratableLayer(construction)
-      index = nil unless index.is_a?(Numeric)
-      index = nil unless index >= 0
-      index = nil unless index < construction.layers.size
+      index = nil unless index.is_a?(Numeric) && index >= 0
       if index
         surface[:construction] = construction
         surface[:index]        = index
