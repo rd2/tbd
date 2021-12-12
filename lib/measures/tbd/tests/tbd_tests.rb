@@ -24,7 +24,6 @@ class TBDTest < Minitest::Test
 
   def test_no_load_tbd_json
     # create an instance of the measure
-    puts '   --- BBB'
     measure = TBDMeasure.new
 
     # Output dirs
@@ -78,7 +77,6 @@ class TBDTest < Minitest::Test
 
   def test_load_tbd_json
     # create an instance of the measure
-    puts '   --- CCC'
     measure = TBDMeasure.new
 
     # Output dirs
@@ -137,7 +135,6 @@ class TBDTest < Minitest::Test
 
   def test_load_tbd_json_error
     # create an instance of the measure
-    puts '   --- DDD'
     measure = TBDMeasure.new
 
     # Output dirs
