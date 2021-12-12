@@ -20,7 +20,7 @@ end
 
 RSpec.describe TBD do
   it "it can run all the measure tests" do
-    measure_dir = File.join(File.dirname(__FILE__), "../../lib/measures")
+    measure_dir = File.join(__dir__, "../../lib/measures")
     measure_tests = Dir.glob(measure_dir + "/*/tests/*.rb")
     measure_tests.each do |measure_test|
       command = "'#{OpenStudio::getOpenStudioCLI}' '#{measure_test}'"
