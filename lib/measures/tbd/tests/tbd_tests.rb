@@ -19,15 +19,16 @@ class TBDTest < Minitest::Test
 
     # get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-    assert_equal(3, arguments.size)
+    assert_equal(8, arguments.size)
   end
 
   def test_no_load_tbd_json
     # create an instance of the measure
+    puts '   --- BBB'
     measure = TBDMeasure.new
 
     # Output dirs
-    seed_dir = File.join(File.dirname(__FILE__), 'output/no_load_tbd_json/')
+    seed_dir = File.join(__dir__, 'output/no_load_tbd_json/')
     FileUtils.mkdir_p(seed_dir)
     seed_path = File.join(seed_dir, 'in.osm')
 
@@ -44,8 +45,8 @@ class TBDTest < Minitest::Test
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
-    # create hash of argument values.
-    # If the argument has a default that you want to use, you don't need it in the hash
+    # Create hash of argument values. If the argument has a default that you
+    # want to use, you don't need it in the hash.
     args_hash = {}
     # using defaults values from measure.rb for other arguments
 
@@ -77,10 +78,11 @@ class TBDTest < Minitest::Test
 
   def test_load_tbd_json
     # create an instance of the measure
+    puts '   --- CCC'
     measure = TBDMeasure.new
 
     # Output dirs
-    seed_dir = File.join(File.dirname(__FILE__), 'output/load_tbd_json/')
+    seed_dir = File.join(__dir__, 'output/load_tbd_json/')
     FileUtils.mkdir_p(seed_dir)
     seed_path = File.join(seed_dir, 'in.osm')
 
@@ -94,14 +96,16 @@ class TBDTest < Minitest::Test
     model.save(seed_path, true)
 
     # copy tdb.json next to seed
-    FileUtils.cp(File.join(File.dirname(__FILE__), 'tbd_full_PSI.json'), File.join(seed_dir, 'tbd.json'))
+    origin_pth = File.join(__dir__, 'tbd_full_PSI.json')
+    target_pth = File.join(seed_dir, 'tbd.json')
+    FileUtils.cp(origin_pth, target_pth)
 
     # get arguments
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
-    # create hash of argument values.
-    # If the argument has a default that you want to use, you don't need it in the hash
+    # Create hash of argument values. If the argument has a default that you
+    # want to use, you don't need it in the hash.
     args_hash = {"load_tbd_json" => true}
     # using defaults values from measure.rb for other arguments
 
@@ -133,10 +137,11 @@ class TBDTest < Minitest::Test
 
   def test_load_tbd_json_error
     # create an instance of the measure
+    puts '   --- DDD'
     measure = TBDMeasure.new
 
     # Output dirs
-    seed_dir = File.join(File.dirname(__FILE__), 'output/load_tbd_json_error/')
+    seed_dir = File.join(__dir__, 'output/load_tbd_json_error/')
     FileUtils.mkdir_p(seed_dir)
     seed_path = File.join(seed_dir, 'in.osm')
 
@@ -155,8 +160,8 @@ class TBDTest < Minitest::Test
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
-    # create hash of argument values.
-    # If the argument has a default that you want to use, you don't need it in the hash
+    # Create hash of argument values. If the argument has a default that you
+    # want to use, you don't need it in the hash.
     args_hash = {"load_tbd_json" => true}
     # using defaults values from measure.rb for other arguments
 
@@ -180,7 +185,9 @@ class TBDTest < Minitest::Test
     # assert that it ran correctly
     assert_equal('Fail', result.value.valueName)
     assert(result.errors.size == 1)
-    assert(result.warnings.empty?)
+    assert(result.warnings.size == 1)
+    log_message = "Can't find 'tbd.json' - simulation halted"
+    assert(result.warnings[0].logMessage == log_message)
 
     # save the model to test output directory
     #output_file_path = "#{File.dirname(__FILE__)}//output/test_output.osm"

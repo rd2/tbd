@@ -3,8 +3,8 @@
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>ab33b778-d893-401d-9791-e39c838619f1</version_id>
-  <version_modified>20211211T124813Z</version_modified>
+  <version_id>af8cf68d-a5b9-48b9-b6af-bb12defe83dc</version_id>
+  <version_modified>20211212T220247Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -296,12 +296,6 @@
       <checksum>B64E67F5</checksum>
     </file>
     <file>
-      <filename>tbd_tests.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>test</usage_type>
-      <checksum>9DEC541E</checksum>
-    </file>
-    <file>
       <filename>transformation.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
@@ -350,17 +344,6 @@
       <checksum>44471611</checksum>
     </file>
     <file>
-      <version>
-        <software_program>OpenStudio</software_program>
-        <identifier>2.9.1</identifier>
-        <min_compatible>2.9.1</min_compatible>
-      </version>
-      <filename>measure.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>script</usage_type>
-      <checksum>8570CF74</checksum>
-    </file>
-    <file>
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
@@ -371,6 +354,23 @@
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
       <checksum>5B0F3072</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.9.1</identifier>
+        <min_compatible>2.9.1</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>7C287991</checksum>
+    </file>
+    <file>
+      <filename>tbd_tests.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>845DE072</checksum>
     </file>
   </files>
 </measure>

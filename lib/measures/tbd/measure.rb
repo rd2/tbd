@@ -308,7 +308,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
       io_path = runner.workflow.findFile('tbd.json')
       if io_path.empty?
         TBD.log(TBD::FATAL, "Can't find 'tbd.json' - simulation halted")
-        return exitTBD(runner)
+        return exitTBD(user_model, runner)
       else
         io_path = io_path.get.to_s
         # TBD.log(TBD::INFO, "Using inputs from #{io_path}")  # for debugging
