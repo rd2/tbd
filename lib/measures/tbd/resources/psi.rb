@@ -21,7 +21,7 @@ TOL2 = TOL * TOL
 
 # Sources for thermal bridge types and/or linked default KHI & PSI values/sets:
 
-# BETBG = Building Envelope Thermal Bridging Guide v1.4
+# BETBG = Building Envelope Thermal Bridging Guide v1.4 (or higher)
 # www.bchydro.com/content/dam/BCHydro/customer-portal/documents/power-smart/
 # business/programs/BETB-Building-Envelope-Thermal-Bridging-Guide-v1-4.pdf
 
