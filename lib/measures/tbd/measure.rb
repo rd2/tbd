@@ -1,22 +1,8 @@
 begin
-  # try to load from the gems
-  $STARTING_DIR = Dir.pwd
-  require "topolys"
-  require "psi"
+  # Try to load from the tbd gem.
+  require "tbd"
 rescue LoadError
-  if $STARTING_DIR != Dir.pwd
-    Dir.chdir($STARTING_DIR)
-  end
-  # load from measure resource dir
-  require_relative "resources/psi.rb"
-  require_relative "resources/conditioned.rb"
-  require_relative "resources/framedivider.rb"
-  require_relative "resources/ua.rb"
-  require_relative "resources/geometry.rb"
-  require_relative "resources/model.rb"
-  require_relative "resources/transformation.rb"
-  require_relative "resources/version.rb"
-  require_relative "resources/log.rb"
+  require_relative "resources/tbd"
 end
 
 # start the measure

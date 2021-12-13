@@ -24,7 +24,8 @@ def flatZ(pts)
   vec
 end
 
-## Validates whether 1st OpenStudio polygon fits within 2nd polygon.
+##
+# Validates whether 1st OpenStudio polygon fits within 2nd polygon.
 #
 # @param [Array] poly1 Point3D array of convex polygon #1
 # @param [Array] poly2 Point3D array of convex polygon #2
@@ -124,10 +125,11 @@ def fits?(poly1, poly2, id1 = "", id2 = "")
   true
 end
 
-## Validates whether an OpenStudio polygon overlaps another polygon.
+##
+# Validates whether an OpenStudio polygon overlaps another polygon.
 #
 # @param [Array] poly1 Point3D array of convex polygon #1
-# @param [Array] poly1 Point3D array of convex polygon #2
+# @param [Array] poly2 Point3D array of convex polygon #2
 # @param [String] id1 Polygon #1 identifier (optional)
 # @param [String] id2 Polygon #2 identifier (optional)
 #
@@ -549,7 +551,7 @@ def openings(model, surface)
       fd = true
       width = s.windowPropertyFrameAndDivider.get.frameWidth
       ptz = offset(s.vertices, width)
-      
+
       # Re-convert Topolys 3D points into OpenStudio 3D points.
       vec = OpenStudio::Point3dVector.new
       vec << OpenStudio::Point3d.new(ptz[:A][:p].x, ptz[:A][:p].y, ptz[:A][:p].z)

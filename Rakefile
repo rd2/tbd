@@ -10,7 +10,11 @@ task default: :spec
 
 require 'yard'
 YARD::Rake::YardocTask.new do |t|
-  t.files   = ["lib/psi.rb", "lib/conditioned.rb", "lib/framedivider.rb", "lib/log.rb", "lib/ua.rb"]
+  t.files = ["lib/tbd/psi.rb",
+             "lib/tbd/conditioned.rb",
+             "lib/tbd/framedivider.rb",
+             "lib/tbd/ua.rb",
+             "lib/tbd/log.rb"]
 end
 
 desc "Update Library Files"
@@ -19,22 +23,34 @@ task :update_library_files do
 
   require "fileutils"
 
-  lib_files = []
-  $:.each do |load_path|
-    if /topolys/.match(load_path)
-      lib_files.concat( Dir.glob(File.join(load_path, "topolys/*.rb")) )
-    elsif /tbd/.match(load_path)
-      lib_files.concat( Dir.glob(File.join(load_path, "*.rb")) )
-      lib_files.concat( Dir.glob(File.join(load_path, "tbd/*.rb")) )
+  libs = ["topolys", "tbd"]
+  lib_files = {}
+
+  puts $LOAD_PATH
+  puts
+
+  $LOAD_PATH.each do |load_path|
+    libs.each do |l|
+      if load_path.include?(l)
+        lib_files[l] = Dir.glob(File.join(load_path, "#{l}/*.rb"))
+        lib_files["_#{l}"] = Dir.glob(File.join(load_path, "*.rb"))
+      end
     end
   end
-  puts lib_files
 
-  measure_resources = Dir.glob("./lib/measures/*/resources")
+  lib_files.values.each { |file| puts file }
 
-  lib_files.each do |lib_file|
-    measure_resources.each do |measure_resource|
-      FileUtils.cp(lib_file, "#{measure_resource}/.")
+  dirs = Dir.glob(File.join(__dir__, "lib/measures/*"))
+
+  dirs.each do |dir|
+    lib_files.each do |l, files|
+      files.each do |file|
+        if libs.any?(l)
+          FileUtils.cp(file, "#{dir}/resources/#{l}/.")
+        else
+          FileUtils.cp(file, "#{dir}/resources/.")
+        end
+      end
     end
   end
 end
@@ -58,7 +74,7 @@ namespace "osm_suite" do
   desc "Clean OSM Test Suite"
   task :clean do
     puts "Cleaning OSM Test Suite"
-    osm_suite_runs_dir = File.join(File.dirname(__FILE__), 'spec', 'osm_suite_runs')
+    osm_suite_runs_dir = File.join(__dir__, 'spec', 'osm_suite_runs')
     FileUtils.rm_rf(osm_suite_runs_dir) if File.exists?(osm_suite_runs_dir)
   end
 
@@ -73,7 +89,7 @@ namespace "prototype_suite" do
   desc "Clean Prototype Test Suite"
   task :clean do
     puts "Cleaning Prototype Test Suite"
-    prototype_suite_runs_dir = File.join(File.dirname(__FILE__), 'spec', 'prototype_suite_runs')
+    prototype_suite_runs_dir = File.join(__dir__, 'spec', 'prototype_suite_runs')
     FileUtils.rm_rf(prototype_suite_runs_dir) if File.exists?(prototype_suite_runs_dir)
   end
 

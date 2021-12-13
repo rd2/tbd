@@ -390,7 +390,7 @@ def maxHeatScheduledSetpoint(zone)
 end
 
 ##
-# Validate if model has zones with valid heating temperature setpoints
+# Validate if model has zones with valid heating temperature setpoints.
 #
 # @param [OpenStudio::Model::Model] model An OS model
 #
@@ -577,7 +577,7 @@ def minCoolScheduledSetpoint(zone)
 end
 
 ##
-# Validate if model has zones with valid cooling temperature setpoints
+# Validate if model has zones with valid cooling temperature setpoints.
 #
 # @param [OpenStudio::Model::Model] model An OS model
 #
@@ -599,7 +599,7 @@ def coolingTemperatureSetpoints?(model)
 end
 
 ##
-# Validate if model has zones with HVAC air loops
+# Validate if model has zones with HVAC air loops.
 #
 # @param [OpenStudio::Model::Model] model An OS model
 #

@@ -1,4 +1,11 @@
-require "psi"
+require "openstudio"
+
+begin
+  # Try to load from the tbd gem.
+  require "tbd"
+rescue LoadError
+  require_relative "lib/resources/tbd"
+end
 
 RSpec.describe TBD do
 

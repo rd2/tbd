@@ -1,5 +1,6 @@
 require "openstudio"
 
+##
 # Set reference values for points, edges & surfaces (& subsurfaces) to
 # compute Quebec energy code (Section 3.3) UA' comparison (2021).
 #
@@ -92,6 +93,7 @@ def qc33(surfaces, sets, setpoints)
   true
 end
 
+##
 # Generate UA' summary.
 #
 # @param [Hash] surfaces Preprocessed collection of TBD surfaces
@@ -516,6 +518,7 @@ def ua_summary(surfaces, date = Time.now, version = "",
   ua
 end
 
+##
 # Generate MD-formatted file.
 #
 # @param [Hash] ua Preprocessed collection of UA-related strings

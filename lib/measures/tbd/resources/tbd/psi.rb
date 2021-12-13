@@ -1,20 +1,5 @@
 require "openstudio"
 
-begin
-  # Topolys: try to load from the gem
-  require "topolys"
-rescue LoadError
-  require_relative "geometry.rb"
-  require_relative "model.rb"
-  require_relative "transformation.rb"
-  require_relative "version.rb"
-end
-
-require_relative "conditioned.rb"
-require_relative "framedivider.rb"
-require_relative "ua.rb"
-require_relative "log.rb"
-
 # Set 10mm tolerance for edge (thermal bridge) vertices.
 TOL = 0.01
 TOL2 = TOL * TOL
@@ -39,7 +24,7 @@ class KHI
   attr_reader :point
 
   ##
-  # Construct a new KHI library (with defaults)
+  # Construct a new KHI library (with defaults).
   def initialize
     @point = {}
 
@@ -55,8 +40,8 @@ class KHI
   end
 
   ##
-  # Append a new KHI pair, based on a TBD JSON-formatted KHI object.
-  # Requires a valid, unique :id
+  # Append a new KHI pair, based on a TBD JSON-formatted KHI object - requires
+  # a valid, unique :id.
   #
   # @param [Hash] k A (identifier):(KHI) pair
   #
@@ -232,8 +217,7 @@ class PSI
   end
 
   ##
-  # Generate PSI set shorthand listings
-  # Requires a valid, unique :id.
+  # Generate PSI set shorthand listings - requires a valid, unique :id.
   #
   # @param [String] p A PSI set identifier
   #
@@ -355,8 +339,8 @@ class PSI
   end
 
   ##
-  # Append a new PSI set, based on a TBD JSON-formatted PSI set object.
-  # Requires a valid, unique :id.
+  # Append a new PSI set, based on a TBD JSON-formatted PSI set object -
+  # requires a valid, unique :id.
   #
   # @param [Hash] p A (identifier):(PSI set) pair
   #
@@ -424,7 +408,7 @@ class PSI
   end
 
   ##
-  # Generate shorthand hash of PSI content (empty hashes if invalid ID)
+  # Generate shorthand hash of PSI content (empty hashes if invalid ID).
   #
   # @param [String] p A PSI set identifier
   #
@@ -438,7 +422,7 @@ class PSI
   end
 
   ##
-  # Validate whether a stored PSI set has a complete list of PSI type:values
+  # Validate whether a stored PSI set has a complete list of PSI type:values.
   #
   # @param [String] p A PSI set identifier
   #
@@ -480,7 +464,8 @@ class PSI
   end
 
   ##
-  # Return safe PSI type if missing input from PSI set (relies on inheritance)
+  # Return safe PSI type if missing input from PSI set (relies on inheritance).
+  #
   # @param [String] p A PSI set identifier
   # @param [Hash] type PSI type e.g., :rimjoistconcave
   #
@@ -506,7 +491,8 @@ class PSI
 end
 
 ##
-# Check for matching vertex pairs between edges (10mm tolerance)
+# Check for matching vertex pairs between edges (10mm tolerance).
+#
 # @param [Hash] e1 First edge
 # @param [Hash] e2 Second edge
 #
@@ -570,9 +556,9 @@ end
 # and retrieved corresponding Topolys model surface/edge properties. TBD user
 # inputs allow customization of default assumptions and inferred values.
 # If successful, "edges" (input) may inherit additional properties, e.g.:
-# :io_set  = edge-specific PSI set, held in TBD JSON file
-# :io_type = edge-specific PSI type (e.g. "corner"), held in TBD JSON file
-# :io_building = project-wide PSI set, if absent from TBD JSON file
+# :io_set  = edge-specific PSI set, held in TBD JSON file,
+# :io_type = edge-specific PSI type (e.g. "corner"), held in TBD JSON file,
+# :io_building = project-wide PSI set, if absent from TBD JSON file.
 #
 # @param [Hash] surfaces Preprocessed collection of TBD surfaces
 # @param [Hash] edges Preprocessed collection of TBD edges
@@ -885,7 +871,7 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
 end
 
 ##
-# Return OpenStudio site/space transformation & rotation; nil if unsuccessful
+# Return OpenStudio site/space transformation & rotation; nil if unsuccessful.
 #
 # @param [OpenStudio::Model::Model] model An OS model
 # @param [OpenStudio::Model::Space or ::ShadingSurfaceGroup] group An OS group
@@ -908,7 +894,7 @@ def transforms(model, group)
 end
 
 ##
-# Return site-specific (or absolute) Topolys surface normal; nil unsuccessful
+# Return site-specific (or absolute) Topolys surface normal; nil unsuccessful.
 #
 # @param [OpenStudio::Model::PlanarSurface] s An OS planar surface
 # @param [Float] r A rotation angle [0,360) degrees
@@ -994,9 +980,9 @@ def convex?(s1, s2)
 end
 
 ##
-# Return Topolys vertices and a Topolys wire from Topolys points. As
-# a side effect, it will - if successful - also populate the Topolys
-# model with the vertices and wire.
+# Return Topolys vertices and a Topolys wire from Topolys points. As a side
+# effect, it will - if successful - also populate the Topolys model with the
+# vertices and wire.
 #
 # @param [Topolys::Model] model An OS model
 # @param [Array] points A 1D array of 3D Topolys points (min 2x)
@@ -1032,8 +1018,8 @@ end
 
 ##
 # Populate collection of TBD "kids", i.e. subsurfaces, relying on Topolys. As
-# a side effect, it will - if successful - also populate the Topolys
-# model with Topolys vertices, wires, holes.
+# a side effect, it will - if successful - also populate the Topolys model with
+# Topolys vertices, wires, holes.
 #
 # @param [Topolys::Model] model A Topolys model
 # @param [Hash] kids A collection of TBD subsurfaces
@@ -1071,8 +1057,8 @@ end
 
 ##
 # Populate hash of TBD "dads", i.e. (parent) surfaces, relying on Topolys. As
-# a side effect, it will - if successful - also populate the Topolys
-# model with Topolys vertices, wires, holes & faces.
+# a side effect, it will - if successful - also populate the Topolys model with
+# Topolys vertices, wires, holes & faces.
 #
 # @param [Topolys::Model] model A Topolys model
 # @param [Hash] dads A collection of TBD (parent) surfaces
@@ -1370,7 +1356,7 @@ def generateKiva(model, walls, floors, edges)
 end
 
 ##
-# Returns total air film resistance for fenestration (future use)
+# Returns total air film resistance for fenestration (future use).
 #
 # @param [Float] usi A fenestrated construction's U-factor in W/m2.K
 #

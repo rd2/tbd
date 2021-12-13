@@ -1,4 +1,11 @@
-require "psi"
+require "openstudio"
+
+begin
+  # Try to load from the tbd gem.
+  require "tbd"
+rescue LoadError
+  require_relative "lib/tbd"
+end
 
 RSpec.describe TBD do
   it "can process thermal bridging and derating : LoScrigno" do
@@ -3944,7 +3951,7 @@ RSpec.describe TBD do
       edge[:surfaces].each do |surface|
         answer = false
         answer = true if surface == "ground-floor restaurant West-wall" ||
-                                    "ground-floor restaurant party wall"
+                         surface == "ground-floor restaurant party wall"
         expect(answer).to be(true)
       end
     end
