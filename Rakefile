@@ -26,9 +26,6 @@ task :update_library_files do
   libs = ["topolys", "tbd"]
   lib_files = {}
 
-  puts $LOAD_PATH
-  puts
-
   $LOAD_PATH.each do |load_path|
     libs.each do |l|
       if load_path.include?(l)
@@ -45,7 +42,7 @@ task :update_library_files do
   dirs.each do |dir|
     lib_files.each do |l, files|
       files.each do |file|
-        if libs.any?(l)
+        if libs.include?(l)
           FileUtils.cp(file, "#{dir}/resources/#{l}/.")
         else
           FileUtils.cp(file, "#{dir}/resources/.")
