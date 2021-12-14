@@ -1,10 +1,8 @@
-require "openstudio"
-
 begin
   # Try to load from the tbd gem.
   require "tbd"
 rescue LoadError
-  require_relative "lib/tbd"
+  require_relative "../lib/tbd"
 end
 
 RSpec.describe TBD do
