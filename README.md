@@ -4,11 +4,18 @@
 
 ## Guide & Downloads
 
-Building professionals and energy modellers are encouraged to first consult the online [Guide](https://rd2.github.io/tbd/) - it provides an overview of the underlying theory, references, workflows, etc. Users can download the latest _TBD_ version directly from the Guide itself, or under [releases](https://github.com/rd2/tbd/releases), or via NREL's [BCL](https://bcl.nrel.gov) ... search for "bridging" or "rd2".
+Building professionals and energy modellers are encouraged to first consult the online [Guide](https://rd2.github.io/tbd/) - it provides an overview of the underlying theory, references, suggested Openstudio workflows, etc. Users can download the latest _TBD_ version directly from the Guide itself, or under [releases](https://github.com/rd2/tbd/releases), or via NREL's [BCL](https://bcl.nrel.gov) ... search for "bridging" or "rd2".
 
 Questions can be posted on [UnmetHours](https://unmethours.com) - a very useful online resource for OpenStudio users.
 
-TBD is also available as a Ruby gem (something along these [lines](https://github.com/automaticmagic/topolys#installation) - TO DO).
+TBD is also available as a Ruby gem. Add this line to your application's _Gemfile_:
+```
+gem "tbd", github: "rd2/tbd", branch: "master"
+```  
+And then execute:
+```
+bundle update
+```
 
 ## New Features  
 
