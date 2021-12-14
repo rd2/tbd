@@ -1,5 +1,3 @@
-require "openstudio"
-
 ##
 # Set reference values for points, edges & surfaces (& subsurfaces) to
 # compute Quebec energy code (Section 3.3) UA' comparison (2021).

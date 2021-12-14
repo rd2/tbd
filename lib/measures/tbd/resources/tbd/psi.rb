@@ -1,5 +1,3 @@
-require "openstudio"
-
 # Set 10mm tolerance for edge (thermal bridge) vertices.
 TOL = 0.01
 TOL2 = TOL * TOL
@@ -3071,8 +3069,9 @@ def processTBD(
 end
 
 ##
-# TBD exit strategy. Outputs TBD model content/results if out && io are TRUE.
-# Generates log errors and warnings, even if io or out are FALSE.
+# TBD exit strategy strictly for OpenStudio Measures. Outputs TBD model
+# content/results if out && io are TRUE. Generates log errors and warnings,
+# even if io or out are FALSE.
 #
 # @param [Model] model OpenStudio model
 # @param [Runner] runner OpenStudio Measure runner
@@ -3085,11 +3084,12 @@ end
 # @param [String] seed OSM file name
 #
 # @return [Bool] Returns true if TBD Measure is successful.
-def exitTBD(model, runner, gen_ua = false, ref = "", setpoints = false, out = false, io = nil, surfaces = nil, seed = "")
+def exitTBD(model, runner, gen_ua = false, ref = "", setpoints = false,
+            out = false, io = nil, surfaces = nil, seed = "")
+
   # Generated files target a design context ( >= WARN ) ... change TBD log_level
   # for debugging purposes. By default, log_status is set below DEBUG while
   # log_level is set @WARN. Example: "TBD.set_log_level(TBD::DEBUG)".
-
   status = TBD.msg(TBD.status)
   status = TBD.msg(TBD::INFO) if TBD.status.zero?
 

@@ -1,5 +1,3 @@
-require "openstudio"
-
 ##
 # Flatten OpenStudio 3D points vs Z-axis (Z=0).
 #

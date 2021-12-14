@@ -1,5 +1,3 @@
-require "openstudio"
-
 # TBD deals with ~insulated envelope surfaces enclosing spaces that are
 # directly or indirectly CONDITIONED, or SEMI-HEATED. TBD is designed to
 # ignore surfaces in UNCONDITIONED and UNENCLOSED spaces. TBD relies as
