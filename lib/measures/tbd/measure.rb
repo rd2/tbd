@@ -1,9 +1,4 @@
-begin
-  # Try to load from the tbd gem.
-  require "tbd"
-rescue LoadError
-  require_relative "resources/tbd"
-end
+require_relative "tbd"
 
 # start the measure
 class TBDMeasure < OpenStudio::Measure::ModelMeasure

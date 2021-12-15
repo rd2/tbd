@@ -1,3 +1,5 @@
+require "openstudio"
+
 begin
   # Try to load from the Topolys gem.
   require "topolys"

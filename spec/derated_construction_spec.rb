@@ -1,9 +1,4 @@
-begin
-  # Try to load from the tbd gem.
-  require "tbd"
-rescue LoadError
-  require_relative "../lib/tbd"
-end
+require "tbd"
 
 RSpec.describe TBD do
 
