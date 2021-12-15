@@ -23,7 +23,6 @@ RSpec.describe TBD do
     measure_dir = File.join(__dir__, "../lib/measures")
     measure_tests = Dir.glob(measure_dir + "/*/tests/*.rb")
     measure_tests.each do |measure_test|
-      puts "measure test : #{measure_test}"
       command = "#{OpenStudio::getOpenStudioCLI} #{measure_test}"
       stdout_str, stderr_str, status = Open3.capture3(get_clean_env, command)
       expect(status.success?).to be(true)
