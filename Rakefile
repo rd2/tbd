@@ -30,6 +30,7 @@ task :update_library_files do
     libs.each do |l|
       if load_path.include?(l)
         lib_files[l] = Dir.glob(File.join(load_path, "#{l}/*.rb"))
+        lib_files.delete_if { |file| file.include?("version.rb") } if l == "tbd"
       end
     end
   end
@@ -40,7 +41,7 @@ task :update_library_files do
 
   dirs.each do |dir|
     lib_files.each do |l, files|
-      files.each { |file| FileUtils.cp(file, "#{dir}/resources/#{l}/.") }
+      files.each { |file| FileUtils.cp(file, "#{dir}/resources/.") }
     end
   end
 end

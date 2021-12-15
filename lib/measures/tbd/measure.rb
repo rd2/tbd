@@ -1,4 +1,13 @@
-require_relative "tbd"
+require_relative "resources/version"
+require_relative "resources/geometry"
+require_relative "resources/transformation"
+require_relative "resources/model"
+
+require_relative "resources/psi"
+require_relative "resources/conditioned"
+require_relative "resources/framedivider"
+require_relative "resources/ua"
+require_relative "resources/log"
 
 # start the measure
 class TBDMeasure < OpenStudio::Measure::ModelMeasure
