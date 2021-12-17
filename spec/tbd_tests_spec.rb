@@ -6155,11 +6155,26 @@ RSpec.describe TBD do
   end
 
   it "can handle TDDs" do
-    # OpenStudio SDK doesn't (fully) support Tubular Daylighting Devices, as per:
-    # https://bigladdersoftware.com/epx/docs/9-5/input-output-reference/
+    # As of v3.3.0, OpenStudio SDK (fully) supports Tubular Daylighting Devices:
+    # https://bigladdersoftware.com/epx/docs/9-6/input-output-reference/
     # group-daylighting.html#daylightingdevicetubular
+    #
+    # https://openstudio-sdk-documentation.s3.amazonaws.com/cpp/
+    # OpenStudio-3.3.0-doc/model/html/
+    # classopenstudio_1_1model_1_1_daylighting_device_tubular.html
+
+    model = OpenStudio::Model::Model.new
+    version = model.getVersion.versionIdentifier.split('.').map(&:to_i)
+    v = version.join.to_i
+    expect(v).is_a?(Numeric)
+
     methods = OpenStudio::Model::Model.instance_methods.grep(/tubular/i)
-    expect(methods.empty?).to be(true)
+
+    if v < 330
+      expect(methods.empty?).to be(true)
+    else
+      expect(methods.empty?).to be(false)
+    end
 
     # ... OpenStudio is however able to set/get related subsurface types:
     types = OpenStudio::Model::SubSurface.validSubSurfaceTypeValues

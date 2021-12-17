@@ -64,7 +64,7 @@ jobs:
         echo $(pwd)
         echo $(ls)
         docker pull nrel/openstudio:3.3.0
-        docker run --name test --rm -d -t -v $(pwd):/work -w /work nrel/openstudio:3.2.1
+        docker run --name test --rm -d -t -v $(pwd):/work -w /work nrel/openstudio:3.3.0
         docker exec -t test pwd
         docker exec -t test ls
         docker exec -t test bundle update
