@@ -6255,93 +6255,125 @@ RSpec.describe TBD do
       expect(construction.layers.size).to eq(1)
       expect(construction.layers[0].handle.to_s).to eq(interior.handle.to_s)
 
-      # Fetch host surfaces.
-      ceiling = os_model.getSurfaceByName("Office Roof")
+      # Host spaces & surfaces.
+      sp1 = "Zone1 Office"
+      sp2 = "Zone2 Fine Storage"
+
+      z = "Zone2 Fine Storage ZN"
+
+      s1 = "Office Roof"          # Office surface hosting new TDD diffuser
+      s2 = "Office Roof Reversed" # FineStorage floor, above office
+      s3 = "Fine Storage Roof"    # FineStorage surface hosting new TDD dome
+
+      # Fetch host spaces & surfaces.
+      office = os_model.getSpaceByName(sp1)
+      expect(office.empty?).to be(false)
+      office = office.get
+
+      storage = os_model.getSpaceByName(sp2)
+      expect(storage.empty?).to be(false)
+      storage = storage.get
+
+      zone = storage.thermalZone
+      expect(zone.empty?).to be(false)
+      zone = zone.get
+      expect(zone.nameString).to eq(z)
+
+      ceiling = os_model.getSurfaceByName(s1)
       expect(ceiling.empty?).to be(false)
       ceiling = ceiling.get
+      sp = ceiling.space
+      expect(sp.empty?).to be(false)
+      sp = sp.get
+      expect(sp).to eq(office)
 
-      floor = os_model.getSurfaceByName("Office Roof Reversed")
+      floor = os_model.getSurfaceByName(s2)
       expect(floor.empty?).to be(false)
       floor = floor.get
+      sp = floor.space
+      expect(sp.empty?).to be(false)
+      sp = sp.get
+      expect(sp).to eq(storage)
 
-      roof = os_model.getSurfaceByName("Fine Storage Roof")
+      adj = ceiling.adjacentSurface
+      expect(adj.empty?).to be(false)
+      adj = adj.get
+      expect(adj).to eq(floor)
+
+      adj = floor.adjacentSurface
+      expect(adj.empty?).to be(false)
+      adj = adj.get
+      expect(adj).to eq(ceiling)
+
+      roof = os_model.getSurfaceByName(s3)
       expect(roof.empty?).to be(false)
       roof = roof.get
+      sp = roof.space
+      expect(sp.empty?).to be(false)
+      sp = sp.get
+      expect(sp).to eq(storage)
 
-      # A new, 1mx1m diffuser subsurface in Office Roof/Office Roof reversed.
+      # Setting heights & Z-axis coordinates.
+      ceiling_Z = ceiling.centroid.z
+      roof_Z = roof.centroid.z
+      length = roof_Z - ceiling_Z
+      totalLength = length + 0.5
+      dome_Z = ceiling_Z + totalLength
+
+      # A new, 1mx1m diffuser subsurface in Office.
       os_v = OpenStudio::Point3dVector.new
-      os_v << OpenStudio::Point3d.new( 11.0, 4.0, 4.26699190227003)
-      os_v << OpenStudio::Point3d.new( 11.0, 5.0, 4.26699190227003)
-      os_v << OpenStudio::Point3d.new( 10.0, 5.0, 4.26699190227003)
-      os_v << OpenStudio::Point3d.new( 10.0, 4.0, 4.26699190227003)
-      diffuser_c = OpenStudio::Model::SubSurface.new(os_v, os_model)
-      diffuser_c.setName("Office diffuser")
-      expect(diffuser_c.setConstruction(fenestration)).to be(true)
-      expect(diffuser_c.setSubSurfaceType("TubularDaylightDiffuser")).to be(true)
-      expect(diffuser_c.setSurface(ceiling)).to be(true)
-      expect(diffuser_c.uFactor.empty?).to be(false)
-      expect(diffuser_c.uFactor.get).to be_within(0.1).of(6.0)
+      os_v << OpenStudio::Point3d.new( 11.0, 4.0, ceiling_Z)
+      os_v << OpenStudio::Point3d.new( 11.0, 5.0, ceiling_Z)
+      os_v << OpenStudio::Point3d.new( 10.0, 5.0, ceiling_Z)
+      os_v << OpenStudio::Point3d.new( 10.0, 4.0, ceiling_Z)
+      diffuser = OpenStudio::Model::SubSurface.new(os_v, os_model)
+      diffuser.setName("diffuser")
+      expect(diffuser.setConstruction(fenestration)).to be(true)
+      expect(diffuser.setSubSurfaceType("TubularDaylightDiffuser")).to be(true)
+      expect(diffuser.setSurface(ceiling)).to be(true)
+      expect(diffuser.uFactor.empty?).to be(false)
+      expect(diffuser.uFactor.get).to be_within(0.1).of(6.0)
 
+      # A new, 1mx1m dome subsurface above Fine Storage roof.
       os_v = OpenStudio::Point3dVector.new
-      os_v << OpenStudio::Point3d.new( 10.0, 4.0, 4.26699190227003)
-      os_v << OpenStudio::Point3d.new( 10.0, 5.0, 4.26699190227003)
-      os_v << OpenStudio::Point3d.new( 11.0, 5.0, 4.26699190227003)
-      os_v << OpenStudio::Point3d.new( 11.0, 4.0, 4.26699190227003)
-      diffuser_r = OpenStudio::Model::SubSurface.new(os_v, os_model)
-      diffuser_r.setName("FineStorage diffuser")
-      expect(diffuser_r.setConstruction(fenestration)).to be(true)
-      expect(diffuser_r.setSubSurfaceType("TubularDaylightDiffuser")).to be(true)
-      expect(diffuser_r.setSurface(floor)).to be(true)
-      expect(diffuser_r.uFactor.empty?).to be(false)
-      expect(diffuser_r.uFactor.get).to be_within(0.1).of(6.0)
-
-      expect(diffuser_c.setAdjacentSubSurface(diffuser_r)).to be(true)
-      expect(diffuser_r.setAdjacentSubSurface(diffuser_c)).to be(true)
-      sub = diffuser_c.adjacentSubSurface
-      expect(sub.empty?).to be(false)
-      sub = diffuser_r.adjacentSubSurface
-      expect(sub.empty?).to be(false)
-
-      os_v = OpenStudio::Point3dVector.new
-      os_v << OpenStudio::Point3d.new( 11.0, 4.0, 8.53398380454007)
-      os_v << OpenStudio::Point3d.new( 11.0, 5.0, 8.53398380454007)
-      os_v << OpenStudio::Point3d.new( 10.0, 5.0, 8.53398380454007)
-      os_v << OpenStudio::Point3d.new( 10.0, 4.0, 8.53398380454007)
+      os_v << OpenStudio::Point3d.new( 11.0, 4.0, dome_Z)
+      os_v << OpenStudio::Point3d.new( 11.0, 5.0, dome_Z)
+      os_v << OpenStudio::Point3d.new( 10.0, 5.0, dome_Z)
+      os_v << OpenStudio::Point3d.new( 10.0, 4.0, dome_Z)
       dome = OpenStudio::Model::SubSurface.new(os_v, os_model)
-      dome.setName("FineStorage dome")
+      dome.setName("dome")
       expect(dome.setConstruction(fenestration)).to be(true)
       expect(dome.setSubSurfaceType("TubularDaylightDome")).to be(true)
       expect(dome.setSurface(roof)).to be(true)
       expect(dome.uFactor.empty?).to be(false)
       expect(dome.uFactor.get).to be_within(0.1).of(6.0)
 
+      expect(ceiling.tilt).to be_within(0.01).of(diffuser.tilt)
+      expect(dome.tilt).to be_within(0.01).of(roof.tilt)
+
       rsi = 0.28
       diameter = Math.sqrt(dome.grossArea/Math::PI) * 2
       length = 8.53398380454007 - 4.26699190227003
 
-      ddt = OpenStudio::Model::DaylightingDeviceTubular.new(
-              dome, diffuser_c, construction, diameter, length + 1.0, rsi)
+      tdd = OpenStudio::Model::DaylightingDeviceTubular.new(
+              dome, diffuser, construction, diameter, totalLength, rsi)
 
-      zone = os_model.getThermalZoneByName("Zone2 Fine Storage ZN")
-      expect(zone.empty?).to be(false)
-      zone = zone.get
-      expect(ddt.addTransitionZone(zone, length)).to be(true)
+      expect(tdd.addTransitionZone(zone, length)).to be(true)
       cl = OpenStudio::Model::TransitionZoneVector
-      expect(ddt.transitionZones.class).to eq(cl)
-      expect(ddt.numberofTransitionZones).to be(1)
-      expect(ddt.totalLength).to be_within(0.001).of(length + 1.0)
+      expect(tdd.transitionZones.class).to eq(cl)
+      expect(tdd.numberofTransitionZones).to be(1)
+      expect(tdd.totalLength).to be_within(0.001).of(totalLength)
 
-      expect(ddt.subSurfaceDome).to eq(dome)
-      expect(ddt.subSurfaceDiffuser).to eq(diffuser_c)
-      c = ddt.construction
+      expect(tdd.subSurfaceDome).to eq(dome)
+      expect(tdd.subSurfaceDiffuser).to eq(diffuser)
+      c = tdd.construction
       expect(c.to_Construction.empty?).to be(false)
       c = c.to_Construction.get
       expect(c.nameString).to eq(construction.nameString)
-      expect(ddt.diameter).to be_within(0.001).of(diameter)
-      expect(ddt.totalLength).to be_within(0.001).of(length + 1.0)
-      expect(ddt.effectiveThermalResistance).to be_within(0.01).of(rsi)
+      expect(tdd.diameter).to be_within(0.001).of(diameter)
+      expect(tdd.effectiveThermalResistance).to be_within(0.01).of(rsi)
 
-      pth = File.join(__dir__, "files/osms/out/ddt_test.osm")
+      pth = File.join(__dir__, "files/osms/out/tdd_warehouse.osm")
       os_model.save(pth, true)
     else
       # SDK prior to v3.3.0. Basic testing on one of the existing skylights,
@@ -6413,7 +6445,7 @@ RSpec.describe TBD do
     end
   end
 
-  it "can handle TDDs (2)" do
+  it "can handle TDDs in plenums" do
     types = OpenStudio::Model::SubSurface.validSubSurfaceTypeValues
     expect(types.is_a?(Array)).to be(true)
     expect(types.include?("TubularDaylightDome")).to be(true)
@@ -6421,7 +6453,7 @@ RSpec.describe TBD do
 
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/seb.osm")
+    file = File.join(__dir__, "files/osms/in/5Zone_2.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -6514,155 +6546,124 @@ RSpec.describe TBD do
       expect(construction.layers.size).to eq(1)
       expect(construction.layers[0].handle.to_s).to eq(interior.handle.to_s)
 
-      id1 = "Entry way  DroppedCeiling"
-      id2 = "Level 0 Entry way  Ceiling Plenum DroppedCeiling"
-      id3 = "Level 0 Entry way  Ceiling Plenum RoofCeiling"
+      # Host spaces & surfaces.
+      sp1 = "SPACE5-1"
+      sp2 = "PLENUM-1"
 
-      # Fetch host surfaces.
-      ceiling = os_model.getSurfaceByName(id1)
+      z = "PLENUM-1 Thermal Zone"
+
+      s1 = "C5-1"  # sp1 surface hosting new TDD diffuser
+      s2 = "C5-1P" # plenum surface, above sp1
+      s3 = "TOP-1" # plenum surface hosting new TDD dome
+
+      # Fetch host spaces & surfaces.
+      space = os_model.getSpaceByName(sp1)
+      expect(space.empty?).to be(false)
+      space = space.get
+
+      plenum = os_model.getSpaceByName(sp2)
+      expect(plenum.empty?).to be(false)
+      plenum = plenum.get
+
+      zone = plenum.thermalZone
+      expect(zone.empty?).to be(false)
+      zone = zone.get
+      expect(zone.nameString).to eq(z)
+
+      ceiling = os_model.getSurfaceByName(s1)
       expect(ceiling.empty?).to be(false)
       ceiling = ceiling.get
+      sp = ceiling.space
+      expect(sp.empty?).to be(false)
+      sp = sp.get
+      expect(sp).to eq(space)
 
-      floor = os_model.getSurfaceByName(id2)
+      floor = os_model.getSurfaceByName(s2)
       expect(floor.empty?).to be(false)
       floor = floor.get
+      sp = floor.space
+      expect(sp.empty?).to be(false)
+      sp = sp.get
+      expect(sp).to eq(plenum)
 
-      roof = os_model.getSurfaceByName(id3)
+      adj = ceiling.adjacentSurface
+      expect(adj.empty?).to be(false)
+      adj = adj.get
+      expect(adj).to eq(floor)
+
+      adj = floor.adjacentSurface
+      expect(adj.empty?).to be(false)
+      adj = adj.get
+      expect(adj).to eq(ceiling)
+
+      roof = os_model.getSurfaceByName(s3)
       expect(roof.empty?).to be(false)
       roof = roof.get
+      sp = roof.space
+      expect(sp.empty?).to be(false)
+      sp = sp.get
+      expect(sp).to eq(plenum)
 
-      # Height/Z parameters.
+      # Setting heights & Z-axis coordinates.
       ceiling_Z = ceiling.centroid.z
       roof_Z = roof.centroid.z
       length = roof_Z - ceiling_Z
       totalLength = length + 0.5
       dome_Z = ceiling_Z + totalLength
 
-      # A new, 1mx1m diffuser subsurface in Office Roof/Office Roof reversed.
+      # A new, 1mx1m diffuser subsurface in space ceiling.
       os_v = OpenStudio::Point3dVector.new
-      os_v << OpenStudio::Point3d.new( 2.55, 4.06, ceiling_Z)
-      os_v << OpenStudio::Point3d.new( 3.52, 4.32, ceiling_Z)
-      os_v << OpenStudio::Point3d.new( 3.20, 5.31, ceiling_Z)
-      os_v << OpenStudio::Point3d.new( 2.25, 5.01, ceiling_Z)
-      diffuser_c = OpenStudio::Model::SubSurface.new(os_v, os_model)
-      diffuser_c.setName("Entry diffuser")
-      expect(diffuser_c.setConstruction(fenestration)).to be(true)
-      expect(diffuser_c.setSubSurfaceType("TubularDaylightDiffuser")).to be(true)
-      expect(diffuser_c.setSurface(ceiling)).to be(true)
-      expect(diffuser_c.uFactor.empty?).to be(false)
-      expect(diffuser_c.uFactor.get).to be_within(0.1).of(6.0)
+      os_v << OpenStudio::Point3d.new( 15.75,  7.15, ceiling_Z)
+      os_v << OpenStudio::Point3d.new( 15.75,  8.15, ceiling_Z)
+      os_v << OpenStudio::Point3d.new( 14.75,  8.15, ceiling_Z)
+      os_v << OpenStudio::Point3d.new( 14.75,  7.15, ceiling_Z)
+      diffuser = OpenStudio::Model::SubSurface.new(os_v, os_model)
+      diffuser.setName("diffuser")
+      expect(diffuser.setConstruction(fenestration)).to be(true)
+      expect(diffuser.setSubSurfaceType("TubularDaylightDiffuser")).to be(true)
+      expect(diffuser.setSurface(ceiling)).to be(true)
+      expect(diffuser.uFactor.empty?).to be(false)
+      expect(diffuser.uFactor.get).to be_within(0.1).of(6.0)
 
-      # OS:Surface,
-      #   {36839f46-f450-4077-b236-88b5dcd7dabc}, !- Handle
-      #   Entry way  DroppedCeiling,              !- Name
-      #   RoofCeiling,                            !- Surface Type
-      #   {1b374378-94ee-47dc-b334-86b6729bbad8}, !- Construction Name
-      #   {7ac41e7b-9d41-4e7b-b15e-c4f0bbc4b4fd}, !- Space Name
-      #   Surface,                                !- Outside Boundary Condition
-      #   {ba2f0c98-3ba9-4279-a191-e4aa6ef1e471}, !- Outside Boundary Condition Object
-      #   NoSun,                                  !- Sun Exposure
-      #   NoWind,                                 !- Wind Exposure
-      #   ,                                       !- View Factor to Ground
-      #   ,                                       !- Number of Vertices
-      #   3.81953802092616, 1.71780844593706, 3.3528, !- X,Y,Z Vertex 1 {m}
-      #   4.5517885588319, 3.12873898197307, 3.3528, !- X,Y,Z Vertex 2 {m}
-      #   3.58098410934131, 6.59527952160355, 3.3528, !- X,Y,Z Vertex 3 {m}
-      #   2.01619547202773, 7.39974280298822, 3.3528, !- X,Y,Z Vertex 4 {m}
-      #   1.05119693504892, 5.80050051033377, 3.3528, !- X,Y,Z Vertex 5 {m}
-      #   1.87972377997297, 2.70489411795832, 3.3528; !- X,Y,Z Vertex 6 {m}
-
+      # A new, 1mx1m dome subsurface above Plenum roof.
       os_v = OpenStudio::Point3dVector.new
-      os_v << OpenStudio::Point3d.new( 2.55, 4.06, ceiling_Z)
-      os_v << OpenStudio::Point3d.new( 3.52, 4.32, ceiling_Z)
-      os_v << OpenStudio::Point3d.new( 3.20, 5.31, ceiling_Z)
-      os_v << OpenStudio::Point3d.new( 2.25, 5.01, ceiling_Z)
-      diffuser_r = OpenStudio::Model::SubSurface.new(os_v, os_model)
-      diffuser_r.setName("Entry Plenum diffuser")
-      expect(diffuser_r.setConstruction(fenestration)).to be(true)
-      expect(diffuser_r.setSubSurfaceType("TubularDaylightDiffuser")).to be(true)
-      expect(diffuser_r.setSurface(floor)).to be(true)
-      expect(diffuser_r.uFactor.empty?).to be(false)
-      expect(diffuser_r.uFactor.get).to be_within(0.1).of(6.0)
-
-      # OS:Surface,
-      #   {ba2f0c98-3ba9-4279-a191-e4aa6ef1e471}, !- Handle
-      #   Level 0 Entry way  Ceiling Plenum DroppedCeiling, !- Name
-      #   RoofCeiling,                            !- Surface Type
-      #   3.81953802092616, 1.71780844593706, 3.3528, !- X,Y,Z Vertex 1 {m}
-      #   4.5517885588319, 3.12873898197307, 3.3528, !- X,Y,Z Vertex 2 {m}
-      #   3.58098410934131, 6.59527952160355, 3.3528, !- X,Y,Z Vertex 3 {m}
-      #   2.01619547202773, 7.39974280298822, 3.3528, !- X,Y,Z Vertex 4 {m}
-      #   1.05119693504892, 5.80050051033377, 3.3528, !- X,Y,Z Vertex 5 {m}
-      #   1.87972377997297, 2.70489411795832, 3.3528; !- X,Y,Z Vertex 6 {m}
-
-      expect(diffuser_c.setAdjacentSubSurface(diffuser_r)).to be(true)
-      expect(diffuser_r.setAdjacentSubSurface(diffuser_c)).to be(true)
-      sub = diffuser_c.adjacentSubSurface
-      expect(sub.empty?).to be(false)
-      sub = diffuser_r.adjacentSubSurface
-      expect(sub.empty?).to be(false)
-
-      os_v = OpenStudio::Point3dVector.new
-      os_v << OpenStudio::Point3d.new( 2.55, 4.06, dome_Z)
-      os_v << OpenStudio::Point3d.new( 3.52, 4.32, dome_Z)
-      os_v << OpenStudio::Point3d.new( 3.20, 5.31, dome_Z)
-      os_v << OpenStudio::Point3d.new( 2.25, 5.01, dome_Z)
+      os_v << OpenStudio::Point3d.new( 15.75,  7.15, dome_Z)
+      os_v << OpenStudio::Point3d.new( 15.75,  8.15, dome_Z)
+      os_v << OpenStudio::Point3d.new( 14.75,  8.15, dome_Z)
+      os_v << OpenStudio::Point3d.new( 14.75,  7.15, dome_Z)
       dome = OpenStudio::Model::SubSurface.new(os_v, os_model)
-      dome.setName("Entry Plenum dome")
+      dome.setName("dome")
       expect(dome.setConstruction(fenestration)).to be(true)
       expect(dome.setSubSurfaceType("TubularDaylightDome")).to be(true)
       expect(dome.setSurface(roof)).to be(true)
       expect(dome.uFactor.empty?).to be(false)
       expect(dome.uFactor.get).to be_within(0.1).of(6.0)
 
-      # OS:Surface,
-      #   {3e84f105-7ad0-4553-b0d7-9754ed4ba99d}, !- Handle
-      #   Level 0 Entry way  Ceiling Plenum RoofCeiling, !- Name
-      #   RoofCeiling,                            !- Surface Type
-      #   {76d4957f-67c7-49d6-acc8-8d978a384f56}, !- Construction Name
-      #   {4b5e6fca-a4cd-4346-ad26-37235ee2fff6}, !- Space Name
-      #   Outdoors,                               !- Outside Boundary Condition
-      #   ,                                       !- Outside Boundary Condition Object
-      #   SunExposed,                             !- Sun Exposure
-      #   WindExposed,                            !- Wind Exposure
-      #   ,                                       !- View Factor to Ground
-      #   ,                                       !- Number of Vertices
-      #   3.81953802092616, 1.71780844593706, 3.9624, !- X,Y,Z Vertex 1 {m}
-      #   4.5517885588319, 3.12873898197307, 3.9624, !- X,Y,Z Vertex 2 {m}
-      #   3.58098410934131, 6.59527952160355, 3.9624, !- X,Y,Z Vertex 3 {m}
-      #   2.01619547202773, 7.39974280298822, 3.9624, !- X,Y,Z Vertex 4 {m}
-      #   1.05119693504892, 5.80050051033377, 3.9624, !- X,Y,Z Vertex 5 {m}
-      #   1.87972377997297, 2.70489411795832, 3.9624; !- X,Y,Z Vertex 6 {m}
-
-      expect(floor.tilt).to be_within(0.01).of(diffuser_r.tilt)
-      expect(ceiling.tilt).to be_within(0.01).of(diffuser_c.tilt)
+      expect(ceiling.tilt).to be_within(0.01).of(diffuser.tilt)
       expect(dome.tilt).to be_within(0.01).of(roof.tilt)
 
       rsi = 0.28
       diameter = Math.sqrt(dome.grossArea/Math::PI) * 2
 
-      ddt = OpenStudio::Model::DaylightingDeviceTubular.new(
-              dome, diffuser_c, construction, diameter, totalLength, rsi)
+      tdd = OpenStudio::Model::DaylightingDeviceTubular.new(
+              dome, diffuser, construction, diameter, totalLength, rsi)
 
-      zone = os_model.getThermalZoneByName("Level 0 Ceiling Plenum Zone")
-      expect(zone.empty?).to be(false)
-      zone = zone.get
-      expect(ddt.addTransitionZone(zone, length)).to be(true)
+      expect(tdd.addTransitionZone(zone, length)).to be(true)
       cl = OpenStudio::Model::TransitionZoneVector
-      expect(ddt.transitionZones.class).to eq(cl)
-      expect(ddt.numberofTransitionZones).to be(1)
-      expect(ddt.totalLength).to be_within(0.001).of(totalLength)
+      expect(tdd.transitionZones.class).to eq(cl)
+      expect(tdd.numberofTransitionZones).to be(1)
+      expect(tdd.totalLength).to be_within(0.001).of(totalLength)
 
-      expect(ddt.subSurfaceDome).to eq(dome)
-      expect(ddt.subSurfaceDiffuser).to eq(diffuser_c)
-      c = ddt.construction
+      expect(tdd.subSurfaceDome).to eq(dome)
+      expect(tdd.subSurfaceDiffuser).to eq(diffuser)
+      c = tdd.construction
       expect(c.to_Construction.empty?).to be(false)
       c = c.to_Construction.get
       expect(c.nameString).to eq(construction.nameString)
-      expect(ddt.diameter).to be_within(0.001).of(diameter)
-      expect(ddt.effectiveThermalResistance).to be_within(0.01).of(rsi)
+      expect(tdd.diameter).to be_within(0.001).of(diameter)
+      expect(tdd.effectiveThermalResistance).to be_within(0.01).of(rsi)
 
-      pth = File.join(__dir__, "files/osms/out/ddt__seb_test.osm")
+      pth = File.join(__dir__, "files/osms/out/tdd_5Z_test.osm")
       os_model.save(pth, true)
     # else
     #   # SDK prior to v3.3.0. Basic testing on one of the existing skylights,

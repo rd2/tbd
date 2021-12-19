@@ -344,7 +344,7 @@ OS:WindowMaterial:Gas,
 OS:WindowMaterial:Glazing,
   {e51b80d0-fd88-4461-83e0-a74c3b42d149}, !- Handle
   CLEAR 3MM,                              !- Name
-  Spectral,                               !- Optical Data Type
+  SpectralAverage,                        !- Optical Data Type
   ,                                       !- Window Glass Spectral Data Set Name
   0.003,                                  !- Thickness {m}
   0.837,                                  !- Solar Transmittance at Normal Incidence
@@ -361,7 +361,7 @@ OS:WindowMaterial:Glazing,
 OS:WindowMaterial:Glazing,
   {6b32f0f3-93c9-45fb-8024-c8092a0bd1c9}, !- Handle
   GREY 3MM,                               !- Name
-  Spectral,                               !- Optical Data Type
+  SpectralAverage,                        !- Optical Data Type
   ,                                       !- Window Glass Spectral Data Set Name
   0.003,                                  !- Thickness {m}
   0.626,                                  !- Solar Transmittance at Normal Incidence
@@ -3347,4 +3347,3 @@ OS:Rendering:Color,
   184,                                    !- Rendering Red Value
   134,                                    !- Rendering Green Value
   11;                                     !- Rendering Blue Value
-
