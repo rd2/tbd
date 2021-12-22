@@ -3,8 +3,8 @@
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>96387b18-0038-4fd5-8df0-e79ec3232d8c</version_id>
-  <version_modified>20211217T124511Z</version_modified>
+  <version_id>0c5a6764-73ac-40b0-9acf-1944dc305a31</version_id>
+  <version_modified>20211222T231016Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -284,18 +284,6 @@
       <checksum>0AAEA490</checksum>
     </file>
     <file>
-      <filename>tbd_tests.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>test</usage_type>
-      <checksum>3572B1DF</checksum>
-    </file>
-    <file>
-      <filename>README.md</filename>
-      <filetype>md</filetype>
-      <usage_type>readme</usage_type>
-      <checksum>DF2509D6</checksum>
-    </file>
-    <file>
       <version>
         <software_program>OpenStudio</software_program>
         <identifier>2.9.1</identifier>
@@ -331,12 +319,6 @@
       <checksum>7248265B</checksum>
     </file>
     <file>
-      <filename>framedivider.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>1962C79C</checksum>
-    </file>
-    <file>
       <filename>version.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
@@ -349,12 +331,6 @@
       <checksum>B30A86EF</checksum>
     </file>
     <file>
-      <filename>psi.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>196AFD54</checksum>
-    </file>
-    <file>
       <filename>transformation.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
@@ -365,6 +341,30 @@
       <filetype>gitkeep</filetype>
       <usage_type>doc</usage_type>
       <checksum>32D70693</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>DF2509D6</checksum>
+    </file>
+    <file>
+      <filename>framedivider.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>75CE2DCF</checksum>
+    </file>
+    <file>
+      <filename>psi.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>2FB76835</checksum>
+    </file>
+    <file>
+      <filename>tbd_tests.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>3572B1DF</checksum>
     </file>
   </files>
 </measure>

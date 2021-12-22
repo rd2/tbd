@@ -585,7 +585,7 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
     # Schema validation is not yet supported in the OpenStudio Application.
     # JSON validation relies on case-senitive string comparisons (e.g.
     # OpenStudio space or surface names, vs corresponding TBD JSON identifiers).
-    # So "Space-1" would not match "SPACE-1".Head's up for a future user guide.
+    # So "Space-1" would not match "SPACE-1".
     if schemaP
       require "json-schema"
       if File.exist?(schemaP)
@@ -803,12 +803,12 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
                  edge.has_key?(:v1y) ||
                  edge.has_key?(:v1z)
 
-                unless edge.has_key?(:v0x) &&
-                       edge.has_key?(:v0y) &&
-                       edge.has_key?(:v0z) &&
-                       edge.has_key?(:v1x) &&
-                       edge.has_key?(:v1y) &&
-                       edge.has_key?(:v1z)
+              unless edge.has_key?(:v0x) &&
+                     edge.has_key?(:v0y) &&
+                     edge.has_key?(:v0z) &&
+                     edge.has_key?(:v1x) &&
+                     edge.has_key?(:v1y) &&
+                     edge.has_key?(:v1z)
                   TBD.log(TBD::ERROR, "Missing '#{s}' edge vertices - skipping")
                   valid = false
                   next
@@ -824,6 +824,7 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
                 e2[:v0] = e[:v0].point
                 e2[:v1] = e[:v1].point
                 next unless matches?(e1, e2)
+
               end
 
               if edge.has_key?(:psi)                                  # optional
@@ -846,6 +847,8 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
               else
                 e[:io_type] = t     # success: matching edge - setting edge type
               end
+
+              puts "whoohoo 2" if s == "dome"
 
             end
           end
@@ -1015,16 +1018,21 @@ def topolysObjects(model, points)
 end
 
 ##
-# Populate collection of TBD "kids", i.e. subsurfaces, relying on Topolys. As
-# a side effect, it will - if successful - also populate the Topolys model with
-# Topolys vertices, wires, holes.
+# Populate collection of TBD 'kids' (subsurfaces), relying on Topolys. As a side
+# effect, it will - if successful - also populate the main Topolys 'model' with
+# Topolys vertices, wires, holes. In rare cases such as domes of tubular
+# daylighting devices (TDDs), kids are allowed to be 'unhinged' i.e., not on
+# same 3D plane as 'dad' (parent surface). These special kids are kept apart,
+# held in 2nd returned array.
 #
 # @param [Topolys::Model] model A Topolys model
 # @param [Hash] kids A collection of TBD subsurfaces
 #
 # @return [Array] Returns a 1D array of 3D Topolys holes, i.e. wires
+# @return [Array] Returns a 2nd 1D array of Topolys (unhinged) holes, i.e. wires
 def populateTBDkids(model, kids)
   holes = []
+
   unless model && kids
     TBD.log(TBD::DEBUG,
       "Invalid TBD (kids) arguments - skipping")
@@ -1043,19 +1051,19 @@ def populateTBDkids(model, kids)
 
   kids.each do |id, properties|
     vtx, hole = topolysObjects(model, properties[:points])
-    if vtx && hole
-      hole.attributes[:id] = id
-      hole.attributes[:n] = properties[:n] if properties.has_key?(:n)
-      properties[:hole] = hole
-      holes << hole
-    end
+    next unless vtx && hole
+    hole.attributes[:id] = id
+    hole.attributes[:unhinged] = true if properties.has_key?(:unhinged)
+    hole.attributes[:n] = properties[:n] if properties.has_key?(:n)
+    properties[:hole] = hole
+    holes << hole
   end
   holes
 end
 
 ##
-# Populate hash of TBD "dads", i.e. (parent) surfaces, relying on Topolys. As
-# a side effect, it will - if successful - also populate the Topolys model with
+# Populate hash of TBD 'dads' (parent) surfaces, relying on Topolys. As a side
+# effect, it will - if successful - also populate the main Topolys model with
 # Topolys vertices, wires, holes & faces.
 #
 # @param [Topolys::Model] model A Topolys model
@@ -1086,6 +1094,7 @@ def populateTBDdads(model, dads)
 
     # Create surface holes for kids.
     holes = []
+
     if properties.has_key?(:windows)
       holes += populateTBDkids(model, properties[:windows])
     end
@@ -1096,7 +1105,13 @@ def populateTBDdads(model, dads)
       holes += populateTBDkids(model, properties[:skylights])
     end
 
-    face = model.get_face(wire, holes)
+    # Populate dad's face, yet only with hinged kids.
+    hinged = []
+    holes.each do |hole|
+      hinged << hole unless hole.attributes.has_key?(:unhinged)
+    end
+    face = model.get_face(wire, hinged)
+
     unless face
       TBD.log(TBD::DEBUG,
         "Unable to retrieve valid face (dads) - skipping")
@@ -1362,8 +1377,9 @@ end
 def glazingAirFilmRSi(usi = 5.85)
   # The sum of thermal resistances of calculated exterior and interior film
   # coefficients under standard winter conditions are taken from:
-  # https://bigladdersoftware.com/epx/docs/9-5/engineering-reference/
-  # window-calculation-module.html#simple-window-model
+  #
+  #   https://bigladdersoftware.com/epx/docs/9-5/engineering-reference/
+  #   window-calculation-module.html#simple-window-model
   #
   # These remain acceptable approximations for flat windows, yet likely
   # unsuitable for subsurfaces with curved or projecting shapes like domed
@@ -1375,7 +1391,7 @@ def glazingAirFilmRSi(usi = 5.85)
   #
   # For U-factors above 8.0 W/m2.K (or invalid input), the function will return
   # 0.1216 m2.K/W, which corresponds to a construction with a single glass layer
-  # of thickness 2mm & k = ~0.6 W/m.K, based on the output of the models.
+  # hickness of 2mm & k = ~0.6 W/m.K, based on the output of the models.
   #
   # The EnergyPlus Engineering calculations were designed for vertical windows
   # - not horizontal, slanted or domed surfaces.
@@ -1408,10 +1424,11 @@ end
 #
 # @return [Float] Returns construction's calculated RSi; 0 if error
 def rsi(lc, film_RSi, temperature = 0.0)
-  # This is adapted from BTAP's Material Module's "get_conductance" (Phyl Lopez)
-  # https://github.com/NREL/OpenStudio-Prototype-Buildings/blob/
-  # c3d5021d8b7aef43e560544699fb5c559e6b721d/lib/btap/measures/
-  # btap_equest_converter/envelope.rb#L122
+  # This is adapted from BTAP's Material Module's "get_conductance" (P. Lopez):
+  #
+  #   https://github.com/NREL/OpenStudio-Prototype-Buildings/blob/
+  #   c3d5021d8b7aef43e560544699fb5c559e6b721d/lib/btap/measures/
+  #   btap_equest_converter/envelope.rb#L122
   #
   # Convert C to K.
   t =  temperature + 273.0
@@ -1780,6 +1797,7 @@ def processTBD(
 
     id = s.nameString
     surface = openings(os_model, s)
+
     next if surface.nil?
     next unless surface.is_a?(Hash)
     next unless surface.has_key?(:space)
@@ -1858,7 +1876,7 @@ def processTBD(
   end                                              # (opaque) surfaces populated
 
   # TBD only derates constructions of opaque surfaces in CONDITIONED spaces, if
-  # facing outdoors or facing UNCONDITIONED space.
+  # facing outdoors or facing UNCONDITIONED spaces.
   surfaces.each do |id, surface|
     surface[:deratable] = false
     next unless surface.has_key?(:conditioned)
@@ -2092,6 +2110,7 @@ def processTBD(
           end
 
           angle = reference_V.angle(farthest_V)
+
           adjust = false                # adjust angle [180°, 360°] if necessary
           if vertical
             adjust = true if east.dot(farthest_V) < -TOL
@@ -2461,6 +2480,35 @@ def processTBD(
     next unless count > 0
     psi = {}
     psi[:transition] = 0.000
+    edge[:psi] = psi
+    edge[:set] = io[:building][:psi]
+  end
+
+  # 'Unhinged' subsurfaces, like Tubular Daylight Device (TDD) domes, shouldn't
+  # share edges with parent surfaces. They could be floating 300mm above parent
+  # roof surface, for instance. Add parent surface ID to unhinged edges.
+  edges.values.each do |edge|
+    next if edge.has_key?(:psi)
+    next unless edge.has_key?(:surfaces)
+    next unless edge[:surfaces].size == 1
+    id, sub = edge[:surfaces].first
+    next unless holes.has_key?(id)
+    next unless holes[id].attributes.has_key?(:unhinged)
+
+    subsurface = os_model.getSubSurfaceByName(id)
+    next if subsurface.empty?
+    subsurface = subsurface.get
+    surface = subsurface.surface
+    next if surface.empty?
+    surface = surface.get
+    nom = surface.nameString
+    next unless surfaces.has_key?(nom)
+    next unless surfaces[nom].has_key?(:conditioned)
+    next unless surfaces[nom][:conditioned]
+    edge[:surfaces][nom] = {}
+
+    psi = {}
+    psi[:jamb] = val[:jamb]
     edge[:psi] = psi
     edge[:set] = io[:building][:psi]
   end

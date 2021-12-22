@@ -751,6 +751,7 @@ RSpec.describe TBD do
 
     # Mutually populate TBD & Topolys surfaces. Keep track of created "holes".
     holes = {}
+    uholes = {}
     floor_holes = populateTBDdads(t_model, floors)
     ceiling_holes = populateTBDdads(t_model, ceilings)
     wall_holes = populateTBDdads(t_model, walls)
@@ -1614,6 +1615,7 @@ RSpec.describe TBD do
     expect(surfaces.nil?).to be(false)
     expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(43)
+    expect(io[:edges].size).to eq(105)
 
     surfaces.each do |id, surface|
       expect(surface.has_key?(:conditioned)).to be(true)
@@ -1654,6 +1656,12 @@ RSpec.describe TBD do
       expect(surfaces.has_key?(b)).to be(true)
       expect(surfaces[b].has_key?(:conditioned)).to be(true)
       expect(surfaces[b][:conditioned]).to be(true)
+
+      if id == "Attic_floor_core"
+        expect(surfaces[b].has_key?(:heatloss)).to be(true)
+        expect(surfaces[b][:heatloss]).to be_within(0.01).of(0.00)
+        expect(surfaces[b].has_key?(:ratio)).to be(false)
+      end
 
       next if id == "Attic_floor_core"
       expect(surfaces[b].has_key?(:heatloss)).to be(true)
@@ -1818,6 +1826,7 @@ RSpec.describe TBD do
     expect(surfaces.nil?).to be(false)
     expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(43)
+    expect(io[:edges].size).to eq(105)
 
     # Testing attic surfaces.
     surfaces.each do |id, surface|
@@ -1979,6 +1988,8 @@ RSpec.describe TBD do
     expect(surfaces.nil?).to be(false)
     expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
+    expect(io.has_key?(:edges))
+    expect(io[:edges].size).to eq(300)
 
     ids = { a: "Office Front Wall",
             b: "Office Left Wall",
@@ -2150,12 +2161,12 @@ RSpec.describe TBD do
       end
     end
 
-    # Now mimic the export functionality of the measure
+    # Now mimic the export functionality of the measure.
     out = JSON.pretty_generate(io)
     outP = File.join(__dir__, "../json/tbd_warehouse.out.json")
     File.open(outP, "w") { |outP| outP.puts out }
 
-    # 2. Re-use the exported file as input for another warehouse
+    # 2. Re-use the exported file as input for another warehouse.
     os_model2 = translator.loadModel(path)
     expect(os_model2.empty?).to be(false)
     os_model2 = os_model2.get
@@ -4079,6 +4090,7 @@ RSpec.describe TBD do
     expect(surfaces.nil?).to be(false)
     expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(43)
+    expect(io[:edges].size).to eq(105)
 
     expect(io.has_key?(:stories)).to be(true)
     io[:stories].each do |story|
@@ -4361,6 +4373,7 @@ RSpec.describe TBD do
     expect(surfaces.nil?).to be(false)
     expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(43)
+    expect(io[:edges].size).to eq(105)
 
     # Check derating of attic floor (5x surfaces)
     os_model.getSpaces.each do |space|
@@ -6297,7 +6310,7 @@ RSpec.describe TBD do
       ceiling_Z = ceiling.centroid.z
       roof_Z = roof.centroid.z
       length = roof_Z - ceiling_Z
-      totalLength = length + 0.5
+      totalLength = length + 0.7
       dome_Z = ceiling_Z + totalLength
 
       # A new, 1mx1m diffuser subsurface in Office.
@@ -6333,7 +6346,6 @@ RSpec.describe TBD do
 
       rsi = 0.28
       diameter = Math.sqrt(dome.grossArea/Math::PI) * 2
-      length = 8.53398380454007 - 4.26699190227003
 
       tdd = OpenStudio::Model::DaylightingDeviceTubular.new(
               dome, diffuser, construction, diameter, totalLength, rsi)
@@ -6355,9 +6367,97 @@ RSpec.describe TBD do
 
       pth = File.join(__dir__, "files/osms/out/tdd_warehouse.osm")
       os_model.save(pth, true)
+
+      # Testing if TBD recognizes the TDD as a "skylight" (for derating & UA').
+      psi_set = "poor (BETBG)"
+      io, surfaces = processTBD(os_model, psi_set)
+      expect(TBD.status).to eq(0)
+      expect(TBD.logs.empty?).to be(true)
+      expect(io.nil?).to be(false)
+      expect(io.is_a?(Hash)).to be(true)
+      expect(io.empty?).to be(false)
+      expect(surfaces.nil?).to be(false)
+      expect(surfaces.is_a?(Hash)).to be(true)
+      expect(surfaces.size).to eq(23)
+      expect(io.has_key?(:edges))
+
+      # Both diffuser and parent (office) ceiling are stored as TBD 'surfaces'.
+      expect(surfaces.has_key?(s1)).to be(true)
+      surface = surfaces[s1]
+      expect(surface.has_key?(:skylights)).to be(true)
+      expect(surface[:skylights].size).to be(1)
+      expect(surface[:skylights].has_key?("diffuser")).to be(true)
+      skylight = surface[:skylights]["diffuser"]
+      expect(skylight.is_a?(Hash)).to be(true)
+      expect(skylight.has_key?(:u)).to be(true)
+      expect(skylight[:u]).to be_a(Numeric)
+      expect(skylight[:u]).to be_within(0.01).of(6.00)
+
+      # ... yet TBD only derates constructions of opaque surfaces in CONDITIONED
+      # spaces IF (i) facing outdoors or (ii) facing UNCONDITIONED spaces like
+      # attics (see psi.rb). Here, the ceiling is not tagged by TBD as a
+      # deratable surface - diffuser edges are not logged in TBD's 'edges'.
+      expect(surface.has_key?(:heatloss)).to be(false)
+      expect(surface.has_key?(:ratio)).to be(false)
+
+      # Only edges of the dome (linked to the Fine Storage roof) are stored.
+      io[:edges].each do |edge|
+        expect(edge.is_a?(Hash)).to be(true)
+        expect(edge.has_key?(:surfaces)).to be(true)
+        expect(edge[:surfaces].is_a?(Array)).to be(true)
+        edge[:surfaces].each do |id|
+          next unless id == "dome" || id == "diffuser"
+          expect(id).to eq("dome")
+        end
+      end
+
+      expect(surfaces.has_key?(s3)).to be(true)
+      surface = surfaces[s3]
+      expect(surface.has_key?(:skylights)).to be(true)
+      expect(surface[:skylights].size).to be(15)               # original 14x +1
+      expect(surface[:skylights].has_key?("dome")).to be(true)
+      surface[:skylights].each do |i, skylight|
+        expect(skylight.has_key?(:u)).to be(true)
+        expect(skylight[:u]).to be_a(Numeric)
+        expect(skylight[:u]).to be_within(0.01).of(6.64) unless i == "dome"
+        expect(skylight[:u]).to be_within(0.01).of(6.00) if i == "dome"
+      end
+      expect(surface.has_key?(:heatloss)).to be(true)
+      expect(surface[:heatloss]).to be_within(0.01).of(89.16)         # +2.0 W/K
+
+      expect(io[:edges].size).to eq(304)          # 4x extra edges for dome only
+
+      out = JSON.pretty_generate(io)
+      outP = File.join(__dir__, "../json/tbd_warehouse15.out.json")
+      File.open(outP, "w") { |outP| outP.puts out }
+
+      # Re-use the exported file as input for another warehouse.
+      os_model2 = translator.loadModel(pth)
+      expect(os_model2.empty?).to be(false)
+      os_model2 = os_model2.get
+
+      schemaP = File.join(__dir__, "../tbd.schema.json")
+      ioP2 = File.join(__dir__, "../json/tbd_warehouse15.out.json")
+      io2, surfaces = processTBD(os_model2, psi_set, ioP2, schemaP)
+      expect(TBD.status).to eq(0)
+      expect(TBD.logs.empty?).to be(true)
+      expect(io.nil?).to be(false)
+      expect(io.is_a?(Hash)).to be(true)
+      expect(io.empty?).to be(false)
+      expect(surfaces.nil?).to be(false)
+      expect(surfaces.is_a?(Hash)).to be(true)
+      expect(surfaces.size).to eq(23)
+
+      # Now mimic (again) the export functionality of the measure.
+      out2 = JSON.pretty_generate(io2)
+      outP2 = File.join(__dir__, "../json/tbd_warehouse16.out.json")
+      File.open(outP2, "w") { |outP2| outP2.puts out2 }
+
+      # Both output files should be the same ...
+      expect(FileUtils.identical?(outP, outP2)).to be(true)
     else
-      # SDK prior to v3.3.0. Basic testing on one of the existing skylights,
-      # switched to a tubular skylight dome).
+      # SDK pre-v3.3.0 testing on one of the existing skylights, as a tubular
+      # DDT dome (without a complete DTT object).
       nom = "FineStorage_skylight_5"
       sky5 = os_model.getSubSurfaceByName(nom)
       expect(sky5.empty?).to be(false)
@@ -6407,25 +6507,26 @@ RSpec.describe TBD do
           expect(skylight[:u]).to be_within(0.01).of(7.18) if i == nom
           # So TBD will successfully process any subsurface perimeter, whether
           # skylight, tubular devices, etc. And it will retrieve a calculated
-          # U-factor for TBD's UA' trade-off methodology (see below). A follow-up
-          # OpenStudio-launched EnergyPlus simulation reveals that, despite
-          # having an incomplete TDD setup i.e. dome > tube > diffuser, EnergyPlus
-          # will proceed without warning(s). Results reflect e.g. an expected
-          # increase in heating energy (Climate Zone 7), due to the poor(er)
-          # performance of the dome.
+          # U-factor for TBD's UA' trade-off methodology (see below). A
+          # follow-up OpenStudio-launched EnergyPlus simulation reveals that,
+          # despite having an incomplete TDD setup i.e. dome > tube > diffuser,
+          # EnergyPlus will proceed without warning(s). Results reflect e.g. an
+          # expected increase in heating energy (Climate Zone 7), due to the
+          # poor(er) performance of the dome.
           #
           # Note that the effective RSi of the (missing) tube will be ignored.
-          # https://bigladdersoftware.com/epx/docs/9-5/engineering-reference/
-          # daylighting-devices.html#conductiveconvective-gains
           #
-          # https://bigladdersoftware.com/epx/docs/9-5/input-output-reference/
-          # group-surface-construction-elements.html#field-u-factor
+          #   https://bigladdersoftware.com/epx/docs/9-5/engineering-reference/
+          #   daylighting-devices.html#conductiveconvective-gains
+          #
+          #   https://bigladdersoftware.com/epx/docs/9-5/input-output-reference/
+          #   group-surface-construction-elements.html#field-u-factor
         end
       end
     end
   end
 
-  it "can handle TDDs in plenums" do
+  it "can handle TDDs in attics (false plenums)" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = File.join(__dir__, "files/osms/in/5Zone_2.osm")
@@ -6604,73 +6705,92 @@ RSpec.describe TBD do
 
       pth = File.join(__dir__, "files/osms/out/tdd_5Z_test.osm")
       os_model.save(pth, true)
-    # else
-    #   # SDK prior to v3.3.0. Basic testing on one of the existing skylights,
-    #   # switched to a tubular skylight dome).
-    #   nom = "FineStorage_skylight_5"
-    #   sky5 = os_model.getSubSurfaceByName(nom)
-    #   expect(sky5.empty?).to be(false)
-    #   sky5 = sky5.get
-    #   expect(sky5.subSurfaceType.downcase).to eq("skylight")
-    #   name = "U 1.17 SHGC 0.39 Simple Glazing Skylight U-1.17 SHGC 0.39 2"
-    #   skylight = sky5.construction
-    #   expect(skylight.empty?).to be(false)
-    #   expect(skylight.get.nameString).to eq(name)
-    #
-    #   expect(sky5.setSubSurfaceType("TubularDaylightDome")).to be(true)
-    #   skylight = sky5.construction
-    #   expect(skylight.empty?).to be(false)
-    #   expect(skylight.get.nameString).to eq("Typical Interior Window")
-    #   # Weird to see "Typical Interior Window" as a suitable construction for a
-    #   # tubular skylight dome, but that's the assigned default construction in
-    #   # the DOE prototype warehouse model.
-    #
-    #   roof = os_model.getSurfaceByName("Fine Storage Roof")
-    #   expect(roof.empty?).to be(false)
-    #   roof = roof.get
-    #
-    #   # Testing if TBD recognizes it as a "skylight" (for derating & UA').
-    #   psi_set = "poor (BETBG)"
-    #   io, surfaces = processTBD(os_model, psi_set)
-    #   expect(TBD.status).to eq(0)
-    #   expect(TBD.logs.empty?).to be(true)
-    #   expect(io.nil?).to be(false)
-    #   expect(io.is_a?(Hash)).to be(true)
-    #   expect(io.empty?).to be(false)
-    #   expect(surfaces.nil?).to be(false)
-    #   expect(surfaces.is_a?(Hash)).to be(true)
-    #   expect(io.has_key?(:edges))
-    #   expect(io[:edges].size).to eq(300)
-    #   expect(surfaces.size).to eq(23)
-    #   expect(TBD.status).to eq(0)
-    #   expect(TBD.logs.size).to eq(0)
-    #
-    #   expect(surfaces.has_key?("Fine Storage Roof")).to be(true)
-    #   surface = surfaces["Fine Storage Roof"]
-    #   if surface.has_key?(:skylights)
-    #     expect(surface[:skylights].has_key?(nom)).to be(true)
-    #     surface[:skylights].each do |i, skylight|
-    #       expect(skylight.has_key?(:u)).to be(true)
-    #       expect(skylight[:u]).to be_a(Numeric)
-    #       expect(skylight[:u]).to be_within(0.01).of(6.64) unless i == nom
-    #       expect(skylight[:u]).to be_within(0.01).of(7.18) if i == nom
-    #       # So TBD will successfully process any subsurface perimeter, whether
-    #       # skylight, tubular devices, etc. And it will retrieve a calculated
-    #       # U-factor for TBD's UA' trade-off methodology (see below). A follow-up
-    #       # OpenStudio-launched EnergyPlus simulation reveals that, despite
-    #       # having an incomplete TDD setup i.e. dome > tube > diffuser, EnergyPlus
-    #       # will proceed without warning(s). Results reflect e.g. an expected
-    #       # increase in heating energy (Climate Zone 7), due to the poor(er)
-    #       # performance of the dome.
-    #       #
-    #       # Note that the effective RSi of the (missing) tube will be ignored.
-    #       # https://bigladdersoftware.com/epx/docs/9-5/engineering-reference/
-    #       # daylighting-devices.html#conductiveconvective-gains
-    #       #
-    #       # https://bigladdersoftware.com/epx/docs/9-5/input-output-reference/
-    #       # group-surface-construction-elements.html#field-u-factor
-    #     end
-    #   end
+
+      # Testing if TBD recognizes the TDD as a "skylight" (for derating & UA').
+      psi_set = "poor (BETBG)"
+      io, surfaces = processTBD(os_model, psi_set)
+      expect(TBD.status).to eq(0)
+      expect(TBD.logs.empty?).to be(true)
+      expect(io.nil?).to be(false)
+      expect(io.is_a?(Hash)).to be(true)
+      expect(io.empty?).to be(false)
+      expect(surfaces.nil?).to be(false)
+      expect(surfaces.is_a?(Hash)).to be(true)
+      expect(surfaces.size).to eq(40)
+      expect(io.has_key?(:edges))
+
+      # Both diffuser and parent ceiling are stored as TBD 'surfaces'.
+      expect(surfaces.has_key?(s1)).to be(true)
+      surface = surfaces[s1]
+      expect(surface.has_key?(:skylights)).to be(true)
+      expect(surface[:skylights].size).to be(1)
+      expect(surface[:skylights].has_key?("diffuser")).to be(true)
+      skylight = surface[:skylights]["diffuser"]
+      expect(skylight.has_key?(:u)).to be(true)
+      expect(skylight[:u]).to be_a(Numeric)
+      expect(skylight[:u]).to be_within(0.01).of(6.00)
+
+      # ... yet TBD only derates constructions of opaque surfaces in CONDITIONED
+      # spaces IF (i) facing outdoors or (ii) facing UNCONDITIONED spaces like
+      # attics (see psi.rb). Here, the ceiling is tagged by TBD as a deratable
+      # surface, and hence the diffuser edges are logged in TBD's 'edges'.
+      expect(surface.has_key?(:heatloss)).to be(true)
+      expect(surface.has_key?(:ratio)).to be(true)
+      expect(surface[:heatloss]).to be_within(0.01).of(2.00)      # 4x 0.500 W/K
+
+      # Only edges of the diffuser (linked to the ceiling) are stored.
+      io[:edges].each do |edge|
+        expect(edge.is_a?(Hash)).to be(true)
+        expect(edge.has_key?(:surfaces)).to be(true)
+        expect(edge[:surfaces].is_a?(Array)).to be(true)
+        edge[:surfaces].each do |id|
+          next unless id == "dome" || id == "diffuser"
+          expect(id).to eq("diffuser")
+        end
+      end
+
+      expect(surfaces.has_key?(s3)).to be(true)
+      surface = surfaces[s3]
+      expect(surface.has_key?(:skylights)).to be(true)
+      expect(surface[:skylights].size).to be(1)
+      expect(surface[:skylights].has_key?("dome")).to be(true)
+      skylight = surface[:skylights]["dome"]
+      expect(skylight.has_key?(:u)).to be(true)
+      expect(skylight[:u]).to be_a(Numeric)
+      expect(skylight[:u]).to be_within(0.01).of(6.00)
+      expect(surface.has_key?(:heatloss)).to be(false)
+      expect(surface.has_key?(:ratio)).to be(false)
+
+      expect(io[:edges].size).to eq(51) # 4x extra edges for diffuser - not dome
+
+      out = JSON.pretty_generate(io)
+      outP = File.join(__dir__, "../json/tbd_5Z.out.json")
+      File.open(outP, "w") { |outP| outP.puts out }
+
+      # Re-use the exported file as input for another 5Z test.
+      os_model2 = translator.loadModel(pth)
+      expect(os_model2.empty?).to be(false)
+      os_model2 = os_model2.get
+
+      schemaP = File.join(__dir__, "../tbd.schema.json")
+      ioP2 = File.join(__dir__, "../json/tbd_5Z.out.json")
+      io2, surfaces = processTBD(os_model2, psi_set, ioP2, schemaP)
+      expect(TBD.status).to eq(0)
+      expect(TBD.logs.empty?).to be(true)
+      expect(io.nil?).to be(false)
+      expect(io.is_a?(Hash)).to be(true)
+      expect(io.empty?).to be(false)
+      expect(surfaces.nil?).to be(false)
+      expect(surfaces.is_a?(Hash)).to be(true)
+      expect(surfaces.size).to eq(40)
+
+      # Now mimic (again) the export functionality of the measure.
+      out2 = JSON.pretty_generate(io2)
+      outP2 = File.join(__dir__, "../json/tbd_5Z_2.out.json")
+      File.open(outP2, "w") { |outP2| outP2.puts out2 }
+
+      # Both output files should be the same ...
+      expect(FileUtils.identical?(outP, outP2)).to be(true)
     end
   end
 
@@ -6796,7 +6916,7 @@ RSpec.describe TBD do
       ceiling_Z = 3.05
       roof_Z = 5.51
       length = roof_Z - ceiling_Z
-      totalLength = length + 0.5
+      totalLength = length + 1.0
       dome_Z = ceiling_Z + totalLength
 
       # A new, 1mx1m diffuser subsurface in Core ceiling.
@@ -6854,73 +6974,90 @@ RSpec.describe TBD do
 
       pth = File.join(__dir__, "files/osms/out/tdd_smalloffice_test.osm")
       os_model.save(pth, true)
-    # else
-    #   # SDK prior to v3.3.0. Basic testing on one of the existing skylights,
-    #   # switched to a tubular skylight dome).
-    #   nom = "FineStorage_skylight_5"
-    #   sky5 = os_model.getSubSurfaceByName(nom)
-    #   expect(sky5.empty?).to be(false)
-    #   sky5 = sky5.get
-    #   expect(sky5.subSurfaceType.downcase).to eq("skylight")
-    #   name = "U 1.17 SHGC 0.39 Simple Glazing Skylight U-1.17 SHGC 0.39 2"
-    #   skylight = sky5.construction
-    #   expect(skylight.empty?).to be(false)
-    #   expect(skylight.get.nameString).to eq(name)
-    #
-    #   expect(sky5.setSubSurfaceType("TubularDaylightDome")).to be(true)
-    #   skylight = sky5.construction
-    #   expect(skylight.empty?).to be(false)
-    #   expect(skylight.get.nameString).to eq("Typical Interior Window")
-    #   # Weird to see "Typical Interior Window" as a suitable construction for a
-    #   # tubular skylight dome, but that's the assigned default construction in
-    #   # the DOE prototype warehouse model.
-    #
-    #   roof = os_model.getSurfaceByName("Fine Storage Roof")
-    #   expect(roof.empty?).to be(false)
-    #   roof = roof.get
-    #
-    #   # Testing if TBD recognizes it as a "skylight" (for derating & UA').
-    #   psi_set = "poor (BETBG)"
-    #   io, surfaces = processTBD(os_model, psi_set)
-    #   expect(TBD.status).to eq(0)
-    #   expect(TBD.logs.empty?).to be(true)
-    #   expect(io.nil?).to be(false)
-    #   expect(io.is_a?(Hash)).to be(true)
-    #   expect(io.empty?).to be(false)
-    #   expect(surfaces.nil?).to be(false)
-    #   expect(surfaces.is_a?(Hash)).to be(true)
-    #   expect(io.has_key?(:edges))
-    #   expect(io[:edges].size).to eq(300)
-    #   expect(surfaces.size).to eq(23)
-    #   expect(TBD.status).to eq(0)
-    #   expect(TBD.logs.size).to eq(0)
-    #
-    #   expect(surfaces.has_key?("Fine Storage Roof")).to be(true)
-    #   surface = surfaces["Fine Storage Roof"]
-    #   if surface.has_key?(:skylights)
-    #     expect(surface[:skylights].has_key?(nom)).to be(true)
-    #     surface[:skylights].each do |i, skylight|
-    #       expect(skylight.has_key?(:u)).to be(true)
-    #       expect(skylight[:u]).to be_a(Numeric)
-    #       expect(skylight[:u]).to be_within(0.01).of(6.64) unless i == nom
-    #       expect(skylight[:u]).to be_within(0.01).of(7.18) if i == nom
-    #       # So TBD will successfully process any subsurface perimeter, whether
-    #       # skylight, tubular devices, etc. And it will retrieve a calculated
-    #       # U-factor for TBD's UA' trade-off methodology (see below). A follow-up
-    #       # OpenStudio-launched EnergyPlus simulation reveals that, despite
-    #       # having an incomplete TDD setup i.e. dome > tube > diffuser, EnergyPlus
-    #       # will proceed without warning(s). Results reflect e.g. an expected
-    #       # increase in heating energy (Climate Zone 7), due to the poor(er)
-    #       # performance of the dome.
-    #       #
-    #       # Note that the effective RSi of the (missing) tube will be ignored.
-    #       # https://bigladdersoftware.com/epx/docs/9-5/engineering-reference/
-    #       # daylighting-devices.html#conductiveconvective-gains
-    #       #
-    #       # https://bigladdersoftware.com/epx/docs/9-5/input-output-reference/
-    #       # group-surface-construction-elements.html#field-u-factor
-    #     end
-    #   end
+
+      # Testing if TBD recognizes the TDD as a "skylight" (for derating & UA').
+      psi_set = "poor (BETBG)"
+      io, surfaces = processTBD(os_model, psi_set)
+      expect(TBD.status).to eq(0)
+      expect(TBD.logs.empty?).to be(true)
+      expect(io.nil?).to be(false)
+      expect(io.is_a?(Hash)).to be(true)
+      expect(io.empty?).to be(false)
+      expect(surfaces.nil?).to be(false)
+      expect(surfaces.is_a?(Hash)).to be(true)
+      expect(surfaces.size).to eq(43)
+      expect(io.has_key?(:edges))
+
+      # Both diffuser and parent ceiling are stored as TBD 'surfaces'.
+      expect(surfaces.has_key?(s1)).to be(true)
+      surface = surfaces[s1]
+      expect(surface.has_key?(:skylights)).to be(true)
+      expect(surface[:skylights].has_key?("diffuser")).to be(true)
+      skylight = surface[:skylights]["diffuser"]
+      expect(skylight.has_key?(:u)).to be(true)
+      expect(skylight[:u]).to be_a(Numeric)
+      expect(skylight[:u]).to be_within(0.01).of(6.00)
+
+      # ... yet TBD only derates constructions of opaque surfaces in CONDITIONED
+      # spaces IF (i) facing outdoors or (ii) facing UNCONDITIONED spaces like
+      # attics (see psi.rb). Here, the ceiling is tagged by TBD as a deratable
+      # surface, and hence the diffuser edges are logged in TBD's 'edges'.
+      expect(surface.has_key?(:heatloss)).to be(true)
+      expect(surface.has_key?(:ratio)).to be(true)
+      expect(surface[:heatloss]).to be_within(0.01).of(2.00)      # 4x 0.500 W/K
+
+      # Only edges of the diffuser (linked to the ceiling) are stored.
+      io[:edges].each do |edge|
+        expect(edge.is_a?(Hash)).to be(true)
+        expect(edge.has_key?(:surfaces)).to be(true)
+        expect(edge[:surfaces].is_a?(Array)).to be(true)
+        edge[:surfaces].each do |id|
+          next unless id == "dome" || id == "diffuser"
+          expect(id).to eq("diffuser")
+        end
+      end
+
+      expect(surfaces.has_key?(s3)).to be(true)
+      surface = surfaces[s3]
+      expect(surface.has_key?(:skylights)).to be(true)
+      expect(surface[:skylights].has_key?("dome")).to be(true)
+      skylight = surface[:skylights]["dome"]
+      expect(skylight.has_key?(:u)).to be(true)
+      expect(skylight[:u]).to be_a(Numeric)
+      expect(skylight[:u]).to be_within(0.01).of(6.00)
+      expect(surface.has_key?(:heatloss)).to be(false)
+      expect(surface.has_key?(:ratio)).to be(false)
+
+      expect(io[:edges].size).to eq(109)      # 4x extra edges for diffuser only
+
+      out = JSON.pretty_generate(io)
+      outP = File.join(__dir__, "../json/tbd_smalloffice1.out.json")
+      File.open(outP, "w") { |outP| outP.puts out }
+
+      # Re-use the exported file as input for another test.
+      os_model2 = translator.loadModel(pth)
+      expect(os_model2.empty?).to be(false)
+      os_model2 = os_model2.get
+
+      schemaP = File.join(__dir__, "../tbd.schema.json")
+      ioP2 = File.join(__dir__, "../json/tbd_smalloffice1.out.json")
+      io2, surfaces = processTBD(os_model2, psi_set, ioP2, schemaP)
+      expect(TBD.status).to eq(0)
+      expect(TBD.logs.empty?).to be(true)
+      expect(io.nil?).to be(false)
+      expect(io.is_a?(Hash)).to be(true)
+      expect(io.empty?).to be(false)
+      expect(surfaces.nil?).to be(false)
+      expect(surfaces.is_a?(Hash)).to be(true)
+      expect(surfaces.size).to eq(43)
+
+      # Now mimic (again) the export functionality of the measure.
+      out2 = JSON.pretty_generate(io2)
+      outP2 = File.join(__dir__, "../json/tbd_smalloffice2.out.json")
+      File.open(outP2, "w") { |outP2| outP2.puts out2 }
+
+      # Both output files should be the same ...
+      expect(FileUtils.identical?(outP, outP2)).to be(true)
     end
   end
 

@@ -472,6 +472,13 @@ def openings(model, surface)
     type = :window if typ.include?("window")
     type = :door if typ.include?("door")
     glazed = true if type == :door && typ.include?("glass")
+    tubular = true if typ.include?("tubular")
+    domed = true if typ.include?("dome")
+
+    # Determine if TDD dome subsurface is unhinged i.e. not connected to parent.
+    if domed
+      unhinged = true unless s.plane.equal(surface.plane)
+    end
 
     gross = s.grossArea
     if gross < TOL
@@ -542,9 +549,10 @@ def openings(model, surface)
     #
     four = (s.vertices.size == 4)
 
-    if s.windowPropertyFrameAndDivider.empty?
+    if tubular || s.windowPropertyFrameAndDivider.empty?
       vec = s.vertices
       area = gross
+      n = s.outwardNormal if unhinged
     else
       fd = true
       width = s.windowPropertyFrameAndDivider.get.frameWidth
@@ -568,6 +576,9 @@ def openings(model, surface)
             u:      u }
 
     sub[:glazed] = true if glazed
+    sub[:tubular] = true if tubular
+    sub[:domed] = true if domed
+    sub[:unhinged] = true if unhinged
     subs[id] = sub
   end
 
