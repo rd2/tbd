@@ -576,8 +576,6 @@ def openings(model, surface)
             u:      u }
 
     sub[:glazed] = true if glazed
-    sub[:tubular] = true if tubular
-    sub[:domed] = true if domed
     sub[:unhinged] = true if unhinged
     subs[id] = sub
   end

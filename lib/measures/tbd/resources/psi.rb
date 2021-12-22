@@ -848,8 +848,6 @@ def processTBDinputs(surfaces, edges, set, ioP = nil, schemaP = nil)
                 e[:io_type] = t     # success: matching edge - setting edge type
               end
 
-              puts "whoohoo 2" if s == "dome"
-
             end
           end
         else
@@ -1019,11 +1017,10 @@ end
 
 ##
 # Populate collection of TBD 'kids' (subsurfaces), relying on Topolys. As a side
-# effect, it will - if successful - also populate the main Topolys 'model' with
+# effect, it will - if successful - also populate the Topolys 'model' with
 # Topolys vertices, wires, holes. In rare cases such as domes of tubular
 # daylighting devices (TDDs), kids are allowed to be 'unhinged' i.e., not on
-# same 3D plane as 'dad' (parent surface). These special kids are kept apart,
-# held in 2nd returned array.
+# same 3D plane as 'dad' (parent surface).
 #
 # @param [Topolys::Model] model A Topolys model
 # @param [Hash] kids A collection of TBD subsurfaces
@@ -1391,7 +1388,7 @@ def glazingAirFilmRSi(usi = 5.85)
   #
   # For U-factors above 8.0 W/m2.K (or invalid input), the function will return
   # 0.1216 m2.K/W, which corresponds to a construction with a single glass layer
-  # hickness of 2mm & k = ~0.6 W/m.K, based on the output of the models.
+  # thickness of 2mm & k = ~0.6 W/m.K, based on the output of the models.
   #
   # The EnergyPlus Engineering calculations were designed for vertical windows
   # - not horizontal, slanted or domed surfaces.

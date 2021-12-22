@@ -751,7 +751,6 @@ RSpec.describe TBD do
 
     # Mutually populate TBD & Topolys surfaces. Keep track of created "holes".
     holes = {}
-    uholes = {}
     floor_holes = populateTBDdads(t_model, floors)
     ceiling_holes = populateTBDdads(t_model, ceilings)
     wall_holes = populateTBDdads(t_model, walls)
