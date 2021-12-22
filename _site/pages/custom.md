@@ -101,7 +101,7 @@ TBD offers a mirror solution - custom _psi_ sets:
   ]
 }
 ```
-Successfully linking custom _psi_ sets and OpenStudio objects relies on their unique _id_'s - "Warehouse Office" & "Warehouse Fine" here are unique OpenStudio model _spacetype_ object string identifiers.  
+Successfully linking custom _psi_ sets and OpenStudio objects relies on their unique (case-sensitive) _id_'s: here, "Warehouse Office" and "Warehouse Fine" are unique _spacetype_ object identifiers in one's OpenStudio model.  
 
 A few additional notes:  
 
