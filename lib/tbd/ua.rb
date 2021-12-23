@@ -591,7 +591,7 @@ def ua_md(ua, lang = :en)
     model = "* modèle : #{ua[:file]}" if ua.has_key?(:file) if lang == :fr
     model += " (v#{ua[:version]})" if ua.has_key?(:version)
     report << model unless model.empty?
-    report << "* TBD : v#{TBD::VERSION}"
+    report << "* TBD : v2.3.0"
     report << "* date : #{ua[:date]}"
     if lang == :en
       report << "* status : #{TBD.msg(TBD.status)}" unless TBD.status.zero?
