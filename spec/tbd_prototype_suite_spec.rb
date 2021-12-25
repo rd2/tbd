@@ -2,6 +2,7 @@ require "open3"
 require "json"
 require "openstudio"
 require 'parallel'
+require 'openstudio-model-articulation'
 
 def get_clean_env
   new_env = {}
@@ -30,6 +31,32 @@ RSpec.describe TBD do
   # number of processors to use
   nproc = [1, Parallel.processor_count - 2].max
 
+  # Fetch 'OpenStudio Results' measure (if missing).
+  measure = "openstudio_results"
+  measures_pth = File.join(__dir__, "files/measures", measure)
+  unless Dir.exist?(measures_pth)
+    src_pth = ""
+    $LOAD_PATH.each do |load_path|
+      if load_path.include?("openstudio-common-measures")
+        src_pth = File.join(load_path, "measures", measure)
+      end
+    end
+    FileUtils.copy_entry src_pth, measures_pth
+  end
+
+  # Fetch 'Create DOE Prototype Building' measure (if missing).
+  measure = "create_DOE_prototype_building"
+  measures_pth = File.join(__dir__, "files/measures", measure)
+  unless Dir.exist?(measures_pth)
+    src_pth = ""
+    $LOAD_PATH.each do |load_path|
+      if load_path.include?("openstudio-model-articulation")
+        src_pth = File.join(load_path, "measures", measure)
+      end
+    end
+    FileUtils.copy_entry src_pth, measures_pth
+  end
+
   template_osw = nil
   template_osw_file = File.join(__dir__, 'files/osws/prototype_suite.osw')
   File.open(template_osw_file, 'r') do |f|
@@ -43,33 +70,33 @@ RSpec.describe TBD do
   FileUtils.mkdir_p(test_suite_runs_dir)
 
   building_types = []
-  #building_types << 'SecondarySchool'
-  #building_types << 'PrimarySchool'
+  # building_types << 'SecondarySchool'
+  # building_types << 'PrimarySchool'
   building_types << 'SmallOffice'
-  #building_types << 'MediumOffice'
-  #building_types << 'LargeOffice'
-  #building_types << 'SmallHotel'
-  #building_types << 'LargeHotel'
+  # building_types << 'MediumOffice'
+  # building_types << 'LargeOffice'
+  # building_types << 'SmallHotel'
+  # building_types << 'LargeHotel'
   building_types << 'Warehouse'
-  #building_types << 'RetailStandalone'
-  building_types << 'RetailStripmall'
-  #building_types << 'QuickServiceRestaurant'
-  #building_types << 'FullServiceRestaurant'
-  #building_types << 'MidriseApartment'
-  #building_types << 'HighriseApartment'
-  #building_types << 'Hospital'
-  #building_types << 'Outpatient'
+  # building_types << 'RetailStandalone'
+  # building_types << 'RetailStripmall'
+  # building_types << 'QuickServiceRestaurant'
+  # building_types << 'FullServiceRestaurant'
+  # building_types << 'MidriseApartment'
+  # building_types << 'HighriseApartment'
+  # building_types << 'Hospital'
+  # building_types << 'Outpatient'
 
   tbd_options = []
-  tbd_options << "skip"
-  #tbd_options << "poor (BETBG)"
-  #tbd_options << "regular (BETBG)"
-  #tbd_options << "efficient (BETBG)"
-  #tbd_options << "spandrel (BETBG)"
-  #tbd_options << "spandrel HP (BETBG)"
+  # tbd_options << "skip"
+  # tbd_options << "poor (BETBG)"
+  # tbd_options << "regular (BETBG)"
+  # tbd_options << "efficient (BETBG)"
+  # tbd_options << "spandrel (BETBG)"
+  # tbd_options << "spandrel HP (BETBG)"
   tbd_options << "code (Quebec)"
-  tbd_options << "uncompliant (Quebec)"
-  tbd_options << "(non thermal bridging)"
+  # tbd_options << "uncompliant (Quebec)"
+  # tbd_options << "(non thermal bridging)"
 
   combos = []
   building_types.each do |building_type|

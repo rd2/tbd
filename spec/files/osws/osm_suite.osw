@@ -21,7 +21,7 @@
       }
 		},
     {
-      "measure_dir_name": "OpenStudio Results",
+      "measure_dir_name": "openstudio_results",
       "arguments": {
       }
 		}

@@ -3,8 +3,8 @@
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>86b57d5b-4620-4906-aa35-2c8e7667f782</version_id>
-  <version_modified>20211223T160704Z</version_modified>
+  <version_id>0334463c-597a-4056-80de-59b06aa3d2c3</version_id>
+  <version_modified>20211224T202556Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -278,17 +278,6 @@
       <checksum>0AAEA490</checksum>
     </file>
     <file>
-      <version>
-        <software_program>OpenStudio</software_program>
-        <identifier>2.9.1</identifier>
-        <min_compatible>2.9.1</min_compatible>
-      </version>
-      <filename>measure.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>script</usage_type>
-      <checksum>97E00A66</checksum>
-    </file>
-    <file>
       <filename>geometry.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
@@ -301,22 +290,10 @@
       <checksum>B64E67F5</checksum>
     </file>
     <file>
-      <filename>conditioned.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>7248265B</checksum>
-    </file>
-    <file>
       <filename>version.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
       <checksum>9A36A4EF</checksum>
-    </file>
-    <file>
-      <filename>log.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>B30A86EF</checksum>
     </file>
     <file>
       <filename>transformation.rb</filename>
@@ -337,34 +314,57 @@
       <checksum>DF2509D6</checksum>
     </file>
     <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.9.1</identifier>
+        <min_compatible>2.9.1</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>BA8746FE</checksum>
+    </file>
+    <file>
+      <filename>conditioned.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>49F22369</checksum>
+    </file>
+    <file>
+      <filename>log.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>89F647BD</checksum>
+    </file>
+    <file>
       <filename>tbd_tests.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>3572B1DF</checksum>
+      <checksum>559576BB</checksum>
     </file>
     <file>
       <filename>framedivider.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>ADB5349D</checksum>
+      <checksum>15ACE439</checksum>
     </file>
     <file>
       <filename>psi.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>B2A79BCF</checksum>
+      <checksum>F470BA7F</checksum>
     </file>
     <file>
       <filename>ua.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>A3577FC7</checksum>
+      <checksum>022954EF</checksum>
     </file>
     <file>
       <filename>LICENSE.md</filename>
       <filetype>md</filetype>
       <usage_type>license</usage_type>
-      <checksum>ECD97ACC</checksum>
+      <checksum>CB393A2B</checksum>
     </file>
   </files>
 </measure>

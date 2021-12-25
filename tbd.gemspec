@@ -38,6 +38,9 @@ Gem::Specification.new do |spec|
     spec.add_development_dependency "rspec",          "~> 3.7.0"
     spec.add_development_dependency "rubocop",        "~> 0.54.0"
     spec.add_development_dependency "yard",           "~> 0.9"
+
+    spec.add_development_dependency "openstudio-common-measures", "~> 0.1.2"
+    spec.add_development_dependency "openstudio-model-articulation", "~> 0.1.1"
   elsif /^2.5/.match(RUBY_VERSION)
     spec.required_ruby_version = "~> 2.5.0"
 
@@ -47,8 +50,11 @@ Gem::Specification.new do |spec|
     spec.add_development_dependency "parallel",       "~> 1.19.2"
     spec.add_development_dependency "rake",           "~> 13.0"
     spec.add_development_dependency "rspec",          "~> 3.9"
-    spec.add_development_dependency "rubocop",        "~> 0.54.0"
+    spec.add_development_dependency "rubocop",        "~> 1.15.0"
     spec.add_development_dependency "yard",           "~> 0.9"
+
+    spec.add_development_dependency "openstudio-common-measures", "~> 0.2.1"
+    spec.add_development_dependency "openstudio-model-articulation", "~> 0.3.1"
   else
     spec.required_ruby_version = "~> 2.7.0"
 
@@ -58,7 +64,10 @@ Gem::Specification.new do |spec|
     spec.add_development_dependency "parallel",       "~> 1.19.2"
     spec.add_development_dependency "rake",           "~> 13.0"
     spec.add_development_dependency "rspec",          "~> 3.9"
-    spec.add_development_dependency "rubocop",        "~> 0.54.0"
+    spec.add_development_dependency "rubocop",        "~> 1.15.0"
     spec.add_development_dependency "yard",           "~> 0.9"
+
+    spec.add_development_dependency "openstudio-common-measures", "~> 0.5.0"
+    spec.add_development_dependency "openstudio-model-articulation", "~> 0.5.0"
   end
 end

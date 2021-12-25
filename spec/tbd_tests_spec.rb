@@ -6200,9 +6200,9 @@ RSpec.describe TBD do
       expect(methods.empty?).to be(false)
     end
 
-    # For SDK versions >= v3.3.0, testing new DaylightingTubularDevice methods.
+    # For SDK versions >= v3.3.0, testing new TDD methods.
     unless v < 330
-      # Both dome & diffuser: Simple Glazing constructions.
+      # Simple Glazing constructions for both dome & diffuser.
       fenestration = OpenStudio::Model::Construction.new(os_model)
       fenestration.setName("tubular_fenestration")
       expect(fenestration.nameString).to eq("tubular_fenestration")
@@ -6253,9 +6253,9 @@ RSpec.describe TBD do
 
       z = "Zone2 Fine Storage ZN"
 
-      s1 = "Office Roof"          # Office surface hosting new TDD diffuser
-      s2 = "Office Roof Reversed" # FineStorage floor, above office
-      s3 = "Fine Storage Roof"    # FineStorage surface hosting new TDD dome
+      s1 = "Office Roof"              #  Office surface hosting new TDD diffuser
+      s2 = "Office Roof Reversed"     #          FineStorage floor, above office
+      s3 = "Fine Storage Roof"        # FineStorage surface hosting new TDD dome
 
       # Fetch host spaces & surfaces.
       office = os_model.getSpaceByName(sp1)
@@ -6391,11 +6391,14 @@ RSpec.describe TBD do
       expect(skylight.has_key?(:u)).to be(true)
       expect(skylight[:u]).to be_a(Numeric)
       expect(skylight[:u]).to be_within(0.01).of(6.00)
-
       # ... yet TBD only derates constructions of opaque surfaces in CONDITIONED
-      # spaces IF (i) facing outdoors or (ii) facing UNCONDITIONED spaces like
-      # attics (see psi.rb). Here, the ceiling is not tagged by TBD as a
-      # deratable surface - diffuser edges are not logged in TBD's 'edges'.
+      # spaces if:
+      #
+      #   (i) facing outdoors or
+      #   (ii) facing UNCONDITIONED spaces like attics (see psi.rb).
+      #
+      # Here, the ceiling is not tagged by TBD as a deratable surface - diffuser
+      # edges are therefore not logged in TBD's 'edges'.
       expect(surface.has_key?(:heatloss)).to be(false)
       expect(surface.has_key?(:ratio)).to be(false)
 
@@ -6456,7 +6459,7 @@ RSpec.describe TBD do
       expect(FileUtils.identical?(outP, outP2)).to be(true)
     else
       # SDK pre-v3.3.0 testing on one of the existing skylights, as a tubular
-      # DDT dome (without a complete DTT object).
+      # TDD dome (without a complete TDD object).
       nom = "FineStorage_skylight_5"
       sky5 = os_model.getSubSurfaceByName(nom)
       expect(sky5.empty?).to be(false)
@@ -6504,12 +6507,14 @@ RSpec.describe TBD do
           expect(skylight[:u]).to be_a(Numeric)
           expect(skylight[:u]).to be_within(0.01).of(6.64) unless i == nom
           expect(skylight[:u]).to be_within(0.01).of(7.18) if i == nom
-          # So TBD will successfully process any subsurface perimeter, whether
-          # skylight, tubular devices, etc. And it will retrieve a calculated
-          # U-factor for TBD's UA' trade-off methodology (see below). A
-          # follow-up OpenStudio-launched EnergyPlus simulation reveals that,
-          # despite having an incomplete TDD setup i.e. dome > tube > diffuser,
-          # EnergyPlus will proceed without warning(s). Results reflect e.g. an
+          # So TBD processes any subsurface perimeter, whether skylight, TDD,
+          # etc. And it retrieves a calculated U-factor for TBD's UA' trade-off
+          # calculations. A follow-up OpenStudio-launched EnergyPlus simulation
+          # reveals that, despite having an incomplete TDD setup:
+          #
+          #   dome > tube > diffuser
+          #
+          # ... EnergyPlus will proceed without warning(s). Results reflect an
           # expected increase in heating energy (Climate Zone 7), due to the
           # poor(er) performance of the dome.
           #
