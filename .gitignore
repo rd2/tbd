@@ -2,11 +2,9 @@
 /coverage/
 /html/
 /pkg/
-/spec/reports/
-/spec/test/
 /spec/*_suite_runs/
 /spec/files/osms/out/*
-/spec/files/measures/
+/spec/files/measures/*
 /spec/files/ua/*
 /json/*out.json
 /test/
