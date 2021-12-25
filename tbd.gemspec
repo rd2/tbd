@@ -31,9 +31,9 @@ Gem::Specification.new do |spec|
     spec.required_ruby_version = "~> 2.2.0"
 
     spec.add_development_dependency "bundler",        "~> 1.17.1"
-    spec.add_development_dependency "public_suffix",  "~> 3.1.1"
+    spec.add_development_dependency "public_suffix",  "~> 2.0.2"
     spec.add_development_dependency "json-schema",    "~> 2.7.0"
-    spec.add_development_dependency "parallel",       "~> 1.19.2"
+    spec.add_development_dependency "parallel",       "~> 1.12.0"
     spec.add_development_dependency "rake",           "~> 12.3"
     spec.add_development_dependency "rspec",          "~> 3.7.0"
     spec.add_development_dependency "rubocop",        "~> 0.54.0"
@@ -54,7 +54,7 @@ Gem::Specification.new do |spec|
     spec.add_development_dependency "yard",           "~> 0.9"
 
     spec.add_development_dependency "openstudio-common-measures", "~> 0.2.1"
-    spec.add_development_dependency "openstudio-model-articulation", "~> 0.3.1"
+    spec.add_development_dependency "openstudio-model-articulation", "~> 0.2.1"
   else
     spec.required_ruby_version = "~> 2.7.0"
 
