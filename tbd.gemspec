@@ -50,7 +50,7 @@ Gem::Specification.new do |spec|
     spec.add_development_dependency "parallel",       "~> 1.19.2"
     spec.add_development_dependency "rake",           "~> 13.0"
     spec.add_development_dependency "rspec",          "~> 3.9"
-    spec.add_development_dependency "rubocop",        "~> 1.15.0"
+    spec.add_development_dependency "rubocop",        "~> 0.54.0"
     spec.add_development_dependency "yard",           "~> 0.9"
 
     spec.add_development_dependency "openstudio-common-measures", "~> 0.2.1"
