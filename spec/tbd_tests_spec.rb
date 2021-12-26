@@ -6343,12 +6343,14 @@ RSpec.describe TBD do
       expect(ceiling.tilt).to be_within(0.01).of(diffuser.tilt)
       expect(dome.tilt).to be_within(0.01).of(roof.tilt)
 
-      rsi = 0.28
+      rsi = 0.28   # default effective TDD thermal resistance (dome to diffuser)
       diameter = Math.sqrt(dome.grossArea/Math::PI) * 2
 
       tdd = OpenStudio::Model::DaylightingDeviceTubular.new(
-              dome, diffuser, construction, diameter, totalLength, rsi)
+              dome, diffuser, construction)
 
+      expect(tdd.setDiameter(diameter)).to be(true)
+      expect(tdd.setTotalLength(totalLength)).to be(true)
       expect(tdd.addTransitionZone(zone, length)).to be(true)
       cl = OpenStudio::Model::TransitionZoneVector
       expect(tdd.transitionZones.class).to eq(cl)
