@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=b1955a7e02b2e99785762a2a469410acb83b46fc">
+    <link rel="stylesheet" href="/assets/css/style.css?v=1f739eb48f2a0380f2ffef9426002f81b65c7ace">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -58,7 +58,7 @@
         <section id="main_content">
           <h3 id="basics">Basics</h3>
 
-<p>This section goes over the <em>bare bones minimum</em> of what’s needed to run TBD as an OpenStudio Measure, including minimal OpenStudio model requirements, what optional inputs may be needed, and finally how to actually run the measure. Experienced OpenStudio users should feel comfortable jumping right in. Newcomers to OpenStudio are encouraged to first check out official online documentation and tutorials for <a href="https://openstudio.net" title="OpenStudio">OpenStudio</a>, including the <a href="https://openstudiocoalition.org//" title="OpenStudio Application">OpenStudio Application</a> - more than useful!</p>
+<p>This section goes over the <em>bare bones minimum</em> of what’s needed to run TBD as an OpenStudio <em>Measure</em>, including minimal OpenStudio model requirements, what optional inputs may be needed, and finally how to actually run the measure. Experienced OpenStudio users should feel comfortable jumping right in. Newcomers to OpenStudio are encouraged to first check out official online documentation and tutorials for <a href="https://openstudio.net" title="OpenStudio">OpenStudio</a>, including the <a href="https://openstudiocoalition.org//" title="OpenStudio Application">OpenStudio Application</a> - more than useful!</p>
 
 <h3 id="context">Context</h3>
 
@@ -66,37 +66,37 @@
 
 <p>Why? Let’s start by venturing that there’s more than one way to approach building energy modelling. One obvious scenario is to hire competent energy modellers who take care of everything - they’re specialized and very good at what they do. Yet it has its drawbacks as a <em>centralized</em> solution. TBD works just as well within more <em>distributed</em> approaches, where specialists may contribute to the same collective energy model, yet at different stages of the design and on different parts of the model - ideally under supervisory versioning control (just like software development). Architectural professionals should be encouraged to update and maintain geometry and construction parameters (including thermal bridging) of an OpenStudio model throughout the design process. Same goes for lighting consultants, estimators, LCA assessors, etc.</p>
 
-<p>In other cases, architects may simply wish to explore whether their designs comply with certain prescriptive envelope targets, which can be efficiently ascertained using OpenStudio &amp; TBD (and without running a single energy simulation). If they’re unsuccessful in achieving e.g., <a href="./ua.html" title="UA' assessments">UA’</a> trade-off targets, they can always compensate by handing off the model to lighting and HVAC modellers. Inheriting a complete <em>architectural</em> energy model can be a huge time saver. This fits in well with integrated design processes, while encouraging a healthy division of labour and fair distribution of professional liability. Let’s go over what TBD requires from a <em>minimal</em> OpenStudio model.</p>
+<p>In other cases, architects may simply wish to explore whether their designs comply with certain prescriptive envelope targets, which can be efficiently ascertained using OpenStudio &amp; TBD (and without running a single energy simulation). If they’re unsuccessful in achieving e.g., <a href="./ua.html" title="UA' assessments">UA’</a> trade-off targets, they can always seek to compensate by handing off the model to building energy modellers. Inheriting a complete <em>architectural</em> energy model this way can be a huge time saver. This fits in well within integrated design processes, while encouraging a healthy division of labour and fair distribution of professional liability. Let’s go over what TBD requires from a <em>minimal</em> OpenStudio model.</p>
 
 <h3 id="minimal-model-requirements">Minimal model requirements</h3>
 
-<p><strong>Fully enclosed geometry</strong>: OpenStudio (and to a large extent EnergyPlus) work much better in general when a building model is <em>geometrically enclosed</em> i.e., <em>air tight</em> (no gaps between surfaces). This also means no unintentional surface overlaps or loosely intersecting edges, windows properly <em>fitting</em> within the limits of their parent (or host) wall, etc. The example <a href="../index.html" title="Thermal Bridging &amp; Derating">warehouse</a> is a good visual of what this all means. It’s worth mentioning, as some third-party design software offer mixed results with <em>enclosed geometry</em> when auto-generating BIM-to-BEM models. TBD &amp; Topolys do have some built-in tolerances (25 mm), but they can only do their job if vertices, edges and surfaces are well connected. Note that <em>partial</em> OpenStudio models are not required to hold ALL building surfaces - just those that comprise the <em>building envelope</em>, in addition to interior floor surfaces. If a building has cantilevered balconies for instance, it’s also a good idea to include those as shading surfaces (which must <em>align</em> with floor surfaces).</p>
+<p><strong>Fully enclosed geometry</strong>: OpenStudio (and to a large extent EnergyPlus) work much better in general when a building model is <em>geometrically enclosed</em> i.e., <em>air tight</em> (no gaps between surfaces). This also means no unintentional surface overlaps or loosely intersecting edges, windows properly <em>fitting</em> within the limits of their parent (or host) wall, etc. The example <a href="../index.html" title="Thermal Bridging &amp; Derating">warehouse</a> is a good visual of what this all means. It’s worth mentioning, as some third-party design apps offer mixed results with <em>enclosed geometry</em> when autogenerating BIM-to-BEM models. TBD &amp; Topolys do have some built-in tolerances (e.g. 25 mm), but they can only do their job if vertices, edges and surfaces are well connected. Note that <em>partial</em> OpenStudio models are not required to hold ALL building surfaces - just those that comprise the <em>building envelope</em>, in addition to interior floor surfaces. If a building has cantilevered balconies for instance, it’s also a good idea to include them as <em>shading surfaces</em> (which must <em>align</em> with floor surfaces).</p>
 
 <p><strong>Materials &amp; constructions</strong>: Geometry is not enough. TBD must also be able to retrieve referenced materials and multilayered constructions for all <em>envelope</em> surfaces. The easiest way is via <em>Default Construction Sets</em>.</p>
 
-<p><strong>Boundary conditions</strong>: It’s important that the OpenStudio model reflects intended exposure to surrounding environmental conditions, including which surfaces face the exterior vs the interior, the ground, etc. By default, TBD seeks only to <em>derate</em> outdoor-facing <em>envelope</em> walls, roofs and <em>exposed</em> floors. Windows, doors and skylights are never derated. Adiabatic and ground-facing (or KIVA foundation) surfaces are also never derated.</p>
+<p><strong>Boundary conditions</strong>: It’s important that the OpenStudio model reflects intended exposure to surrounding environmental conditions, including which surfaces face the exterior vs the interior, the ground, etc. By default, TBD seeks only to <em>derate</em> outdoor-facing <em>envelope</em> walls, roofs and <em>exposed</em> floors. Windows, doors and skylights are never <em>derated</em>. Adiabatic and ground-facing (or KIVA foundation) surfaces are also never <em>derated</em>.</p>
 
 <h3 id="optional-model-requirements">Optional model requirements</h3>
 
-<p>TBD does require additional OpenStudio inputs in some circumstances. Unheated or uncooled spaces (like attics and crawlspaces) are considered <em>unconditioned</em>: their outdoor-facing surfaces aren’t part of the <em>building envelope</em>, and therefore not targeted by TBD. On the other hand, outdoor-facing surfaces of <em>indirectly-conditioned</em> spaces like plenums are considered part of the <em>envelope</em>, and therefore should be derated. Sections 2.3.2 to 2.3.4 <a href="https://www.pnnl.gov/main/publications/external/technical_reports/PNNL-26917.pdf" title="90.1-2016 Performance Rating Method Reference Manual">here</a> provide a good overview of the question. Here’s the underlying logic that guides TBD in such cases:</p>
+<p>TBD does require additional OpenStudio inputs in some circumstances. Unheated or uncooled spaces (like attics and crawlspaces) are considered <em>unconditioned</em>: their outdoor-facing surfaces aren’t part of the <em>building envelope</em>, and therefore not targeted by TBD. On the other hand, outdoor-facing surfaces of <em>indirectly-conditioned</em> spaces like plenums are considered part of the <em>envelope</em>, and therefore should be <em>derated</em>. Sections 2.3.2 to 2.3.4 <a href="https://www.pnnl.gov/main/publications/external/technical_reports/PNNL-26917.pdf" title="90.1-2016 Performance Rating Method Reference Manual">here</a> provide a good overview of the question. Here’s the underlying logic that guides TBD in such cases:</p>
 
 <p>With <strong>partial</strong> OpenStudio models, TBD seeks to <em>derate</em> ALL outside-facing surfaces by positing that ALL spaces are <em>conditioned</em>, with <em>assumed</em> setpoints of ~21°C (heating) and ~24°C (cooling) à la BETBG. This is OK for most models (even those with plenums), yet not for those with attics or crawlspaces.</p>
 
-<p>If a <strong>more complete</strong> OpenStudio model has at least one space linked to a thermal zone having temperature setpoints, TBD instead seeks to only <em>derate</em> outdoor-facing surfaces of such <em>conditioned</em> spaces. TBD safely ignores outdoor-facing surfaces in <em>unconditioned</em> spaces like attics and crawlspaces, yet unfortunately also those of plenums.</p>
+<p>If a <strong>more complete</strong> OpenStudio model has at least one space linked to a <em>thermal zone</em> having temperature setpoints, TBD instead seeks to only <em>derate</em> outdoor-facing surfaces of such <em>conditioned</em> spaces. TBD safely ignores outdoor-facing surfaces in <em>unconditioned</em> spaces like attics and crawlspaces, yet unfortunately also those of plenums.</p>
 
-<p>With a <strong>fairly complete</strong> OpenStudio model (<em>complete</em> with thermal zones, temperature setpoints, and HVAC air loops), spaces become tagged as indirectly-conditioned <em>plenums</em> if their thermal zones correspond to <em>supply</em> or <em>return plenums</em> as defined <a href="https://bigladdersoftware.com/epx/docs/9-6/input-output-reference/group-air-path.html#airloophvacreturnplenum" title="EnergyPlus return air plenums">here</a> and <a href="https://bigladdersoftware.com/epx/docs/9-6/input-output-reference/group-air-path.html#airloophvacsupplyplenum" title="EnergyPlus supply air plenums">here</a> - let’s call this <strong>case A</strong>.</p>
+<p>With a <strong>fairly complete</strong> OpenStudio model (<em>complete</em> with <em>thermal zones</em>, temperature setpoints, and HVAC <em>air loops</em>), spaces become tagged as indirectly-conditioned <em>plenums</em> if their <em>thermal zones</em> correspond to <em>supply</em> or <em>return plenums</em> as defined <a href="https://bigladdersoftware.com/epx/docs/9-6/input-output-reference/group-air-path.html#airloophvacreturnplenum" title="EnergyPlus return air plenums">here</a> and <a href="https://bigladdersoftware.com/epx/docs/9-6/input-output-reference/group-air-path.html#airloophvacsupplyplenum" title="EnergyPlus supply air plenums">here</a> - let’s call this <strong>case A</strong>.</p>
 
-<p>In absence of HVAC air loops, 2x other cases trigger a <em>plenum</em> tag: <strong>case B</strong> where the space is considered excluded from the building’s <em>total floor area</em> (an OpenStudio variable), while having its thermal zone referencing an <em>inactive</em> thermostat (i.e. can’t extract valid setpoints); or finally <strong>case C</strong> where the <em>spacetype</em> name is simply set to “plenum” (case insensitive).</p>
+<p>In absence of HVAC <em>air loops</em>, 2x other cases trigger a <em>plenum</em> tag: <strong>case B</strong> where the space is considered excluded from the building’s <em>total floor area</em> (an OpenStudio variable), while having its <em>thermal zone</em> referencing an <em>inactive</em> thermostat (i.e. can’t extract valid setpoints); or finally <strong>case C</strong> where the <em>spacetype</em> name is simply set to “plenum” (case insensitive).</p>
 
 <p>In summary, having TBD distinguish between <em>conditioned</em> vs <em>indirectly-conditioned</em> vs <em>unconditioned</em> spaces requires a combination of the following, depending on whether attics and/or crawlspaces are found in the OpenStudio model:</p>
 
 <ul>
-  <li>thermal zones</li>
+  <li><em>thermal zones</em></li>
   <li>heating/cooling setpoints</li>
-  <li>HVAC air loops</li>
+  <li>HVAC <em>air loops</em></li>
 </ul>
 
-<p>This is a <em>lot</em> to ask of most technically proficient architects, as most items are advanced HVAC <em>objects</em>. There are OpenStudio user scripts that auto-generate thermal zones from spaces (one-to-one), but it’s unlikely to match what the HVAC designer has in mind (and so not always a good idea). With <em>unconditioned</em> spaces, better off asking the HVAC engineer/modeller to complete the setup.</p>
+<p>This is a <em>lot</em> to ask of most technically proficient architects, as most items are advanced HVAC <em>objects</em>. There are OpenStudio user scripts that autogenerate <em>thermal zones</em> from spaces (one-to-one), but it’s unlikely to match what the HVAC designer has in mind (and so not always a good idea). With <em>unconditioned</em> spaces, better off asking the HVAC engineer/modeller to complete the setup.</p>
 
 <h3 id="tbd-menu-options">TBD menu options</h3>
 
@@ -107,15 +107,15 @@
 <p>JSON input/output files, <em>UA’</em> reports and <em>KIVA</em> inputs are described in detail in the <a href="./custom.html" title="TBD customization">Customization</a>, <a href="./ua.html" title="UA' assessments">UA’</a> and <a href="./kiva.html" title="KIVA support">KIVA</a> sections, respectively.</p>
 
 <p>The <strong>Default thermal bridge (set)</strong> pull-down menu of prepackaged, compact <em>psi</em> sets is key for newcomers, especially in the early design stages. Users simply need to switch between default sets (and rerun the measure) to get a sense of the degree of thermal <em>derating</em> that would take place in their building, and how this affects energy simulation results. It’s easy, yet coarse as the entire building is treated uniformly (check the <a href="./custom.html" title="TBD customization">Customization</a> section on handling multiple <em>psi</em> sets). Each default set must hold a minimal shortlist of common thermal bridge <em>shorthands</em> for each <em>edge</em> TBD identifies:</p>
-<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    rimjoist | wall/floor or sloped-roof/floor edge
-     parapet | wall/roof edge
-fenestration | window, door, skylight perimeter
-      corner | angled wall/wall edge
-     balcony | floor/shading edge
-       party | adiabatic/wall (or /floor, or /roof) edge
-       grade | slab-on-grade/foundation wall edge
-       joint | "flat" edge that derates (e.g. roof curb)
-  transition | "flat" edge that isn't a joint
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    "rimjoist" | wall/floor or sloped-roof/"floor edge
+     "parapet" | wall/roof edge
+"fenestration" | window, door, skylight perimeter
+      "corner" | angled wall/wall edge
+     "balcony" | floor/shading edge
+       "party" | adiabatic/wall (or /floor, or /roof) edge
+       "grade" | slab-on-grade/foundation wall edge
+       "joint" | "flat" edge that derates (e.g. roof curb)
+  "transition" | "flat" edge that isn't a "joint"
 </code></pre></div></div>
 <p>A <em>flat</em> edge shared between 2 parallel, aligned surfaces is tagged as a (mild) <strong>transition</strong>. In every default <em>psi</em> set, <em>transition</em> edges have a value of 0 W/K per meter, i.e. no <em>derating</em> takes place. OpenStudio models can hold many such <em>flat</em> edges, which usually do not constitute <em>major</em> thermal bridges. For instance when they delineate plenum walls from those of the occupied space (above or below). In other cases, they’re simply artifacts of third-party software e.g., tessellation. Whenever TBD can’t easily label an edge, it relies on <em>transition</em> as a fallback.</p>
 
@@ -192,19 +192,19 @@ fenestration | 0.350
        joint | 0.200
 </code></pre></div></div>
 
-<p>The <em>poor</em>, <em>regular</em> and <em>efficient</em> general sets mirror those of the BETBG, laid out at the beginning the BETBG document. They provide ballpark figures of <em>bottom-of-the-barrel</em> vs <em>high-performance</em> technologies. The (basic) vs high-performance (HP) <em>spandrel</em> sets offer a range of expect values for curtain/window wall technologies (also from the BETBG). TBD provides support for the Québec building energy code (which holds explicit requirements on <em>major</em> thermal bridging). Finally, there is also a <em>(non thermal bridging)</em> set where all <em>psi</em> values are fixed at 0 W/K per meter - mainly used for quality control and debugging.</p>
+<p>The <em>“poor”</em>, <em>“regular”</em> and <em>“efficient”</em> sets mirror those of the BETBG, laid out at the beginning the BETBG document. They provide ballpark figures of <em>bottom-of-the-barrel</em> vs <em>high-performance</em> technologies. The (basic) vs high-performance (HP) <em>“spandrel”</em> sets offer a range of expected values for curtain/window wall technologies (also from the BETBG). TBD provides support for the Québec building energy <em>“code”</em> (which holds explicit requirements on <em>major</em> thermal bridging). Finally, there is also a <em>“(non thermal bridging)”</em> set where all <em>psi</em> values are fixed at 0 W/K per meter - mainly used for quality control and debugging, but also key when autogenerating KIVA inputs (see <em>Apply Measures Now</em> below).</p>
 
 <h3 id="energyplus-simulations">EnergyPlus simulations</h3>
 
-<p>Users need to specify where all their OpenStudio <em>measures</em> are stored on their computer (<em>Preferences</em> &gt; <em>Change My Measures Directory</em>) - just download TBD in there (from GitHub or BCL). Then in the OpenStudio Application, simply drag &amp; drop TBD in the <em>Measures</em> tab.</p>
+<p>OpenStudio users need to specify where downloaded <em>measures</em> are stored on their workstation (<em>Preferences</em> &gt; <em>Change My Measures Directory</em>) - just download TBD in there (click on the <em>download</em> links at the top of the page, or download from GitHub or BCL). Then in the <em>OpenStudio Application</em>, simply drag &amp; drop TBD in the <em>Measures</em> tab.</p>
 
-<p>As with most OpenStudio measures, TBD does not modify the original OpenStudio building model (e.g. adding/referencing new <em>derated</em> constructions). OpenStudio makes a behind-the-scenes copy of the model, which is in turn modified before simulation. Although the terminology may be confusing, leave the <em>Alter OpenStudio model</em> option checked for EnergyPlus simulations - this option is there for <em>Apply Measures Now</em> cases. Once the <em>Default thermal bridge (set)</em> is selected, save the model and run the simulation.</p>
+<p>As with most OpenStudio measures, TBD does not modify the original OpenStudio building model (e.g. adding/referencing new <em>derated</em> constructions). OpenStudio makes a behind-the-scenes copy of the model, which is in turn modified before simulation. Although the terminology may be at first confusing, leave the <em>Alter OpenStudio model</em> option CHECKED for EnergyPlus simulations - this option is really there for <em>Apply Measures Now</em> cases. Once the <em>Default thermal bridge (set)</em> is selected, save the model and run the simulation.</p>
 
-<p>Results should show an increase in heating loads for cold climates. For ASHRAE climate zone 7, heating should increase generally between 5% to 15% (depending on the building type) for <em>poor</em> to <em>regular</em> thermal bridging details in an otherwise well-insulated envelope. Consult the <a href="./reports.html" title="What TBD reports back">Reporting</a> section to learn more on TBD feedback.</p>
+<p>Results should show an increase in heating loads for cold climates. For ASHRAE climate zone 7, annual heating should increase generally between 5% to 15% (depending on the building type) for <em>poor</em> to <em>regular</em> thermal bridging details in an otherwise well-insulated envelope. Consult the <a href="./reports.html" title="What TBD reports back">Reporting</a> section to learn more on TBD feedback.</p>
 
 <h3 id="apply-measures-now">Apply Measures Now</h3>
 
-<p>The original intent of an <em>Apply Measures Now</em> feature in OpenStudio is to irreversibly alter a building model without the need to run an EnergyPlus simulation. For instance, the KIVA options in TBD work best in <em>Apply Measures Now</em> mode. So best leave the <em>Alter OpenStudio model</em> option CHECKED in such cases.</p>
+<p>The original intent of an <em>Apply Measures Now</em> feature in OpenStudio is to irreversibly alter a building model without the need to run an EnergyPlus simulation. For instance, the KIVA options in TBD work best in <em>Apply Measures Now</em> mode: best leave the <em>Alter OpenStudio model</em> option CHECKED, while ideally relying on the default <em>“(non thermal bridging)”</em> set.</p>
 
 <p>However, there are <em>Apply Measures Now</em> situations where permanent changes to an OpenStudio model aren’t warranted or desirable, in which case it becomes critical to UNCHECK the <em>Alter OpenStudio model</em> option:</p>
 
