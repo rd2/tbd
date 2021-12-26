@@ -6390,7 +6390,7 @@ RSpec.describe TBD do
       expect(skylight.is_a?(Hash)).to be(true)
       expect(skylight.has_key?(:u)).to be(true)
       expect(skylight[:u]).to be_a(Numeric)
-      expect(skylight[:u]).to be_within(0.01).of(6.00)
+      expect(skylight[:u]).to be_within(0.01).of(1/rsi)
       # ... yet TBD only derates constructions of opaque surfaces in CONDITIONED
       # spaces if:
       #
@@ -6422,7 +6422,7 @@ RSpec.describe TBD do
         expect(skylight.has_key?(:u)).to be(true)
         expect(skylight[:u]).to be_a(Numeric)
         expect(skylight[:u]).to be_within(0.01).of(6.64) unless i == "dome"
-        expect(skylight[:u]).to be_within(0.01).of(6.00) if i == "dome"
+        expect(skylight[:u]).to be_within(0.01).of(1/rsi) if i == "dome"
       end
       expect(surface.has_key?(:heatloss)).to be(true)
       expect(surface[:heatloss]).to be_within(0.01).of(89.16)         # +2.0 W/K
@@ -6514,17 +6514,9 @@ RSpec.describe TBD do
           #
           #   dome > tube > diffuser
           #
-          # ... EnergyPlus will proceed without warning(s). Results reflect an
-          # expected increase in heating energy (Climate Zone 7), due to the
-          # poor(er) performance of the dome.
-          #
-          # Note that the effective RSi of the (missing) tube will be ignored.
-          #
-          #   https://bigladdersoftware.com/epx/docs/9-5/engineering-reference/
-          #   daylighting-devices.html#conductiveconvective-gains
-          #
-          #   https://bigladdersoftware.com/epx/docs/9-5/input-output-reference/
-          #   group-surface-construction-elements.html#field-u-factor
+          # ... EnergyPlus will proceed without warning(s) for OpenStudio
+          # < v3.3.0. Results reflect an expected increase in heating energy
+          # (Climate Zone 7), due to the poor(er) performance of the dome.
         end
       end
     end
@@ -6732,7 +6724,7 @@ RSpec.describe TBD do
       skylight = surface[:skylights]["diffuser"]
       expect(skylight.has_key?(:u)).to be(true)
       expect(skylight[:u]).to be_a(Numeric)
-      expect(skylight[:u]).to be_within(0.01).of(6.00)
+      expect(skylight[:u]).to be_within(0.01).of(1/rsi)
 
       # ... yet TBD only derates constructions of opaque surfaces in CONDITIONED
       # spaces IF (i) facing outdoors or (ii) facing UNCONDITIONED spaces like
@@ -6761,7 +6753,7 @@ RSpec.describe TBD do
       skylight = surface[:skylights]["dome"]
       expect(skylight.has_key?(:u)).to be(true)
       expect(skylight[:u]).to be_a(Numeric)
-      expect(skylight[:u]).to be_within(0.01).of(6.00)
+      expect(skylight[:u]).to be_within(0.01).of(1/rsi)
       expect(surface.has_key?(:heatloss)).to be(false)
       expect(surface.has_key?(:ratio)).to be(false)
 
@@ -7000,7 +6992,7 @@ RSpec.describe TBD do
       skylight = surface[:skylights]["diffuser"]
       expect(skylight.has_key?(:u)).to be(true)
       expect(skylight[:u]).to be_a(Numeric)
-      expect(skylight[:u]).to be_within(0.01).of(6.00)
+      expect(skylight[:u]).to be_within(0.01).of(1/rsi)
 
       # ... yet TBD only derates constructions of opaque surfaces in CONDITIONED
       # spaces IF (i) facing outdoors or (ii) facing UNCONDITIONED spaces like
@@ -7028,7 +7020,7 @@ RSpec.describe TBD do
       skylight = surface[:skylights]["dome"]
       expect(skylight.has_key?(:u)).to be(true)
       expect(skylight[:u]).to be_a(Numeric)
-      expect(skylight[:u]).to be_within(0.01).of(6.00)
+      expect(skylight[:u]).to be_within(0.01).of(1/rsi)
       expect(surface.has_key?(:heatloss)).to be(false)
       expect(surface.has_key?(:ratio)).to be(false)
 

@@ -1397,7 +1397,7 @@ def glazingAirFilmRSi(usi = 5.85)
   # The sum of thermal resistances of calculated exterior and interior film
   # coefficients under standard winter conditions are taken from:
   #
-  #   https://bigladdersoftware.com/epx/docs/9-5/engineering-reference/
+  #   https://bigladdersoftware.com/epx/docs/9-6/engineering-reference/
   #   window-calculation-module.html#simple-window-model
   #
   # These remain acceptable approximations for flat windows, yet likely

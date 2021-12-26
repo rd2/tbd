@@ -460,14 +460,14 @@ def openings(model, surface)
   surf[:story] = surf[:space].buildingStory.get unless a
 
   # Site-specific (or absolute, or true) surface normal.
-  t, r = transforms(model, surf[:space])
-  unless t && r
+  t, rotation = transforms(model, surf[:space])
+  unless t && rotation
     msg = "Can't process '#{identifier}' space transformation"
     TBD.log(TBD::FATAL, msg)
     return nil
   end
 
-  n = trueNormal(surface, r)
+  n = trueNormal(surface, rotation)
   unless n
     msg = "Can't process '#{identifier}' true normal"
     TBD.log(TBD::FATAL, msg)
@@ -523,8 +523,14 @@ def openings(model, surface)
     # construction has a single SimpleGlazing material/layer holding the whole
     # product U-factor.
     #
-    #   https://bigladdersoftware.com/epx/docs/9-5/engineering-reference/
+    #   https://bigladdersoftware.com/epx/docs/9-6/engineering-reference/
     #   window-calculation-module.html#simple-window-model
+    #
+    # TBD will instead rely on Tubular Daylighting Device (TDD) dome-to-diffuser
+    # effective RSi values (if valid).
+    #
+    #   https://bigladdersoftware.com/epx/docs/9-6/engineering-reference/
+    #   daylighting-devices.html#tubular-daylighting-devices
     #
     # In other cases, TBD will recover an 'additional property' tagged
     # "uFactor", assigned either to the individual subsurface itself, or else
@@ -534,12 +540,24 @@ def openings(model, surface)
     # U-factor by adding up the subsurface's construction material thermal
     # resistances (as well as the subsurface's parent surface film resistances).
     # This is the least accurate option, especially if subsurfaces have Frame
-    # & Divider objects.
+    # & Divider objects, or irregular geometry.
 
     u = s.uFactor
-    u = s.additionalProperties.getFeatureAsDouble("uFactor") if u.empty?
-    u = c.additionalProperties.getFeatureAsDouble("uFactor") if u.empty?
-    if u.empty?
+
+    if tubular & s.respond_to?(:daylightingDeviceTubular)  # OpenStudio > v3.3.0
+      unless s.daylightingDeviceTubular.empty?
+        r = s.daylightingDeviceTubular.get.effectiveThermalResistance
+        u = 1 / r if r > TOL
+      end
+    end
+
+    unless u.is_a?(Numeric)
+      u = s.additionalProperties.getFeatureAsDouble("uFactor")
+    end
+    unless u.is_a?(Numeric)
+      u = c.additionalProperties.getFeatureAsDouble("uFactor")
+    end
+    unless u.is_a?(Numeric)
       r = rsi(c, surface.filmResistance)
       if r < TOL
         msg = "Subsurface '#{id}' U-factor unavailable - skipping"
@@ -548,8 +566,6 @@ def openings(model, surface)
       else
         u = 1.0 / r
       end
-    else
-      u = u.get
     end
 
     # Should verify convexity of vertex wire/face ...
