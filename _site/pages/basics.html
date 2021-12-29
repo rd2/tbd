@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=1f739eb48f2a0380f2ffef9426002f81b65c7ace">
+    <link rel="stylesheet" href="/assets/css/style.css?v=3acff33a6f478db8f85fbdb62ff34f6c105f53ee">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -74,7 +74,7 @@
 
 <p><strong>Materials &amp; constructions</strong>: Geometry is not enough. TBD must also be able to retrieve referenced materials and multilayered constructions for all <em>envelope</em> surfaces. The easiest way is via <em>Default Construction Sets</em>.</p>
 
-<p><strong>Boundary conditions</strong>: It’s important that the OpenStudio model reflects intended exposure to surrounding environmental conditions, including which surfaces face the exterior vs the interior, the ground, etc. By default, TBD seeks only to <em>derate</em> outdoor-facing <em>envelope</em> walls, roofs and <em>exposed</em> floors. Windows, doors and skylights are never <em>derated</em>. Adiabatic and ground-facing (or KIVA foundation) surfaces are also never <em>derated</em>.</p>
+<p><strong>Boundary conditions</strong>: It’s important that the OpenStudio model reflects intended exposure to surrounding environmental conditions, including which surfaces face the exterior vs the interior, the ground, etc. By default, TBD seeks only to <em>derate</em> outdoor-facing <em>envelope</em> walls, roofs and <em>exposed</em> floors. Windows, doors and skylights are never <em>derated</em>. Adiabatic and ground-facing (or <a href="./kiva.html" title="KIVA support">KIVA</a> foundation) surfaces are also never <em>derated</em>.</p>
 
 <h3 id="optional-model-requirements">Optional model requirements</h3>
 
@@ -191,8 +191,18 @@ fenestration | 0.350
        grade | 0.450
        joint | 0.200
 </code></pre></div></div>
+<p><strong>uncompliant (Québec)</strong></p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    rimjoist | 0.850
+     parapet | 0.800
+fenestration | 0.500
+      corner | 0.850
+     balcony | 1.000
+       party | 0.850
+       grade | 0.850
+       joint | 0.500
+</code></pre></div></div>
 
-<p>The <em>“poor”</em>, <em>“regular”</em> and <em>“efficient”</em> sets mirror those of the BETBG, laid out at the beginning the BETBG document. They provide ballpark figures of <em>bottom-of-the-barrel</em> vs <em>high-performance</em> technologies. The (basic) vs high-performance (HP) <em>“spandrel”</em> sets offer a range of expected values for curtain/window wall technologies (also from the BETBG). TBD provides support for the Québec building energy <em>“code”</em> (which holds explicit requirements on <em>major</em> thermal bridging). Finally, there is also a <em>“(non thermal bridging)”</em> set where all <em>psi</em> values are fixed at 0 W/K per meter - mainly used for quality control and debugging, but also key when autogenerating KIVA inputs (see <em>Apply Measures Now</em> below).</p>
+<p>The <em>“poor”</em>, <em>“regular”</em> and <em>“efficient”</em> sets mirror those of the BETBG, laid out at the beginning the BETBG document. They provide ballpark figures of <em>bottom-of-the-barrel</em> vs <em>high-performance</em> technologies. The (basic) vs high-performance (HP) <em>“spandrel”</em> sets offer a range of expected values for curtain/window wall technologies (also from the BETBG). TBD provides support for the Québec building energy <em>“code”</em> (which holds explicit requirements on <em>major</em> thermal bridging) - when Quebec professionals are unable to determine whether they comply to prescriptive requirements or unsure what <em>psi</em> values to use, they can fall back on the <em>“uncompliant”</em> set. Finally, there is also a <em>“(non thermal bridging)”</em> set where all <em>psi</em> values are fixed at 0 W/K per meter - mainly used for quality control and debugging, but also key when autogenerating KIVA inputs (see <em>Apply Measures Now</em> below).</p>
 
 <h3 id="energyplus-simulations">EnergyPlus simulations</h3>
 
@@ -204,13 +214,13 @@ fenestration | 0.350
 
 <h3 id="apply-measures-now">Apply Measures Now</h3>
 
-<p>The original intent of an <em>Apply Measures Now</em> feature in OpenStudio is to irreversibly alter a building model without the need to run an EnergyPlus simulation. For instance, the KIVA options in TBD work best in <em>Apply Measures Now</em> mode: best leave the <em>Alter OpenStudio model</em> option CHECKED, while ideally relying on the default <em>“(non thermal bridging)”</em> set.</p>
+<p>The original intent of an <em>Apply Measures Now</em> feature in OpenStudio is to irreversibly alter a building model without the need to run an EnergyPlus simulation. For instance, the <a href="./kiva.html" title="KIVA support">KIVA</a> options in TBD work best in <em>Apply Measures Now</em> mode: best leave the <em>Alter OpenStudio model</em> option CHECKED, while ideally relying on the default <em>“(non thermal bridging)”</em> set.</p>
 
 <p>However, there are <em>Apply Measures Now</em> situations where permanent changes to an OpenStudio model aren’t warranted or desirable, in which case it becomes critical to UNCHECK the <em>Alter OpenStudio model</em> option:</p>
 
 <p><strong>Iterative investigations</strong>: Users may simply want to get a status report of how well they’re doing in managing thermal bridging in their projects. TBD provides the same user feedback (including errors &amp; warnings) in either mode. Consult the <a href="./reports.html" title="What TBD reports back">Reporting</a> section.</p>
 
-<p><strong>UA’ reports</strong>: Similarly, TBD can generate at any moment <em>UA’</em> summaries (often admissible building energy code compliance paths). See the <a href="./ua.html" title="UA' assessments">UA’</a> section to learn more.</p>
+<p><strong>UA’ reports</strong>: Similarly, TBD can generate at any moment <a href="./ua.html" title="UA' assessments">UA’</a> summaries (often admissible building energy code compliance paths).</p>
 
 <p><strong>JSON output</strong>: Users can generate a complete, detailed list of every <em>major</em> thermal bridge in their OpenStudio model, which can be useful for cost estimation or simply for further <a href="./custom.html" title="TBD customization">customization</a>.</p>
 

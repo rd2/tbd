@@ -16,7 +16,8 @@ __Fully enclosed geometry__: OpenStudio (and to a large extent EnergyPlus) work 
 
 __Materials & constructions__: Geometry is not enough. TBD must also be able to retrieve referenced materials and multilayered constructions for all _envelope_ surfaces. The easiest way is via _Default Construction Sets_.
 
-__Boundary conditions__: It's important that the OpenStudio model reflects intended exposure to surrounding environmental conditions, including which surfaces face the exterior vs the interior, the ground, etc. By default, TBD seeks only to _derate_ outdoor-facing _envelope_ walls, roofs and _exposed_ floors. Windows, doors and skylights are never _derated_. Adiabatic and ground-facing (or KIVA foundation) surfaces are also never _derated_.
+__Boundary conditions__: It's important that the OpenStudio model reflects intended exposure to surrounding environmental conditions, including which surfaces face the exterior vs the interior, the ground, etc. By default, TBD seeks only to _derate_ outdoor-facing _envelope_ walls, roofs and _exposed_ floors. Windows, doors and skylights are never _derated_. Adiabatic and ground-facing (or [KIVA](./kiva.html "KIVA support") foundation) surfaces are also never _derated_.
+
 
 ### Optional model requirements
 
@@ -138,8 +139,19 @@ fenestration | 0.350
        grade | 0.450
        joint | 0.200
 ```
+__uncompliant (Québec)__
+```
+    rimjoist | 0.850
+     parapet | 0.800
+fenestration | 0.500
+      corner | 0.850
+     balcony | 1.000
+       party | 0.850
+       grade | 0.850
+       joint | 0.500
+```  
 
-The _"poor"_, _"regular"_ and _"efficient"_ sets mirror those of the BETBG, laid out at the beginning the BETBG document. They provide ballpark figures of _bottom-of-the-barrel_ vs _high-performance_ technologies. The (basic) vs high-performance (HP) _"spandrel"_ sets offer a range of expected values for curtain/window wall technologies (also from the BETBG). TBD provides support for the Québec building energy _"code"_ (which holds explicit requirements on _major_ thermal bridging). Finally, there is also a _"(non thermal bridging)"_ set where all _psi_ values are fixed at 0 W/K per meter - mainly used for quality control and debugging, but also key when autogenerating KIVA inputs (see _Apply Measures Now_ below).
+The _"poor"_, _"regular"_ and _"efficient"_ sets mirror those of the BETBG, laid out at the beginning the BETBG document. They provide ballpark figures of _bottom-of-the-barrel_ vs _high-performance_ technologies. The (basic) vs high-performance (HP) _"spandrel"_ sets offer a range of expected values for curtain/window wall technologies (also from the BETBG). TBD provides support for the Québec building energy _"code"_ (which holds explicit requirements on _major_ thermal bridging) - when Quebec professionals are unable to determine whether they comply to prescriptive requirements or unsure what _psi_ values to use, they can fall back on the _"uncompliant"_ set. Finally, there is also a _"(non thermal bridging)"_ set where all _psi_ values are fixed at 0 W/K per meter - mainly used for quality control and debugging, but also key when autogenerating KIVA inputs (see _Apply Measures Now_ below).
 
 ### EnergyPlus simulations
 
@@ -151,13 +163,13 @@ Results should show an increase in heating loads for cold climates. For ASHRAE c
 
 ### Apply Measures Now
 
-The original intent of an _Apply Measures Now_ feature in OpenStudio is to irreversibly alter a building model without the need to run an EnergyPlus simulation. For instance, the KIVA options in TBD work best in _Apply Measures Now_ mode: best leave the _Alter OpenStudio model_ option CHECKED, while ideally relying on the default _"(non thermal bridging)"_ set.
+The original intent of an _Apply Measures Now_ feature in OpenStudio is to irreversibly alter a building model without the need to run an EnergyPlus simulation. For instance, the [KIVA](./kiva.html "KIVA support") options in TBD work best in _Apply Measures Now_ mode: best leave the _Alter OpenStudio model_ option CHECKED, while ideally relying on the default _"(non thermal bridging)"_ set.
 
 However, there are _Apply Measures Now_ situations where permanent changes to an OpenStudio model aren't warranted or desirable, in which case it becomes critical to UNCHECK the _Alter OpenStudio model_ option:
 
 __Iterative investigations__: Users may simply want to get a status report of how well they're doing in managing thermal bridging in their projects. TBD provides the same user feedback (including errors & warnings) in either mode. Consult the [Reporting](./reports.html "What TBD reports back") section.
 
-__UA' reports__: Similarly, TBD can generate at any moment _UA'_ summaries (often admissible building energy code compliance paths). See the [UA'](./ua.html "UA' assessments") section to learn more.
+__UA' reports__: Similarly, TBD can generate at any moment [UA'](./ua.html "UA' assessments") summaries (often admissible building energy code compliance paths).
 
 __JSON output__: Users can generate a complete, detailed list of every _major_ thermal bridge in their OpenStudio model, which can be useful for cost estimation or simply for further [customization](./custom.html "TBD customization").
 
