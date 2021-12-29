@@ -25,16 +25,21 @@ TOL = 0.01
 TOL2 = TOL * TOL
 
 # Sources for thermal bridge types and/or linked default KHI & PSI values/sets:
-
-# BETBG = Building Envelope Thermal Bridging Guide v1.4 (or higher)
-# www.bchydro.com/content/dam/BCHydro/customer-portal/documents/power-smart/
-# business/programs/BETB-Building-Envelope-Thermal-Bridging-Guide-v1-4.pdf
-
-# ISO 14683 (Appendix C) www.iso.org/standard/65706.html
-
-# NECB-QC: Québec's energy code for new commercial buildings
-# www2.publicationsduquebec.gouv.qc.ca/dynamicSearch/
-# telecharge.php?type=1&file=72541.pdf
+#
+# BETBG = Building Envelope Thermal Bridging Guide v1.4 (or higher):
+#
+#   www.bchydro.com/content/dam/BCHydro/customer-portal/documents/power-smart/
+#   business/programs/BETB-Building-Envelope-Thermal-Bridging-Guide-v1-4.pdf
+#
+# ISO 14683 (Appendix C): www.iso.org/standard/65706.html
+#
+# NECB-QC = Québec's energy code for new commercial buildings:
+#
+#   www2.publicationsduquebec.gouv.qc.ca/dynamicSearch/
+#   telecharge.php?type=1&file=72541.pdf
+#
+#   www.rbq.gouv.qc.ca/domaines-dintervention/efficacite-energetique/
+#   la-formation/autres-batiments-outils-educatifs.html
 
 ##
 # Library of point thermal bridges (e.g. columns). Each key:value entry
