@@ -36,7 +36,7 @@ e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by 'tbd.json' fil
 **Model Dependent:** false
 
 ### Alter OpenStudio model (Apply Measures Now)
-For EnergyPlus simulations, leave checked. For iterative exploration with Apply Measures Now, uncheck to preserve original OpenStudio model.
+For EnergyPlus simulations, leave CHECKED. For iterative exploration with Apply Measures Now, UNCHECK to preserve original OpenStudio model.
 **Name:** alter_model,
 **Type:** Boolean,
 **Units:** ,
@@ -44,7 +44,7 @@ For EnergyPlus simulations, leave checked. For iterative exploration with Apply 
 **Model Dependent:** false
 
 ### Write 'tbd.out.json'
-Write out 'tbd.out.json' file e.g., to customize for subsequent runs (edit, and place under '/files' as 'tbd.json'.
+Write out 'tbd.out.json' file e.g., to customize for subsequent runs (edit, and place under '/files' as 'tbd.json').
 **Name:** write_tbd_json,
 **Type:** Boolean,
 **Units:** ,

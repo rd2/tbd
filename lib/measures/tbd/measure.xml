@@ -3,8 +3,8 @@
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>4c439bb9-87f3-421f-9c6c-cee5a5c94760</version_id>
-  <version_modified>20211231T093235Z</version_modified>
+  <version_id>7fe6a4e8-1652-4ba2-a497-ee9daa7d2c9a</version_id>
+  <version_modified>20211231T223110Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -76,7 +76,7 @@
     <argument>
       <name>alter_model</name>
       <display_name>Alter OpenStudio model (Apply Measures Now)</display_name>
-      <description>For EnergyPlus simulations, leave checked. For iterative exploration with Apply Measures Now, uncheck to preserve original OpenStudio model.</description>
+      <description>For EnergyPlus simulations, leave CHECKED. For iterative exploration with Apply Measures Now, UNCHECK to preserve original OpenStudio model.</description>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -95,7 +95,7 @@
     <argument>
       <name>write_tbd_json</name>
       <display_name>Write 'tbd.out.json'</display_name>
-      <description>Write out 'tbd.out.json' file e.g., to customize for subsequent runs (edit, and place under '/files' as 'tbd.json'.</description>
+      <description>Write out 'tbd.out.json' file e.g., to customize for subsequent runs (edit, and place under '/files' as 'tbd.json').</description>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -344,6 +344,12 @@
       <checksum>00A4C953</checksum>
     </file>
     <file>
+      <filename>log.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>D436DCBC</checksum>
+    </file>
+    <file>
       <version>
         <software_program>OpenStudio</software_program>
         <identifier>2.9.1</identifier>
@@ -352,19 +358,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>BE599D89</checksum>
-    </file>
-    <file>
-      <filename>log.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>D436DCBC</checksum>
+      <checksum>75F2B2A6</checksum>
     </file>
     <file>
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>243C6030</checksum>
+      <checksum>F8709CB7</checksum>
     </file>
   </files>
 </measure>
