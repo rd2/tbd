@@ -46,7 +46,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
 
   # human readable description of modeling approach
   def modeler_description
-    return "(see github.com/rd2/tbd)"
+    return "Consult rd2.github.io/tbd"
   end
 
   # define the arguments that the user will input
@@ -55,7 +55,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
 
     load_tbd_json = OpenStudio::Measure::OSArgument.makeBoolArgument("load_tbd_json", true, false)
     load_tbd_json.setDisplayName("Load 'tbd.json'")
-    load_tbd_json.setDescription("Loads existing 'tbd.json' file from model 'files' directory, may override 'default thermal bridge' pull-down option.")
+    load_tbd_json.setDescription("Loads existing 'tbd.json' file (under '/files'), may override 'default thermal bridge' set.")
     load_tbd_json.setDefaultValue(false)
     args << load_tbd_json
 
@@ -64,7 +64,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     psi.set.keys.each { |k| choices << k.to_s }
 
     option = OpenStudio::Measure::OSArgument.makeChoiceArgument("option", choices, true)
-    option.setDisplayName("Default thermal bridge option")
+    option.setDisplayName("Default thermal bridge set")
     option.setDescription("e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by 'tbd.json' file).")
     option.setDefaultValue("poor (BETBG)")
     args << option
@@ -77,13 +77,13 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
 
     write_tbd_json = OpenStudio::Measure::OSArgument.makeBoolArgument("write_tbd_json", true, false)
     write_tbd_json.setDisplayName("Write 'tbd.out.json'")
-    write_tbd_json.setDescription("Write 'tbd.out.json' file to customize for subsequent runs. Edit and place in model 'files' directory as 'tbd.json'.")
+    write_tbd_json.setDescription("Write out 'tbd.out.json' file e.g., to customize for subsequent runs (edit, and place under '/files' as 'tbd.json'.")
     write_tbd_json.setDefaultValue(false)
     args << write_tbd_json
 
     gen_UA_report = OpenStudio::Measure::OSArgument.makeBoolArgument("gen_UA_report", true, false)
     gen_UA_report.setDisplayName("Generate UA' report")
-    gen_UA_report.setDescription("Compare ∑U•A + ∑PSI•L + ∑KHI•n (model vs UA' reference - see pull-down option below).")
+    gen_UA_report.setDescription("Compare ∑U•A + ∑PSI•L + ∑KHI•n : 'Design' vs UA' reference (see pull-down option below).")
     gen_UA_report.setDefaultValue(false)
     args << gen_UA_report
 

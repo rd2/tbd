@@ -8,7 +8,7 @@
 Derates opaque constructions from major thermal bridges.
 
 ## Modeler Description
-(see github.com/rd2/tbd)
+Consult rd2.github.io/tbd
 
 ## Measure Type
 ModelMeasure
@@ -20,14 +20,14 @@ ModelMeasure
 
 
 ### Load 'tbd.json'
-Loads existing 'tbd.json' file from model 'files' directory, may override 'default thermal bridge' pull-down option.
+Loads existing 'tbd.json' file (under '/files'), may override 'default thermal bridge' set.
 **Name:** load_tbd_json,
 **Type:** Boolean,
 **Units:** ,
 **Required:** true,
 **Model Dependent:** false
 
-### Default thermal bridge option
+### Default thermal bridge set
 e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by 'tbd.json' file).
 **Name:** option,
 **Type:** Choice,
@@ -44,7 +44,7 @@ For EnergyPlus simulations, leave checked. For iterative exploration with Apply 
 **Model Dependent:** false
 
 ### Write 'tbd.out.json'
-Write 'tbd.out.json' file to customize for subsequent runs. Edit and place in model 'files' directory as 'tbd.json'.
+Write out 'tbd.out.json' file e.g., to customize for subsequent runs (edit, and place under '/files' as 'tbd.json'.
 **Name:** write_tbd_json,
 **Type:** Boolean,
 **Units:** ,
@@ -52,7 +52,7 @@ Write 'tbd.out.json' file to customize for subsequent runs. Edit and place in mo
 **Model Dependent:** false
 
 ### Generate UA' report
-Compare ∑U•A + ∑PSI•L + ∑KHI•n (model vs UA' reference - see pull-down option below).
+Compare ∑U•A + ∑PSI•L + ∑KHI•n : 'Design' vs UA' reference (see pull-down option below).
 **Name:** gen_UA_report,
 **Type:** Boolean,
 **Units:** ,

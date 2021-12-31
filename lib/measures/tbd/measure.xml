@@ -3,18 +3,18 @@
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>484092d8-f550-4c7a-9ae0-c07bb41fe193</version_id>
-  <version_modified>20211229T135948Z</version_modified>
+  <version_id>4c439bb9-87f3-421f-9c6c-cee5a5c94760</version_id>
+  <version_modified>20211231T093235Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
   <description>Derates opaque constructions from major thermal bridges.</description>
-  <modeler_description>(see github.com/rd2/tbd)</modeler_description>
+  <modeler_description>Consult rd2.github.io/tbd</modeler_description>
   <arguments>
     <argument>
       <name>load_tbd_json</name>
       <display_name>Load 'tbd.json'</display_name>
-      <description>Loads existing 'tbd.json' file from model 'files' directory, may override 'default thermal bridge' pull-down option.</description>
+      <description>Loads existing 'tbd.json' file (under '/files'), may override 'default thermal bridge' set.</description>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -32,7 +32,7 @@
     </argument>
     <argument>
       <name>option</name>
-      <display_name>Default thermal bridge option</display_name>
+      <display_name>Default thermal bridge set</display_name>
       <description>e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by 'tbd.json' file).</description>
       <type>Choice</type>
       <required>true</required>
@@ -95,7 +95,7 @@
     <argument>
       <name>write_tbd_json</name>
       <display_name>Write 'tbd.out.json'</display_name>
-      <description>Write 'tbd.out.json' file to customize for subsequent runs. Edit and place in model 'files' directory as 'tbd.json'.</description>
+      <description>Write out 'tbd.out.json' file e.g., to customize for subsequent runs (edit, and place under '/files' as 'tbd.json'.</description>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -114,7 +114,7 @@
     <argument>
       <name>gen_UA_report</name>
       <display_name>Generate UA' report</display_name>
-      <description>Compare ∑U•A + ∑PSI•L + ∑KHI•n (model vs UA' reference - see pull-down option below).</description>
+      <description>Compare ∑U•A + ∑PSI•L + ∑KHI•n : 'Design' vs UA' reference (see pull-down option below).</description>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -308,33 +308,10 @@
       <checksum>32D70693</checksum>
     </file>
     <file>
-      <filename>README.md</filename>
-      <filetype>md</filetype>
-      <usage_type>readme</usage_type>
-      <checksum>DF2509D6</checksum>
-    </file>
-    <file>
-      <version>
-        <software_program>OpenStudio</software_program>
-        <identifier>2.9.1</identifier>
-        <min_compatible>2.9.1</min_compatible>
-      </version>
-      <filename>measure.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>script</usage_type>
-      <checksum>BA8746FE</checksum>
-    </file>
-    <file>
       <filename>conditioned.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
       <checksum>49F22369</checksum>
-    </file>
-    <file>
-      <filename>log.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>89F647BD</checksum>
     </file>
     <file>
       <filename>tbd_tests.rb</filename>
@@ -365,6 +342,29 @@
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
       <checksum>00A4C953</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.9.1</identifier>
+        <min_compatible>2.9.1</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>BE599D89</checksum>
+    </file>
+    <file>
+      <filename>log.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>D436DCBC</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>243C6030</checksum>
     </file>
   </files>
 </measure>

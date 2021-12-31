@@ -70,10 +70,10 @@ module TBD
   # currently unused). Finally, TBD integrates a number of sanity checks to
   # ensure Ruby doesn't crash (e.g. invalid access to uninitialized variables),
   # especially for lower-level functions. When this occurs, there are safe
-  # fallbacks and exists, but the DEBUG error is nonetheless logged by TBD.
-  # DEBUG errors are almost always signs of a bug (to be fixed). This is for
-  # strictly made available for development purposes - TBD does not offer a
-  # 'production debugging' mode.
+  # fallbacks, but the DEBUG error is nonetheless logged by TBD. DEBUG errors
+  # are almost always signs of a bug (to be fixed). This is for strictly made
+  # available for development purposes - TBD does not offer a 'production
+  # debugging' mode.
   DEBUG = 1 # for debugging
   INFO  = 2 # informative
   WARN  = 3 # e.g. unable to derate a material (too thin, too small)
