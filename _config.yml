@@ -6,5 +6,5 @@ future: true
 show_downloads: true
 exclude: [spec, lib, json, Rakefile, tbd.gemspec, Gemfile, Gemfile.lock, README.md, v291_MacOS.md]
 github:
-  zip_url: https://github.com/rd2/tbd/releases/download/v2.2.1/tbd.zip
-  tar_url: https://github.com/rd2/tbd/releases/download/v2.2.1/tbd.tar.gz
+  zip_url: https://github.com/rd2/tbd/releases/download/v2.3.0/tbd.zip
+  tar_url: https://github.com/rd2/tbd/releases/download/v2.3.0/tbd.tar.gz
