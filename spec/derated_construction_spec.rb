@@ -1,4 +1,4 @@
-require "psi"
+require "tbd"
 
 RSpec.describe TBD do
 

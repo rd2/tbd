@@ -25,37 +25,52 @@ RSpec.describe TBD do
   # number of processors to use
   nproc = [1, Parallel.processor_count - 2].max
 
-  osm_suite_runs_dir = File.join(File.dirname(__FILE__), 'osm_suite_runs')
+  # Fetch 'OpenStudio Results' measure (if missing).
+  measure = "openstudio_results"
+  measures_pth = File.join(__dir__, "files/measures", measure)
+  unless Dir.exist?(measures_pth)
+    src_pth = ""
+    $LOAD_PATH.each do |load_path|
+      if load_path.include?("openstudio-common-measures")
+        src_pth = File.join(load_path, "measures", measure)
+      end
+    end
+    FileUtils.copy_entry src_pth, measures_pth
+  end
 
   template_osw = nil
-  template_osw_file = File.join(File.dirname(__FILE__), 'files/osm_suite.osw')
+  template_osw_file = File.join(__dir__, 'files/osws/osm_suite.osw')
   File.open(template_osw_file, 'r') do |f|
     template_osw = JSON.parse(f.read, {symbolize_names: true})
   end
 
+  osm_suite_runs_dir = File.join(__dir__, 'osm_suite_runs')
   FileUtils.mkdir_p(osm_suite_runs_dir)
 
   seed_osms = []
-  seed_osms << 'seb.osm'
+  # seed_osms << 'seb.osm'
   seed_osms << 'test_seb.osm'
   seed_osms << 'test_secondaryschool.osm'
   seed_osms << 'test_smalloffice.osm'
   seed_osms << 'test_warehouse.osm'
 
   weather_files = {}
-  weather_files['seb.osm'] = 'srrl_2013_amy.epw'
+  # weather_files['seb.osm'] = 'srrl_2013_amy.epw'
   weather_files['test_seb.osm'] = 'srrl_2013_amy.epw'
   weather_files['test_secondaryschool.osm'] = 'USA_TX_El.Paso.Intl.AP.722700_TMY3.epw'
   weather_files['test_smalloffice.osm'] = 'USA_TX_El.Paso.Intl.AP.722700_TMY3.epw'
   weather_files['test_warehouse.osm'] = 'USA_TX_El.Paso.Intl.AP.722700_TMY3.epw'
 
   tbd_options = []
-  tbd_options << "skip"
-  tbd_options << "poor (BETBG)"
-  tbd_options << "regular (BETBG)"
-  tbd_options << "efficient (BETBG)"
+  # tbd_options << "skip"
+  # tbd_options << "poor (BETBG)"
+  # tbd_options << "regular (BETBG)"
+  # tbd_options << "efficient (BETBG)"
+  # tbd_options << "spandrel (BETBG)"
+  # tbd_options << "spandrel HP (BETBG)"
   tbd_options << "code (Quebec)"
-  tbd_options << "(non thermal bridging)"
+  # tbd_options << "uncompliant (Quebec)"
+  # tbd_options << "(non thermal bridging)"
 
   combos = []
   seed_osms.each do |seed_osm|

@@ -1,4 +1,4 @@
-require "psi"
+require "tbd"
 
 RSpec.describe TBD do
   it "can process thermal bridging and derating : LoScrigno" do
@@ -594,7 +594,8 @@ RSpec.describe TBD do
     expect(os_s_floor.setSurfaceType("Floor")).to be(true)
     expect(os_s_floor.setOutsideBoundaryCondition("Outdoors")).to be(true)
 
-    os_model.save("os_model_test.osm", true)
+    pth = File.join(__dir__, "files/osms/out/os_model_test.osm")
+    os_model.save(pth, true)
 
     # Create the Topolys Model.
     t_model = Topolys::Model.new
@@ -1526,8 +1527,8 @@ RSpec.describe TBD do
   it "can process TB & D : DOE Prototype test_smalloffice.osm" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = "/files/test_smalloffice.osm"
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    file = File.join(__dir__, "files/osms/in/test_smalloffice.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -1613,6 +1614,7 @@ RSpec.describe TBD do
     expect(surfaces.nil?).to be(false)
     expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(43)
+    expect(io[:edges].size).to eq(105)
 
     surfaces.each do |id, surface|
       expect(surface.has_key?(:conditioned)).to be(true)
@@ -1653,6 +1655,12 @@ RSpec.describe TBD do
       expect(surfaces.has_key?(b)).to be(true)
       expect(surfaces[b].has_key?(:conditioned)).to be(true)
       expect(surfaces[b][:conditioned]).to be(true)
+
+      if id == "Attic_floor_core"
+        expect(surfaces[b].has_key?(:heatloss)).to be(true)
+        expect(surfaces[b][:heatloss]).to be_within(0.01).of(0.00)
+        expect(surfaces[b].has_key?(:ratio)).to be(false)
+      end
 
       next if id == "Attic_floor_core"
       expect(surfaces[b].has_key?(:heatloss)).to be(true)
@@ -1773,8 +1781,8 @@ RSpec.describe TBD do
   it "can process TB & D : DOE prototype test_smalloffice.osm (hardset)" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = "/files/test_smalloffice.osm"
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    file = File.join(__dir__, "files/osms/in/test_smalloffice.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -1817,6 +1825,7 @@ RSpec.describe TBD do
     expect(surfaces.nil?).to be(false)
     expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(43)
+    expect(io[:edges].size).to eq(105)
 
     # Testing attic surfaces.
     surfaces.each do |id, surface|
@@ -1939,8 +1948,8 @@ RSpec.describe TBD do
   it "can process TB & D : DOE Prototype test_warehouse.osm" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = "/files/test_warehouse.osm"
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -1978,6 +1987,8 @@ RSpec.describe TBD do
     expect(surfaces.nil?).to be(false)
     expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
+    expect(io.has_key?(:edges))
+    expect(io[:edges].size).to eq(300)
 
     ids = { a: "Office Front Wall",
             b: "Office Left Wall",
@@ -2047,8 +2058,8 @@ RSpec.describe TBD do
   it "can process TB & D : DOE Prototype test_warehouse.osm + JSON I/O" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = "/files/test_warehouse.osm"
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -2073,8 +2084,8 @@ RSpec.describe TBD do
     # Despite defining the psi_set as having no thermal bridges, the "compliant"
     # PSI set on file will be considered as the building-wide default set.
     psi_set = "(non thermal bridging)"
-    ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse.json"
-    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    ioP = File.join(__dir__, "../json/tbd_warehouse.json")
+    schemaP = File.join(__dir__, "../tbd.schema.json")
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
@@ -2149,17 +2160,17 @@ RSpec.describe TBD do
       end
     end
 
-    # Now mimic the export functionality of the measure
+    # Now mimic the export functionality of the measure.
     out = JSON.pretty_generate(io)
-    outP = File.dirname(__FILE__) + "/../json/tbd_warehouse.out.json"
+    outP = File.join(__dir__, "../json/tbd_warehouse.out.json")
     File.open(outP, "w") { |outP| outP.puts out }
 
-    # 2. Re-use the exported file as input for another warehouse
+    # 2. Re-use the exported file as input for another warehouse.
     os_model2 = translator.loadModel(path)
     expect(os_model2.empty?).to be(false)
     os_model2 = os_model2.get
 
-    ioP2 = File.dirname(__FILE__) + "/../json/tbd_warehouse.out.json"
+    ioP2 = File.join(__dir__, "../json/tbd_warehouse.out.json")
     io2, surfaces = processTBD(os_model2, psi_set, ioP2, schemaP)
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
@@ -2217,7 +2228,7 @@ RSpec.describe TBD do
 
     # Now mimic (again) the export functionality of the measure
     out2 = JSON.pretty_generate(io2)
-    outP2 = File.dirname(__FILE__) + "/../json/tbd_warehouse2.out.json"
+    outP2 = File.join(__dir__, "../json/tbd_warehouse2.out.json")
     File.open(outP2, "w") { |outP2| outP2.puts out2 }
 
     # Both output files should be the same ...
@@ -2230,8 +2241,8 @@ RSpec.describe TBD do
   it "can process TB & D : DOE Prototype test_warehouse.osm + JSON I/O (2)" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = "/files/test_warehouse.osm"
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -2263,8 +2274,8 @@ RSpec.describe TBD do
     # Despite defining the psi_set as having no thermal bridges, the "compliant"
     # PSI set on file will be considered as the building-wide default set.
     psi_set = "(non thermal bridging)"
-    ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse1.json"
-    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    ioP = File.join(__dir__, "../json/tbd_warehouse1.json")
+    schemaP = File.join(__dir__, "../tbd.schema.json")
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
@@ -2341,7 +2352,7 @@ RSpec.describe TBD do
 
     # Now mimic the export functionality of the measure
     out = JSON.pretty_generate(io)
-    outP = File.dirname(__FILE__) + "/../json/tbd_warehouse1.out.json"
+    outP = File.join(__dir__, "../json/tbd_warehouse1.out.json")
     File.open(outP, "w") { |outP| outP.puts out }
 
     # 2. Re-use the exported file as input for another warehouse
@@ -2349,7 +2360,7 @@ RSpec.describe TBD do
     expect(os_model2.empty?).to be(false)
     os_model2 = os_model2.get
 
-    ioP2 = File.dirname(__FILE__) + "/../json/tbd_warehouse1.out.json"
+    ioP2 = File.join(__dir__, "../json/tbd_warehouse1.out.json")
     io2, surfaces = processTBD(os_model2, psi_set, ioP2, schemaP)
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
@@ -2373,7 +2384,7 @@ RSpec.describe TBD do
 
     # Now mimic (again) the export functionality of the measure
     out2 = JSON.pretty_generate(io2)
-    outP2 = File.dirname(__FILE__) + "/../json/tbd_warehouse3.out.json"
+    outP2 = File.join(__dir__, "../json/tbd_warehouse3.out.json")
     File.open(outP2, "w") { |outP2| outP2.puts out2 }
 
     # Both output files should be the same ...
@@ -2386,7 +2397,8 @@ RSpec.describe TBD do
   it "can process TB & D : test_seb.osm" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -2612,8 +2624,8 @@ RSpec.describe TBD do
   it "can take in custom (expansion) joints as thermal bridges" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = "/files/test_warehouse.osm"
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -2666,8 +2678,8 @@ RSpec.describe TBD do
     # }
 
     psi_set = "poor (BETBG)"
-    ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse6.json"
-    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    ioP = File.join(__dir__, "../json/tbd_warehouse6.json")
+    schemaP = File.join(__dir__, "../tbd.schema.json")
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
@@ -2757,7 +2769,8 @@ RSpec.describe TBD do
   it "can process TB & D : test_seb.osm (0 W/K per m)" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -2789,14 +2802,15 @@ RSpec.describe TBD do
   it "can process TB & D : test_seb.osm (0 W/K per m) with JSON" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
     psi_set = "(non thermal bridging)"
-    ioP = File.dirname(__FILE__) + "/../json/tbd_seb.json"
-    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    ioP = File.join(__dir__, "../json/tbd_seb.json")
+    schemaP = File.join(__dir__, "../tbd.schema.json")
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
@@ -2817,14 +2831,15 @@ RSpec.describe TBD do
   it "can process TB & D : test_seb.osm (0 W/K per m) with JSON (non-0)" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
     psi_set = "(non thermal bridging)"
-    ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n0.json"
-    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    ioP = File.join(__dir__, "../json/tbd_seb_n0.json")
+    schemaP = File.join(__dir__, "../tbd.schema.json")
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
@@ -2961,15 +2976,16 @@ RSpec.describe TBD do
   it "can process TB & D : test_seb.osm (0 W/K per m) with JSON (non-0) 2" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
     #   1. setting both psi_set & file :building to "compliant"
     psi_set = "compliant" # instead of "(non thermal bridging)"
-    ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n0.json"
-    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    ioP = File.join(__dir__, "../json/tbd_seb_n0.json")
+    schemaP = File.join(__dir__, "../tbd.schema.json")
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
@@ -3100,15 +3116,16 @@ RSpec.describe TBD do
   it "can process TB & D : test_seb.osm (0 W/K per m) with JSON (non-0) 3" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
     #   2. setting psi_set to "compliant" while removing the :building from file
     psi_set = "compliant" # instead of "(non thermal bridging)"
-    ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n1.json" # no :building
-    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    ioP = File.join(__dir__, "../json/tbd_seb_n1.json") # no :building
+    schemaP = File.join(__dir__, "../tbd.schema.json")
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
@@ -3239,14 +3256,15 @@ RSpec.describe TBD do
   it "can process TB & D : testing JSON surface KHI entries" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
     psi_set = "(non thermal bridging)"
-    ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n2.json"
-    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    ioP = File.join(__dir__, "../json/tbd_seb_n2.json")
+    schemaP = File.join(__dir__, "../tbd.schema.json")
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
@@ -3270,14 +3288,15 @@ RSpec.describe TBD do
   it "can process TB & D : testing JSON surface KHI & PSI entries" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
     psi_set = "(non thermal bridging)" # no :building PSI set on file
-    ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n3.json"
-    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    ioP = File.join(__dir__, "../json/tbd_seb_n3.json")
+    schemaP = File.join(__dir__, "../tbd.schema.json")
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
@@ -3514,14 +3533,15 @@ RSpec.describe TBD do
   it "can process TB & D : JSON surface KHI & PSI entries + building & edge" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
     psi_set = "(non thermal bridging)"
-    ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n4.json"
-    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    ioP = File.join(__dir__, "../json/tbd_seb_n4.json")
+    schemaP = File.join(__dir__, "../tbd.schema.json")
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
@@ -3548,14 +3568,15 @@ RSpec.describe TBD do
   it "can process TB & D : JSON surface KHI & PSI + building & edge (2)" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
     psi_set = "(non thermal bridging)"
-    ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n5.json"
-    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    ioP = File.join(__dir__, "../json/tbd_seb_n5.json")
+    schemaP = File.join(__dir__, "../tbd.schema.json")
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
@@ -3579,14 +3600,15 @@ RSpec.describe TBD do
   it "can process TB & D : JSON surface KHI & PSI + building & edge (3)" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
     psi_set = "(non thermal bridging)"
-    ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n6.json"
-    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    ioP = File.join(__dir__, "../json/tbd_seb_n6.json")
+    schemaP = File.join(__dir__, "../tbd.schema.json")
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
@@ -3610,14 +3632,15 @@ RSpec.describe TBD do
   it "can process TB & D : JSON surface KHI & PSI + building & edge (4)" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
     psi_set = "compliant" # ignored - superseded by :building PSI set on file
-    ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n7.json"
-    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    ioP = File.join(__dir__, "../json/tbd_seb_n7.json")
+    schemaP = File.join(__dir__, "../tbd.schema.json")
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
@@ -3655,15 +3678,15 @@ RSpec.describe TBD do
   it "can factor in negative PSI values (JSON input)" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = "/files/test_warehouse.osm"
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
     psi_set = "compliant" # ignored - superseded by :building PSI set on file
-    ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse4.json"
-    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    ioP = File.join(__dir__, "../json/tbd_warehouse4.json")
+    schemaP = File.join(__dir__, "../tbd.schema.json")
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
@@ -3728,12 +3751,12 @@ RSpec.describe TBD do
 
   it "can process TB & D : JSON file read/validate" do
     TBD.clean!
-    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    schemaP = File.join(__dir__, "../tbd.schema.json")
     expect(File.exist?(schemaP)).to be(true)
     schemaC = File.read(schemaP)
     schema = JSON.parse(schemaC, symbolize_names: true)
 
-    ioP = File.dirname(__FILE__) + "/../json/tbd_json_test.json"
+    ioP = File.join(__dir__, "../json/tbd_json_test.json")
     ioC = File.read(ioP)
     io = JSON.parse(ioC, symbolize_names: true)
 
@@ -3754,13 +3777,14 @@ RSpec.describe TBD do
     psi = PSI.new
     expect(io.has_key?(:psis)).to be(true)
     io[:psis].each { |p| expect(psi.append(p)).to be(true) }
-    expect(psi.set.size).to eq(9)
+    expect(psi.set.size).to eq(10)
     expect(psi.set.has_key?("poor (BETBG)")).to be(true)
     expect(psi.set.has_key?("regular (BETBG)")).to be(true)
     expect(psi.set.has_key?("efficient (BETBG)")).to be(true)
     expect(psi.set.has_key?("spandrel (BETBG)")).to be(true)
     expect(psi.set.has_key?("spandrel HP (BETBG)")).to be(true)
     expect(psi.set.has_key?("code (Quebec)")).to be(true)
+    expect(psi.set.has_key?("uncompliant (Quebec)")).to be(true)
     expect(psi.set.has_key?("(non thermal bridging)")).to be(true)
     expect(psi.set.has_key?("good")).to be(true)
     expect(psi.set.has_key?("compliant")).to be(true)
@@ -3769,13 +3793,14 @@ RSpec.describe TBD do
     khi = KHI.new
     expect(io.has_key?(:khis)).to be(true)
     io[:khis].each { |k| expect(khi.append(k)).to be(true) }
-    expect(khi.point.size).to eq(7)
+    expect(khi.point.size).to eq(8)
     expect(khi.point.has_key?("poor (BETBG)")).to be(true)
     expect(khi.point.has_key?("regular (BETBG)")).to be(true)
     expect(khi.point.has_key?("efficient (BETBG)")).to be(true)
     expect(psi.set.has_key?("spandrel (BETBG)")).to be(true)
     expect(psi.set.has_key?("spandrel HP (BETBG)")).to be(true)
     expect(khi.point.has_key?("code (Quebec)")).to be(true)
+    expect(khi.point.has_key?("uncompliant (Quebec)")).to be(true)
     expect(khi.point.has_key?("(non thermal bridging)")).to be(true)
     expect(khi.point.has_key?("column")).to be(true)
     expect(khi.point.has_key?("support")).to be(true)
@@ -3821,7 +3846,7 @@ RSpec.describe TBD do
     expect(khi.point["code (Quebec)"]).to eq(2.0)
 
     # Load PSI combo JSON example - likely the most expected or common use.
-    ioP = File.dirname(__FILE__) + "/../json/tbd_PSI_combo.json"
+    ioP = File.join(__dir__, "../json/tbd_PSI_combo.json")
     ioC = File.read(ioP)
     io = JSON.parse(ioC, symbolize_names: true)
     expect(JSON::Validator.validate(schema, io)).to be(true)
@@ -3840,13 +3865,14 @@ RSpec.describe TBD do
     psi = PSI.new
     expect(io.has_key?(:psis)).to be(true)
     io[:psis].each { |p| expect(psi.append(p)).to be(true) }
-    expect(psi.set.size).to eq(9)
+    expect(psi.set.size).to eq(10)
     expect(psi.set.has_key?("poor (BETBG)")).to be(true)
     expect(psi.set.has_key?("regular (BETBG)")).to be(true)
     expect(psi.set.has_key?("efficient (BETBG)")).to be(true)
     expect(psi.set.has_key?("spandrel (BETBG)")).to be(true)
     expect(psi.set.has_key?("spandrel HP (BETBG)")).to be(true)
     expect(psi.set.has_key?("code (Quebec)")).to be(true)
+    expect(psi.set.has_key?("uncompliant (Quebec)")).to be(true)
     expect(psi.set.has_key?("(non thermal bridging)")).to be(true)
     expect(psi.set.has_key?("OK")).to be(true)
     expect(psi.set.has_key?("Awesome")).to be(true)
@@ -3868,7 +3894,7 @@ RSpec.describe TBD do
     # Load PSI combo2 JSON example - a more elaborate example, yet common.
     # Post-JSON validation required to handle case sensitive keys & value
     # strings (e.g. "ok" vs "OK" in the file).
-    ioP = File.dirname(__FILE__) + "/../json/tbd_PSI_combo2.json"
+    ioP = File.join(__dir__, "../json/tbd_PSI_combo2.json")
     ioC = File.read(ioP)
     io = JSON.parse(ioC, symbolize_names: true)
     expect(JSON::Validator.validate(schema, io)).to be(true)
@@ -3888,13 +3914,14 @@ RSpec.describe TBD do
     psi = PSI.new
     expect(io.has_key?(:psis)).to be(true)
     io[:psis].each { |p| expect(psi.append(p)).to be(true) }
-    expect(psi.set.size).to eq(10)
+    expect(psi.set.size).to eq(11)
     expect(psi.set.has_key?("poor (BETBG)")).to be(true)
     expect(psi.set.has_key?("regular (BETBG)")).to be(true)
     expect(psi.set.has_key?("efficient (BETBG)")).to be(true)
     expect(psi.set.has_key?("spandrel (BETBG)")).to be(true)
     expect(psi.set.has_key?("spandrel HP (BETBG)")).to be(true)
     expect(psi.set.has_key?("code (Quebec)")).to be(true)
+    expect(psi.set.has_key?("uncompliant (Quebec)")).to be(true)
     expect(psi.set.has_key?("(non thermal bridging)")).to be(true)
     expect(psi.set.has_key?("OK")).to be(true)
     expect(psi.set.has_key?("Awesome")).to be(true)
@@ -3927,7 +3954,7 @@ RSpec.describe TBD do
       edge[:surfaces].each do |surface|
         answer = false
         answer = true if surface == "ground-floor restaurant West-wall" ||
-                                    "ground-floor restaurant party wall"
+                         surface == "ground-floor restaurant party wall"
         expect(answer).to be(true)
       end
     end
@@ -3937,7 +3964,7 @@ RSpec.describe TBD do
     # Ruby hash keys - will have the second entry ("party": 0.8) override the
     # first ("party": 0.7). Another reminder of post-JSON validation.
     # * https://jsonschemalint.com/#!/version/draft-04/markup/json
-    ioP = File.dirname(__FILE__) + "/../json/tbd_full_PSI.json"
+    ioP = File.join(__dir__, "../json/tbd_full_PSI.json")
     ioC = File.read(ioP)
     io = JSON.parse(ioC, symbolize_names: true)
     expect(JSON::Validator.validate(schema, io)).to be(true)
@@ -3955,32 +3982,33 @@ RSpec.describe TBD do
     psi = PSI.new
     expect(io.has_key?(:psis)).to be(true)
     io[:psis].each { |p| expect(psi.append(p)).to be(true) }
-    expect(psi.set.size).to eq(8)
+    expect(psi.set.size).to eq(9)
     expect(psi.set.has_key?("poor (BETBG)")).to be(true)
     expect(psi.set.has_key?("regular (BETBG)")).to be(true)
     expect(psi.set.has_key?("efficient (BETBG)")).to be(true)
     expect(psi.set.has_key?("spandrel (BETBG)")).to be(true)
     expect(psi.set.has_key?("spandrel HP (BETBG)")).to be(true)
     expect(psi.set.has_key?("code (Quebec)")).to be(true)
+    expect(psi.set.has_key?("uncompliant (Quebec)")).to be(true)
     expect(psi.set.has_key?("(non thermal bridging)")).to be(true)
     expect(psi.set.has_key?("OK")).to be(true)
     expect(psi.set["OK"][:party]).to eq(0.8)
 
     # Load minimal PSI JSON example
-    ioP = File.dirname(__FILE__) + "/../json/tbd_minimal_PSI.json"
+    ioP = File.join(__dir__, "../json/tbd_minimal_PSI.json")
     ioC = File.read(ioP)
     io = JSON.parse(ioC, symbolize_names: true)
     expect(JSON::Validator.validate(schema, io)).to be(true)
 
     # Load minimal KHI JSON example
-    ioP = File.dirname(__FILE__) + "/../json/tbd_minimal_KHI.json"
+    ioP = File.join(__dir__, "../json/tbd_minimal_KHI.json")
     ioC = File.read(ioP)
     io = JSON.parse(ioC, symbolize_names: true)
     expect(JSON::Validator.validate(schema, io)).to be(true)
     expect(JSON::Validator.validate(schemaP, ioP, uri: true)).to be(true)
 
     # Load complete results (ex. UA') example
-    ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse11.json"
+    ioP = File.join(__dir__, "../json/tbd_warehouse11.json")
     ioC = File.read(ioP)
     io = JSON.parse(ioC, symbolize_names: true)
     expect(JSON::Validator.validate(schema, io)).to be(true)
@@ -3990,15 +4018,15 @@ RSpec.describe TBD do
   it "can factor in spacetype-specific PSI sets (JSON input)" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = "/files/test_warehouse.osm"
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
     psi_set = "compliant" # ignored - superseded by :building PSI set on file
-    ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse5.json"
-    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    ioP = File.join(__dir__, "../json/tbd_warehouse5.json")
+    schemaP = File.join(__dir__, "../tbd.schema.json")
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
@@ -4043,15 +4071,15 @@ RSpec.describe TBD do
   it "can factor in story-specific PSI sets (JSON input)" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = "/files/test_smalloffice.osm"
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    file = File.join(__dir__, "files/osms/in/test_smalloffice.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
     psi_set = "compliant" # ignored - superseded by :building PSI set on file
-    ioP = File.dirname(__FILE__) + "/../json/tbd_smalloffice.json"
-    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    ioP = File.join(__dir__, "../json/tbd_smalloffice.json")
+    schemaP = File.join(__dir__, "../tbd.schema.json")
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
@@ -4061,6 +4089,7 @@ RSpec.describe TBD do
     expect(surfaces.nil?).to be(false)
     expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(43)
+    expect(io[:edges].size).to eq(105)
 
     expect(io.has_key?(:stories)).to be(true)
     io[:stories].each do |story|
@@ -4082,8 +4111,8 @@ RSpec.describe TBD do
   it "can sort multiple story-specific PSI sets (JSON input)" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = "/files/midrise_KIVA.osm"
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    file = File.join(__dir__, "files/osms/in/midrise_KIVA.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -4111,8 +4140,8 @@ RSpec.describe TBD do
     end
 
     psi_set = "(non thermal bridging)"                              # overridden
-    ioP = File.dirname(__FILE__) + "/../json/midrise.json"
-    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    ioP = File.join(__dir__, "../json/midrise.json")
+    schemaP = File.join(__dir__, "../tbd.schema.json")
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
@@ -4206,7 +4235,8 @@ RSpec.describe TBD do
   it "can handle parties" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -4229,8 +4259,8 @@ RSpec.describe TBD do
     expect(s2.outsideBoundaryCondition).to eq("Adiabatic")
 
     psi_set = "compliant"
-    ioP = File.dirname(__FILE__) + "/../json/tbd_seb_n8.json"
-    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    ioP = File.join(__dir__, "../json/tbd_seb_n8.json")
+    schemaP = File.join(__dir__, "../tbd.schema.json")
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
@@ -4320,8 +4350,8 @@ RSpec.describe TBD do
   it "can factor in unenclosed space such as attics" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = "/files/test_smalloffice.osm"
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    file = File.join(__dir__, "files/osms/in/test_smalloffice.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -4331,8 +4361,8 @@ RSpec.describe TBD do
     expect(coolingTemperatureSetpoints?(os_model)).to be(true)
 
     psi_set = "compliant" # ignored - superseded by :building PSI set on file
-    ioP = File.dirname(__FILE__) + "/../json/tbd_smalloffice.json"
-    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    ioP = File.join(__dir__, "../json/tbd_smalloffice.json")
+    schemaP = File.join(__dir__, "../tbd.schema.json")
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
@@ -4342,6 +4372,7 @@ RSpec.describe TBD do
     expect(surfaces.nil?).to be(false)
     expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(43)
+    expect(io[:edges].size).to eq(105)
 
     # Check derating of attic floor (5x surfaces)
     os_model.getSpaces.each do |space|
@@ -4389,15 +4420,15 @@ RSpec.describe TBD do
   it "can factor in heads, sills and jambs" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = "/files/test_warehouse.osm"
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
     psi_set = "compliant" # ignored - superseded by :building PSI set on file
-    ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse7.json"
-    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    ioP = File.join(__dir__, "../json/tbd_warehouse7.json")
+    schemaP = File.join(__dir__, "../tbd.schema.json")
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
@@ -4709,8 +4740,8 @@ RSpec.describe TBD do
   it "can factor-in Frame & Divider (F&D) objects" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = "/files/test_warehouse.osm"
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -4719,8 +4750,8 @@ RSpec.describe TBD do
     name = "Office Front Wall Window 1"
 
     psi_set = "poor (BETBG)"
-    ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse8.json"
-    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    ioP = File.join(__dir__, "../json/tbd_warehouse8.json")
+    schemaP = File.join(__dir__, "../tbd.schema.json")
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
@@ -4794,8 +4825,8 @@ RSpec.describe TBD do
 
     # Open another warehouse model and add/assign a Frame & Divider object.
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = "/files/test_warehouse.osm"
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    path = OpenStudio::Path.new(file)
     os_model_FD = translator.loadModel(path)
     expect(os_model_FD.empty?).to be(false)
     os_model_FD = os_model_FD.get
@@ -4844,11 +4875,12 @@ RSpec.describe TBD do
     # https://github.com/NREL/OpenStudio/blob/
     # 70a5549c439eda69d6c514a7275254f71f7e3d2b/src/model/Surface.cpp#L1446
     #
-    # os_model_FD.save("os_model_FD.osm", true)
+    pth = File.join(__dir__, "files/osms/out/os_model_FD.osm")
+    os_model_FD.save(pth, true)
 
     psi_set = "poor (BETBG)"
-    ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse8.json"
-    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    ioP = File.join(__dir__, "../json/tbd_warehouse8.json")
+    schemaP = File.join(__dir__, "../tbd.schema.json")
     io, surfaces = processTBD(os_model_FD, psi_set, ioP, schemaP)
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
@@ -5685,8 +5717,8 @@ RSpec.describe TBD do
   it "can flag errors and integrate TBD logs in JSON output" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = "/files/test_warehouse.osm"
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -5781,7 +5813,7 @@ RSpec.describe TBD do
     expect(subs.size).to eq(4)
 
     psi_set = "poor (BETBG)"
-    ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse9.json"
+    ioP = File.join(__dir__, "../json/tbd_warehouse9.json")
     # {
     #   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
     #   "description": "testing error detection",
@@ -5832,7 +5864,7 @@ RSpec.describe TBD do
     #     }
     #   ]
     # }
-    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    schemaP = File.join(__dir__, "../tbd.schema.json")
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP)
     expect(io.nil?).to be(false)
     expect(io.is_a?(Hash)).to be(true)
@@ -5966,7 +5998,7 @@ RSpec.describe TBD do
     io[:edges]        = io.delete(:edges)       if io.has_key?(:edges)
 
     out = JSON.pretty_generate(io)
-    outP = File.dirname(__FILE__) + "/../json/tbd_warehouse9.out.json"
+    outP = File.join(__dir__, "../json/tbd_warehouse9.out.json")
     File.open(outP, "w") { |outP| outP.puts out }
     # ... should contain 'log' entries at the start of the JSON output file.
   end
@@ -5974,8 +6006,8 @@ RSpec.describe TBD do
   it "can process an OSM converted from an IDF (with rotation)" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = "/files/5Zone_2.osm"
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    file = File.join(__dir__, "files/osms/in/5Zone_2.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -6135,100 +6167,903 @@ RSpec.describe TBD do
   end
 
   it "can handle TDDs" do
-    # OpenStudio SDK doesn't (fully) support Tubular Daylighting Devices, as per:
-    # https://bigladdersoftware.com/epx/docs/9-5/input-output-reference/
-    # group-daylighting.html#daylightingdevicetubular
-    methods = OpenStudio::Model::Model.instance_methods.grep(/tubular/i)
-    expect(methods.empty?).to be(true)
-
-    # ... OpenStudio is however able to set/get related subsurface types:
     types = OpenStudio::Model::SubSurface.validSubSurfaceTypeValues
     expect(types.is_a?(Array)).to be(true)
     expect(types.include?("TubularDaylightDome")).to be(true)
     expect(types.include?("TubularDaylightDiffuser")).to be(true)
 
-    # Assigning a "TubularDaylightDome" subsurface type (previously a skylight).
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = "/files/test_warehouse.osm"
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
-    # Initial skylight.
-    nom = "FineStorage_skylight_5"
-    sky5 = os_model.getSubSurfaceByName(nom)
-    expect(sky5.empty?).to be(false)
-    sky5 = sky5.get
-    expect(sky5.subSurfaceType.downcase).to eq("skylight")
-    name = "U 1.17 SHGC 0.39 Simple Glazing Skylight U-1.17 SHGC 0.39 2"
-    skylight = sky5.construction
-    expect(skylight.empty?).to be(false)
-    expect(skylight.get.nameString).to eq(name)
+    # As of v3.3.0, OpenStudio SDK (fully) supports Tubular Daylighting Devices:
+    #
+    #   https://bigladdersoftware.com/epx/docs/9-6/input-output-reference/
+    #   group-daylighting.html#daylightingdevicetubular
+    #
+    #   https://openstudio-sdk-documentation.s3.amazonaws.com/cpp/
+    #   OpenStudio-3.3.0-doc/model/html/
+    #   classopenstudio_1_1model_1_1_daylighting_device_tubular.html
 
-    # Resetting type ...
-    expect(sky5.setSubSurfaceType("TubularDaylightDome")).to be(true)
-    skylight = sky5.construction
-    expect(skylight.empty?).to be(false)
-    expect(skylight.get.nameString).to eq("Typical Interior Window")
-    # Weird to see "Typical Interior Window" as a suitable construction for a
-    # tubular skylight dome, but that's the assigned default construction in
-    # the DOE prototype warehouse model.
+    methods = OpenStudio::Model::Model.instance_methods.grep(/tubular/i)
+    version = os_model.getVersion.versionIdentifier.split('.').map(&:to_i)
+    v = version.join.to_i
+    expect(v).is_a?(Numeric)
 
-    roof = os_model.getSurfaceByName("Fine Storage Roof")
-    expect(roof.empty?).to be(false)
-    roof = roof.get
+    if v < 330
+      expect(methods.empty?).to be(true)
+    else
+      expect(methods.empty?).to be(false)
+    end
 
-    # Testing if TBD recognizes it as a "skylight" (for derating & UA').
-    psi_set = "poor (BETBG)"
-    io, surfaces = processTBD(os_model, psi_set)
-    expect(TBD.status).to eq(0)
-    expect(TBD.logs.empty?).to be(true)
-    expect(io.nil?).to be(false)
-    expect(io.is_a?(Hash)).to be(true)
-    expect(io.empty?).to be(false)
-    expect(surfaces.nil?).to be(false)
-    expect(surfaces.is_a?(Hash)).to be(true)
-    expect(io.has_key?(:edges))
-    expect(io[:edges].size).to eq(300)
-    expect(surfaces.size).to eq(23)
-    expect(TBD.status).to eq(0)
-    expect(TBD.logs.size).to eq(0)
+    # For SDK versions >= v3.3.0, testing new TDD methods.
+    unless v < 330
+      # Simple Glazing constructions for both dome & diffuser.
+      fenestration = OpenStudio::Model::Construction.new(os_model)
+      fenestration.setName("tubular_fenestration")
+      expect(fenestration.nameString).to eq("tubular_fenestration")
+      expect(fenestration.layers.size).to eq(0)
 
-    expect(surfaces.has_key?("Fine Storage Roof")).to be(true)
-    surface = surfaces["Fine Storage Roof"]
-    if surface.has_key?(:skylights)
-      expect(surface[:skylights].has_key?(nom)).to be(true)
+      glazing = OpenStudio::Model::SimpleGlazing.new(os_model)
+      glazing.setName("tubular_glazing")
+      expect(glazing.nameString).to eq("tubular_glazing")
+      expect(glazing.setUFactor(6.0)).to be(true)
+      expect(glazing.setSolarHeatGainCoefficient(0.50)).to be(true)
+      expect(glazing.setVisibleTransmittance(0.70)).to be(true)
+
+      layers = OpenStudio::Model::MaterialVector.new
+      layers << glazing
+      expect(fenestration.setLayers(layers)).to be(true)
+      expect(fenestration.layers.size).to eq(1)
+      expect(fenestration.layers[0].handle.to_s).to eq(glazing.handle.to_s)
+      expect(fenestration.uFactor.empty?).to be(false)
+      expect(fenestration.uFactor.get).to be_within(0.1).of(6.0)
+
+      # Tube walls.
+      construction = OpenStudio::Model::Construction.new(os_model)
+      construction.setName("tube_construction")
+      expect(construction.nameString).to eq("tube_construction")
+      expect(construction.layers.size).to eq(0)
+
+      interior = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
+      interior.setName("tube_wall")
+      expect(interior.nameString).to eq("tube_wall")
+      expect(interior.setRoughness("MediumRough")).to be(true)
+      expect(interior.setThickness(0.0126)).to be(true)
+      expect(interior.setConductivity(0.16)).to be(true)
+      expect(interior.setDensity(784.9)).to be(true)
+      expect(interior.setSpecificHeat(830)).to be(true)
+      expect(interior.setThermalAbsorptance(0.9)).to be(true)
+      expect(interior.setSolarAbsorptance(0.9)).to be(true)
+      expect(interior.setVisibleAbsorptance(0.9)).to be(true)
+
+      layers = OpenStudio::Model::MaterialVector.new
+      layers << interior
+      expect(construction.setLayers(layers)).to be(true)
+      expect(construction.layers.size).to eq(1)
+      expect(construction.layers[0].handle.to_s).to eq(interior.handle.to_s)
+
+      # Host spaces & surfaces.
+      sp1 = "Zone1 Office"
+      sp2 = "Zone2 Fine Storage"
+
+      z = "Zone2 Fine Storage ZN"
+
+      s1 = "Office Roof"              #  Office surface hosting new TDD diffuser
+      s2 = "Office Roof Reversed"     #          FineStorage floor, above office
+      s3 = "Fine Storage Roof"        # FineStorage surface hosting new TDD dome
+
+      # Fetch host spaces & surfaces.
+      office = os_model.getSpaceByName(sp1)
+      expect(office.empty?).to be(false)
+      office = office.get
+
+      storage = os_model.getSpaceByName(sp2)
+      expect(storage.empty?).to be(false)
+      storage = storage.get
+
+      zone = storage.thermalZone
+      expect(zone.empty?).to be(false)
+      zone = zone.get
+      expect(zone.nameString).to eq(z)
+
+      ceiling = os_model.getSurfaceByName(s1)
+      expect(ceiling.empty?).to be(false)
+      ceiling = ceiling.get
+      sp = ceiling.space
+      expect(sp.empty?).to be(false)
+      sp = sp.get
+      expect(sp).to eq(office)
+
+      floor = os_model.getSurfaceByName(s2)
+      expect(floor.empty?).to be(false)
+      floor = floor.get
+      sp = floor.space
+      expect(sp.empty?).to be(false)
+      sp = sp.get
+      expect(sp).to eq(storage)
+
+      adj = ceiling.adjacentSurface
+      expect(adj.empty?).to be(false)
+      adj = adj.get
+      expect(adj).to eq(floor)
+
+      adj = floor.adjacentSurface
+      expect(adj.empty?).to be(false)
+      adj = adj.get
+      expect(adj).to eq(ceiling)
+
+      roof = os_model.getSurfaceByName(s3)
+      expect(roof.empty?).to be(false)
+      roof = roof.get
+      sp = roof.space
+      expect(sp.empty?).to be(false)
+      sp = sp.get
+      expect(sp).to eq(storage)
+
+      # Setting heights & Z-axis coordinates.
+      ceiling_Z = ceiling.centroid.z
+      roof_Z = roof.centroid.z
+      length = roof_Z - ceiling_Z
+      totalLength = length + 0.7
+      dome_Z = ceiling_Z + totalLength
+
+      # A new, 1mx1m diffuser subsurface in Office.
+      os_v = OpenStudio::Point3dVector.new
+      os_v << OpenStudio::Point3d.new( 11.0, 4.0, ceiling_Z)
+      os_v << OpenStudio::Point3d.new( 11.0, 5.0, ceiling_Z)
+      os_v << OpenStudio::Point3d.new( 10.0, 5.0, ceiling_Z)
+      os_v << OpenStudio::Point3d.new( 10.0, 4.0, ceiling_Z)
+      diffuser = OpenStudio::Model::SubSurface.new(os_v, os_model)
+      diffuser.setName("diffuser")
+      expect(diffuser.setConstruction(fenestration)).to be(true)
+      expect(diffuser.setSubSurfaceType("TubularDaylightDiffuser")).to be(true)
+      expect(diffuser.setSurface(ceiling)).to be(true)
+      expect(diffuser.uFactor.empty?).to be(false)
+      expect(diffuser.uFactor.get).to be_within(0.1).of(6.0)
+
+      # A new, 1mx1m dome subsurface above Fine Storage roof.
+      os_v = OpenStudio::Point3dVector.new
+      os_v << OpenStudio::Point3d.new( 11.0, 4.0, dome_Z)
+      os_v << OpenStudio::Point3d.new( 11.0, 5.0, dome_Z)
+      os_v << OpenStudio::Point3d.new( 10.0, 5.0, dome_Z)
+      os_v << OpenStudio::Point3d.new( 10.0, 4.0, dome_Z)
+      dome = OpenStudio::Model::SubSurface.new(os_v, os_model)
+      dome.setName("dome")
+      expect(dome.setConstruction(fenestration)).to be(true)
+      expect(dome.setSubSurfaceType("TubularDaylightDome")).to be(true)
+      expect(dome.setSurface(roof)).to be(true)
+      expect(dome.uFactor.empty?).to be(false)
+      expect(dome.uFactor.get).to be_within(0.1).of(6.0)
+
+      expect(ceiling.tilt).to be_within(0.01).of(diffuser.tilt)
+      expect(dome.tilt).to be_within(0.01).of(roof.tilt)
+
+      rsi = 0.28   # default effective TDD thermal resistance (dome to diffuser)
+      diameter = Math.sqrt(dome.grossArea/Math::PI) * 2
+
+      tdd = OpenStudio::Model::DaylightingDeviceTubular.new(
+              dome, diffuser, construction)
+
+      expect(tdd.setDiameter(diameter)).to be(true)
+      expect(tdd.setTotalLength(totalLength)).to be(true)
+      expect(tdd.addTransitionZone(zone, length)).to be(true)
+      cl = OpenStudio::Model::TransitionZoneVector
+      expect(tdd.transitionZones.class).to eq(cl)
+      expect(tdd.numberofTransitionZones).to be(1)
+      expect(tdd.totalLength).to be_within(0.001).of(totalLength)
+
+      expect(tdd.subSurfaceDome).to eq(dome)
+      expect(tdd.subSurfaceDiffuser).to eq(diffuser)
+      c = tdd.construction
+      expect(c.to_Construction.empty?).to be(false)
+      c = c.to_Construction.get
+      expect(c.nameString).to eq(construction.nameString)
+      expect(tdd.diameter).to be_within(0.001).of(diameter)
+      expect(tdd.effectiveThermalResistance).to be_within(0.01).of(rsi)
+
+      pth = File.join(__dir__, "files/osms/out/tdd_warehouse.osm")
+      os_model.save(pth, true)
+
+      # Testing if TBD recognizes the TDD as a "skylight" (for derating & UA').
+      psi_set = "poor (BETBG)"
+      io, surfaces = processTBD(os_model, psi_set)
+      expect(TBD.status).to eq(0)
+      expect(TBD.logs.empty?).to be(true)
+      expect(io.nil?).to be(false)
+      expect(io.is_a?(Hash)).to be(true)
+      expect(io.empty?).to be(false)
+      expect(surfaces.nil?).to be(false)
+      expect(surfaces.is_a?(Hash)).to be(true)
+      expect(surfaces.size).to eq(23)
+      expect(io.has_key?(:edges))
+
+      # Both diffuser and parent (office) ceiling are stored as TBD 'surfaces'.
+      expect(surfaces.has_key?(s1)).to be(true)
+      surface = surfaces[s1]
+      expect(surface.has_key?(:skylights)).to be(true)
+      expect(surface[:skylights].size).to be(1)
+      expect(surface[:skylights].has_key?("diffuser")).to be(true)
+      skylight = surface[:skylights]["diffuser"]
+      expect(skylight.is_a?(Hash)).to be(true)
+      expect(skylight.has_key?(:u)).to be(true)
+      expect(skylight[:u]).to be_a(Numeric)
+      expect(skylight[:u]).to be_within(0.01).of(1/rsi)
+      # ... yet TBD only derates constructions of opaque surfaces in CONDITIONED
+      # spaces if:
+      #
+      #   (i) facing outdoors or
+      #   (ii) facing UNCONDITIONED spaces like attics (see psi.rb).
+      #
+      # Here, the ceiling is not tagged by TBD as a deratable surface - diffuser
+      # edges are therefore not logged in TBD's 'edges'.
+      expect(surface.has_key?(:heatloss)).to be(false)
+      expect(surface.has_key?(:ratio)).to be(false)
+
+      # Only edges of the dome (linked to the Fine Storage roof) are stored.
+      io[:edges].each do |edge|
+        expect(edge.is_a?(Hash)).to be(true)
+        expect(edge.has_key?(:surfaces)).to be(true)
+        expect(edge[:surfaces].is_a?(Array)).to be(true)
+        edge[:surfaces].each do |id|
+          next unless id == "dome" || id == "diffuser"
+          expect(id).to eq("dome")
+        end
+      end
+
+      expect(surfaces.has_key?(s3)).to be(true)
+      surface = surfaces[s3]
+      expect(surface.has_key?(:skylights)).to be(true)
+      expect(surface[:skylights].size).to be(15)               # original 14x +1
+      expect(surface[:skylights].has_key?("dome")).to be(true)
       surface[:skylights].each do |i, skylight|
         expect(skylight.has_key?(:u)).to be(true)
         expect(skylight[:u]).to be_a(Numeric)
-        expect(skylight[:u]).to be_within(0.01).of(6.64) unless i == nom
-        expect(skylight[:u]).to be_within(0.01).of(7.18) if i == nom
-        # So TBD will successfully process any subsurface perimeter, whether
-        # skylight, tubular devices, etc. And it will retrieve a calculated
-        # U-factor for TBD's UA' trade-off methodology (see below). A follow-up
-        # OpenStudio-launched EnergyPlus simulation reveals that, despite
-        # having an incomplete TDD setup i.e. dome > tube > diffuser, EnergyPlus
-        # will proceed without warning(s). Results reflect e.g. an expected
-        # increase in heating energy (Climate Zone 7), due to the poor(er)
-        # performance of the dome.
-        #
-        # Note that the effective RSi of the (missing) tube will be ignored.
-        # https://bigladdersoftware.com/epx/docs/9-5/engineering-reference/
-        # daylighting-devices.html#conductiveconvective-gains
-        #
-        # https://bigladdersoftware.com/epx/docs/9-5/input-output-reference/
-        # group-surface-construction-elements.html#field-u-factor
+        expect(skylight[:u]).to be_within(0.01).of(6.64) unless i == "dome"
+        expect(skylight[:u]).to be_within(0.01).of(1/rsi) if i == "dome"
       end
+      expect(surface.has_key?(:heatloss)).to be(true)
+      expect(surface[:heatloss]).to be_within(0.01).of(89.16)         # +2.0 W/K
+
+      expect(io[:edges].size).to eq(304)          # 4x extra edges for dome only
+
+      out = JSON.pretty_generate(io)
+      outP = File.join(__dir__, "../json/tbd_warehouse15.out.json")
+      File.open(outP, "w") { |outP| outP.puts out }
+
+      # Re-use the exported file as input for another warehouse.
+      os_model2 = translator.loadModel(pth)
+      expect(os_model2.empty?).to be(false)
+      os_model2 = os_model2.get
+
+      schemaP = File.join(__dir__, "../tbd.schema.json")
+      ioP2 = File.join(__dir__, "../json/tbd_warehouse15.out.json")
+      io2, surfaces = processTBD(os_model2, psi_set, ioP2, schemaP)
+      expect(TBD.status).to eq(0)
+      expect(TBD.logs.empty?).to be(true)
+      expect(io.nil?).to be(false)
+      expect(io.is_a?(Hash)).to be(true)
+      expect(io.empty?).to be(false)
+      expect(surfaces.nil?).to be(false)
+      expect(surfaces.is_a?(Hash)).to be(true)
+      expect(surfaces.size).to eq(23)
+
+      # Now mimic (again) the export functionality of the measure.
+      out2 = JSON.pretty_generate(io2)
+      outP2 = File.join(__dir__, "../json/tbd_warehouse16.out.json")
+      File.open(outP2, "w") { |outP2| outP2.puts out2 }
+
+      # Both output files should be the same ...
+      expect(FileUtils.identical?(outP, outP2)).to be(true)
+    else
+      # SDK pre-v3.3.0 testing on one of the existing skylights, as a tubular
+      # TDD dome (without a complete TDD object).
+      nom = "FineStorage_skylight_5"
+      sky5 = os_model.getSubSurfaceByName(nom)
+      expect(sky5.empty?).to be(false)
+      sky5 = sky5.get
+      expect(sky5.subSurfaceType.downcase).to eq("skylight")
+      name = "U 1.17 SHGC 0.39 Simple Glazing Skylight U-1.17 SHGC 0.39 2"
+      skylight = sky5.construction
+      expect(skylight.empty?).to be(false)
+      expect(skylight.get.nameString).to eq(name)
+
+      expect(sky5.setSubSurfaceType("TubularDaylightDome")).to be(true)
+      skylight = sky5.construction
+      expect(skylight.empty?).to be(false)
+      expect(skylight.get.nameString).to eq("Typical Interior Window")
+      # Weird to see "Typical Interior Window" as a suitable construction for a
+      # tubular skylight dome, but that's the assigned default construction in
+      # the DOE prototype warehouse model.
+
+      roof = os_model.getSurfaceByName("Fine Storage Roof")
+      expect(roof.empty?).to be(false)
+      roof = roof.get
+
+      # Testing if TBD recognizes it as a "skylight" (for derating & UA').
+      psi_set = "poor (BETBG)"
+      io, surfaces = processTBD(os_model, psi_set)
+      expect(TBD.status).to eq(0)
+      expect(TBD.logs.empty?).to be(true)
+      expect(io.nil?).to be(false)
+      expect(io.is_a?(Hash)).to be(true)
+      expect(io.empty?).to be(false)
+      expect(surfaces.nil?).to be(false)
+      expect(surfaces.is_a?(Hash)).to be(true)
+      expect(io.has_key?(:edges))
+      expect(io[:edges].size).to eq(300)
+      expect(surfaces.size).to eq(23)
+      expect(TBD.status).to eq(0)
+      expect(TBD.logs.size).to eq(0)
+
+      expect(surfaces.has_key?("Fine Storage Roof")).to be(true)
+      surface = surfaces["Fine Storage Roof"]
+      if surface.has_key?(:skylights)
+        expect(surface[:skylights].has_key?(nom)).to be(true)
+        surface[:skylights].each do |i, skylight|
+          expect(skylight.has_key?(:u)).to be(true)
+          expect(skylight[:u]).to be_a(Numeric)
+          expect(skylight[:u]).to be_within(0.01).of(6.64) unless i == nom
+          expect(skylight[:u]).to be_within(0.01).of(7.18) if i == nom
+          # So TBD processes any subsurface perimeter, whether skylight, TDD,
+          # etc. And it retrieves a calculated U-factor for TBD's UA' trade-off
+          # calculations. A follow-up OpenStudio-launched EnergyPlus simulation
+          # reveals that, despite having an incomplete TDD setup:
+          #
+          #   dome > tube > diffuser
+          #
+          # ... EnergyPlus will proceed without warning(s) for OpenStudio
+          # < v3.3.0. Results reflect an expected increase in heating energy
+          # (Climate Zone 7), due to the poor(er) performance of the dome.
+        end
+      end
+    end
+  end
+
+  it "can handle TDDs in attics (false plenums)" do
+    TBD.clean!
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    file = File.join(__dir__, "files/osms/in/5Zone_2.osm")
+    path = OpenStudio::Path.new(file)
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    version = os_model.getVersion.versionIdentifier.split('.').map(&:to_i)
+    v = version.join.to_i
+    expect(v).is_a?(Numeric)
+
+    # For SDK versions >= v3.3.0, testing new DaylightingTubularDevice methods.
+    unless v < 330
+      # Both dome & diffuser: Simple Glazing constructions.
+      fenestration = OpenStudio::Model::Construction.new(os_model)
+      fenestration.setName("tubular_fenestration")
+      expect(fenestration.nameString).to eq("tubular_fenestration")
+      expect(fenestration.layers.size).to eq(0)
+
+      glazing = OpenStudio::Model::SimpleGlazing.new(os_model)
+      glazing.setName("tubular_glazing")
+      expect(glazing.nameString).to eq("tubular_glazing")
+      expect(glazing.setUFactor(6.0)).to be(true)
+      expect(glazing.setSolarHeatGainCoefficient(0.50)).to be(true)
+      expect(glazing.setVisibleTransmittance(0.70)).to be(true)
+
+      layers = OpenStudio::Model::MaterialVector.new
+      layers << glazing
+      expect(fenestration.setLayers(layers)).to be(true)
+      expect(fenestration.layers.size).to eq(1)
+      expect(fenestration.layers[0].handle.to_s).to eq(glazing.handle.to_s)
+      expect(fenestration.uFactor.empty?).to be(false)
+      expect(fenestration.uFactor.get).to be_within(0.1).of(6.0)
+
+      # Tube walls.
+      construction = OpenStudio::Model::Construction.new(os_model)
+      construction.setName("tube_construction")
+      expect(construction.nameString).to eq("tube_construction")
+      expect(construction.layers.size).to eq(0)
+
+      interior = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
+      interior.setName("tube_wall")
+      expect(interior.nameString).to eq("tube_wall")
+      expect(interior.setRoughness("MediumRough")).to be(true)
+      expect(interior.setThickness(0.0126)).to be(true)
+      expect(interior.setConductivity(0.16)).to be(true)
+      expect(interior.setDensity(784.9)).to be(true)
+      expect(interior.setSpecificHeat(830)).to be(true)
+      expect(interior.setThermalAbsorptance(0.9)).to be(true)
+      expect(interior.setSolarAbsorptance(0.9)).to be(true)
+      expect(interior.setVisibleAbsorptance(0.9)).to be(true)
+
+      layers = OpenStudio::Model::MaterialVector.new
+      layers << interior
+      expect(construction.setLayers(layers)).to be(true)
+      expect(construction.layers.size).to eq(1)
+      expect(construction.layers[0].handle.to_s).to eq(interior.handle.to_s)
+
+      # Host spaces & surfaces.
+      sp1 = "SPACE5-1"
+      sp2 = "PLENUM-1"
+
+      z = "PLENUM-1 Thermal Zone"
+
+      s1 = "C5-1"  # sp1 surface hosting new TDD diffuser
+      s2 = "C5-1P" # plenum surface, above sp1
+      s3 = "TOP-1" # plenum surface hosting new TDD dome
+
+      # Fetch host spaces & surfaces.
+      space = os_model.getSpaceByName(sp1)
+      expect(space.empty?).to be(false)
+      space = space.get
+
+      plenum = os_model.getSpaceByName(sp2)
+      expect(plenum.empty?).to be(false)
+      plenum = plenum.get
+
+      zone = plenum.thermalZone
+      expect(zone.empty?).to be(false)
+      zone = zone.get
+      expect(zone.nameString).to eq(z)
+
+      ceiling = os_model.getSurfaceByName(s1)
+      expect(ceiling.empty?).to be(false)
+      ceiling = ceiling.get
+      sp = ceiling.space
+      expect(sp.empty?).to be(false)
+      sp = sp.get
+      expect(sp).to eq(space)
+
+      floor = os_model.getSurfaceByName(s2)
+      expect(floor.empty?).to be(false)
+      floor = floor.get
+      sp = floor.space
+      expect(sp.empty?).to be(false)
+      sp = sp.get
+      expect(sp).to eq(plenum)
+
+      adj = ceiling.adjacentSurface
+      expect(adj.empty?).to be(false)
+      adj = adj.get
+      expect(adj).to eq(floor)
+
+      adj = floor.adjacentSurface
+      expect(adj.empty?).to be(false)
+      adj = adj.get
+      expect(adj).to eq(ceiling)
+
+      roof = os_model.getSurfaceByName(s3)
+      expect(roof.empty?).to be(false)
+      roof = roof.get
+      sp = roof.space
+      expect(sp.empty?).to be(false)
+      sp = sp.get
+      expect(sp).to eq(plenum)
+
+      # Setting heights & Z-axis coordinates.
+      ceiling_Z = ceiling.centroid.z
+      roof_Z = roof.centroid.z
+      length = roof_Z - ceiling_Z
+      totalLength = length + 0.5
+      dome_Z = ceiling_Z + totalLength
+
+      # A new, 1mx1m diffuser subsurface in space ceiling.
+      os_v = OpenStudio::Point3dVector.new
+      os_v << OpenStudio::Point3d.new( 15.75,  7.15, ceiling_Z)
+      os_v << OpenStudio::Point3d.new( 15.75,  8.15, ceiling_Z)
+      os_v << OpenStudio::Point3d.new( 14.75,  8.15, ceiling_Z)
+      os_v << OpenStudio::Point3d.new( 14.75,  7.15, ceiling_Z)
+      diffuser = OpenStudio::Model::SubSurface.new(os_v, os_model)
+      diffuser.setName("diffuser")
+      expect(diffuser.setConstruction(fenestration)).to be(true)
+      expect(diffuser.setSubSurfaceType("TubularDaylightDiffuser")).to be(true)
+      expect(diffuser.setSurface(ceiling)).to be(true)
+      expect(diffuser.uFactor.empty?).to be(false)
+      expect(diffuser.uFactor.get).to be_within(0.1).of(6.0)
+
+      # A new, 1mx1m dome subsurface above Plenum roof.
+      os_v = OpenStudio::Point3dVector.new
+      os_v << OpenStudio::Point3d.new( 15.75,  7.15, dome_Z)
+      os_v << OpenStudio::Point3d.new( 15.75,  8.15, dome_Z)
+      os_v << OpenStudio::Point3d.new( 14.75,  8.15, dome_Z)
+      os_v << OpenStudio::Point3d.new( 14.75,  7.15, dome_Z)
+      dome = OpenStudio::Model::SubSurface.new(os_v, os_model)
+      dome.setName("dome")
+      expect(dome.setConstruction(fenestration)).to be(true)
+      expect(dome.setSubSurfaceType("TubularDaylightDome")).to be(true)
+      expect(dome.setSurface(roof)).to be(true)
+      expect(dome.uFactor.empty?).to be(false)
+      expect(dome.uFactor.get).to be_within(0.1).of(6.0)
+
+      expect(ceiling.tilt).to be_within(0.01).of(diffuser.tilt)
+      expect(dome.tilt).to be_within(0.01).of(roof.tilt)
+
+      rsi = 0.28
+      diameter = Math.sqrt(dome.grossArea/Math::PI) * 2
+
+      tdd = OpenStudio::Model::DaylightingDeviceTubular.new(
+              dome, diffuser, construction, diameter, totalLength, rsi)
+
+      expect(tdd.addTransitionZone(zone, length)).to be(true)
+      cl = OpenStudio::Model::TransitionZoneVector
+      expect(tdd.transitionZones.class).to eq(cl)
+      expect(tdd.numberofTransitionZones).to be(1)
+      expect(tdd.totalLength).to be_within(0.001).of(totalLength)
+
+      expect(tdd.subSurfaceDome).to eq(dome)
+      expect(tdd.subSurfaceDiffuser).to eq(diffuser)
+      c = tdd.construction
+      expect(c.to_Construction.empty?).to be(false)
+      c = c.to_Construction.get
+      expect(c.nameString).to eq(construction.nameString)
+      expect(tdd.diameter).to be_within(0.001).of(diameter)
+      expect(tdd.effectiveThermalResistance).to be_within(0.01).of(rsi)
+
+      pth = File.join(__dir__, "files/osms/out/tdd_5Z_test.osm")
+      os_model.save(pth, true)
+
+      # Testing if TBD recognizes the TDD as a "skylight" (for derating & UA').
+      psi_set = "poor (BETBG)"
+      io, surfaces = processTBD(os_model, psi_set)
+      expect(TBD.status).to eq(0)
+      expect(TBD.logs.empty?).to be(true)
+      expect(io.nil?).to be(false)
+      expect(io.is_a?(Hash)).to be(true)
+      expect(io.empty?).to be(false)
+      expect(surfaces.nil?).to be(false)
+      expect(surfaces.is_a?(Hash)).to be(true)
+      expect(surfaces.size).to eq(40)
+      expect(io.has_key?(:edges))
+
+      # Both diffuser and parent ceiling are stored as TBD 'surfaces'.
+      expect(surfaces.has_key?(s1)).to be(true)
+      surface = surfaces[s1]
+      expect(surface.has_key?(:skylights)).to be(true)
+      expect(surface[:skylights].size).to be(1)
+      expect(surface[:skylights].has_key?("diffuser")).to be(true)
+      skylight = surface[:skylights]["diffuser"]
+      expect(skylight.has_key?(:u)).to be(true)
+      expect(skylight[:u]).to be_a(Numeric)
+      expect(skylight[:u]).to be_within(0.01).of(1/rsi)
+
+      # ... yet TBD only derates constructions of opaque surfaces in CONDITIONED
+      # spaces IF (i) facing outdoors or (ii) facing UNCONDITIONED spaces like
+      # attics (see psi.rb). Here, the ceiling is tagged by TBD as a deratable
+      # surface, and hence the diffuser edges are logged in TBD's 'edges'.
+      expect(surface.has_key?(:heatloss)).to be(true)
+      expect(surface.has_key?(:ratio)).to be(true)
+      expect(surface[:heatloss]).to be_within(0.01).of(2.00)      # 4x 0.500 W/K
+
+      # Only edges of the diffuser (linked to the ceiling) are stored.
+      io[:edges].each do |edge|
+        expect(edge.is_a?(Hash)).to be(true)
+        expect(edge.has_key?(:surfaces)).to be(true)
+        expect(edge[:surfaces].is_a?(Array)).to be(true)
+        edge[:surfaces].each do |id|
+          next unless id == "dome" || id == "diffuser"
+          expect(id).to eq("diffuser")
+        end
+      end
+
+      expect(surfaces.has_key?(s3)).to be(true)
+      surface = surfaces[s3]
+      expect(surface.has_key?(:skylights)).to be(true)
+      expect(surface[:skylights].size).to be(1)
+      expect(surface[:skylights].has_key?("dome")).to be(true)
+      skylight = surface[:skylights]["dome"]
+      expect(skylight.has_key?(:u)).to be(true)
+      expect(skylight[:u]).to be_a(Numeric)
+      expect(skylight[:u]).to be_within(0.01).of(1/rsi)
+      expect(surface.has_key?(:heatloss)).to be(false)
+      expect(surface.has_key?(:ratio)).to be(false)
+
+      expect(io[:edges].size).to eq(51) # 4x extra edges for diffuser - not dome
+
+      out = JSON.pretty_generate(io)
+      outP = File.join(__dir__, "../json/tbd_5Z.out.json")
+      File.open(outP, "w") { |outP| outP.puts out }
+
+      # Re-use the exported file as input for another 5Z test.
+      os_model2 = translator.loadModel(pth)
+      expect(os_model2.empty?).to be(false)
+      os_model2 = os_model2.get
+
+      schemaP = File.join(__dir__, "../tbd.schema.json")
+      ioP2 = File.join(__dir__, "../json/tbd_5Z.out.json")
+      io2, surfaces = processTBD(os_model2, psi_set, ioP2, schemaP)
+      expect(TBD.status).to eq(0)
+      expect(TBD.logs.empty?).to be(true)
+      expect(io.nil?).to be(false)
+      expect(io.is_a?(Hash)).to be(true)
+      expect(io.empty?).to be(false)
+      expect(surfaces.nil?).to be(false)
+      expect(surfaces.is_a?(Hash)).to be(true)
+      expect(surfaces.size).to eq(40)
+
+      # Now mimic (again) the export functionality of the measure.
+      out2 = JSON.pretty_generate(io2)
+      outP2 = File.join(__dir__, "../json/tbd_5Z_2.out.json")
+      File.open(outP2, "w") { |outP2| outP2.puts out2 }
+
+      # Both output files should be the same ...
+      expect(FileUtils.identical?(outP, outP2)).to be(true)
+    end
+  end
+
+  it "can handle TDDs in attics" do
+    TBD.clean!
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    file = File.join(__dir__, "files/osms/in/test_smalloffice.osm")
+    path = OpenStudio::Path.new(file)
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    version = os_model.getVersion.versionIdentifier.split('.').map(&:to_i)
+    v = version.join.to_i
+    expect(v).is_a?(Numeric)
+
+    # For SDK versions >= v3.3.0, testing new DaylightingTubularDevice methods.
+    unless v < 330
+      # Both dome & diffuser: Simple Glazing constructions.
+      fenestration = OpenStudio::Model::Construction.new(os_model)
+      fenestration.setName("tubular_fenestration")
+      expect(fenestration.nameString).to eq("tubular_fenestration")
+      expect(fenestration.layers.size).to eq(0)
+
+      glazing = OpenStudio::Model::SimpleGlazing.new(os_model)
+      glazing.setName("tubular_glazing")
+      expect(glazing.nameString).to eq("tubular_glazing")
+      expect(glazing.setUFactor(6.0)).to be(true)
+      expect(glazing.setSolarHeatGainCoefficient(0.50)).to be(true)
+      expect(glazing.setVisibleTransmittance(0.70)).to be(true)
+
+      layers = OpenStudio::Model::MaterialVector.new
+      layers << glazing
+      expect(fenestration.setLayers(layers)).to be(true)
+      expect(fenestration.layers.size).to eq(1)
+      expect(fenestration.layers[0].handle.to_s).to eq(glazing.handle.to_s)
+      expect(fenestration.uFactor.empty?).to be(false)
+      expect(fenestration.uFactor.get).to be_within(0.1).of(6.0)
+
+      # Tube walls.
+      construction = OpenStudio::Model::Construction.new(os_model)
+      construction.setName("tube_construction")
+      expect(construction.nameString).to eq("tube_construction")
+      expect(construction.layers.size).to eq(0)
+
+      interior = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
+      interior.setName("tube_wall")
+      expect(interior.nameString).to eq("tube_wall")
+      expect(interior.setRoughness("MediumRough")).to be(true)
+      expect(interior.setThickness(0.0126)).to be(true)
+      expect(interior.setConductivity(0.16)).to be(true)
+      expect(interior.setDensity(784.9)).to be(true)
+      expect(interior.setSpecificHeat(830)).to be(true)
+      expect(interior.setThermalAbsorptance(0.9)).to be(true)
+      expect(interior.setSolarAbsorptance(0.9)).to be(true)
+      expect(interior.setVisibleAbsorptance(0.9)).to be(true)
+
+      layers = OpenStudio::Model::MaterialVector.new
+      layers << interior
+      expect(construction.setLayers(layers)).to be(true)
+      expect(construction.layers.size).to eq(1)
+      expect(construction.layers[0].handle.to_s).to eq(interior.handle.to_s)
+
+      # Host spaces & surfaces.
+      sp1 = "Core_ZN"
+      sp2 = "Attic"
+
+      z = "Attic ZN"
+
+      s1 = "Core_ZN_ceiling"  # sp1 surface hosting new TDD diffuser
+      s2 = "Attic_floor_core" # attic surface, above sp1
+      s3 = "Attic_roof_north" # attic surface hosting new TDD dome
+
+      # Fetch host spaces & surfaces.
+      core = os_model.getSpaceByName(sp1)
+      expect(core.empty?).to be(false)
+      core = core.get
+
+      attic = os_model.getSpaceByName(sp2)
+      expect(attic.empty?).to be(false)
+      attic = attic.get
+
+      zone = attic.thermalZone
+      expect(zone.empty?).to be(false)
+      zone = zone.get
+      expect(zone.nameString).to eq(z)
+
+      ceiling = os_model.getSurfaceByName(s1)
+      expect(ceiling.empty?).to be(false)
+      ceiling = ceiling.get
+      sp = ceiling.space
+      expect(sp.empty?).to be(false)
+      sp = sp.get
+      expect(sp).to eq(core)
+
+      floor = os_model.getSurfaceByName(s2)
+      expect(floor.empty?).to be(false)
+      floor = floor.get
+      sp = floor.space
+      expect(sp.empty?).to be(false)
+      sp = sp.get
+      expect(sp).to eq(attic)
+
+      adj = ceiling.adjacentSurface
+      expect(adj.empty?).to be(false)
+      adj = adj.get
+      expect(adj).to eq(floor)
+
+      adj = floor.adjacentSurface
+      expect(adj.empty?).to be(false)
+      adj = adj.get
+      expect(adj).to eq(ceiling)
+
+      roof = os_model.getSurfaceByName(s3)
+      expect(roof.empty?).to be(false)
+      roof = roof.get
+      sp = roof.space
+      expect(sp.empty?).to be(false)
+      sp = sp.get
+      expect(sp).to eq(attic)
+
+      # Setting heights & Z-axis coordinates.
+      ceiling_Z = 3.05
+      roof_Z = 5.51
+      length = roof_Z - ceiling_Z
+      totalLength = length + 1.0
+      dome_Z = ceiling_Z + totalLength
+
+      # A new, 1mx1m diffuser subsurface in Core ceiling.
+      os_v = OpenStudio::Point3dVector.new
+      os_v << OpenStudio::Point3d.new( 14.345, 10.845, ceiling_Z)
+      os_v << OpenStudio::Point3d.new( 14.345, 11.845, ceiling_Z)
+      os_v << OpenStudio::Point3d.new( 13.345, 11.845, ceiling_Z)
+      os_v << OpenStudio::Point3d.new( 13.345, 10.845, ceiling_Z)
+      diffuser = OpenStudio::Model::SubSurface.new(os_v, os_model)
+      diffuser.setName("diffuser")
+      expect(diffuser.setConstruction(fenestration)).to be(true)
+      expect(diffuser.setSubSurfaceType("TubularDaylightDiffuser")).to be(true)
+      expect(diffuser.setSurface(ceiling)).to be(true)
+      expect(diffuser.uFactor.empty?).to be(false)
+      expect(diffuser.uFactor.get).to be_within(0.1).of(6.0)
+
+      # A new, 1mx1m dome subsurface above Attic roof.
+      os_v = OpenStudio::Point3dVector.new
+      os_v << OpenStudio::Point3d.new( 14.345, 10.845, dome_Z)
+      os_v << OpenStudio::Point3d.new( 14.345, 11.845, dome_Z)
+      os_v << OpenStudio::Point3d.new( 13.345, 11.845, dome_Z)
+      os_v << OpenStudio::Point3d.new( 13.345, 10.845, dome_Z)
+      dome = OpenStudio::Model::SubSurface.new(os_v, os_model)
+      dome.setName("dome")
+      expect(dome.setConstruction(fenestration)).to be(true)
+      expect(dome.setSubSurfaceType("TubularDaylightDome")).to be(true)
+      expect(dome.setSurface(roof)).to be(true)
+      expect(dome.uFactor.empty?).to be(false)
+      expect(dome.uFactor.get).to be_within(0.1).of(6.0)
+
+      expect(ceiling.tilt).to be_within(0.01).of(diffuser.tilt)
+      expect(dome.tilt).to be_within(0.01).of(0.0)
+      expect(roof.tilt).to be_within(0.01).of(0.32)
+
+      rsi = 0.28
+      diameter = Math.sqrt(dome.grossArea/Math::PI) * 2
+
+      tdd = OpenStudio::Model::DaylightingDeviceTubular.new(
+              dome, diffuser, construction, diameter, totalLength, rsi)
+
+      expect(tdd.addTransitionZone(zone, length)).to be(true)
+      cl = OpenStudio::Model::TransitionZoneVector
+      expect(tdd.transitionZones.class).to eq(cl)
+      expect(tdd.numberofTransitionZones).to be(1)
+      expect(tdd.totalLength).to be_within(0.001).of(totalLength)
+
+      expect(tdd.subSurfaceDome).to eq(dome)
+      expect(tdd.subSurfaceDiffuser).to eq(diffuser)
+      c = tdd.construction
+      expect(c.to_Construction.empty?).to be(false)
+      c = c.to_Construction.get
+      expect(c.nameString).to eq(construction.nameString)
+      expect(tdd.diameter).to be_within(0.001).of(diameter)
+      expect(tdd.effectiveThermalResistance).to be_within(0.01).of(rsi)
+
+      pth = File.join(__dir__, "files/osms/out/tdd_smalloffice_test.osm")
+      os_model.save(pth, true)
+
+      # Testing if TBD recognizes the TDD as a "skylight" (for derating & UA').
+      psi_set = "poor (BETBG)"
+      io, surfaces = processTBD(os_model, psi_set)
+      expect(TBD.status).to eq(0)
+      expect(TBD.logs.empty?).to be(true)
+      expect(io.nil?).to be(false)
+      expect(io.is_a?(Hash)).to be(true)
+      expect(io.empty?).to be(false)
+      expect(surfaces.nil?).to be(false)
+      expect(surfaces.is_a?(Hash)).to be(true)
+      expect(surfaces.size).to eq(43)
+      expect(io.has_key?(:edges))
+
+      # Both diffuser and parent ceiling are stored as TBD 'surfaces'.
+      expect(surfaces.has_key?(s1)).to be(true)
+      surface = surfaces[s1]
+      expect(surface.has_key?(:skylights)).to be(true)
+      expect(surface[:skylights].has_key?("diffuser")).to be(true)
+      skylight = surface[:skylights]["diffuser"]
+      expect(skylight.has_key?(:u)).to be(true)
+      expect(skylight[:u]).to be_a(Numeric)
+      expect(skylight[:u]).to be_within(0.01).of(1/rsi)
+
+      # ... yet TBD only derates constructions of opaque surfaces in CONDITIONED
+      # spaces IF (i) facing outdoors or (ii) facing UNCONDITIONED spaces like
+      # attics (see psi.rb). Here, the ceiling is tagged by TBD as a deratable
+      # surface, and hence the diffuser edges are logged in TBD's 'edges'.
+      expect(surface.has_key?(:heatloss)).to be(true)
+      expect(surface.has_key?(:ratio)).to be(true)
+      expect(surface[:heatloss]).to be_within(0.01).of(2.00)      # 4x 0.500 W/K
+
+      # Only edges of the diffuser (linked to the ceiling) are stored.
+      io[:edges].each do |edge|
+        expect(edge.is_a?(Hash)).to be(true)
+        expect(edge.has_key?(:surfaces)).to be(true)
+        expect(edge[:surfaces].is_a?(Array)).to be(true)
+        edge[:surfaces].each do |id|
+          next unless id == "dome" || id == "diffuser"
+          expect(id).to eq("diffuser")
+        end
+      end
+
+      expect(surfaces.has_key?(s3)).to be(true)
+      surface = surfaces[s3]
+      expect(surface.has_key?(:skylights)).to be(true)
+      expect(surface[:skylights].has_key?("dome")).to be(true)
+      skylight = surface[:skylights]["dome"]
+      expect(skylight.has_key?(:u)).to be(true)
+      expect(skylight[:u]).to be_a(Numeric)
+      expect(skylight[:u]).to be_within(0.01).of(1/rsi)
+      expect(surface.has_key?(:heatloss)).to be(false)
+      expect(surface.has_key?(:ratio)).to be(false)
+
+      expect(io[:edges].size).to eq(109)      # 4x extra edges for diffuser only
+
+      out = JSON.pretty_generate(io)
+      outP = File.join(__dir__, "../json/tbd_smalloffice1.out.json")
+      File.open(outP, "w") { |outP| outP.puts out }
+
+      # Re-use the exported file as input for another test.
+      os_model2 = translator.loadModel(pth)
+      expect(os_model2.empty?).to be(false)
+      os_model2 = os_model2.get
+
+      schemaP = File.join(__dir__, "../tbd.schema.json")
+      ioP2 = File.join(__dir__, "../json/tbd_smalloffice1.out.json")
+      io2, surfaces = processTBD(os_model2, psi_set, ioP2, schemaP)
+      expect(TBD.status).to eq(0)
+      expect(TBD.logs.empty?).to be(true)
+      expect(io.nil?).to be(false)
+      expect(io.is_a?(Hash)).to be(true)
+      expect(io.empty?).to be(false)
+      expect(surfaces.nil?).to be(false)
+      expect(surfaces.is_a?(Hash)).to be(true)
+      expect(surfaces.size).to eq(43)
+
+      # Now mimic (again) the export functionality of the measure.
+      out2 = JSON.pretty_generate(io2)
+      outP2 = File.join(__dir__, "../json/tbd_smalloffice2.out.json")
+      File.open(outP2, "w") { |outP2| outP2.puts out2 }
+
+      # Both output files should be the same ...
+      expect(FileUtils.identical?(outP, outP2)).to be(true)
     end
   end
 
   it "can pre-process UA parameters" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = "/files/test_warehouse.osm"
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -6292,8 +7127,8 @@ RSpec.describe TBD do
     expect(val.empty?).to be(false)
 
     psi_set = "poor (BETBG)"
-    ioP = File.dirname(__FILE__) + "/../json/tbd_warehouse10.json"
-    schemaP = File.dirname(__FILE__) + "/../tbd.schema.json"
+    ioP = File.join(__dir__, "../json/tbd_warehouse10.json")
+    schemaP = File.join(__dir__, "../tbd.schema.json")
     io, surfaces = processTBD(os_model, psi_set, ioP, schemaP, true, ref)
 
     expect(TBD.status).to eq(0)
@@ -6457,7 +7292,7 @@ RSpec.describe TBD do
             bloc[:pro][:parapets] += edge[:length] * edge[:psi]
             bloc[:ref][:parapets] += edge[:length] * val[tt] * edge[:ratio]
           when :fenestration
-            expect(rate).to be_within(0.1).of(70.0)
+            expect(rate).to be_within(0.1).of(40.0)
             bloc[:pro][:trim] += edge[:length] * edge[:psi]
             bloc[:ref][:trim] += edge[:length] * val[tt] * edge[:ratio]
           when :corner
@@ -6513,14 +7348,14 @@ RSpec.describe TBD do
     expect(bloc1[:ref][:skylights]).to be_within(0.1).of(   0.0)
     expect(bloc1[:ref][:rimjoists]).to be_within(0.1).of(   5.3)
     expect(bloc1[:ref][:parapets]).to  be_within(0.1).of(   0.0)
-    expect(bloc1[:ref][:trim]).to      be_within(0.1).of(  16.3)
+    expect(bloc1[:ref][:trim]).to      be_within(0.1).of(   9.3)
     expect(bloc1[:ref][:corners]).to   be_within(0.1).of(   1.3)
     expect(bloc1[:ref][:balconies]).to be_within(0.1).of(   0.0)
     expect(bloc1[:ref][:grade]).to     be_within(0.1).of(  15.8)
     expect(bloc1[:ref][:other]).to     be_within(0.1).of(   0.0)
 
     bloc1_ref_UA = bloc1[:ref].values.reduce(:+)
-    expect(bloc1_ref_UA).to be_within(0.1).of(114.2)
+    expect(bloc1_ref_UA).to be_within(0.1).of(107.2)
 
     expect(bloc2[:pro][:walls]).to     be_within(0.1).of(1342.0)
     expect(bloc2[:pro][:roofs]).to     be_within(0.1).of(2169.2)
@@ -6547,19 +7382,19 @@ RSpec.describe TBD do
     expect(bloc2[:ref][:skylights]).to be_within(0.1).of( 225.9)
     expect(bloc2[:ref][:rimjoists]).to be_within(0.1).of(   5.3)
     expect(bloc2[:ref][:parapets]).to  be_within(0.1).of(  95.1)
-    expect(bloc2[:ref][:trim]).to      be_within(0.1).of( 108.5)
+    expect(bloc2[:ref][:trim]).to      be_within(0.1).of(  62.0)
     expect(bloc2[:ref][:corners]).to   be_within(0.1).of(   9.0)
     expect(bloc2[:ref][:balconies]).to be_within(0.1).of(   0.0)
     expect(bloc2[:ref][:grade]).to     be_within(0.1).of( 115.9)
     expect(bloc2[:ref][:other]).to     be_within(0.1).of(   1.0)
 
     bloc2_ref_UA = bloc2[:ref].values.reduce(:+)
-    expect(bloc2_ref_UA).to be_within(0.1).of(2321.8)
+    expect(bloc2_ref_UA).to be_within(0.1).of(2275.4)
 
     # Testing summaries function.
     version = os_model.getVersion.versionIdentifier
     ua = ua_summary(surfaces, Time.now, version, "test",
-      "test_warehouse.osm", "code (Quebec)")
+      "./files/osms/in/test_warehouse.osm", "code (Quebec)")
     expect(ua.nil?).to be(false)
     expect(ua.empty?).to be(false)
     expect(ua.is_a?(Hash)).to be(true)
@@ -6648,21 +7483,19 @@ RSpec.describe TBD do
     expect(ua[:en][:b2].has_key?(:grade)).to be(true)
     expect(ua[:en][:b2].has_key?(:other)).to be(true)
 
-    # ud_md_en = ua_md(ua, :en)
-    # File.open("ua_en.md", "w") do |file|
-    #   file.puts ud_md_en
-    # end
-    #
-    # ud_md_fr = ua_md(ua, :fr)
-    # File.open("ua_fr.md", "w") do |file|
-    #   file.puts ud_md_fr
-    # end
+    ud_md_en = ua_md(ua, :en)
+    path = File.join(__dir__, "files/ua/ua_en.md")
+    File.open(path, "w") { |file| file.puts ud_md_en }
+
+    ud_md_fr = ua_md(ua, :fr)
+    path = File.join(__dir__, "files/ua/ua_fr.md")
+    File.open(path, "w") { |file| file.puts ud_md_fr }
 
     # Try with an incomplete reference, e.g. (non thermal bridging)
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = "/files/test_warehouse.osm"
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -6725,34 +7558,32 @@ RSpec.describe TBD do
     # Testing summaries function.
     version = os_model.getVersion.versionIdentifier
     ua = ua_summary(surfaces, Time.now, version, "testing non thermal bridging",
-      "test_warehouse.osm", ref)
+      "./files/osms/in/test_warehouse.osm", ref)
     expect(ua.nil?).to be(false)
     expect(ua.empty?).to be(false)
     expect(ua.is_a?(Hash)).to be(true)
     expect(ua.has_key?(:model))
 
-    ud_md_en = ua_md(ua, :en)
-    File.open("ua_en.md", "w") do |file|
-      file.puts ud_md_en
-    end
+    en_ud_md = ua_md(ua, :en)
+    path = File.join(__dir__, "files/ua/en_ua.md")
+    File.open(path, "w") { |file| file.puts en_ud_md  }
 
-    ud_md_fr = ua_md(ua, :fr)
-    File.open("ua_fr.md", "w") do |file|
-      file.puts ud_md_fr
-    end
+    fr_ud_md = ua_md(ua, :fr)
+    path = File.join(__dir__, "files/ua/fr_ua.md")
+    File.open(path, "w") { |file| file.puts fr_ud_md }
   end
 
   it "can work off of a cloned model" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.dirname(__FILE__) + "/files/test_warehouse.osm"
+    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
     path = OpenStudio::Path.new(file)
     model = translator.loadModel(path)
     expect(model.empty?).to be(false)
     model = model.get
 
     alt_model = model.clone
-    alt_file = File.dirname(__FILE__) + "/files/alt_warehouse.osm"
+    alt_file = File.join(__dir__, "files/osms/out/alt_warehouse.osm")
     alt_model.save(alt_file, true)
 
     # Despite one being the clone of the other, files will not be identical,
@@ -6771,11 +7602,11 @@ RSpec.describe TBD do
     expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(23)
     out = JSON.pretty_generate(io)
-    outP = File.dirname(__FILE__) + "/../json/tbd_warehouse12.out.json"
+    outP = File.join(__dir__, "../json/tbd_warehouse12.out.json")
     File.open(outP, "w") { |outP| outP.puts out }
 
     TBD.clean!
-    alt_file = File.dirname(__FILE__) + "/files/alt_warehouse.osm"
+    alt_file = File.join(__dir__, "files/osms/out/alt_warehouse.osm")
     alt_path = OpenStudio::Path.new(alt_file)
     alt_model = translator.loadModel(alt_path)
     expect(alt_model.empty?).to be(false)
@@ -6792,7 +7623,7 @@ RSpec.describe TBD do
     expect(alt_surfaces.is_a?(Hash)).to be(true)
     expect(alt_surfaces.size).to eq(23)
     out2 = JSON.pretty_generate(alt_io)
-    outP2 = File.dirname(__FILE__) + "/../json/tbd_warehouse13.out.json"
+    outP2 = File.join(__dir__, "../json/tbd_warehouse13.out.json")
     File.open(outP2, "w") { |outP2| outP2.puts out2 }
 
     # The JSON output files are identical.
@@ -6802,40 +7633,39 @@ RSpec.describe TBD do
     version = model.getVersion.versionIdentifier
 
     # Original output UA' MD file.
+    pth1 = File.join(__dir__, "files/osms/in/warehouse.osm")
     o_ua = ua_summary(surfaces, time, version, "testing equality",
-      "warehouse.osm", "code (Quebec)")
+      pth1, "code (Quebec)")
     expect(o_ua.nil?).to be(false)
     expect(o_ua.empty?).to be(false)
     expect(o_ua.is_a?(Hash)).to be(true)
     expect(o_ua.has_key?(:model))
 
     o_ud_md_en = ua_md(o_ua, :en)
-    File.open("o_ua_en.md", "w") do |file|
-      file.puts o_ud_md_en
-    end
+    path1 = File.join(__dir__, "files/ua/o_ua_en.md")
+    File.open(path1, "w") { |file| file.puts o_ud_md_en }
 
     # Alternate output UA' MD file.
     alt_ua = ua_summary(alt_surfaces, time, version, "testing equality",
-      "warehouse.osm", "code (Quebec)")
+      pth1, "code (Quebec)")
     expect(alt_ua.nil?).to be(false)
     expect(alt_ua.empty?).to be(false)
     expect(alt_ua.is_a?(Hash)).to be(true)
     expect(alt_ua.has_key?(:model))
 
     alt_ud_md_en = ua_md(alt_ua, :en)
-    File.open("alt_ua_en.md", "w") do |file|
-      file.puts alt_ud_md_en
-    end
+    path2 = File.join(__dir__, "files/ua/alt_ua_en.md")
+    File.open(path2, "w") { |file| file.puts alt_ud_md_en }
 
     # Both output UA' MD files should be identical.
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
-    expect(FileUtils.identical?("o_ua_en.md", "alt_ua_en.md")).to be(true)
+    expect(FileUtils.identical?(path1, path2)).to be(true)
 
     # Testing the Macumber solution.
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.dirname(__FILE__) + "/files/test_warehouse.osm"
+    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
     path = OpenStudio::Path.new(file)
     model = translator.loadModel(path)
     expect(model.empty?).to be(false)
@@ -6843,7 +7673,7 @@ RSpec.describe TBD do
 
     alt2_model = OpenStudio::Model::Model.new
     alt2_model.addObjects(model.toIdfFile.objects)
-    alt2_file = File.dirname(__FILE__) + "/files/alt2_warehouse.osm"
+    alt2_file = File.join(__dir__, "files/osms/out/alt2_warehouse.osm")
     alt2_model.save(alt2_file, true)
 
     # Still get the differences in handles (not consequential at all if the TBD
@@ -6863,7 +7693,7 @@ RSpec.describe TBD do
     expect(alt2_surfaces.size).to eq(23)
 
     out3 = JSON.pretty_generate(alt2_io)
-    outP3 = File.dirname(__FILE__) + "/../json/tbd_warehouse14.out.json"
+    outP3 = File.join(__dir__, "../json/tbd_warehouse14.out.json")
     File.open(outP3, "w") { |outP3| outP3.puts out3 }
 
     # Nice. Both TBD JSON output files are identical!
@@ -6874,7 +7704,8 @@ RSpec.describe TBD do
   it "can generate and access KIVA inputs (seb)" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + "/files/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -6945,11 +7776,11 @@ RSpec.describe TBD do
       s.createSurfacePropertyExposedFoundationPerimeter(arg, 12.59)
     end
 
-    os_model.save("os_model_KIVA.osm", true)
+    file = File.join(__dir__, "files/osms/out/os_model_KIVA.osm")
+    os_model.save(file, true)
 
     # Now re-open for testing.
-    file = "/../os_model_KIVA.osm"
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    path = OpenStudio::Path.new(file)
     os_model2 = translator.loadModel(path)
     expect(os_model2.empty?).to be(false)
     os_model2 = os_model2.get
@@ -7006,8 +7837,8 @@ RSpec.describe TBD do
   it "can generate and access KIVA inputs (midrise apts - variant)" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = "/files/midrise_KIVA.osm"
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    file = File.join(__dir__, "files/osms/in/midrise_KIVA.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -7047,8 +7878,8 @@ RSpec.describe TBD do
   it "can generate multiple KIVA exposed perimeters (midrise apts - variant)" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = "/files/midrise_KIVA.osm"
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    file = File.join(__dir__, "files/osms/in/midrise_KIVA.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -7104,8 +7935,8 @@ RSpec.describe TBD do
   it "can generate KIVA exposed perimeters (warehouse)" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = "/files/test_warehouse.osm"
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
@@ -7156,11 +7987,11 @@ RSpec.describe TBD do
       expect(found).to be(true)
     end
 
-    os_model.save("warehouse_KIVA.osm", true)
+    pth = File.join(__dir__, "files/osms/out/warehouse_KIVA.osm")
+    os_model.save(pth, true)
 
     # Now re-open for testing.
-    file = "/../warehouse_KIVA.osm"
-    path = OpenStudio::Path.new(File.dirname(__FILE__) + file)
+    path = OpenStudio::Path.new(pth)
     os_model2 = translator.loadModel(path)
     expect(os_model2.empty?).to be(false)
     os_model2 = os_model2.get

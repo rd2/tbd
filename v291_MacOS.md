@@ -1,8 +1,8 @@
-_We reiterate that energy modellers simply interested in using the TBD OpenStudio measure can either download the latest [release](https://github.com/rd2/tbd/releases) or access the measure via NREL's [BCL](https://bcl.nrel.gov) ... search for "bridging" or "rd2"._
+_We reiterate that building professionals and energy modellers can download the latest TBD version directly from the Guide itself, or under [releases](https://github.com/rd2/tbd/releases), or via NREL's [BCL](https://bcl.nrel.gov) (search for "bridging" or "rd2")._
 
 _Those instead interested in exploring/tweaking the source code (cloned or forked versions of TBD) can follow the Windows or MacOS Ruby setup described in TBD's [README](https://github.com/rd2/tbd#readme)._
 
-_The MacOS instructions below specifically target (older) Ruby v2.2.5 environments, needed for developing OpenStudio [v2.9.1](https://github.com/NREL/OpenStudio/releases/tag/v2.9.1) measures - the most up-to-date version that remains [compatible](https://github.com/NREL/OpenStudio/wiki/OpenStudio-SDK-Version-Compatibility-Matrix) with SketchUp 2017. Although TBD (and Topolys) are systematically tested against updated OpenStudio versions (v2.9.1 onwards), the following Ruby v2.2.5 setup is no longer tested or maintained. Nonetheless, it may be of some help for the more adventurous of you._
+_The MacOS instructions below specifically target (older) Ruby v2.2.5 environments, needed for developing OpenStudio [v2.9.1](https://github.com/NREL/OpenStudio/releases/tag/v2.9.1) measures - the most up-to-date version that remains [compatible](https://github.com/NREL/OpenStudio/wiki/OpenStudio-SDK-Version-Compatibility-Matrix) with [SketchUp Make 2017](https://help.sketchup.com/en/downloading-older-versions). More recent OpenStudio versions (e.g. v3.3.0) can - to a large degree - safely translate older .osm files. Although TBD (and Topolys) are systematically tested against updated OpenStudio versions (v2.9.1 onwards), the following Ruby v2.2.5 setup is no longer tested or maintained. Nonetheless, it may be of some help for the more adventurous of you._
 
 
 ## v2.9.1 MacOS Instructions
@@ -18,7 +18,7 @@ brew install rbenv/tap/openssl@1.0
 
 By _tapping_, Homebrew provides a way to access third-party repositories that are no longer officially supported by Homebrew, like Ruby v2.2.5 and OpenSSL-1.0. The above instruction tells Homebrew to install compatible versions of OpenSSL-1.0 with _rbenv_ (e.g. 1.0.2t, 1.0.2u).
 
-Next, ensure that Homebrew and _rbenv_ use OpenSSL-1.0 for future, local Ruby development. Edit (or create) a user’s local _~/.zshrc_ file (instructions here are provided for zsh, the default macOS Terminal shell interface - bash users: adapt!), by pasting-in the following:
+Next, ensure that Homebrew and _rbenv_ use OpenSSL-1.0 for future, local Ruby development. Edit (or create) a user’s local _~/.zshrc_ file (instructions here are provided for _zsh_, the default macOS Terminal shell interface - _bash_ users: adapt!), by pasting-in the following:
 
 ```
 eval "$(rbenv init - zsh)"
@@ -79,7 +79,7 @@ rbenv local 2.2.5
 ruby -v
 ```
 
-… should now report ```2.2.5``` as the local Ruby version, to be used by default for anything under the "sandbox291" directory tree. To ensure both Ruby versions are operational and safe, run the following checkup twice - once from a user’s home (or ~/), then from within e.g., "sandbox291":
+… should now report ```2.2.5``` as the local Ruby version, to be used by default for anything under the "sandbox291" directory tree. To ensure both Ruby versions are operational and safe, run the following checkup twice - once from a user’s _home_ (or ~/), then from within e.g., "sandbox291":
 
 ```
 cd ~/
@@ -92,7 +92,7 @@ If successful, one should get a ```Hooray!``` from both Ruby versions confirming
 
 Install OpenStudio [v2.9.1](https://github.com/NREL/OpenStudio/releases/tag/v2.9.1).
 
-Then create the file _~/.rbenv/versions/2.2.5/lib/ruby/site_ruby/openstudio.rb_, and _point it_ to your OpenStudio installation by editing the contents, e.g.:
+Then create the file _~/.rbenv/versions/2.2.5/lib/ruby/site_ruby/openstudio.rb_, and edit it so it _points_ to your new OpenStudio installation:
 
 ```
 require '/Applications/OpenStudio-2.9.1/Ruby/openstudio.rb'
