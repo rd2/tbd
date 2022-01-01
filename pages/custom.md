@@ -36,7 +36,7 @@ __SCHEMA__: Let's start with the tough part. TBD output & input files are:
 - JSON formatted
 - structured following a TBD-specific JSON _schema_  
 
-_Schema_? See this as a set of coded instructions of:  
+_Schema_? See this as a set of coded instructions on:  
 
 - what's allowed as TBD input
 - how this input should be JSON-formatted.  
@@ -51,7 +51,7 @@ Currently, designers are yet to have access to online tools or BIM-integrated fe
 
 __PSIs__: In order to refer to a custom _psi_ set, one must first define the custom set itself. TBD JSON "psis" each require a unique identifier (e.g. "not bad"), and the expected TBD shorthands (e.g. "parapet") with their custom _psi_ values (in W/K per meter). Note that the _joint_ shorthand is optional: if one or more _transition_ edges in a model are to become structural expansion _joints_, then the custom _psi_ set should hold an additional _joint_ entry.
 
-__BUILDING__: TBD allows a single "building" JSON entry, where one simply refers to one of the previously defined _psi_ sets. This overrides the pull-down __Default thermal bridge option__.
+__BUILDING__: TBD allows a single "building" JSON entry, where one simply refers to one of the previously defined _psi_ sets. This overrides the pull-down __Default thermal bridge set__ option.
 
 ### Multiple custom _psi_ sets
 
@@ -178,7 +178,7 @@ Here, the OpenStudio surface "exposed floor 1" will inherit 10x 0.7 W/K (= 7 W/K
 
 ### Extended _shorthands_
 
-If one carefully examines a detailed _tbd.out.json_ file, one will notice new or altered TBD _shorthands_ for individual edges e.g., "jamb", "sill" & "head" instead of "fenestration", as well as "concave" or "convex" variants e.g.:
+If one carefully examines a detailed _tbd.out.json_ file, one notices new or altered TBD _shorthands_ for individual edges e.g., "jamb", "sill" & "head" instead of "fenestration", as well as "concave" or "convex" variants e.g.:
 ```
 {
   "psi": "poor (BETBG)",
@@ -212,7 +212,7 @@ If one carefully examines a detailed _tbd.out.json_ file, one will notice new or
   "v1z": 8.53398380454007
 },
 ```
-Here, "type" designates one of the possible (extended) TBD _shorthands_. Users may have simply relied on a general "fenestration" _psi_ value, TBD will nonetheless differentiate between fenestration _heads_, _jambs_ and _sills_. In addition, TBD will add a "convex" or "concave" suffix to edges linking surfaces that aren't on the same 3D plane. A simple, rectangular building would have a minimum of 4 _convex_ parapets, but a one-story extension to a 2-story building would (also) have at least one _concave_ parapet.
+Here, "type" designates one of the possible (extended) TBD _shorthands_. Users may have simply relied on a general "fenestration" _psi_ value, TBD will nonetheless differentiate between fenestration _heads_, _jambs_ and _sills_. In addition, TBD will add a "convex" or "concave" suffix to edges linking surfaces that aren't on the same 3D plane. A simple, rectangular building would have a minimum of 4 _convex_ parapet edges, but a one-story extension to a 2-story building would (also) have at least one _concave_ parapet edge.
 
 If one comes across published _psi_ data that distinguishes between fenestration _heads_, _sills_ and _jambs_ (the BETBG does hold some examples), and/or differences between _convex_ vs _concave_ corners, then one could customize a _tbd.json_ file as follows:
 ```
@@ -245,7 +245,7 @@ There are obviously many, many possible combinations. TBD's GitHub repository co
 
 ### A side note on dimensioning
 
-Envelope surfaces are usually modelled in OpenStudio based on _outer_ dimensions (i.e. following the exterior cladding, as in ASHRAE 90.1 and Québec's energy code), or on _inner_ dimensions (i.e. following the interior finishing, as in the Canadian NECB). For most _flat_ edges, this isn't critical. But for concave or convex corners and parapets, adjustments to _psi_ values may be warranted if there is a mismatch in conventions between the OpenStudio model vs published _psi_ data. For instance, BETBG data reflect an _inner_ dimensioning convention, while ISO 14683 reports _psi_ values for both conventions. The following equation may be used to adjust BETBG _psi_ values for e.g., convex corners, when relying on _outer_ dimensions in OpenStudio.
+Envelope surfaces are usually modelled in OpenStudio based on _outer_ dimensions (i.e. following the exterior cladding, as in ASHRAE 90.1 and Québec's energy code), or on _inner_ dimensions (i.e. following the interior finishing, as in the Canadian NECB). For most _flat_ edges, this isn't critical. But for concave or convex edges, adjustments to _psi_ values may be warranted if there is a mismatch in conventions between the OpenStudio model vs published _psi_ data. For instance, BETBG data reflect an _inner_ dimensioning convention, while ISO 14683 reports _psi_ values for both conventions. The following equation may be used to adjust BETBG _psi_ values for e.g., convex corners, when relying on _outer_ dimensions in OpenStudio.
 ```
 PSIe = PSIi + Uo * 2(Li - Le), where:
 

@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=09f1b769ff99531e36448fab5b9ce149a73f9621">
+    <link rel="stylesheet" href="/assets/css/style.css?v=51db20dee2ccd816ef45fa6471fe6d3e90ff576e">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -95,7 +95,7 @@
   <li>structured following a TBD-specific JSON <em>schema</em></li>
 </ul>
 
-<p><em>Schema</em>? See this as a set of coded instructions of:</p>
+<p><em>Schema</em>? See this as a set of coded instructions on:</p>
 
 <ul>
   <li>what’s allowed as TBD input</li>
@@ -112,7 +112,7 @@
 
 <p><strong>PSIs</strong>: In order to refer to a custom <em>psi</em> set, one must first define the custom set itself. TBD JSON “psis” each require a unique identifier (e.g. “not bad”), and the expected TBD shorthands (e.g. “parapet”) with their custom <em>psi</em> values (in W/K per meter). Note that the <em>joint</em> shorthand is optional: if one or more <em>transition</em> edges in a model are to become structural expansion <em>joints</em>, then the custom <em>psi</em> set should hold an additional <em>joint</em> entry.</p>
 
-<p><strong>BUILDING</strong>: TBD allows a single “building” JSON entry, where one simply refers to one of the previously defined <em>psi</em> sets. This overrides the pull-down <strong>Default thermal bridge option</strong>.</p>
+<p><strong>BUILDING</strong>: TBD allows a single “building” JSON entry, where one simply refers to one of the previously defined <em>psi</em> sets. This overrides the pull-down <strong>Default thermal bridge set</strong> option.</p>
 
 <h3 id="multiple-custom-psi-sets">Multiple custom <em>psi</em> sets</h3>
 
@@ -240,7 +240,7 @@
 
 <h3 id="extended-shorthands">Extended <em>shorthands</em></h3>
 
-<p>If one carefully examines a detailed <em>tbd.out.json</em> file, one will notice new or altered TBD <em>shorthands</em> for individual edges e.g., “jamb”, “sill” &amp; “head” instead of “fenestration”, as well as “concave” or “convex” variants e.g.:</p>
+<p>If one carefully examines a detailed <em>tbd.out.json</em> file, one notices new or altered TBD <em>shorthands</em> for individual edges e.g., “jamb”, “sill” &amp; “head” instead of “fenestration”, as well as “concave” or “convex” variants e.g.:</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>{
   "psi": "poor (BETBG)",
   "type": "jamb",
@@ -273,7 +273,7 @@
   "v1z": 8.53398380454007
 },
 </code></pre></div></div>
-<p>Here, “type” designates one of the possible (extended) TBD <em>shorthands</em>. Users may have simply relied on a general “fenestration” <em>psi</em> value, TBD will nonetheless differentiate between fenestration <em>heads</em>, <em>jambs</em> and <em>sills</em>. In addition, TBD will add a “convex” or “concave” suffix to edges linking surfaces that aren’t on the same 3D plane. A simple, rectangular building would have a minimum of 4 <em>convex</em> parapets, but a one-story extension to a 2-story building would (also) have at least one <em>concave</em> parapet.</p>
+<p>Here, “type” designates one of the possible (extended) TBD <em>shorthands</em>. Users may have simply relied on a general “fenestration” <em>psi</em> value, TBD will nonetheless differentiate between fenestration <em>heads</em>, <em>jambs</em> and <em>sills</em>. In addition, TBD will add a “convex” or “concave” suffix to edges linking surfaces that aren’t on the same 3D plane. A simple, rectangular building would have a minimum of 4 <em>convex</em> parapet edges, but a one-story extension to a 2-story building would (also) have at least one <em>concave</em> parapet edge.</p>
 
 <p>If one comes across published <em>psi</em> data that distinguishes between fenestration <em>heads</em>, <em>sills</em> and <em>jambs</em> (the BETBG does hold some examples), and/or differences between <em>convex</em> vs <em>concave</em> corners, then one could customize a <em>tbd.json</em> file as follows:</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>{
@@ -305,7 +305,7 @@
 
 <h3 id="a-side-note-on-dimensioning">A side note on dimensioning</h3>
 
-<p>Envelope surfaces are usually modelled in OpenStudio based on <em>outer</em> dimensions (i.e. following the exterior cladding, as in ASHRAE 90.1 and Québec’s energy code), or on <em>inner</em> dimensions (i.e. following the interior finishing, as in the Canadian NECB). For most <em>flat</em> edges, this isn’t critical. But for concave or convex corners and parapets, adjustments to <em>psi</em> values may be warranted if there is a mismatch in conventions between the OpenStudio model vs published <em>psi</em> data. For instance, BETBG data reflect an <em>inner</em> dimensioning convention, while ISO 14683 reports <em>psi</em> values for both conventions. The following equation may be used to adjust BETBG <em>psi</em> values for e.g., convex corners, when relying on <em>outer</em> dimensions in OpenStudio.</p>
+<p>Envelope surfaces are usually modelled in OpenStudio based on <em>outer</em> dimensions (i.e. following the exterior cladding, as in ASHRAE 90.1 and Québec’s energy code), or on <em>inner</em> dimensions (i.e. following the interior finishing, as in the Canadian NECB). For most <em>flat</em> edges, this isn’t critical. But for concave or convex edges, adjustments to <em>psi</em> values may be warranted if there is a mismatch in conventions between the OpenStudio model vs published <em>psi</em> data. For instance, BETBG data reflect an <em>inner</em> dimensioning convention, while ISO 14683 reports <em>psi</em> values for both conventions. The following equation may be used to adjust BETBG <em>psi</em> values for e.g., convex corners, when relying on <em>outer</em> dimensions in OpenStudio.</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>PSIe = PSIi + Uo * 2(Li - Le), where:
 
 PSIe = adjusted PSI (W/K per m), as TBD input

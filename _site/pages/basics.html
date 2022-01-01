@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=09f1b769ff99531e36448fab5b9ce149a73f9621">
+    <link rel="stylesheet" href="/assets/css/style.css?v=51db20dee2ccd816ef45fa6471fe6d3e90ff576e">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -100,14 +100,14 @@
 
 <h3 id="tbd-menu-options">TBD menu options</h3>
 
-<p>Whether TBD is accessed from the <em>OpenStudio Application</em> Measures’ tab or through a <a href="https://nrel.github.io/OpenStudio-user-documentation/reference/command_line_interface/" title="OpenStudio CLI">CLI</a> <em>workflow</em>, users have access to the same 8 menu options (shown here with their default values):</p>
+<p>Whether TBD is accessed from the <em>OpenStudio Application</em> Measures’ tab or through a <a href="https://nrel.github.io/OpenStudio-user-documentation/reference/command_line_interface/" title="OpenStudio CLI">CLI</a> <em>workflow</em>, users have access to the same <strong>8</strong> menu options (<em>Inputs</em>, shown here with their default values):</p>
 
 <p><img src="../assets/images/TBD-inputs.png" alt="TBD Menu Options" title="TBD Menu Options" /></p>
 
 <p>JSON input/output files, <em>UA’</em> reports and <em>KIVA</em> inputs are described in detail in the <a href="./custom.html" title="TBD customization">Customization</a>, <a href="./ua.html" title="UA' assessments">UA’</a> and <a href="./kiva.html" title="KIVA support">KIVA</a> sections, respectively.</p>
 
-<p>The <strong>Default thermal bridge (set)</strong> pull-down menu of prepackaged, compact <em>psi</em> sets is key for newcomers, especially in the early design stages. Users simply need to switch between default sets (and rerun the measure) to get a sense of the degree of thermal <em>derating</em> that would take place in their building, and how this affects energy simulation results. It’s easy, yet coarse as the entire building is treated uniformly (check the <a href="./custom.html" title="TBD customization">Customization</a> section on handling multiple <em>psi</em> sets). Each default set must hold a minimal shortlist of common thermal bridge <em>shorthands</em> for each <em>edge</em> TBD identifies:</p>
-<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    "rimjoist" | wall/floor or sloped-roof/"floor edge
+<p>The <strong>Default thermal bridge set</strong> pull-down menu of prepackaged, compact <em>psi</em> sets is key for newcomers, especially in the early design stages. Users simply need to switch between default sets (and rerun the measure) to get a sense of the degree of thermal <em>derating</em> that would take place in their building, and how this affects energy simulation results. It’s easy, yet coarse as the entire building is treated uniformly (check the <a href="./custom.html" title="TBD customization">Customization</a> section on handling multiple <em>psi</em> sets). Each default set holds a minimal shortlist of common thermal bridge <em>shorthands</em> for each <em>edge</em> TBD identifies:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    "rimjoist" | wall/floor or sloped-roof/floor edge
      "parapet" | wall/roof edge
 "fenestration" | window, door, skylight perimeter
       "corner" | angled wall/wall edge
@@ -206,9 +206,9 @@ fenestration | 0.500
 
 <h3 id="energyplus-simulations">EnergyPlus simulations</h3>
 
-<p>OpenStudio users need to specify where downloaded <em>measures</em> are stored on their workstation (<em>Preferences</em> &gt; <em>Change My Measures Directory</em>) - just download TBD in there (click on the <em>download</em> links at the top of the page, or download from GitHub or BCL). Then in the <em>OpenStudio Application</em>, simply drag &amp; drop TBD in the <em>Measures</em> tab.</p>
+<p>OpenStudio users need to specify where downloaded <em>measures</em> are stored on their workstation (<em>Preferences</em> &gt; <em>Change My Measures Directory</em>) - just download TBD in there (click on the <em>download</em> links at the top of the page, or download from GitHub or <a href="https://bcl.nrel.gov/dashboard" title="OpenStudio's Building Component Library">BCL</a> - search for “bridging” or “rd2”). Then in the <em>OpenStudio Application</em>, simply drag &amp; drop TBD in the <em>Measures</em> tab.</p>
 
-<p>As with most OpenStudio measures, TBD does not modify the original OpenStudio building model (e.g. adding/referencing new <em>derated</em> constructions). OpenStudio makes a behind-the-scenes copy of the model, which is in turn modified before simulation. Although the terminology may be at first confusing, leave the <em>Alter OpenStudio model</em> option CHECKED for EnergyPlus simulations - this option is really there for <em>Apply Measures Now</em> cases. Once the <em>Default thermal bridge (set)</em> is selected, save the model and run the simulation.</p>
+<p>As with most OpenStudio measures, TBD does not modify the original OpenStudio building model (e.g. adding/referencing new <em>derated</em> constructions). OpenStudio makes a behind-the-scenes copy of the model, which is in turn modified before simulation. Although the terminology may be at first confusing, leave the <em>Alter OpenStudio model</em> option CHECKED for EnergyPlus simulations - this option is really there for <em>Apply Measures Now</em> cases. Once the <em>Default thermal bridge set</em> is selected, save the model and run the simulation.</p>
 
 <p>Results should show an increase in heating loads for cold climates. For ASHRAE climate zone 7, annual heating should increase generally between 5% to 15% (depending on the building type) for <em>poor</em> to <em>regular</em> thermal bridging details in an otherwise well-insulated envelope. Consult the <a href="./reports.html" title="What TBD reports back">Reporting</a> section to learn more on TBD feedback.</p>
 
@@ -218,11 +218,11 @@ fenestration | 0.500
 
 <p>However, there are <em>Apply Measures Now</em> situations where permanent changes to an OpenStudio model aren’t warranted or desirable, in which case it becomes critical to UNCHECK the <em>Alter OpenStudio model</em> option:</p>
 
-<p><strong>Iterative investigations</strong>: Users may simply want to get a status report of how well they’re doing in managing thermal bridging in their projects. TBD provides the same user feedback (including errors &amp; warnings) in either mode. Consult the <a href="./reports.html" title="What TBD reports back">Reporting</a> section.</p>
+<p><strong>Iterative investigations</strong>: Users may simply want to get a status report of how well they’re managing thermal bridging in their projects. TBD provides the same user feedback (including errors &amp; warnings) in either mode. Consult the <a href="./reports.html" title="What TBD reports back">Reporting</a> section.</p>
 
 <p><strong>UA’ reports</strong>: Similarly, TBD can generate at any moment <a href="./ua.html" title="UA' assessments">UA’</a> summaries (often admissible building energy code compliance paths).</p>
 
-<p><strong>JSON output</strong>: Users can generate a complete, detailed list of every <em>major</em> thermal bridge in their OpenStudio model, which can be useful for cost estimation or simply for further <a href="./custom.html" title="TBD customization">customization</a>.</p>
+<p><strong>JSON output</strong>: Users can generate a complete, detailed list of every <em>major</em> thermal bridge in their OpenStudio model, which can be useful for automating cost estimation or simply for further <a href="./custom.html" title="TBD customization">customization</a>.</p>
 
 <p><a href="../index.html" title="Thermal Bridging &amp; Derating">back</a></p>
 
