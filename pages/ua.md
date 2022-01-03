@@ -50,11 +50,11 @@ In addition to standard TBD feedback (see [Reporting](./reports.html "What TBD r
 
 ![UA Assessment](../assets/images/UA.png "UA Assessment")
 
-The __Summary__ is the key output to scrutinize. For both _heated_ and _semi-heated_ sections (if applicable), _UA'_ totals (in W/K) give a sense of how close (or far) one is to reaching selected targets. Here (a hypothetical warehouse variant), the proposed design is considerably off the mark for both _heated_ and _unheated_ sections.
+The __Summary__ is the key output to scrutinize. For both _heated_ and _semi-heated_ sections (if applicable), _UA'_ totals (in W/K) give a sense of how close (or far) one is to reaching selected targets. Here (a hypothetical warehouse variant), the proposed design is considerably off the mark for both _heated_ (+83.3%) and _semi-heated_ (+113.7%) sections.
 
-Results are further broken down into individual envelope components, such as walls, roofs, doors, windows, etc., and any applicable thermal bridges (e.g. "trim" for all fenestration perimeters). This allows one to assess the relative impact of each item, where to concentrate future efforts, etc. For instance, the proposed doors in both _heated_ and _semi-heated_ sections are considerably off code requirements, yet their relative weight is limited to 5% to 10% of _UA'_ totals.
+Results are further broken down into individual envelope components, such as walls, roofs, doors, windows, etc., and applicable thermal bridges (e.g. "trim" for all fenestration perimeters). This allows one to assess the relative impact of each item, where to concentrate future efforts, etc. For instance, the proposed doors in both _heated_ and _semi-heated_ sections are considerably off code requirements, yet their relative weight is limited to 5% to 10% of _UA'_ totals.
 
-TBD does not report on elements that are not part of the building envelope. In this warehouse example, the _heated_ section is limited to a ground floor office - its ceiling connected to a storage space above. As the office ceiling is not connected to a _roof_ i.e., not part of the building envelope, TBD only reports on the _semi-heated_ roof surfaces. Similarly, only thermal bridges identified by TBD in the OpenStudio model are part of the assessment e.g., no balconies here.
+TBD does not report on elements that are not part of the building envelope. In this warehouse example, the _heated_ section is limited to a ground floor office - its ceiling connected to a storage space above. As the office ceiling is not a roof _per se_ i.e., not part of the building envelope, TBD only reports on the _semi-heated_ roof surfaces. Similarly, only thermal bridges identified by TBD in the OpenStudio model are part of the assessment e.g., no balconies here.
 
 The _UA'_ assessments are [MD](https://en.wikipedia.org/wiki/Markdown)-formatted, which can be rendered as HTML or even PDF, depending on the text editor or web browser.
 
