@@ -7059,6 +7059,47 @@ RSpec.describe TBD do
     end
   end
 
+  it "can handle air gaps as materials" do
+    TBD.clean!
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    path = OpenStudio::Path.new(file)
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    id = "Bulk Storage Rear Wall"
+    s = os_model.getSurfaceByName(id)
+    expect(s.empty?).to be(false)
+    s = s.get
+    expect(s.nameString).to eq(id)
+    expect(s.surfaceType).to eq("Wall")
+    expect(s.isConstructionDefaulted).to be(true)
+    c = s.construction.get.to_Construction
+    expect(c.empty?).to be(false)
+    c = c.get
+    expect(c.numLayers).to eq(3)
+
+    gap = OpenStudio::Model::AirGap.new(os_model)
+    expect(gap.handle.to_s.empty?).to be(false)
+    expect(gap.nameString.empty?).to be(false)
+    expect(gap.nameString).to eq("Material Air Gap 1")
+    gap.setName("#{id} air gap")
+    expect(gap.nameString).to eq("#{id} air gap")
+    expect(gap.setThermalResistance(0.180)).to be(true)
+    expect(gap.thermalResistance).to be_within(0.01).of(0.180)
+    expect(c.insertLayer(1, gap)).to be(true)
+    expect(c.numLayers).to eq(4)
+
+    pth = File.join(__dir__, "files/osms/out/warehouse_airgap.osm")
+    os_model.save(pth, true)
+
+    psi_set = "poor (BETBG)"
+    io, surfaces = processTBD(os_model, psi_set)
+    puts TBD.logs
+    expect(TBD.status).to eq(0)
+  end
+
   it "can pre-process UA parameters" do
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new

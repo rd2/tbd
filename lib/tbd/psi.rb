@@ -1455,7 +1455,7 @@ def rsi(lc, film_RSi, temperature = 0.0)
   #   btap_equest_converter/envelope.rb#L122
   #
   # Convert C to K.
-  t =  temperature + 273.0
+  t = temperature + 273.0
 
   rsi = 0
   cl = OpenStudio::Model::LayeredConstruction
@@ -1500,7 +1500,7 @@ def rsi(lc, film_RSi, temperature = 0.0)
       rsi += m.to_RoofVegetation.get.thermalResistance
     end
     unless m.to_AirGap.empty?
-      rsi += m.to_AirGap.get.getThermalResistance
+      rsi += m.to_AirGap.get.thermalResistance
     end
   end
 
