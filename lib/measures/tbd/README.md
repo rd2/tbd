@@ -24,7 +24,7 @@ For EnergyPlus simulations, leave CHECKED. For iterative exploration with Apply 
 **Name:** alter_model,
 **Type:** Boolean,
 **Units:** ,
-**Required:** true,
+**Required:** false,
 **Model Dependent:** false
 
 ### Load 'tbd.json'
@@ -32,7 +32,7 @@ Loads existing 'tbd.json' file (under '/files'), may override 'default thermal b
 **Name:** load_tbd_json,
 **Type:** Boolean,
 **Units:** ,
-**Required:** true,
+**Required:** false,
 **Model Dependent:** false
 
 ### Default thermal bridge set
@@ -40,7 +40,7 @@ e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by 'tbd.json' fil
 **Name:** option,
 **Type:** Choice,
 **Units:** ,
-**Required:** true,
+**Required:** false,
 **Model Dependent:** false
 
 ### Write 'tbd.out.json'
@@ -48,7 +48,79 @@ Write out 'tbd.out.json' file e.g., to customize for subsequent runs (edit, and 
 **Name:** write_tbd_json,
 **Type:** Boolean,
 **Units:** ,
-**Required:** true,
+**Required:** false,
+**Model Dependent:** false
+
+### Uprate wall construction(s)
+Uprates selected wall construction(s), to meet overall Ut target
+**Name:** uprate_walls,
+**Type:** Boolean,
+**Units:** ,
+**Required:** false,
+**Model Dependent:** false
+
+### Uprate roof construction(s)
+Uprates selected roof construction(s), to meet overall Ut target
+**Name:** uprate_roofs,
+**Type:** Boolean,
+**Units:** ,
+**Required:** false,
+**Model Dependent:** false
+
+### Uprate floor construction(s)
+Uprates selected floor construction(s), to meet overall Ut target
+**Name:** uprate_floors,
+**Type:** Boolean,
+**Units:** ,
+**Required:** false,
+**Model Dependent:** false
+
+### Wall Ut target (W/m2•K)
+Overall Ut target to meet for wall construction(s)
+**Name:** wall_ut,
+**Type:** Double,
+**Units:** ,
+**Required:** false,
+**Model Dependent:** false
+
+### Roof Ut target (W/m2•K)
+Overall Ut target to meet for roof construction(s)
+**Name:** roof_ut,
+**Type:** Double,
+**Units:** ,
+**Required:** false,
+**Model Dependent:** false
+
+### Floor Ut target (W/m2•K)
+Overall Ut target to meet for floor construction(s)
+**Name:** floor_ut,
+**Type:** Double,
+**Units:** ,
+**Required:** false,
+**Model Dependent:** false
+
+### Wall construction(s) to 'uprate'
+Target 1x (or 'ALL') wall construction(s) to 'uprate'
+**Name:** wall_option,
+**Type:** Choice,
+**Units:** ,
+**Required:** false,
+**Model Dependent:** false
+
+### Roof construction(s) to 'uprate'
+Target 1x (or 'ALL') roof construction(s) to 'uprate'
+**Name:** roof_option,
+**Type:** Choice,
+**Units:** ,
+**Required:** false,
+**Model Dependent:** false
+
+### Floor construction(s) to 'uprate'
+Target 1x (or 'ALL') floor construction(s) to 'uprate'
+**Name:** floor_option,
+**Type:** Choice,
+**Units:** ,
+**Required:** false,
 **Model Dependent:** false
 
 ### Generate UA' report
@@ -56,7 +128,7 @@ Compare ∑U•A + ∑PSI•L + ∑KHI•n : 'Design' vs UA' reference (see pull
 **Name:** gen_UA_report,
 **Type:** Boolean,
 **Units:** ,
-**Required:** true,
+**Required:** false,
 **Model Dependent:** false
 
 ### UA' reference
@@ -72,7 +144,7 @@ Generates Kiva settings & objects for surfaces with 'foundation' boundary condit
 **Name:** gen_kiva,
 **Type:** Boolean,
 **Units:** ,
-**Required:** true,
+**Required:** false,
 **Model Dependent:** false
 
 ### Force-generate Kiva inputs
@@ -80,7 +152,7 @@ Overwrites 'ground' boundary conditions as 'foundation' before generating Kiva i
 **Name:** gen_kiva_force,
 **Type:** Boolean,
 **Units:** ,
-**Required:** true,
+**Required:** false,
 **Model Dependent:** false
 
 

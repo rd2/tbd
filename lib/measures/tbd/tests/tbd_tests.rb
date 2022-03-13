@@ -43,7 +43,7 @@ class TBDTest < Minitest::Test
 
     # get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-    assert_equal(8, arguments.size)
+    assert_equal(17, arguments.size)
   end
 
   def test_no_load_tbd_json
