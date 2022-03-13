@@ -19,6 +19,14 @@ ModelMeasure
 ## Arguments
 
 
+### Alter OpenStudio model (Apply Measures Now)
+For EnergyPlus simulations, leave CHECKED. For iterative exploration with Apply Measures Now, UNCHECK to preserve original OpenStudio model.
+**Name:** alter_model,
+**Type:** Boolean,
+**Units:** ,
+**Required:** true,
+**Model Dependent:** false
+
 ### Load 'tbd.json'
 Loads existing 'tbd.json' file (under '/files'), may override 'default thermal bridge' set.
 **Name:** load_tbd_json,
@@ -31,14 +39,6 @@ Loads existing 'tbd.json' file (under '/files'), may override 'default thermal b
 e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by 'tbd.json' file).
 **Name:** option,
 **Type:** Choice,
-**Units:** ,
-**Required:** true,
-**Model Dependent:** false
-
-### Alter OpenStudio model (Apply Measures Now)
-For EnergyPlus simulations, leave CHECKED. For iterative exploration with Apply Measures Now, UNCHECK to preserve original OpenStudio model.
-**Name:** alter_model,
-**Type:** Boolean,
 **Units:** ,
 **Required:** true,
 **Model Dependent:** false
@@ -68,7 +68,7 @@ e.g. 'poor', 'regular', 'efficient', 'code'.
 **Model Dependent:** false
 
 ### Generate Kiva inputs
-Generate Kiva settings & objects for surfaces with 'foundation' boundary conditions (not 'ground').
+Generates Kiva settings & objects for surfaces with 'foundation' boundary conditions (not 'ground').
 **Name:** gen_kiva,
 **Type:** Boolean,
 **Units:** ,

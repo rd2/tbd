@@ -53,6 +53,12 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
   def arguments(model = nil)
     args = OpenStudio::Measure::OSArgumentVector.new
 
+    alter_model = OpenStudio::Measure::OSArgument.makeBoolArgument("alter_model", true, false)
+    alter_model.setDisplayName("Alter OpenStudio model (Apply Measures Now)")
+    alter_model.setDescription("For EnergyPlus simulations, leave CHECKED. For iterative exploration with Apply Measures Now, UNCHECK to preserve original OpenStudio model.")
+    alter_model.setDefaultValue(true)
+    args << alter_model
+
     load_tbd_json = OpenStudio::Measure::OSArgument.makeBoolArgument("load_tbd_json", true, false)
     load_tbd_json.setDisplayName("Load 'tbd.json'")
     load_tbd_json.setDescription("Loads existing 'tbd.json' file (under '/files'), may override 'default thermal bridge' set.")
@@ -69,17 +75,55 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     option.setDefaultValue("poor (BETBG)")
     args << option
 
-    alter_model = OpenStudio::Measure::OSArgument.makeBoolArgument("alter_model", true, false)
-    alter_model.setDisplayName("Alter OpenStudio model (Apply Measures Now)")
-    alter_model.setDescription("For EnergyPlus simulations, leave CHECKED. For iterative exploration with Apply Measures Now, UNCHECK to preserve original OpenStudio model.")
-    alter_model.setDefaultValue(true)
-    args << alter_model
-
     write_tbd_json = OpenStudio::Measure::OSArgument.makeBoolArgument("write_tbd_json", true, false)
     write_tbd_json.setDisplayName("Write 'tbd.out.json'")
     write_tbd_json.setDescription("Write out 'tbd.out.json' file e.g., to customize for subsequent runs (edit, and place under '/files' as 'tbd.json').")
     write_tbd_json.setDefaultValue(false)
     args << write_tbd_json
+
+    if model
+      walls = {}
+      model.getSurfaces.each do |s|
+        next if walls.has_key?(s.nameString)
+        next unless s.surfaceType.downcase == "wall"
+        next unless s.outsideBoundaryCondition.downcase == "outdoors"
+        next if s.construction.empty?
+        next if s.construction.get.to_LayeredConstruction.empty?
+        lc = s.construction.get.to_LayeredConstruction.get
+        r = rsi(lc, s.filmResistance)
+        i, t, lr = deratableLayer(lc)
+        a = lc.getNetArea
+        walls[lc.nameString] = {rsi: r, lrsi: lr, index: i, type: t, area: a}
+      end
+
+      unless walls.empty?
+        all = "ALL wall constructions"
+        walls[all] = {rsi: 0, lrsi: 0, index: -1, type: "", area: 1000000000000}
+        walls.sort_by{ |k,v| v[:area] }.to_h
+        walls[all][:area] = 0
+
+        choix = OpenStudio::StringVector.new
+        walls.keys.each { |id| choix << id }
+
+        uprate_walls = OpenStudio::Measure::OSArgument.makeBoolArgument("uprate_walls", true, false)
+        uprate_walls.setDisplayName("Uprate wall construction(s)")
+        uprate_walls.setDescription("Uprates selected wall construction(s), to meet Uo target")
+        uprate_walls.setDefaultValue(false)
+        args << uprate_walls
+
+        wall_uo = OpenStudio::Measure::OSArgument.makeDoubleArgument("wall_uo", true, false)
+        wall_uo.setDisplayName("Wall Uo target (W/m2•K)")
+        wall_uo.setDescription("Uo target to meet for selected wall construction(s)")
+        wall_uo.setDefaultValue(0.210) # 0.138 for roofs, 0.162 for floors (NECB 2017, climate zone 7)
+        args << wall_uo
+
+        w_opt = OpenStudio::Measure::OSArgument.makeChoiceArgument("wall_opt", choix, true)
+        w_opt.setDisplayName("Wall construction(s) to 'uprate'")
+        w_opt.setDescription("Target 1x (or 'ALL') wall construction(s) to 'uprate'")
+        w_opt.setDefaultValue(all)
+        args << w_opt
+      end
+    end
 
     gen_UA_report = OpenStudio::Measure::OSArgument.makeBoolArgument("gen_UA_report", true, false)
     gen_UA_report.setDisplayName("Generate UA' report")
@@ -95,7 +139,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
 
     gen_kiva = OpenStudio::Measure::OSArgument.makeBoolArgument("gen_kiva", true, false)
     gen_kiva.setDisplayName("Generate Kiva inputs")
-    gen_kiva.setDescription("Generate Kiva settings & objects for surfaces with 'foundation' boundary conditions (not 'ground').")
+    gen_kiva.setDescription("Generates Kiva settings & objects for surfaces with 'foundation' boundary conditions (not 'ground').")
     gen_kiva.setDefaultValue(false)
     args << gen_kiva
 
@@ -113,9 +157,9 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     super(user_model, runner, user_arguments)
 
     # assign the user inputs to variables
+    alter = runner.getBoolArgumentValue("alter_model", user_arguments)
     load_tbd_json = runner.getBoolArgumentValue("load_tbd_json", user_arguments)
     option = runner.getStringArgumentValue("option", user_arguments)
-    alter = runner.getBoolArgumentValue("alter_model", user_arguments)
     write_tbd_json = runner.getBoolArgumentValue("write_tbd_json", user_arguments)
     gen_UA = runner.getBoolArgumentValue("gen_UA_report", user_arguments)
     ua_ref = runner.getStringArgumentValue("ua_reference", user_arguments)

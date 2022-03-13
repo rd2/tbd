@@ -3,14 +3,33 @@
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>19f74d67-6f4e-48ff-aee7-4d6bdeca01b2</version_id>
-  <version_modified>20220111T111416Z</version_modified>
+  <version_id>8cba39cf-6b4a-4798-980a-f69dc075ff4c</version_id>
+  <version_modified>20220313T144715Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
   <description>Derates opaque constructions from major thermal bridges.</description>
   <modeler_description>Consult rd2.github.io/tbd</modeler_description>
   <arguments>
+    <argument>
+      <name>alter_model</name>
+      <display_name>Alter OpenStudio model (Apply Measures Now)</display_name>
+      <description>For EnergyPlus simulations, leave CHECKED. For iterative exploration with Apply Measures Now, UNCHECK to preserve original OpenStudio model.</description>
+      <type>Boolean</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>true</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
     <argument>
       <name>load_tbd_json</name>
       <display_name>Load 'tbd.json'</display_name>
@@ -70,25 +89,6 @@
         <choice>
           <value>(non thermal bridging)</value>
           <display_name>(non thermal bridging)</display_name>
-        </choice>
-      </choices>
-    </argument>
-    <argument>
-      <name>alter_model</name>
-      <display_name>Alter OpenStudio model (Apply Measures Now)</display_name>
-      <description>For EnergyPlus simulations, leave CHECKED. For iterative exploration with Apply Measures Now, UNCHECK to preserve original OpenStudio model.</description>
-      <type>Boolean</type>
-      <required>true</required>
-      <model_dependent>false</model_dependent>
-      <default_value>true</default_value>
-      <choices>
-        <choice>
-          <value>true</value>
-          <display_name>true</display_name>
-        </choice>
-        <choice>
-          <value>false</value>
-          <display_name>false</display_name>
         </choice>
       </choices>
     </argument>
@@ -176,7 +176,7 @@
     <argument>
       <name>gen_kiva</name>
       <display_name>Generate Kiva inputs</display_name>
-      <description>Generate Kiva settings &amp; objects for surfaces with 'foundation' boundary conditions (not 'ground').</description>
+      <description>Generates Kiva settings &amp; objects for surfaces with 'foundation' boundary conditions (not 'ground').</description>
       <type>Boolean</type>
       <required>true</required>
       <model_dependent>false</model_dependent>
@@ -338,23 +338,6 @@
       <checksum>D436DCBC</checksum>
     </file>
     <file>
-      <version>
-        <software_program>OpenStudio</software_program>
-        <identifier>2.9.1</identifier>
-        <min_compatible>2.9.1</min_compatible>
-      </version>
-      <filename>measure.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>script</usage_type>
-      <checksum>75F2B2A6</checksum>
-    </file>
-    <file>
-      <filename>README.md</filename>
-      <filetype>md</filetype>
-      <usage_type>readme</usage_type>
-      <checksum>F8709CB7</checksum>
-    </file>
-    <file>
       <filename>psi.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
@@ -365,6 +348,23 @@
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
       <checksum>4CF9018E</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>1F44F534</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.9.1</identifier>
+        <min_compatible>2.9.1</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>BFA8EA4C</checksum>
     </file>
   </files>
 </measure>
