@@ -3153,7 +3153,7 @@ def exitTBD(runner, argh = {})
   status = TBD.msg(TBD::INFO) if TBD.status.zero?
 
   argh             = {}    unless argh.is_a?(Hash)
-  argh[:io]        = nil   unless argh.key?([:io])
+  argh[:io]        = nil   unless argh.key?(:io)
   argh[:surfaces]  = nil   unless argh.key?(:surfaces)
 
   unless argh[:io] && argh[:surfaces]
