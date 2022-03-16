@@ -3,8 +3,8 @@
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>af044f71-eacd-4664-ab69-37831ffaaec7</version_id>
-  <version_modified>20220313T222448Z</version_modified>
+  <version_id>aafcafc2-62c6-4e80-9046-7c5ac147c24a</version_id>
+  <version_modified>20220316T150229Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -14,7 +14,7 @@
     <argument>
       <name>alter_model</name>
       <display_name>Alter OpenStudio model (Apply Measures Now)</display_name>
-      <description>For EnergyPlus simulations, leave CHECKED. For iterative exploration with Apply Measures Now, UNCHECK to preserve original OpenStudio model.</description>
+      <description>For EnergyPlus simulations, leave CHECKED. For iterative            exploration with Apply Measures Now, UNCHECK to preserve original            OpenStudio model.</description>
       <type>Boolean</type>
       <required>false</required>
       <model_dependent>false</model_dependent>
@@ -33,7 +33,7 @@
     <argument>
       <name>load_tbd_json</name>
       <display_name>Load 'tbd.json'</display_name>
-      <description>Loads existing 'tbd.json' file (under '/files'), may override 'default thermal bridge' set.</description>
+      <description>Loads existing 'tbd.json' file (under '/files'), may override            'default thermal bridge' set.</description>
       <type>Boolean</type>
       <required>false</required>
       <model_dependent>false</model_dependent>
@@ -52,7 +52,7 @@
     <argument>
       <name>option</name>
       <display_name>Default thermal bridge set</display_name>
-      <description>e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by 'tbd.json' file).</description>
+      <description>e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by            'tbd.json' file).</description>
       <type>Choice</type>
       <required>false</required>
       <model_dependent>false</model_dependent>
@@ -95,7 +95,7 @@
     <argument>
       <name>write_tbd_json</name>
       <display_name>Write 'tbd.out.json'</display_name>
-      <description>Write out 'tbd.out.json' file e.g., to customize for subsequent runs (edit, and place under '/files' as 'tbd.json').</description>
+      <description>Write out 'tbd.out.json' file e.g., to customize for subsequent            runs (edit, and place under '/files' as 'tbd.json').</description>
       <type>Boolean</type>
       <required>false</required>
       <model_dependent>false</model_dependent>
@@ -243,7 +243,7 @@
     <argument>
       <name>gen_UA_report</name>
       <display_name>Generate UA' report</display_name>
-      <description>Compare ∑U•A + ∑PSI•L + ∑KHI•n : 'Design' vs UA' reference (see pull-down option below).</description>
+      <description>Compare ∑U•A + ∑PSI•L + ∑KHI•n : 'Design' vs UA' reference (see            pull-down option below).</description>
       <type>Boolean</type>
       <required>false</required>
       <model_dependent>false</model_dependent>
@@ -305,7 +305,7 @@
     <argument>
       <name>gen_kiva</name>
       <display_name>Generate Kiva inputs</display_name>
-      <description>Generates Kiva settings &amp; objects for surfaces with 'foundation' boundary conditions (not 'ground').</description>
+      <description>Generates Kiva settings &amp; objects for surfaces with 'foundation'               boundary conditions (not 'ground').</description>
       <type>Boolean</type>
       <required>false</required>
       <model_dependent>false</model_dependent>
@@ -324,7 +324,7 @@
     <argument>
       <name>gen_kiva_force</name>
       <display_name>Force-generate Kiva inputs</display_name>
-      <description>Overwrites 'ground' boundary conditions as 'foundation' before generating Kiva inputs (recommended).</description>
+      <description>Overwrites 'ground' boundary conditions as 'foundation' before                 generating Kiva inputs (recommended).</description>
       <type>Boolean</type>
       <required>false</required>
       <model_dependent>false</model_dependent>
@@ -449,40 +449,28 @@
       <checksum>CB393A2B</checksum>
     </file>
     <file>
-      <filename>framedivider.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>56C5462B</checksum>
-    </file>
-    <file>
       <filename>log.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
       <checksum>D436DCBC</checksum>
     </file>
     <file>
-      <filename>psi.rb</filename>
+      <filename>framedivider.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>2B2BC2D5</checksum>
-    </file>
-    <file>
-      <filename>ua.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>4CF9018E</checksum>
+      <checksum>35FC0E5C</checksum>
     </file>
     <file>
       <filename>tbd_tests.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>94DC0545</checksum>
+      <checksum>2EC23A04</checksum>
     </file>
     <file>
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>76170466</checksum>
+      <checksum>DF030E50</checksum>
     </file>
     <file>
       <version>
@@ -493,7 +481,19 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>11809AB5</checksum>
+      <checksum>C55A9BD2</checksum>
+    </file>
+    <file>
+      <filename>psi.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>A2DEBB65</checksum>
+    </file>
+    <file>
+      <filename>ua.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>A226B837</checksum>
     </file>
   </files>
 </measure>

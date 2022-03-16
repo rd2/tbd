@@ -53,37 +53,56 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
   def arguments(model = nil)
     args = OpenStudio::Measure::OSArgumentVector.new
 
-    alter_model = OpenStudio::Measure::OSArgument.makeBoolArgument("alter_model", false)
-    alter_model.setDisplayName("Alter OpenStudio model (Apply Measures Now)")
-    alter_model.setDescription("For EnergyPlus simulations, leave CHECKED. For iterative exploration with Apply Measures Now, UNCHECK to preserve original OpenStudio model.")
-    alter_model.setDefaultValue(true)
-    args << alter_model
+    arg = "alter_model"
+    dsc = "For EnergyPlus simulations, leave CHECKED. For iterative \
+           exploration with Apply Measures Now, UNCHECK to preserve original \
+           OpenStudio model."
+    alter = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
+    alter.setDisplayName("Alter OpenStudio model (Apply Measures Now)")
+    alter.setDescription(dsc)
+    alter.setDefaultValue(true)
+    args << alter
 
-    load_tbd_json = OpenStudio::Measure::OSArgument.makeBoolArgument("load_tbd_json", false)
-    load_tbd_json.setDisplayName("Load 'tbd.json'")
-    load_tbd_json.setDescription("Loads existing 'tbd.json' file (under '/files'), may override 'default thermal bridge' set.")
-    load_tbd_json.setDefaultValue(false)
-    args << load_tbd_json
+    arg = "load_tbd_json"
+    dsc = "Loads existing 'tbd.json' file (under '/files'), may override \
+           'default thermal bridge' set."
+    load_tbd = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
+    load_tbd.setDisplayName("Load 'tbd.json'")
+    load_tbd.setDescription(dsc)
+    load_tbd.setDefaultValue(false)
+    args << load_tbd
 
-    choices = OpenStudio::StringVector.new
+    chs = OpenStudio::StringVector.new
     psi = PSI.new
-    psi.set.keys.each { |k| choices << k.to_s }
+    psi.set.keys.each { |k| chs << k.to_s }
 
-    option = OpenStudio::Measure::OSArgument.makeChoiceArgument("option", choices, false)
+    arg = "option"
+    dsc = "e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by \
+           'tbd.json' file)."
+    option = OpenStudio::Measure::OSArgument.makeChoiceArgument(arg, chs, false)
     option.setDisplayName("Default thermal bridge set")
-    option.setDescription("e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by 'tbd.json' file).")
+    option.setDescription(dsc)
     option.setDefaultValue("poor (BETBG)")
     args << option
 
-    write_tbd_json = OpenStudio::Measure::OSArgument.makeBoolArgument("write_tbd_json", false)
-    write_tbd_json.setDisplayName("Write 'tbd.out.json'")
-    write_tbd_json.setDescription("Write out 'tbd.out.json' file e.g., to customize for subsequent runs (edit, and place under '/files' as 'tbd.json').")
-    write_tbd_json.setDefaultValue(false)
-    args << write_tbd_json
+    arg = "write_tbd_json"
+    dsc = "Write out 'tbd.out.json' file e.g., to customize for subsequent \
+           runs (edit, and place under '/files' as 'tbd.json')."
+    write_tbd = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
+    write_tbd.setDisplayName("Write 'tbd.out.json'")
+    write_tbd.setDescription(dsc)
+    write_tbd.setDefaultValue(false)
+    args << write_tbd
 
-    walls  = {s: {}, choix: OpenStudio::StringVector.new, dft: "ALL wall constructions"}
-    roofs  = {s: {}, choix: OpenStudio::StringVector.new, dft: "ALL roof constructions"}
-    floors = {s: {}, choix: OpenStudio::StringVector.new, dft: "ALL floor constructions"}
+    walls = {s: {}, dft: "ALL wall constructions"}
+    roofs = {s: {}, dft: "ALL roof constructions"}
+    flors = {s: {}, dft: "ALL floor constructions"}
+    walls[:s][walls[:dft]] = {a: 100000000000000}
+    roofs[:s][roofs[:dft]] = {a: 100000000000000}
+    flors[:s][flors[:dft]] = {a: 100000000000000}
+    walls[:chx] = OpenStudio::StringVector.new
+    roofs[:chx] = OpenStudio::StringVector.new
+    flors[:chx] = OpenStudio::StringVector.new
 
     if model
       model.getSurfaces.each do |s|
@@ -93,158 +112,189 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
         next if s.construction.empty?
         next if s.construction.get.to_LayeredConstruction.empty?
         lc = s.construction.get.to_LayeredConstruction.get
-        r = rsi(lc, s.filmResistance)
-        i, t, lr = deratableLayer(lc)
-        a = lc.getNetArea
-
-        faces = walls[:s]  if type == "wall"
-        faces = roofs[:s]  if type == "roofceiling"
-        faces = floors[:s] if type == "floor"
-        faces[lc.nameString] = {r: r, lr: lr, i: i, t: t, a: a}
+        next if walls[:s].key?(lc.nameString)
+        next if roofs[:s].key?(lc.nameString)
+        next if flors[:s].key?(lc.nameString)
+        walls[:s][lc.nameString] = {a: lc.getNetArea} if type == "wall"
+        roofs[:s][lc.nameString] = {a: lc.getNetArea} if type == "roofceiling"
+        flors[:s][lc.nameString] = {a: lc.getNetArea} if type == "floor"
       end
 
-      walls[:s][walls[:dft]] = {r: 0, lr: 0, i: -1, t: "", a: 100000000000000}
       walls[:s].sort_by{ |k,v| v[:a] }.to_h
       walls[:s][walls[:dft]][:a] = 0
-      walls[:s].keys.each { |id| walls[:choix] << id }
+      walls[:s].keys.each { |id| walls[:chx] << id }
 
-      roofs[:s][roofs[:dft]] = {r: 0, lr: 0, i: -1, t: "", a: 100000000000000}
       roofs[:s].sort_by{ |k,v| v[:a] }.to_h
       roofs[:s][roofs[:dft]][:a] = 0
-      roofs[:s].keys.each { |id| roofs[:choix] << id }
+      roofs[:s].keys.each { |id| roofs[:chx] << id }
 
-      floors[:s][floors[:dft]] = {r: 0, lr: 0, i: -1, t: "", a: 100000000000000}
-      floors[:s].sort_by{ |k,v| v[:a] }.to_h
-      floors[:s][floors[:dft]][:a] = 0
-      floors[:s].keys.each { |id| floors[:choix] << id }
+      flors[:s].sort_by{ |k,v| v[:a] }.to_h
+      flors[:s][flors[:dft]][:a] = 0
+      flors[:s].keys.each { |id| flors[:chx] << id }
     end
 
-    uprate_walls = OpenStudio::Measure::OSArgument.makeBoolArgument("uprate_walls", false)
+    arg = "uprate_walls"
+    dsc = "Uprates selected wall construction(s), to meet overall Ut target"
+    uprate_walls = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
     uprate_walls.setDisplayName("Uprate wall construction(s)")
-    uprate_walls.setDescription("Uprates selected wall construction(s), to meet overall Ut target")
+    uprate_walls.setDescription(dsc)
     uprate_walls.setDefaultValue(false)
     args << uprate_walls
 
-    uprate_roofs = OpenStudio::Measure::OSArgument.makeBoolArgument("uprate_roofs", false)
+    arg = "uprate_roofs"
+    dsc = "Uprates selected roof construction(s), to meet overall Ut target"
+    uprate_roofs = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
     uprate_roofs.setDisplayName("Uprate roof construction(s)")
-    uprate_roofs.setDescription("Uprates selected roof construction(s), to meet overall Ut target")
+    uprate_roofs.setDescription(dsc)
     uprate_roofs.setDefaultValue(false)
     args << uprate_roofs
 
-    uprate_floors = OpenStudio::Measure::OSArgument.makeBoolArgument("uprate_floors", false)
+    arg = "uprate_floors"
+    dsc = "Uprates selected floor construction(s), to meet overall Ut target"
+    uprate_floors = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
     uprate_floors.setDisplayName("Uprate floor construction(s)")
-    uprate_floors.setDescription("Uprates selected floor construction(s), to meet overall Ut target")
+    uprate_floors.setDescription(dsc)
     uprate_floors.setDefaultValue(false)
     args << uprate_floors
 
-    wall_ut = OpenStudio::Measure::OSArgument.makeDoubleArgument("wall_ut", false)
+    arg = "wall_ut"
+    dsc = "Overall Ut target to meet for wall construction(s)"
+    wall_ut = OpenStudio::Measure::OSArgument.makeDoubleArgument(arg, false)
     wall_ut.setDisplayName("Wall Ut target (W/m2•K)")
-    wall_ut.setDescription("Overall Ut target to meet for wall construction(s)")
+    wall_ut.setDescription(dsc)
     wall_ut.setDefaultValue(0.210) # (NECB 2017, climate zone 7)
     args << wall_ut
 
-    roof_ut = OpenStudio::Measure::OSArgument.makeDoubleArgument("roof_ut", false)
+    arg = "roof_ut"
+    dsc = "Overall Ut target to meet for roof construction(s)"
+    roof_ut = OpenStudio::Measure::OSArgument.makeDoubleArgument(arg, false)
     roof_ut.setDisplayName("Roof Ut target (W/m2•K)")
-    roof_ut.setDescription("Overall Ut target to meet for roof construction(s)")
+    roof_ut.setDescription(dsc)
     roof_ut.setDefaultValue(0.138) # (NECB 2017, climate zone 7)
     args << roof_ut
 
-    floor_ut = OpenStudio::Measure::OSArgument.makeDoubleArgument("floor_ut", false)
+    arg = "floor_ut"
+    dsc = "Overall Ut target to meet for floor construction(s)"
+    floor_ut = OpenStudio::Measure::OSArgument.makeDoubleArgument(arg, false)
     floor_ut.setDisplayName("Floor Ut target (W/m2•K)")
-    floor_ut.setDescription("Overall Ut target to meet for floor construction(s)")
+    floor_ut.setDescription(dsc)
     floor_ut.setDefaultValue(0.162) # (NECB 2017, climate zone 7)
     args << floor_ut
 
-    wall_option = OpenStudio::Measure::OSArgument.makeChoiceArgument("wall_option", walls[:choix], false)
-    wall_option.setDisplayName("Wall construction(s) to 'uprate'")
-    wall_option.setDescription("Target 1x (or 'ALL') wall construction(s) to 'uprate'")
-    wall_option.setDefaultValue(walls[:dft])
-    args << wall_option
+    arg = "wall_option"
+    dsc = "Target 1x (or 'ALL') wall construction(s) to 'uprate'"
+    chx = walls[:chx]
+    wall = OpenStudio::Measure::OSArgument.makeChoiceArgument(arg, chx, false)
+    wall.setDisplayName("Wall construction(s) to 'uprate'")
+    wall.setDescription(dsc)
+    wall.setDefaultValue(walls[:dft])
+    args << wall
 
-    roof_option = OpenStudio::Measure::OSArgument.makeChoiceArgument("roof_option", roofs[:choix], false)
-    roof_option.setDisplayName("Roof construction(s) to 'uprate'")
-    roof_option.setDescription("Target 1x (or 'ALL') roof construction(s) to 'uprate'")
-    roof_option.setDefaultValue(roofs[:dft])
-    args << roof_option
+    arg = "roof_option"
+    dsc = "Target 1x (or 'ALL') roof construction(s) to 'uprate'"
+    chx = roofs[:chx]
+    roof = OpenStudio::Measure::OSArgument.makeChoiceArgument(arg, chx, false)
+    roof.setDisplayName("Roof construction(s) to 'uprate'")
+    roof.setDescription(dsc)
+    roof.setDefaultValue(roofs[:dft])
+    args << roof
 
-    floor_option = OpenStudio::Measure::OSArgument.makeChoiceArgument("floor_option", floors[:choix], false)
-    floor_option.setDisplayName("Floor construction(s) to 'uprate'")
-    floor_option.setDescription("Target 1x (or 'ALL') floor construction(s) to 'uprate'")
-    floor_option.setDefaultValue(floors[:dft])
-    args << floor_option
+    arg = "floor_option"
+    dsc = "Target 1x (or 'ALL') floor construction(s) to 'uprate'"
+    chx = flors[:chx]
+    floor = OpenStudio::Measure::OSArgument.makeChoiceArgument(arg, chx, false)
+    floor.setDisplayName("Floor construction(s) to 'uprate'")
+    floor.setDescription(dsc)
+    floor.setDefaultValue(flors[:dft])
+    args << floor
 
-    gen_UA_report = OpenStudio::Measure::OSArgument.makeBoolArgument("gen_UA_report", false)
-    gen_UA_report.setDisplayName("Generate UA' report")
-    gen_UA_report.setDescription("Compare ∑U•A + ∑PSI•L + ∑KHI•n : 'Design' vs UA' reference (see pull-down option below).")
-    gen_UA_report.setDefaultValue(false)
-    args << gen_UA_report
+    arg = "gen_UA_report"
+    dsc = "Compare ∑U•A + ∑PSI•L + ∑KHI•n : 'Design' vs UA' reference (see \
+           pull-down option below)."
+    gen_ua_report = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
+    gen_ua_report.setDisplayName("Generate UA' report")
+    gen_ua_report.setDescription(dsc)
+    gen_ua_report.setDefaultValue(false)
+    args << gen_ua_report
 
-    ua_reference = OpenStudio::Measure::OSArgument.makeChoiceArgument("ua_reference", choices, true)
-    ua_reference.setDisplayName("UA' reference")
-    ua_reference.setDescription("e.g. 'poor', 'regular', 'efficient', 'code'.")
-    ua_reference.setDefaultValue("code (Quebec)")
-    args << ua_reference
+    arg = "ua_reference"
+    dsc = "e.g. 'poor', 'regular', 'efficient', 'code'."
+    ua_ref = OpenStudio::Measure::OSArgument.makeChoiceArgument(arg, chs, true)
+    ua_ref.setDisplayName("UA' reference")
+    ua_ref.setDescription(dsc)
+    ua_ref.setDefaultValue("code (Quebec)")
+    args << ua_ref
 
-    gen_kiva = OpenStudio::Measure::OSArgument.makeBoolArgument("gen_kiva", false)
+    arg = "gen_kiva"
+    dsc = "Generates Kiva settings & objects for surfaces with 'foundation'    \
+           boundary conditions (not 'ground')."
+    gen_kiva = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
     gen_kiva.setDisplayName("Generate Kiva inputs")
-    gen_kiva.setDescription("Generates Kiva settings & objects for surfaces with 'foundation' boundary conditions (not 'ground').")
+    gen_kiva.setDescription(dsc)
     gen_kiva.setDefaultValue(false)
     args << gen_kiva
 
-    gen_kiva_force = OpenStudio::Measure::OSArgument.makeBoolArgument("gen_kiva_force", false)
-    gen_kiva_force.setDisplayName("Force-generate Kiva inputs")
-    gen_kiva_force.setDescription("Overwrites 'ground' boundary conditions as 'foundation' before generating Kiva inputs (recommended).")
-    gen_kiva_force.setDefaultValue(false)
-    args << gen_kiva_force
+    arg = "gen_kiva_force"
+    dsc = "Overwrites 'ground' boundary conditions as 'foundation' before      \
+           generating Kiva inputs (recommended)."
+    kiva_force = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
+    kiva_force.setDisplayName("Force-generate Kiva inputs")
+    kiva_force.setDescription(dsc)
+    kiva_force.setDefaultValue(false)
+    args << kiva_force
 
     return args
   end
 
-  # define what happens when the measure is run
-  def run(user_model, runner, user_arguments)
-    super(user_model, runner, user_arguments)
+  # Define what happens when the measure is run.
+  def run(mdl, runner, args)
+    super(mdl, runner, args)
 
-    # assign the user inputs to variables
-    alter = runner.getBoolArgumentValue("alter_model", user_arguments)
-    load_tbd_json = runner.getBoolArgumentValue("load_tbd_json", user_arguments)
-    option = runner.getStringArgumentValue("option", user_arguments)
-    uprate_walls = runner.getBoolArgumentValue("uprate_walls", user_arguments)
-    uprate_roofs = runner.getBoolArgumentValue("uprate_roofs", user_arguments)
-    uprate_floors = runner.getBoolArgumentValue("uprate_floors", user_arguments)
-    wall_ut = runner.getDoubleArgumentValue("wall_ut", user_arguments)
-    roof_ut = runner.getDoubleArgumentValue("roof_ut", user_arguments)
-    floor_ut = runner.getDoubleArgumentValue("floor_ut", user_arguments)
-    wall_option = runner.getStringArgumentValue("wall_option", user_arguments)
-    roof_option = runner.getStringArgumentValue("roof_option", user_arguments)
-    floor_option = runner.getStringArgumentValue("floor_option", user_arguments)
-    write_tbd_json = runner.getBoolArgumentValue("write_tbd_json", user_arguments)
-    gen_UA = runner.getBoolArgumentValue("gen_UA_report", user_arguments)
-    ua_ref = runner.getStringArgumentValue("ua_reference", user_arguments)
-    gen_kiva = runner.getBoolArgumentValue("gen_kiva", user_arguments)
-    gen_kiva_force = runner.getBoolArgumentValue("gen_kiva_force", user_arguments)
+    puts args
 
-    # use the built-in error checking
-    return false unless runner.validateUserArguments(arguments(user_model), user_arguments)
+    # Assign the user inputs to variables.
+    argh = {}
+    argh[:alter] = runner.getBoolArgumentValue("alter_model", args)
+    argh[:load_tbd] = runner.getBoolArgumentValue("load_tbd_json", args)
+    argh[:option] = runner.getStringArgumentValue("option", args)
+    argh[:write_tbd] = runner.getBoolArgumentValue("write_tbd_json", args)
+    argh[:uprate_walls] = runner.getBoolArgumentValue("uprate_walls", args)
+    argh[:uprate_roofs] = runner.getBoolArgumentValue("uprate_roofs", args)
+    argh[:uprate_floors] = runner.getBoolArgumentValue("uprate_floors", args)
+    argh[:wall_ut] = runner.getDoubleArgumentValue("wall_ut", args)
+    argh[:roof_ut] = runner.getDoubleArgumentValue("roof_ut", args)
+    argh[:floor_ut] = runner.getDoubleArgumentValue("floor_ut", args)
+    argh[:wall_option] = runner.getStringArgumentValue("wall_option", args)
+    argh[:roof_option] = runner.getStringArgumentValue("roof_option", args)
+    argh[:floor_option] = runner.getStringArgumentValue("floor_option", args)
+    argh[:gen_ua] = runner.getBoolArgumentValue("gen_UA_report", args)
+    argh[:ua_ref] = runner.getStringArgumentValue("ua_reference", args)
+    argh[:gen_kiva] = runner.getBoolArgumentValue("gen_kiva", args)
+    argh[:kiva_force] = runner.getBoolArgumentValue("gen_kiva_force", args)
+
+    # Use the built-in error checking.
+    return false unless runner.validateUserArguments(arguments(mdl), args)
 
     TBD.clean!
 
-    io_path = nil
-    if load_tbd_json
-      io_path = runner.workflow.findFile('tbd.json')
-      if io_path.empty?
+    argh[:schema_path] = nil
+    argh[:io_path] = nil
+    if argh[:load_tbd]
+      argh[:io_path] = runner.workflow.findFile('tbd.json')
+      if argh[:io_path].empty?
         TBD.log(TBD::FATAL, "Can't find 'tbd.json' - simulation halted")
-        return exitTBD(user_model, runner)
+        return exitTBD(runner, argh)
       else
-        io_path = io_path.get.to_s
-        # TBD.log(TBD::INFO, "Using inputs from #{io_path}")  # for debugging
-        # runner.registerInfo("Using inputs from #{io_path}") # for debugging
+        argh[:io_path] = argh[:io_path].get.to_s
+        # TBD.log(TBD::INFO, "Using inputs from #{argh[:io_path]}")  # debugging
+        # runner.registerInfo("Using inputs from #{argh[:io_path]}") # debugging
       end
     end
 
     # Process all ground-facing surfaces as foundation-facing.
-    if gen_kiva_force
-      gen_kiva = true
-      user_model.getSurfaces.each do |s|
+    if argh[:kiva_force]
+      argh[:gen_kiva] = true
+      mdl.getSurfaces.each do |s|
         next unless s.isGroundSurface
         construction = s.construction.get
         s.setOutsideBoundaryCondition("Foundation")
@@ -252,24 +302,25 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
       end
     end
 
+    str = "temp_measure_manager.osm"
     seed = runner.workflow.seedFile
     seed = File.basename(seed.get.to_s) unless seed.empty?
-    seed = "OpenStudio model" if seed.empty? || seed == "temp_measure_manager.osm"
+    seed = "OpenStudio model" if seed.empty? || seed == str
+    argh[:seed] = seed
 
-    if alter == false
-      # Clone model.
-      model = OpenStudio::Model::Model.new
-      model.addObjects(user_model.toIdfFile.objects)
+    if argh[:alter]
+      model = mdl
     else
-      model = user_model
+      model = OpenStudio::Model::Model.new
+      model.addObjects(mdl.toIdfFile.objects)
     end
 
-    io, surfaces = processTBD(model, option, io_path, nil, gen_UA, ua_ref, gen_kiva)
+    argh[:version] = model.getVersion.versionIdentifier
+    argh[:io], argh[:surfaces] = processTBD(model, argh)
+    argh[:setpoints] = heatingTemperatureSetpoints?(model)
+    argh[:setpoints] = coolingTemperatureSetpoints?(model) || argh[:setpoints]
 
-    t = heatingTemperatureSetpoints?(model)
-    t = coolingTemperatureSetpoints?(model) || t
-
-    return exitTBD(model, runner, gen_UA, ua_ref, t, write_tbd_json, io, surfaces, seed)
+    return exitTBD(runner, argh)
   end
 end
 

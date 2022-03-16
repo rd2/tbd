@@ -207,6 +207,7 @@ class TBDTest < Minitest::Test
     assert_equal('Fail', result.value.valueName)
     assert(result.errors.size == 1)
     assert(result.warnings.size == 1)
+    puts result.warnings[0].logMessage
     log_message = "Can't find 'tbd.json' - simulation halted"
     assert(result.warnings[0].logMessage == log_message)
 

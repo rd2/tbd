@@ -50,9 +50,9 @@ def qc33(surfaces, sets, setpoints)
   end
 
   surfaces.each do |id, surface|
-    next unless surface.has_key?(:deratable)
+    next unless surface.key?(:deratable)
     next unless surface[:deratable]
-    next unless surface.has_key?(:type)
+    next unless surface.key?(:type)
     if setpoints
       heating = -50
       cooling =  50
@@ -60,8 +60,8 @@ def qc33(surfaces, sets, setpoints)
       heating =  21
       cooling =  24
     end
-    heating = surface[:heating] if surface.has_key?(:heating)
-    cooling = surface[:cooling] if surface.has_key?(:cooling)
+    heating = surface[:heating] if surface.key?(:heating)
+    cooling = surface[:cooling] if surface.key?(:cooling)
 
     # Start with surface U-factors.
     ref = 1.0 / 5.46
@@ -74,37 +74,37 @@ def qc33(surfaces, sets, setpoints)
     surface[:ref] = ref
 
     # Loop through subsurfaces.
-    if surface.has_key?(:skylights)
+    if surface.key?(:skylights)
       ref = 2.85
       ref *= 43.0 / (heating + 25.0) if heating < 18.0 && cooling > 40.0
       surface[:skylights].values.map { |skylight| skylight[:ref] = ref }
     end
 
-    if surface.has_key?(:windows)
+    if surface.key?(:windows)
       ref = 2.0
       ref *= 43.0 / (heating + 25.0) if heating < 18.0 && cooling > 40.0
       surface[:windows].values.map { |window| window[:ref] = ref }
     end
 
-    if surface.has_key?(:doors)
+    if surface.key?(:doors)
       surface[:doors].each do |i, door|
         ref = 0.9
-        ref = 2.0 if door.has_key?(:glazed) && door[:glazed]
+        ref = 2.0 if door.key?(:glazed) && door[:glazed]
         ref *= 43.0 / (heating + 25.0) if heating < 18.0 && cooling > 40.0
         door[:ref] = ref
       end
     end
 
     # Loop through point thermal bridges.
-    if surface.has_key?(:pts)
+    if surface.key?(:pts)
       surface[:pts].map { |i, pt| pt[:ref] = 0.5 }
     end
 
     # Loop through linear thermal bridges.
-    if surface.has_key?(:edges)
+    if surface.key?(:edges)
       surface[:edges].values.each do |edge|
-        next unless edge.has_key?(:type)
-        next unless edge.has_key?(:ratio)
+        next unless edge.key?(:type)
+        next unless edge.key?(:ratio)
         tt = sets.safeType("code (Quebec)", edge[:type])
         edge[:ref] = val[tt] * edge[:ratio] if tt
       end
@@ -116,29 +116,38 @@ end
 ##
 # Generate UA' summary.
 #
-# @param [Hash] surfaces Preprocessed collection of TBD surfaces
 # @param [Time] date Time stamp
-# @param [String] version OpenStudio version (optional)
-# @param [String] descr Project description (optional)
-# @param [String] file OSM file name (optional)
-# @param [String] ref UA' reference (optional)
+# @param [Hash] argh Arguments
 #
 # @return [Hash] Returns (multilingual) binned values for UA' summary.
-def ua_summary(surfaces, date = Time.now, version = "",
-               descr = "", file = "", ref = "")
+def ua_summary(date = Time.now, argh = {})
   ua = {}
+  argh = {}                    unless argh.is_a?(Hash)
+  argh[:seed] = ""             unless argh.key?(:seed)
+  argh[:ua_ref] = ""           unless argh.key?(:ua_ref)
+  argh[:surfaces] = nil        unless argh.key?(:surfaces)
+  argh[:version] = ""          unless argh.key?(:version)
+  argh[:io] = {}               unless argh.key(:io)
+  argh[:io][:description] = "" unless argh[:io].key?(:description)
 
-  unless surfaces && surfaces.is_a?(Hash)
+  unless argh[:surfaces] && argh[:surfaces].is_a?(Hash)
     TBD.log(TBD::DEBUG, "Can't process UA' results - invalid arguments")
     return ua
   end
-  return ua if surfaces.empty?
+  return ua if argh[:surfaces].empty?
+
+  descr        = argh[:io][:description]
+  file         = argh[:seed]
+  version      = argh[:version]
+  ua[:descr]   = ""
+  ua[:file]    = ""
+  ua[:version] = ""
+  ua[:descr]   = descr unless descr.nil? || descr.empty?
+  ua[:file]    = file unless file.nil? || file.empty?
+  ua[:version] = version unless version.nil? || version.empty?
 
   ua[:model] = "∑U•A + ∑PSI•L + ∑KHI•n"
   ua[:date] = date
-  ua[:version] = version unless version.nil? || version.empty?
-  ua[:descr] = descr unless descr.nil? || descr.empty?
-  ua[:file] = file unless file.nil? || file.empty?
 
   languages = [:en, :fr]
   languages.each { |lang| ua[lang] = {} }
@@ -160,14 +169,14 @@ def ua_summary(surfaces, date = Time.now, version = "",
 
   has = {}
   val = {}
-  unless ref.empty?
-    psi = PSI.new
-    has, val = psi.shorthands(ref)
+  psi = PSI.new
+  unless argh[:ua_ref].empty?
+    has, val = psi.shorthands(argh[:ua_ref])
     if has.empty? || val.empty?
       TBD.log(TBD::ERROR, "Invalid UA' reference set - skipping")
     else
-      ua[:model] += " : Design vs '#{ref}'"
-      case ref
+      ua[:model] += " : Design vs '#{argh[:ua_ref]}'"
+      case argh[:ua_ref]
       when "code (Quebec)"
         ua[:en][:objective] = "COMPLIANCE ASSESSMENT"
         ua[:en][:details] = []
@@ -221,23 +230,23 @@ def ua_summary(surfaces, date = Time.now, version = "",
   b2[:ref] = blc.clone                                        #        reference
 
   # Loop through surfaces, subsurfaces and edges and populate bloc1 & bloc2.
-  surfaces.each do |id, surface|
-    next unless surface.has_key?(:deratable)
+  argh[:surfaces].each do |id, surface|
+    next unless surface.key?(:deratable)
     next unless surface[:deratable]
-    next unless surface.has_key?(:type)
+    next unless surface.key?(:type)
     type = surface[:type]
     next unless type == :wall || type == :ceiling || type == :floor
-    next unless surface.has_key?(:net)
+    next unless surface.key?(:net)
     next unless surface[:net] > TOL
-    next unless surface.has_key?(:u)
+    next unless surface.key?(:u)
     next unless surface[:u] > TOL
     heating = 21.0
-    heating = surface[:heating] if surface.has_key?(:heating)
+    heating = surface[:heating] if surface.key?(:heating)
 
     bloc = b1
     bloc = b2 if heating < 18
 
-    reference = surface.has_key?(:ref)
+    reference = surface.key?(:ref)
     if type == :wall
       areas[:walls][:net] += surface[:net]
       bloc[:pro][:walls] += surface[:net] * surface[:u]
@@ -255,17 +264,17 @@ def ua_summary(surfaces, date = Time.now, version = "",
       bloc[:ref][:floors] += surface[:net] * surface[:u] unless reference
     end
 
-    if surface.has_key?(:doors)
+    if surface.key?(:doors)
       surface[:doors].values.each do |door|
-        next unless door.has_key?(:gross)
+        next unless door.key?(:gross)
         next unless door[:gross] > TOL
-        next unless door.has_key?(:u)
+        next unless door.key?(:u)
         next unless door[:u] > TOL
         areas[:walls][:subs] += door[:gross] if type == :wall
         areas[:roofs][:subs] += door[:gross] if type == :ceiling
         areas[:floors][:subs] += door[:gross] if type == :floor
         bloc[:pro][:doors] += door[:gross] * door[:u]
-        if door.has_key?(:ref)
+        if door.key?(:ref)
           bloc[:ref][:doors] += door[:gross] * door[:ref]
         else
           bloc[:ref][:doors] += door[:gross] * door[:u]
@@ -273,17 +282,17 @@ def ua_summary(surfaces, date = Time.now, version = "",
       end
     end
 
-    if surface.has_key?(:windows)
+    if surface.key?(:windows)
       surface[:windows].values.each do |window|
-        next unless window.has_key?(:gross)
+        next unless window.key?(:gross)
         next unless window[:gross] > TOL
-        next unless window.has_key?(:u)
+        next unless window.key?(:u)
         next unless window[:u] > TOL
         areas[:walls][:subs] += window[:gross] if type == :wall
         areas[:roofs][:subs] += window[:gross] if type == :ceiling
         areas[:floors][:subs] += window[:gross] if type == :floor
         bloc[:pro][:windows] += window[:gross] * window[:u]
-        if window.has_key?(:ref)
+        if window.key?(:ref)
           bloc[:ref][:windows] += window[:gross] * window[:ref]
         else
           bloc[:ref][:windows] += window[:gross] * window[:u]
@@ -291,17 +300,17 @@ def ua_summary(surfaces, date = Time.now, version = "",
       end
     end
 
-    if surface.has_key?(:skylights)
+    if surface.key?(:skylights)
       surface[:skylights].values.each do |sky|
-        next unless sky.has_key?(:gross)
+        next unless sky.key?(:gross)
         next unless sky[:gross] > TOL
-        next unless sky.has_key?(:u)
+        next unless sky.key?(:u)
         next unless sky[:u] > TOL
         areas[:walls][:subs] += sky[:gross] if type == :wall
         areas[:roofs][:subs] += sky[:gross] if type == :ceiling
         areas[:floors][:subs] += sky[:gross] if type == :floor
         bloc[:pro][:skylights] += sky[:gross] * sky[:u]
-        if sky.has_key?(:ref)
+        if sky.key?(:ref)
           bloc[:ref][:skylights] += sky[:gross] * sky[:ref]
         else
           bloc[:ref][:skylights] += sky[:gross] * sky[:u]
@@ -309,12 +318,12 @@ def ua_summary(surfaces, date = Time.now, version = "",
       end
     end
 
-    if surface.has_key?(:edges)
+    if surface.key?(:edges)
       surface[:edges].values.each do |edge|
-        next unless edge.has_key?(:type)
-        next unless edge.has_key?(:length)
+        next unless edge.key?(:type)
+        next unless edge.key?(:length)
         next unless edge[:length] > TOL
-        next unless edge.has_key?(:psi)
+        next unless edge.key?(:psi)
 
         loss = edge[:length] * edge[:psi]
         type = edge[:type].to_s
@@ -340,13 +349,14 @@ def ua_summary(surfaces, date = Time.now, version = "",
           bloc[:pro][:other] += loss
         end
 
-        next unless val
-        tt = psi.safeType(ref, edge[:type])
-        if edge.has_key?(:ref)
+        next if val.empty?
+        next if argh[:ua_ref].empty?
+        tt = psi.safeType(argh[:ua_ref], edge[:type])
+        if edge.key?(:ref)
           loss = edge[:length] * edge[:ref]
         else
           ratio = 0
-          ratio = edge[:ratio] if edge.has_key?(:ratio)
+          ratio = edge[:ratio] if edge.key?(:ratio)
           loss = edge[:length] * val[tt] * edge[:ratio]
         end
 
@@ -373,12 +383,12 @@ def ua_summary(surfaces, date = Time.now, version = "",
       end
     end
 
-    if surface.has_key?(:pts)
+    if surface.key?(:pts)
       surface[:pts].values.each do |pts|
-        next unless pts.has_key?(:val)
-        next unless pts.has_key?(:n)
+        next unless pts.key?(:val)
+        next unless pts.key?(:n)
         bloc[:pro][:other] += pts[:val] * pts[:n]
-        next unless pts.has_key?(:ref)
+        next unless pts.key?(:ref)
         bloc[:ref][:other] += pts[:ref] * pts[:n]
       end
     end
@@ -408,7 +418,7 @@ def ua_summary(surfaces, date = Time.now, version = "",
         end
 
         # ** https://bugs.ruby-lang.org/issues/13761 (Ruby > 2.2.5)
-        # str += format(" +%.1f%", ratio) if ratio && pro_sum > ref_sum ... becomes
+        # str += format(" +%.1f%", ratio) if ratio && pro_sum > ref_sum ... now:
         # str += format(" +%.1f%%", ratio) if ratio && pro_sum > ref_sum
 
         bloc[:pro].each do |k, v|
@@ -465,43 +475,43 @@ def ua_summary(surfaces, date = Time.now, version = "",
 
         # Deterministic sorting
         ua[lang][b][:summary] = ua[lang][b].delete(:summary)
-        if ua[lang][b].has_key?(:walls)
+        if ua[lang][b].key?(:walls)
           ua[lang][b][:walls] = ua[lang][b].delete(:walls)
         end
-        if ua[lang][b].has_key?(:roofs)
+        if ua[lang][b].key?(:roofs)
           ua[lang][b][:roofs] = ua[lang][b].delete(:roofs)
         end
-        if ua[lang][b].has_key?(:floors)
+        if ua[lang][b].key?(:floors)
           ua[lang][b][:floors] = ua[lang][b].delete(:floors)
         end
-        if ua[lang][b].has_key?(:doors)
+        if ua[lang][b].key?(:doors)
           ua[lang][b][:doors] = ua[lang][b].delete(:doors)
         end
-        if ua[lang][b].has_key?(:windows)
+        if ua[lang][b].key?(:windows)
           ua[lang][b][:windows] = ua[lang][b].delete(:windows)
         end
-        if ua[lang][b].has_key?(:skylights)
+        if ua[lang][b].key?(:skylights)
           ua[lang][b][:skylights] = ua[lang][b].delete(:skylights)
         end
-        if ua[lang][b].has_key?(:rimjoists)
+        if ua[lang][b].key?(:rimjoists)
           ua[lang][b][:rimjoists] = ua[lang][b].delete(:rimjoists)
         end
-        if ua[lang][b].has_key?(:parapets)
+        if ua[lang][b].key?(:parapets)
           ua[lang][b][:parapets] = ua[lang][b].delete(:parapets)
         end
-        if ua[lang][b].has_key?(:trim)
+        if ua[lang][b].key?(:trim)
           ua[lang][b][:trim] = ua[lang][b].delete(:trim)
         end
-        if ua[lang][b].has_key?(:corners)
+        if ua[lang][b].key?(:corners)
           ua[lang][b][:corners] = ua[lang][b].delete(:corners)
         end
-        if ua[lang][b].has_key?(:balconies)
+        if ua[lang][b].key?(:balconies)
           ua[lang][b][:balconies] = ua[lang][b].delete(:balconies)
         end
-        if ua[lang][b].has_key?(:grade)
+        if ua[lang][b].key?(:grade)
           ua[lang][b][:grade] = ua[lang][b].delete(:grade)
         end
-        if ua[lang][b].has_key?(:other)
+        if ua[lang][b].key?(:other)
           ua[lang][b][:other] = ua[lang][b].delete(:other)
         end
       end
@@ -556,22 +566,22 @@ def ua_md(ua, lang = :en)
     TBD.log(TBD::DEBUG, "Can't generate UA' MD report - empty summary")
     return report
   end
-  unless ua.has_key?(lang)
+  unless ua.key?(lang)
     TBD.log(TBD::DEBUG, "Can't generate UA' MD report - language mismatch")
     return report
   end
 
-  if ua[lang].has_key?(:objective)
+  if ua[lang].key?(:objective)
     report << "# #{ua[lang][:objective]}   "
     report << "   "
   end
 
-  if ua[lang].has_key?(:details)
+  if ua[lang].key?(:details)
     ua[lang][:details].each { |d| report << "#{d}   " }
     report << "   "
   end
 
-  if ua.has_key?(:model)
+  if ua.key?(:model)
     report << "##### SUMMARY   "  if lang == :en
     report << "##### SOMMAIRE   " if lang == :fr
     report << "   "
@@ -579,7 +589,7 @@ def ua_md(ua, lang = :en)
     report << "   "
   end
 
-  if ua[lang].has_key?(:b1) && ua[lang][:b1].has_key?(:summary)
+  if ua[lang].key?(:b1) && ua[lang][:b1].key?(:summary)
     last = ua[lang][:b1].keys.to_a.last
     report << "* #{ua[lang][:b1][:summary]}"
     ua[lang][:b1].each do |k, v|
@@ -591,7 +601,7 @@ def ua_md(ua, lang = :en)
     report << "   "
   end
 
-  if ua[lang].has_key?(:b2) && ua[lang][:b2].has_key?(:summary)
+  if ua[lang].key?(:b2) && ua[lang][:b2].key?(:summary)
     last = ua[lang][:b2].keys.to_a.last
     report << "* #{ua[lang][:b2][:summary]}"
     ua[lang][:b2].each do |k, v|
@@ -603,15 +613,15 @@ def ua_md(ua, lang = :en)
     report << "   "
   end
 
-  if ua.has_key?(:date)
+  if ua.key?(:date)
     report << "##### DESCRIPTION   "
     report << "   "
-    report << "* project : #{ua[:descr]}" if ua.has_key?(:descr) && lang == :en
-    report << "* projet : #{ua[:descr]}"  if ua.has_key?(:descr) && lang == :fr
+    report << "* project : #{ua[:descr]}" if ua.key?(:descr) && lang == :en
+    report << "* projet : #{ua[:descr]}"  if ua.key?(:descr) && lang == :fr
     model = ""
-    model = "* model : #{ua[:file]}" if ua.has_key?(:file) if lang == :en
-    model = "* modèle : #{ua[:file]}" if ua.has_key?(:file) if lang == :fr
-    model += " (v#{ua[:version]})" if ua.has_key?(:version)
+    model = "* model : #{ua[:file]}" if ua.key?(:file) if lang == :en
+    model = "* modèle : #{ua[:file]}" if ua.key?(:file) if lang == :fr
+    model += " (v#{ua[:version]})" if ua.key?(:version)
     report << model unless model.empty?
     report << "* TBD : v2.3.1"
     report << "* date : #{ua[:date]}"
@@ -625,23 +635,23 @@ def ua_md(ua, lang = :en)
     report << "   "
   end
 
-  if ua[lang].has_key?(:areas)
+  if ua[lang].key?(:areas)
     report << "##### AREAS   " if lang == :en
     report << "##### AIRES   " if lang == :fr
     report << "   "
-    if ua[lang][:areas].has_key?(:walls)
+    if ua[lang][:areas].key?(:walls)
       report << "* #{ua[lang][:areas][:walls]}"
     end
-    if ua[lang][:areas].has_key?(:roofs)
+    if ua[lang][:areas].key?(:roofs)
       report << "* #{ua[lang][:areas][:roofs]}"
     end
-    if ua[lang][:areas].has_key?(:floors)
+    if ua[lang][:areas].key?(:floors)
       report << "* #{ua[lang][:areas][:floors]}"
     end
     report << "   "
   end
 
-  if ua[lang].has_key?(:notes)
+  if ua[lang].key?(:notes)
     report << "##### NOTES   "
     report << "   "
     report << "#{ua[lang][:notes]}   "
