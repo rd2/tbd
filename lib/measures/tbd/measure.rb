@@ -94,12 +94,12 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     write_tbd.setDefaultValue(false)
     args << write_tbd
 
-    walls = {s: {}, dft: "ALL wall constructions"}
-    roofs = {s: {}, dft: "ALL roof constructions"}
-    flors = {s: {}, dft: "ALL floor constructions"}
-    walls[:s][walls[:dft]] = {a: 100000000000000}
-    roofs[:s][roofs[:dft]] = {a: 100000000000000}
-    flors[:s][flors[:dft]] = {a: 100000000000000}
+    walls = {c: {}, dft: "ALL wall constructions"}
+    roofs = {c: {}, dft: "ALL roof constructions"}
+    flors = {c: {}, dft: "ALL floor constructions"}
+    walls[:c][walls[:dft]] = {a: 100000000000000}
+    roofs[:c][roofs[:dft]] = {a: 100000000000000}
+    flors[:c][flors[:dft]] = {a: 100000000000000}
     walls[:chx] = OpenStudio::StringVector.new
     roofs[:chx] = OpenStudio::StringVector.new
     flors[:chx] = OpenStudio::StringVector.new
@@ -112,25 +112,25 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
         next if s.construction.empty?
         next if s.construction.get.to_LayeredConstruction.empty?
         lc = s.construction.get.to_LayeredConstruction.get
-        next if walls[:s].key?(lc.nameString)
-        next if roofs[:s].key?(lc.nameString)
-        next if flors[:s].key?(lc.nameString)
-        walls[:s][lc.nameString] = {a: lc.getNetArea} if type == "wall"
-        roofs[:s][lc.nameString] = {a: lc.getNetArea} if type == "roofceiling"
-        flors[:s][lc.nameString] = {a: lc.getNetArea} if type == "floor"
+        next if walls[:c].key?(lc.nameString)
+        next if roofs[:c].key?(lc.nameString)
+        next if flors[:c].key?(lc.nameString)
+        walls[:c][lc.nameString] = {a: lc.getNetArea} if type == "wall"
+        roofs[:c][lc.nameString] = {a: lc.getNetArea} if type == "roofceiling"
+        flors[:c][lc.nameString] = {a: lc.getNetArea} if type == "floor"
       end
 
-      walls[:s].sort_by{ |k,v| v[:a] }.to_h
-      walls[:s][walls[:dft]][:a] = 0
-      walls[:s].keys.each { |id| walls[:chx] << id }
+      walls[:c] = walls[:c].sort_by{ |k,v| v[:a] }.reverse!.to_h
+      walls[:c][walls[:dft]][:a] = 0
+      walls[:c].keys.each { |id| walls[:chx] << id }
 
-      roofs[:s].sort_by{ |k,v| v[:a] }.to_h
-      roofs[:s][roofs[:dft]][:a] = 0
-      roofs[:s].keys.each { |id| roofs[:chx] << id }
+      roofs[:c] = roofs[:c].sort_by{ |k,v| v[:a] }.reverse!.to_h
+      roofs[:c][roofs[:dft]][:a] = 0
+      roofs[:c].keys.each { |id| roofs[:chx] << id }
 
-      flors[:s].sort_by{ |k,v| v[:a] }.to_h
-      flors[:s][flors[:dft]][:a] = 0
-      flors[:s].keys.each { |id| flors[:chx] << id }
+      flors[:c] = flors[:c].sort_by{ |k,v| v[:a] }.reverse!.to_h
+      flors[:c][flors[:dft]][:a] = 0
+      flors[:c].keys.each { |id| flors[:chx] << id }
     end
 
     arg = "uprate_walls"

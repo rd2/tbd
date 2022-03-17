@@ -1784,13 +1784,22 @@ def processTBD(os_model, argh = {})
     return nil, nil
   end
 
-  argh               = {}    unless argh.is_a?(Hash)
-  argh[:option]      = ""    unless argh.key?(:option)
-  argh[:io_path]     = nil   unless argh.key?(:io_path)
-  argh[:schema_path] = nil   unless argh.key?(:schema_path)
-  argh[:gen_ua]      = false unless argh.key?(:gen_ua)
-  argh[:ua_ref]      = ""    unless argh.key?(:ua_ref)
-  argh[:gen_kiva]    = false unless argh.key?(:gen_kiva)
+  argh                 = {}    unless argh.is_a?(Hash)
+  argh[:option]        = ""    unless argh.key?(:option)
+  argh[:io_path]       = nil   unless argh.key?(:io_path)
+  argh[:schema_path]   = nil   unless argh.key?(:schema_path)
+  argh[:uprate_walls]  = false unless argh.key?(:uprate_walls)
+  argh[:uprate_roofs]  = false unless argh.key?(:uprate_roofs)
+  argh[:uprate_floors] = false unless argh.key?(:uprate_floors)
+  argh[:wall_ut]       = 0     unless argh.key?(:wall_ut)
+  argh[:roof_ut]       = 0     unless argh.key?(:roof_ut)
+  argh[:floor_ut]      = 0     unless argh.key?(:floor_ut)
+  argh[:wall_option]   = ""    unless argh.key?(:wall_option)
+  argh[:roof_option]   = ""    unless argh.key?(:roof_option)
+  argh[:floor_option]  = ""    unless argh.key?(:floor_option)
+  argh[:gen_ua]        = false unless argh.key?(:gen_ua)
+  argh[:ua_ref]        = ""    unless argh.key?(:ua_ref)
+  argh[:gen_kiva]      = false unless argh.key?(:gen_kiva)
 
   os_building = os_model.getBuilding
 
@@ -2966,6 +2975,13 @@ def processTBD(os_model, argh = {})
         surface[:pts][i] = { val: io_k.point[i], n: k[:count] }
       end
     end
+  end
+
+  # If user has selected a Ut to meet (see argh'ments :uprate_walls, :wall_ut &
+  # :wall_option ... same triple arguments for roofs and exposed floors), first
+  # 'uprate' targeted insulation layers (see ua.rb).
+  if argh[:uprate_walls] || argh[:uprate_roofs] || argh[:uprate_floors]
+    uprate(os_model, surfaces, argh)
   end
 
   # Derated (cloned) constructions are unique to each deratable surface.

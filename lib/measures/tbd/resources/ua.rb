@@ -21,6 +21,109 @@
 # SOFTWARE.
 
 ##
+# Uprate insulation layer of construction, based on user-selected Ut.
+#
+# @param [OpenStudio::Model::Model] model An OpenStudio model
+# @param [Hash] surfaces Preprocessed collection of TBD surfaces
+# @param [Hash] arguments Arguments
+#
+# @return [Bool] Returns True if successfully uprated; False if fail
+def uprate(model, surfaces, argh)
+  unless model && surfaces && argh
+    TBD.log(TBD::DEBUG, "Uprate - invalid inputs")
+    return false
+  end
+  cl = OpenStudio::Model::Model
+  unless model.is_a?(cl)
+    TBD.log(TBD::DEBUG, "Uprate, model #{model.class} - expected #{cl}")
+    return false
+  end
+  unless surfaces.is_a?(Hash)
+    TBD.log(TBD::DEBUG, "Uprate, surfaces #{surfaces.class} - expected Hash")
+    return false
+  end
+  unless argh.is_a?(Hash)
+    TBD.log(TBD::DEBUG, "Uprate, argh #{argh.class} - expected Hash")
+    return false
+  end
+
+  argh[:uprate_walls]  = false unless argh.key?(:uprate_walls)
+  argh[:uprate_roofs]  = false unless argh.key?(:uprate_roofs)
+  argh[:uprate_floors] = false unless argh.key?(:uprate_floors)
+  argh[:wall_ut]       = 0     unless argh.key?(:wall_ut)
+  argh[:roof_ut]       = 0     unless argh.key?(:roof_ut)
+  argh[:floor_ut]      = 0     unless argh.key?(:floor_ut)
+  argh[:wall_option]   = ""    unless argh.key?(:wall_option)
+  argh[:roof_option]   = ""    unless argh.key?(:roof_option)
+  argh[:floor_option]  = ""    unless argh.key?(:floor_option)
+
+  if argh[:uprate_walls]
+  end
+
+  if argh[:uprate_roofs]
+    roofs = {}
+    opt = argh[:roof_option]
+    if opt.empty?
+      TBD.log(TBD::ERROR, "Missing roof construction to uprate - skipping")
+    else
+      if opt == "ALL roof constructions"
+        model.getSurfaces.each do |s|
+          type = s.surfaceType.downcase
+          next unless type == "roofceiling"
+          next unless s.outsideBoundaryCondition.downcase == "outdoors"
+          next if s.construction.empty?
+          next if s.construction.get.to_LayeredConstruction.empty?
+          lc = s.construction.get.to_LayeredConstruction.get
+          id = lc.nameString
+          nom = s.nameString
+          a = s.netArea
+          f = s.filmResistance
+          roofs[id] = {a: lc.getNetArea, lc: lc, s: {}} unless roofs.key?(id)
+          roofs[id][:s][nom] = {a: a, f: f} unless roofs[id][:s].key?(nom)
+        end
+      else
+        lc = model.getConstructionByName(opt)
+        if lc.empty?
+          TBD.log(TBD::ERROR,
+            "Unknown roof construction #{opt} to uprate - skipping")
+        else
+          lc = lc.get.to_LayeredConstruction
+          if lc.empty?
+            TBD.log(TBD::ERROR,
+              "Non-layered roof construction #{opt} to uprate - skipping")
+          else
+            lc = lc.get
+            roofs[opt] = {a: lc.getNetArea, lc: lc, s: {}}
+            model.getSurfaces.each do |s|
+              type = s.surfaceType.downcase
+              next unless type == "roofceiling"
+              next unless s.outsideBoundaryCondition.downcase == "outdoors"
+              next if s.construction.empty?
+              next if s.construction.get.to_LayeredConstruction.empty?
+              lc = s.construction.get.to_LayeredConstruction.get
+              id = lc.nameString
+              next unless opt == id
+              nom = s.nameString
+              a = s.netArea
+              f = s.filmResistance
+              roofs[opt][:s][nom] = {a: a, f: f} unless roofs[opt][:s].key?(nom)
+            end
+          end
+        end
+      end
+
+      # puts "#{roofs.values[0][:a]} vs #{roofs.values[0][:s].values[0][:a]}"
+
+    end
+  end
+
+  if argh[:uprate_floors]
+  end
+
+  true
+end
+
+##
 # Set reference values for points, edges & surfaces (& subsurfaces) to
 # compute Quebec energy code (Section 3.3) UA' comparison (2021).
 #

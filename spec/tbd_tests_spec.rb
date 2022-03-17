@@ -7173,6 +7173,134 @@ RSpec.describe TBD do
     expect(TBD.status).to eq(0)
   end
 
+  it "can uprate (ALL roof) constructions" do
+    TBD.clean!
+    argh = {}
+
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    path = OpenStudio::Path.new(file)
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    # Mimics measure.
+    walls = {c: {}, dft: "ALL wall constructions"}
+    roofs = {c: {}, dft: "ALL roof constructions"}
+    flors = {c: {}, dft: "ALL floor constructions"}
+    walls[:c][walls[:dft]] = {a: 100000000000000}
+    roofs[:c][roofs[:dft]] = {a: 100000000000000}
+    flors[:c][flors[:dft]] = {a: 100000000000000}
+    walls[:chx] = OpenStudio::StringVector.new
+    roofs[:chx] = OpenStudio::StringVector.new
+    flors[:chx] = OpenStudio::StringVector.new
+
+    os_model.getSurfaces.each do |s|
+      type = s.surfaceType.downcase
+      next unless type == "wall" || type == "roofceiling" || type == "floor"
+      next unless s.outsideBoundaryCondition.downcase == "outdoors"
+      next if s.construction.empty?
+      next if s.construction.get.to_LayeredConstruction.empty?
+      lc = s.construction.get.to_LayeredConstruction.get
+      id = lc.nameString
+      next if walls[:c].key?(id)
+      next if roofs[:c].key?(id)
+      next if flors[:c].key?(id)
+      a = lc.getNetArea
+
+      # One challenge of the uprate approach concerns OpenStudio-reported
+      # surface film resistances, which factor-in the slope of the surface and
+      # surface emittances. As the uprate approach relies on user-defined Ut
+      # factors (inputs, as targets to meet), it also considers surface film
+      # resistances. In the schematic cross-section below, let's postulate that
+      # each slope has a unique pitch: 50° (s1), 0° (s2), & 60° (s3). All three
+      # surfaces reference the same construction.
+      #
+      #         s2
+      #        _____
+      #       /     \
+      #   s1 /       \ s3
+      #     /         \
+      #
+      # For highly-reflective interior finishes (think of Bruce Lee in Enter
+      # the Dragon), the difference here in reported RSi could reach 0.1 m2.K/W
+      # or R0.6. That's a 1% to 3% difference for a well-insulated construction.
+      # This may seem significant, but the impact on energy simulation results
+      # should be barely noticeable. However, these discrepancies could become
+      # an irritant when processing an OpenStudio model for code compliance
+      # purposes. For clear-field (Uo) calculations, a simple solution is ensure
+      # that the (common) layered construction meets minimal code requirements
+      # for the surface with the lowest film resistance, here s2. Thus surfaces
+      # s1 & s3 will slightly overshoot the Uo target.
+      #
+      # For Ut calculations (which factor-in major thermal bridging), this is
+      # not as straightforward as adjusting the construction layers by hand. Yet
+      # conceptually, the approach here remains similar: for a selected
+      # construction shared by more than one surface, the considered film
+      # resistance will be that of the worst case encountered. The resulting Uo
+      # for that uprated construction might be slightly lower (i.e., better
+      # performing) than expected in some circumstances.
+      f = s.filmResistance
+
+      case type
+      when "wall"
+        walls[:c][id] = {a: a, lc: lc}
+        walls[:c][id][:f] = f unless walls[:c][id].key?(:f)
+        walls[:c][id][:f] = f if f < walls[:c][id][:f]
+      when "roofceiling"
+        roofs[:c][id] = {a: a, lc: lc}
+        roofs[:c][id][:f] = f unless roofs[:c][id].key?(:f)
+        roofs[:c][id][:f] = f if f < roofs[:c][id][:f]
+      else
+        flors[:c][id] = {a: a, lc: lc}
+        flors[:c][id][:f] = f unless flors[:c][id].key?(:f)
+        flors[:c][id][:f] = f if f < flors[:c][id][:f]
+      end
+    end
+
+    walls[:c] = walls[:c].sort_by{ |k,v| v[:a] }.reverse!.to_h
+    walls[:c][walls[:dft]][:a] = 0
+    walls[:c].keys.each { |id| walls[:chx] << id }
+
+    roofs[:c] = roofs[:c].sort_by{ |k,v| v[:a] }.reverse!.to_h
+    roofs[:c][roofs[:dft]][:a] = 0
+    roofs[:c].keys.each { |id| roofs[:chx] << id }
+
+    flors[:c] = flors[:c].sort_by{ |k,v| v[:a] }.reverse!.to_h
+    flors[:c][flors[:dft]][:a] = 0
+    flors[:c].keys.each { |id| flors[:chx] << id }
+
+    expect(roofs[:c].size).to eq(3)
+    # puts roofs[:c].keys
+    # Typical Insulated Metal Building Roof R-10.31 1
+    # Typical Insulated Metal Building Roof R-18.18
+    expect(roofs[:c].keys[0]).to eq("ALL roof constructions")
+    expect(roofs[:c]["ALL roof constructions"][:a]).to be_within(TOL).of(0)
+    roof1 = roofs[:c].values[1]
+    roof2 = roofs[:c].values[2]
+    expect(roof1[:a] > roof2[:a]).to be(true)
+    expect(roof1[:f]).to be_within(TOL).of(roof2[:f])
+    expect(roof1[:f]).to be_within(TOL).of(0.1360)
+    expect(1/rsi(roof1[:lc], roof1[:f])).to be_within(TOL).of(0.5512)  # R ~10.3
+    expect(1/rsi(roof2[:lc], roof2[:f])).to be_within(TOL).of(0.3124)  # R ~18.2
+
+    argh[:option]       = "poor (BETBG)"
+    argh[:uprate_roofs] = true
+    argh[:roof_ut]      = 0.138                                      # NECB 2017
+    argh[:roof_option]  = "Typical Insulated Metal Building Roof R-10.31 1"
+    io, surfaces = processTBD(os_model, argh)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
+    expect(surfaces.size).to eq(23)
+    expect(io.key?(:edges))
+    expect(io[:edges].size).to eq(300)
+  end
+
   it "can pre-process UA parameters" do
     TBD.clean!
     argh = {}
