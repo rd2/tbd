@@ -1403,6 +1403,129 @@ def generateKiva(model, walls, floors, edges)
 end
 
 ##
+# Validates if default construction set holds exterior surface construction.
+#
+# @param [OpenStudio::Model::DefaultConstructionSet] set A default set
+# @param [OpensStudio::Model::ConstructionBase] base A construction base
+# @param [String] type A surface type
+#
+# @return [Bool] Returns true if set holds construction.
+def holdsExteriorSurfaceConstruction?(set, base, type)
+  unless set && set.is_a?(OpenStudio::Model::DefaultConstructionSet)
+    TBD.log(TBD::DEBUG,
+      "Invalid set, can't validate if holding construction - skipping")
+    return false
+  end
+  unless base && base.is_a?(OpenStudio::Model::ConstructionBase)
+    TBD.log(TBD::DEBUG,
+      "Invalid base, can't validate if set holds construction - skipping")
+    return false
+  end
+  unless type
+    TBD.log(TBD::DEBUG,
+      "Invalid type, can't validate if set holds construction - skipping")
+    return false
+  end
+  typ = type.downcase
+  unless typ == "floor" || typ == "wall" || typ == "roofceiling"
+    TBD.log(TBD::DEBUG,
+      "Wrong type, can't validate if set holds construction - skipping")
+    return false
+  end
+
+  unless set.defaultExteriorSurfaceConstructions.empty?
+    constructions = set.defaultExteriorSurfaceConstructions.get
+    case typ
+    when "roofceiling"
+      unless constructions.roofCeilingConstruction.empty?
+        construction = constructions.roofCeilingConstruction.get
+        return true if construction == base
+      end
+    when "floor"
+      unless constructions.floorConstruction.empty?
+        construction = constructions.floorConstruction.get
+        return true if construction == base
+      end
+    else
+      unless constructions.wallConstruction.empty?
+        construction = constructions.wallConstruction.get
+        return true if construction == base
+      end
+    end
+  end
+
+  false
+end
+
+##
+# Returns a surface's default construction set.
+#
+# @param [OpenStudio::Model::Model] model An OpenStudio model
+# @param [OpenStudio::Model::Surface] s An OpenStudio surface
+#
+# @return [OpenStudio::Model::DefaultConstructionSet] Returns set; else nil
+def defaultConstructionSet(model, s)
+  unless model && model.is_a?(OpenStudio::Model::Model)
+    TBD.log(TBD::DEBUG,
+      "Invalid model, can't find default construction set - skipping")
+    return nil
+  end
+  unless s && s.is_a?(OpenStudio::Model::Surface)
+    TBD.log(TBD::DEBUG,
+      "Invalid surface, can't find default construction set - skipping")
+    return nil
+  end
+  unless s.isConstructionDefaulted
+    TBD.log(TBD::ERROR,
+      "Construction not defaulted - skipping")
+    return nil
+  end
+  if s.construction.empty?
+    TBD.log(TBD::ERROR,
+      "Missing construction, can't find default constrcution set - skipping")
+    return nil
+  end
+  if s.space.empty?
+    TBD.log(TBD::ERROR,
+      "Missing space, can't find default constrcution set - skipping")
+    return nil
+  end
+
+  base = s.construction.get
+  space = s.space.get
+  type = s.surfaceType
+
+  unless space.defaultConstructionSet.empty?
+    set = space.defaultConstructionSet.get
+    return set if holdsExteriorSurfaceConstruction?(set, base, type)
+  end
+
+  unless space.spaceType.empty?
+    spacetype = space.spaceType.get
+    unless spacetype.defaultConstructionSet.empty?
+      set = spacetype.defaultConstructionSet.get
+      return set if holdsExteriorSurfaceConstruction?(set, base, type)
+    end
+  end
+
+  unless space.buildingStory.empty?
+    story = space.buildingStory.get
+    unless story.defaultConstructionSet.empty?
+      set = story.defaultConstructionSet.get
+      return set if holdsExteriorSurfaceConstruction?(set, base, type)
+    end
+  end
+
+  building = model.getBuilding
+  unless building.defaultConstructionSet.empty?
+    set = building.defaultConstructionSet.get
+    return set if holdsExteriorSurfaceConstruction?(set, base, type)
+  end
+
+  nil
+end
+
+##
 # Returns total air film resistance for fenestration (future use).
 #
 # @param [Float] usi A fenestrated construction's U-factor in W/m2.K

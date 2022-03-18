@@ -68,7 +68,7 @@ def uprate(model, surfaces, argh)
   groups[:roof ][:op] = argh[:roof_option]
   groups[:floor][:op] = argh[:floor_option]
 
-  groups.each do |lbl, g|
+  groups.each do |label, g|
     if g[:up]
       coll = {}
       area = 0
@@ -84,7 +84,7 @@ def uprate(model, surfaces, argh)
       elsif all
         model.getSurfaces.each do |s|
           type = s.surfaceType.downcase
-          next unless type.include?(lbl.to_s)
+          next unless type.include?(label.to_s)
           next unless s.outsideBoundaryCondition.downcase == "outdoors"
           next if s.construction.empty?
           next if s.construction.get.to_LayeredConstruction.empty?
@@ -115,7 +115,7 @@ def uprate(model, surfaces, argh)
             coll[g[:op]] = {area: area, lc: lc, s: {}}
             model.getSurfaces.each do |s|
               type = s.surfaceType.downcase
-              next unless type.include?(lbl.to_s)
+              next unless type.include?(label.to_s)
               next unless s.outsideBoundaryCondition.downcase == "outdoors"
               next if s.construction.empty?
               next if s.construction.get.to_LayeredConstruction.empty?
@@ -133,20 +133,49 @@ def uprate(model, surfaces, argh)
       if coll.empty?
         TBD.log(TBD::ERROR, "No construction to uprate - skipping")
       else
+        # Good to uprate. If "ALL <X> constructions" option, first reset
+        # OpenStudio surfaces' constructions to the prevalent construction.
         coll.each do |id, col|
           next unless col.key?(:s)
-          next if id == lc.nameString
-          col[:s].each do |nom, s|
+          next if id == lc.nameString     # skip - already referencing right one
+          col[:s].keys.each do |nom|
             next unless surfaces.key?(nom)
-            # puts nom
-          end
-
-          surfaces.each do |id, surface|
+            surface = surfaces[nom]
             next unless surface.key?(:construction)
-            next unless surface[:construction] == lc
+            next if surface[:construction] == lc
+            puts "... #{surface[:construction].nameString} vs #{lc.nameString}"
             next unless surface.key?(:index)
             next unless surface.key?(:ltype)
             next unless surface.key?(:r)
+
+            s = model.getSurfaceByName(nom)
+            next if s.empty?
+            s = s.get
+
+            if s.isConstructionDefaulted
+              set = defaultConstructionSet(model, s)
+              constructions = set.defaultExteriorSurfaceConstructions.get
+              case s.surfaceType.downcase
+              when "roofceiling"
+                constructions.setRoofCeilingConstruction(lc)
+              when "floor"
+                constructions.setFloorConstruction(lc)
+              else
+                constructions.setWallConstruction(cc)
+              end
+            else
+              s.setConstruction(lc)
+            end
+
+            puts "... now #{s.construction.get.to_LayeredConstruction.get.nameString} vs #{lc.nameString}"
+
+            # TO DO : Complete reset by adapting surfaces' Hash
+            # TO DO : tally (revised) net areas covered by layered construction
+            # TO DO : tally applicable psi + khi
+            # TO DO : calculate Uo to ensure Ut
+            # TO DO : adjust layered construction insulation layer.
+            # TO DO : RSpecs to ensure same UA totals.
+
           end
         end
       end

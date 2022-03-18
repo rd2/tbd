@@ -118,6 +118,10 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
         walls[:c][lc.nameString] = {a: lc.getNetArea} if type == "wall"
         roofs[:c][lc.nameString] = {a: lc.getNetArea} if type == "roofceiling"
         flors[:c][lc.nameString] = {a: lc.getNetArea} if type == "floor"
+
+        # TO DO : Ensure WALL vs ROOFCEILING vs FLOOR constructions are unique
+        # to type, i.e., a ROOFCEILING construction shouldn't be also referenced
+        # by an exposed FLOOR construction in the same OpenStudio model.
       end
 
       walls[:c] = walls[:c].sort_by{ |k,v| v[:a] }.reverse!.to_h
