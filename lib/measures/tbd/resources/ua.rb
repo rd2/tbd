@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 ##
-# Uprate insulation layer of construction, based on user-selected Ut.
+# Uprate insulation layer of construction, based on user-selected Ut (argh).
 #
 # @param [OpenStudio::Model::Model] model An OpenStudio model
 # @param [Hash] surfaces Preprocessed collection of TBD surfaces
@@ -57,68 +57,182 @@ def uprate(model, surfaces, argh)
   argh[:roof_option]   = ""    unless argh.key?(:roof_option)
   argh[:floor_option]  = ""    unless argh.key?(:floor_option)
 
-  if argh[:uprate_walls]
-  end
+  groups = {wall: {}, roof: {}, floor: {}}
+  groups[:wall ][:up] = argh[:uprate_walls]
+  groups[:roof ][:up] = argh[:uprate_roofs]
+  groups[:floor][:up] = argh[:uprate_floors]
+  groups[:wall ][:ut] = argh[:wall_ut]
+  groups[:roof ][:ut] = argh[:roof_ut]
+  groups[:floor][:ut] = argh[:floor_ut]
+  groups[:wall ][:op] = argh[:wall_option]
+  groups[:roof ][:op] = argh[:roof_option]
+  groups[:floor][:op] = argh[:floor_option]
 
-  if argh[:uprate_roofs]
-    roofs = {}
-    opt = argh[:roof_option]
-    if opt.empty?
-      TBD.log(TBD::ERROR, "Missing roof construction to uprate - skipping")
-    else
-      if opt == "ALL roof constructions"
+  groups.each do |lbl, g|
+    if g[:up]
+      coll = {}
+      area = 0
+      film = 100000000000000
+      lc = nil
+
+      all = g[:op] == "ALL roof constructions" ||
+            g[:op] == "ALL wall constructions" ||
+            g[:op] == "ALL floor constructions"
+
+      if g[:op].empty?
+        TBD.log(TBD::ERROR, "Missing construction to uprate - skipping")
+      elsif all
         model.getSurfaces.each do |s|
           type = s.surfaceType.downcase
-          next unless type == "roofceiling"
+          next unless type.include?(lbl.to_s)
           next unless s.outsideBoundaryCondition.downcase == "outdoors"
           next if s.construction.empty?
           next if s.construction.get.to_LayeredConstruction.empty?
-          lc = s.construction.get.to_LayeredConstruction.get
-          id = lc.nameString
+          c = s.construction.get.to_LayeredConstruction.get
+          id = c.nameString
+          if c.getNetArea > area
+            area = c.getNetArea
+            lc = c
+          end
           nom = s.nameString
-          a = s.netArea
-          f = s.filmResistance
-          roofs[id] = {a: lc.getNetArea, lc: lc, s: {}} unless roofs.key?(id)
-          roofs[id][:s][nom] = {a: a, f: f} unless roofs[id][:s].key?(nom)
+          film = s.filmResistance if s.filmResistance < film
+          coll[id] = {area: c.getNetArea, lc: c, s: {}} unless coll.key?(id)
+          coll[id][:s][nom] = {a: s.netArea} unless coll[id][:s].key?(nom)
         end
       else
-        lc = model.getConstructionByName(opt)
-        if lc.empty?
+        c = model.getConstructionByName(g[:op])
+        if c.empty?
           TBD.log(TBD::ERROR,
-            "Unknown roof construction #{opt} to uprate - skipping")
+            "Unknown construction #{g[:op]} to uprate - skipping")
         else
-          lc = lc.get.to_LayeredConstruction
-          if lc.empty?
+          c = c.get.to_LayeredConstruction
+          if c.empty?
             TBD.log(TBD::ERROR,
-              "Non-layered roof construction #{opt} to uprate - skipping")
+              "Non-layered construction #{g[:op]} to uprate - skipping")
           else
-            lc = lc.get
-            roofs[opt] = {a: lc.getNetArea, lc: lc, s: {}}
+            lc = c.get
+            area = lc.getNetArea
+            coll[g[:op]] = {area: area, lc: lc, s: {}}
             model.getSurfaces.each do |s|
               type = s.surfaceType.downcase
-              next unless type == "roofceiling"
+              next unless type.include?(lbl.to_s)
               next unless s.outsideBoundaryCondition.downcase == "outdoors"
               next if s.construction.empty?
               next if s.construction.get.to_LayeredConstruction.empty?
               lc = s.construction.get.to_LayeredConstruction.get
               id = lc.nameString
-              next unless opt == id
+              next unless g[:op] == id
               nom = s.nameString
-              a = s.netArea
-              f = s.filmResistance
-              roofs[opt][:s][nom] = {a: a, f: f} unless roofs[opt][:s].key?(nom)
+              film = s.filmResistance if s.filmResistance < film
+              coll[id][:s][nom] = {a: s.netArea} unless coll[id][:s].key?(nom)
             end
           end
         end
       end
 
-      # puts "#{roofs.values[0][:a]} vs #{roofs.values[0][:s].values[0][:a]}"
+      if coll.empty?
+        TBD.log(TBD::ERROR, "No construction to uprate - skipping")
+      else
+        coll.each do |id, col|
+          next unless col.key?(:s)
+          next if id == lc.nameString
+          col[:s].each do |nom, s|
+            next unless surfaces.key?(nom)
+            # puts nom
+          end
 
+          surfaces.each do |id, surface|
+            next unless surface.key?(:construction)
+            next unless surface[:construction] == lc
+            next unless surface.key?(:index)
+            next unless surface.key?(:ltype)
+            next unless surface.key?(:r)
+          end
+        end
+      end
     end
   end
 
-  if argh[:uprate_floors]
-  end
+  # if argh[:uprate_roofs]
+  #   roofs = {}
+  #   area = 0
+  #   film = 100000000000000
+  #   lc = nil
+  #   opt = argh[:roof_option]
+  #
+  #   if opt.empty?
+  #     TBD.log(TBD::ERROR, "Missing roof construction to uprate - skipping")
+  #   elsif opt == "ALL roof constructions"
+  #     model.getSurfaces.each do |s|
+  #       type = s.surfaceType.downcase
+  #       next unless type == "roofceiling"
+  #       next unless s.outsideBoundaryCondition.downcase == "outdoors"
+  #       next if s.construction.empty?
+  #       next if s.construction.get.to_LayeredConstruction.empty?
+  #       c = s.construction.get.to_LayeredConstruction.get
+  #       id = c.nameString
+  #       if c.getNetArea > area
+  #         area = c.getNetArea
+  #         lc = c
+  #       end
+  #       nom = s.nameString
+  #       film = s.filmResistance if s.filmResistance < film
+  #       roofs[id] = {area: c.getNetArea, lc: c, s: {}} unless roofs.key?(id)
+  #       roofs[id][:s][nom] = {a: s.netArea} unless roofs[id][:s].key?(nom)
+  #     end
+  #   else
+  #     c = model.getConstructionByName(opt)
+  #     if c.empty?
+  #       TBD.log(TBD::ERROR,
+  #         "Unknown roof construction #{opt} to uprate - skipping")
+  #     else
+  #       c = c.get.to_LayeredConstruction
+  #       if c.empty?
+  #         TBD.log(TBD::ERROR,
+  #           "Non-layered roof construction #{opt} to uprate - skipping")
+  #       else
+  #         lc = c.get
+  #         area = lc.getNetArea
+  #         roofs[opt] = {area: area, lc: lc, s: {}}
+  #         model.getSurfaces.each do |s|
+  #           type = s.surfaceType.downcase
+  #           next unless type == "roofceiling"
+  #           next unless s.outsideBoundaryCondition.downcase == "outdoors"
+  #           next if s.construction.empty?
+  #           next if s.construction.get.to_LayeredConstruction.empty?
+  #           lc = s.construction.get.to_LayeredConstruction.get
+  #           id = lc.nameString
+  #           next unless opt == id
+  #           nom = s.nameString
+  #           film = s.filmResistance if s.filmResistance < film
+  #           roofs[opt][:s][nom] = {a: s.netArea} unless roofs[opt][:s].key?(nom)
+  #         end
+  #       end
+  #     end
+  #   end
+  #
+  #   if roofs.empty?
+  #     TBD.log(TBD::ERROR, "No roof construction to uprate - skipping")
+  #   else
+  #     # if roofs.values.first.key?(:s)
+  #     roofs.each do |id, roof|
+  #       next unless roof.key?(:s)
+  #       next if id == lc.nameString
+  #       roof[:s].each do |nom, s|
+  #         next unless surfaces.key?(nom)
+  #         puts nom
+  #       end
+  #
+  #       surfaces.each do |id, surface|
+  #         next unless surface.key?(:construction)
+  #         next unless surface[:construction] == lc
+  #         next unless surface.key?(:index)
+  #         next unless surface.key?(:ltype)
+  #         next unless surface.key?(:r)
+  #       end
+  #     end
+  #   end
+  # end
 
   true
 end

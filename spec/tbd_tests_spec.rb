@@ -7287,7 +7287,7 @@ RSpec.describe TBD do
     argh[:option]       = "poor (BETBG)"
     argh[:uprate_roofs] = true
     argh[:roof_ut]      = 0.138                                      # NECB 2017
-    argh[:roof_option]  = "Typical Insulated Metal Building Roof R-10.31 1"
+    argh[:roof_option]  = "ALL roof constructions" # "Typical Insulated Metal Building Roof R-10.31 1"
     io, surfaces = processTBD(os_model, argh)
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
