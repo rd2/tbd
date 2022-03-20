@@ -268,7 +268,7 @@ RSpec.describe TBD do
 
     expect(os_g_W_wall.surfaceType.downcase).to eq("wall")
     expect(os_g_W_wall.isConstructionDefaulted).to be(true)
-    c = set.getDefaultConstruction(os_g_W_wall).get.to_Construction.get
+    c = set.getDefaultConstruction(os_g_W_wall).get.to_LayeredConstruction.get
     expect(c.numLayers).to eq(3)
     expect(c.isOpaque).to be(true)
     expect(c.nameString).to eq("scrigno_construction")
@@ -345,7 +345,7 @@ RSpec.describe TBD do
 
     expect(os_g_top.surfaceType.downcase).to eq("roofceiling")
     expect(os_g_top.isConstructionDefaulted).to be(true)
-    c = set.getDefaultConstruction(os_g_top).get.to_Construction.get
+    c = set.getDefaultConstruction(os_g_top).get.to_LayeredConstruction.get
     expect(c.numLayers).to eq(3)
     expect(c.isOpaque).to be(true)
     expect(c.nameString).to eq("scrigno_construction")
@@ -381,7 +381,7 @@ RSpec.describe TBD do
     # initially, elevator floor is defaulted ...
     expect(os_e_floor.surfaceType.downcase).to eq("floor")
     expect(os_e_floor.isConstructionDefaulted).to be(true)
-    c = set.getDefaultConstruction(os_e_floor).get.to_Construction.get
+    c = set.getDefaultConstruction(os_e_floor).get.to_LayeredConstruction.get
     expect(c.numLayers).to eq(3)
     expect(c.isOpaque).to be(true)
     expect(c.nameString).to eq("scrigno_construction")
@@ -389,7 +389,7 @@ RSpec.describe TBD do
     # ... now overriding default construction
     expect(os_e_floor.setConstruction(elevator_floor_c)).to be(true)
     expect(os_e_floor.isConstructionDefaulted).to be(false)
-    c = os_e_floor.construction.get.to_Construction.get
+    c = os_e_floor.construction.get.to_LayeredConstruction.get
     expect(c.numLayers).to eq(3)
     expect(c.isOpaque).to be(true)
     expect(c.nameString).to eq("elevator_floor_c")
@@ -635,7 +635,7 @@ RSpec.describe TBD do
       surface[:type] = :wall if typ.include?("wall")
 
       unless s.construction.empty?
-        construction = s.construction.get.to_Construction.get
+        construction = s.construction.get.to_LayeredConstruction.get
         # index  - of layer/material (to derate) in construction
         # ltype  - either massless (RSi) or standard (k + d)
         # r      - initial RSi value of the indexed layer to derate
@@ -1465,7 +1465,7 @@ RSpec.describe TBD do
         next unless id == s.nameString
         index = surface[:index]
         current_c = surface[:construction]
-        c = current_c.clone(os_model).to_Construction.get
+        c = current_c.clone(os_model).to_LayeredConstruction.get
 
         m = nil
         m = derate(os_model, id, surface, c) unless index.nil?
@@ -1482,7 +1482,7 @@ RSpec.describe TBD do
               if surfaces.key?(i) && adjacent.isConstructionDefaulted == false
                 indx = surfaces[i][:index]
                 current_cc = surfaces[i][:construction]
-                cc = current_cc.clone(os_model).to_Construction.get
+                cc = current_cc.clone(os_model).to_LayeredConstruction.get
 
                 cc.setLayer(indx, m)
                 cc.setName("#{i} c tbd")
@@ -1565,7 +1565,7 @@ RSpec.describe TBD do
       next unless s.isConstructionDefaulted
       c = s.construction
       expect(c.empty?).to be(false)
-      c = c.get.to_Construction
+      c = c.get.to_LayeredConstruction
       expect(c.empty?).to be(false)
       c = c.get
       id = c.nameString
@@ -1586,7 +1586,7 @@ RSpec.describe TBD do
       expect(id.include?(str)).to be(true)
       c = s.construction
       expect(c.empty?).to be(false)
-      c = c.get.to_Construction
+      c = c.get.to_LayeredConstruction
       expect(c.empty?).to be(false)
       c = c.get
       expect(c.layers.size).to eq(4)
@@ -1686,7 +1686,7 @@ RSpec.describe TBD do
       # adjacent ceilings below (building default construction set). So
       # attic floor surfaces automatically inherit derated constructions.
       expect(s.isConstructionDefaulted).to be(true)
-      c = s.construction.get.to_Construction
+      c = s.construction.get.to_LayeredConstruction
       expect(c.empty?).to be(false)
       c = c.get
       expect(c.nameString.include?("c tbd")).to be(true)
@@ -1743,7 +1743,7 @@ RSpec.describe TBD do
 
       c = s.construction
       expect(c.empty?).to be(false)
-      c = c.get.to_Construction
+      c = c.get.to_LayeredConstruction
       expect(c.empty?).to be(false)
       c = c.get
       expect(c.layers.size).to eq(4)
@@ -1802,14 +1802,14 @@ RSpec.describe TBD do
       next unless s.nameString.include?("_perimeter")
       expect(s.surfaceType).to eq("Floor")
       expect(s.isConstructionDefaulted).to be(true)
-      c = s.construction.get.to_Construction
+      c = s.construction.get.to_LayeredConstruction
       expect(c.empty?).to be(false)
       c = c.get
       expect(c.layers.size).to eq(2)
       # layer[0]: "5/8 in. Gypsum Board"
       # layer[1]: "Typical Insulation R-35.4 1"
 
-      construction = c.clone(os_model).to_Construction.get
+      construction = c.clone(os_model).to_LayeredConstruction.get
       expect(construction.handle.to_s.empty?).to be(false)
       expect(construction.nameString.empty?).to be(false)
       str = "Typical Wood Joist Attic Floor R-37.04 2"
@@ -1862,7 +1862,7 @@ RSpec.describe TBD do
       expect(s.nameString).to eq(id)
       expect(s.surfaceType).to eq("Floor")
       expect(s.isConstructionDefaulted).to be(false)
-      c = s.construction.get.to_Construction
+      c = s.construction.get.to_LayeredConstruction
       expect(c.empty?).to be(false)
       c = c.get
       next unless c.nameString == "Attic_floor_perimeter_south floor"
@@ -1911,7 +1911,7 @@ RSpec.describe TBD do
 
         c = s.construction
         expect(c.empty?).to be(false)
-        c = c.get.to_Construction
+        c = c.get.to_LayeredConstruction
         expect(c.empty?).to be(false)
         c = c.get
         expect(c.layers.size).to eq(4)
@@ -1967,7 +1967,7 @@ RSpec.describe TBD do
       expect(s.isConstructionDefaulted).to be(true)
       c = s.construction
       expect(c.empty?).to be(false)
-      c = c.get.to_Construction
+      c = c.get.to_LayeredConstruction
       expect(c.empty?).to be(false)
       c = c.get
       id = c.nameString
@@ -2044,7 +2044,7 @@ RSpec.describe TBD do
 
       c = s.construction
       expect(c.empty?).to be(false)
-      c = c.get.to_Construction
+      c = c.get.to_LayeredConstruction
       expect(c.empty?).to be(false)
       c = c.get
       expect(c.layers[1].nameString.include?("m tbd")).to be(true)
@@ -2154,7 +2154,7 @@ RSpec.describe TBD do
 
       c = s.construction
       expect(c.empty?).to be(false)
-      c = c.get.to_Construction
+      c = c.get.to_LayeredConstruction
       expect(c.empty?).to be(false)
       c = c.get
       expect(c.layers[1].nameString.include?("m tbd")).to be(true)
@@ -2220,7 +2220,7 @@ RSpec.describe TBD do
 
       c = s.construction
       expect(c.empty?).to be(false)
-      c = c.get.to_Construction
+      c = c.get.to_LayeredConstruction
       expect(c.empty?).to be(false)
       c = c.get
       expect(c.layers[1].nameString.include?("m tbd")).to be(true)
@@ -2346,7 +2346,7 @@ RSpec.describe TBD do
 
       c = s.construction
       expect(c.empty?).to be(false)
-      c = c.get.to_Construction
+      c = c.get.to_LayeredConstruction
       expect(c.empty?).to be(false)
       c = c.get
       expect(c.layers[1].nameString.include?("m tbd")).to be(true)
@@ -2446,7 +2446,7 @@ RSpec.describe TBD do
       expect(s.isConstructionDefaulted).to be(false)
       c = s.construction
       expect(c.empty?).to be(false)
-      c = c.get.to_Construction
+      c = c.get.to_LayeredConstruction
       expect(c.empty?).to be(false)
       c = c.get
       id = c.nameString
@@ -2575,7 +2575,7 @@ RSpec.describe TBD do
 
       c = s.construction
       expect(c.empty?).to be(false)
-      c = c.get.to_Construction
+      c = c.get.to_LayeredConstruction
       expect(c.empty?).to be(false)
       c = c.get
       i = 0
@@ -2613,7 +2613,7 @@ RSpec.describe TBD do
         expect(s.nameString).to eq(id)
         expect(s.surfaceType).to eq("Wall")
         expect(s.isConstructionDefaulted).to be(false)
-        c = s.construction.get.to_Construction
+        c = s.construction.get.to_LayeredConstruction
         expect(c.empty?).to be(false)
         c = c.get
         expect(c.nameString.include?("c tbd")).to be(true)
@@ -2754,7 +2754,7 @@ RSpec.describe TBD do
 
       c = s.construction
       expect(c.empty?).to be(false)
-      c = c.get.to_Construction
+      c = c.get.to_LayeredConstruction
       expect(c.empty?).to be(false)
       c = c.get
       expect(c.layers[1].nameString.include?("m tbd")).to be(true)
@@ -2935,7 +2935,7 @@ RSpec.describe TBD do
 
       c = s.construction
       expect(c.empty?).to be(false)
-      c = c.get.to_Construction
+      c = c.get.to_LayeredConstruction
       expect(c.empty?).to be(false)
       c = c.get
       i = 0
@@ -2973,7 +2973,7 @@ RSpec.describe TBD do
         expect(s.nameString).to eq(id)
         expect(s.surfaceType).to eq("Wall")
         expect(s.isConstructionDefaulted).to be(false)
-        c = s.construction.get.to_Construction
+        c = s.construction.get.to_LayeredConstruction
         expect(c.empty?).to be(false)
         c = c.get
         expect(c.nameString.include?("c tbd")).to be(true)
@@ -3077,7 +3077,7 @@ RSpec.describe TBD do
 
       c = s.construction
       expect(c.empty?).to be(false)
-      c = c.get.to_Construction
+      c = c.get.to_LayeredConstruction
       expect(c.empty?).to be(false)
       c = c.get
       i = 0
@@ -3115,7 +3115,7 @@ RSpec.describe TBD do
         expect(s.nameString).to eq(id)
         expect(s.surfaceType).to eq("Wall")
         expect(s.isConstructionDefaulted).to be(false)
-        c = s.construction.get.to_Construction
+        c = s.construction.get.to_LayeredConstruction
         expect(c.empty?).to be(false)
         c = c.get
         expect(c.nameString.include?("c tbd")).to be(true)
@@ -3219,7 +3219,7 @@ RSpec.describe TBD do
 
       c = s.construction
       expect(c.empty?).to be(false)
-      c = c.get.to_Construction
+      c = c.get.to_LayeredConstruction
       expect(c.empty?).to be(false)
       c = c.get
       i = 0
@@ -3257,7 +3257,7 @@ RSpec.describe TBD do
         expect(s.nameString).to eq(id)
         expect(s.surfaceType).to eq("Wall")
         expect(s.isConstructionDefaulted).to be(false)
-        c = s.construction.get.to_Construction
+        c = s.construction.get.to_LayeredConstruction
         expect(c.empty?).to be(false)
         c = c.get
         expect(c.nameString.include?("c tbd")).to be(true)
@@ -4391,7 +4391,7 @@ RSpec.describe TBD do
 
       c = s.construction
       expect(c.empty?).to be(false)
-      c = c.get.to_Construction
+      c = c.get.to_LayeredConstruction
       expect(c.empty?).to be(false)
       c = c.get
       i = 0
@@ -5987,7 +5987,7 @@ RSpec.describe TBD do
     left_office_wall = os_model.getSurfaceByName("Office Left Wall")
     expect(left_office_wall.empty?).to be(false)
     left_office_wall = left_office_wall.get
-    c = left_office_wall.construction.get.to_Construction.get
+    c = left_office_wall.construction.get.to_LayeredConstruction.get
     expect(c.numLayers).to eq(1)
     #layer = c.getLayer(0).to_MasslessOpaqueMaterial
     layer = c.getLayer(0).to_StandardOpaqueMaterial
@@ -6014,7 +6014,7 @@ RSpec.describe TBD do
     right_fine_wall = os_model.getSurfaceByName("Fine Storage Right Wall")
     expect(right_fine_wall.empty?).to be(false)
     right_fine_wall = right_fine_wall.get
-    c = right_fine_wall.construction.get.to_Construction.get
+    c = right_fine_wall.construction.get.to_LayeredConstruction.get
     layer = c.getLayer(0).to_MasslessOpaqueMaterial
     expect(layer.empty?).to be(false)
     layer = layer.get
@@ -6109,7 +6109,7 @@ RSpec.describe TBD do
       expect(s.isConstructionDefaulted).to be(false)
       c = s.construction
       expect(c.empty?).to be(false)
-      c = c.get.to_Construction
+      c = c.get.to_LayeredConstruction
       expect(c.empty?).to be(false)
       c = c.get
       id = c.nameString
@@ -6125,7 +6125,7 @@ RSpec.describe TBD do
       expect(s.isConstructionDefaulted).to be(false)
       c = s.construction
       expect(c.empty?).to be(false)
-      c = c.get.to_Construction
+      c = c.get.to_LayeredConstruction
       expect(c.empty?).to be(false)
       c = c.get
       id = c.nameString
@@ -6429,8 +6429,8 @@ RSpec.describe TBD do
       expect(tdd.subSurfaceDome).to eq(dome)
       expect(tdd.subSurfaceDiffuser).to eq(diffuser)
       c = tdd.construction
-      expect(c.to_Construction.empty?).to be(false)
-      c = c.to_Construction.get
+      expect(c.to_LayeredConstruction.empty?).to be(false)
+      c = c.to_LayeredConstruction.get
       expect(c.nameString).to eq(construction.nameString)
       expect(tdd.diameter).to be_within(0.001).of(diameter)
       expect(tdd.effectiveThermalResistance).to be_within(0.01).of(rsi)
@@ -6766,8 +6766,8 @@ RSpec.describe TBD do
       expect(tdd.subSurfaceDome).to eq(dome)
       expect(tdd.subSurfaceDiffuser).to eq(diffuser)
       c = tdd.construction
-      expect(c.to_Construction.empty?).to be(false)
-      c = c.to_Construction.get
+      expect(c.to_LayeredConstruction.empty?).to be(false)
+      c = c.to_LayeredConstruction.get
       expect(c.nameString).to eq(construction.nameString)
       expect(tdd.diameter).to be_within(0.001).of(diameter)
       expect(tdd.effectiveThermalResistance).to be_within(0.01).of(rsi)
@@ -7037,8 +7037,8 @@ RSpec.describe TBD do
       expect(tdd.subSurfaceDome).to eq(dome)
       expect(tdd.subSurfaceDiffuser).to eq(diffuser)
       c = tdd.construction
-      expect(c.to_Construction.empty?).to be(false)
-      c = c.to_Construction.get
+      expect(c.to_LayeredConstruction.empty?).to be(false)
+      c = c.to_LayeredConstruction.get
       expect(c.nameString).to eq(construction.nameString)
       expect(tdd.diameter).to be_within(0.001).of(diameter)
       expect(tdd.effectiveThermalResistance).to be_within(0.01).of(rsi)
@@ -7150,7 +7150,7 @@ RSpec.describe TBD do
     expect(s.nameString).to eq(id)
     expect(s.surfaceType).to eq("Wall")
     expect(s.isConstructionDefaulted).to be(true)
-    c = s.construction.get.to_Construction
+    c = s.construction.get.to_LayeredConstruction
     expect(c.empty?).to be(false)
     c = c.get
     expect(c.numLayers).to eq(3)
@@ -7285,7 +7285,7 @@ RSpec.describe TBD do
     expect(1/rsi(roof1[:lc], roof1[:f])).to be_within(TOL).of(0.5512)    # R10.3
     expect(1/rsi(roof2[:lc], roof2[:f])).to be_within(TOL).of(0.3124)    # R18.2
 
-    # Deeper dive into rf1.
+    # Deeper dive into rf1 (more prevalent).
     targeted = os_model.getConstructionByName(rf1)
     expect(targeted.empty?).to be(false)
     targeted = targeted.get
@@ -7321,6 +7321,57 @@ RSpec.describe TBD do
     bulk = "Bulk Storage Roof"
     fine = "Fine Storage Roof"
 
+    # OpenStudio objects.
+    bulk_roof = os_model.getSurfaceByName(bulk)
+    fine_roof = os_model.getSurfaceByName(fine)
+    expect(bulk_roof.empty?).to be(false)
+    expect(fine_roof.empty?).to be(false)
+    bulk_roof = bulk_roof.get
+    fine_roof = fine_roof.get
+    bulk_construction = bulk_roof.construction
+    fine_construction = fine_roof.construction
+    expect(bulk_construction.empty?).to be(false)
+    expect(fine_construction.empty?).to be(false)
+    bulk_construction = bulk_construction.get.to_LayeredConstruction
+    fine_construction = fine_construction.get.to_LayeredConstruction
+    expect(bulk_construction.empty?).to be(false)
+    expect(fine_construction.empty?).to be(false)
+    bulk_construction = bulk_construction.get
+    fine_construction = fine_construction.get
+    expect(bulk_construction.nameString).to eq("Bulk Storage Roof c tbd")
+    expect(fine_construction.nameString).to eq("Fine Storage Roof c tbd")
+    expect(bulk_construction.layers.size).to eq(2)
+    expect(fine_construction.layers.size).to eq(2)
+    bulk_insulation = bulk_construction.layers.at(1).to_MasslessOpaqueMaterial
+    fine_insulation = fine_construction.layers.at(1).to_MasslessOpaqueMaterial
+    expect(bulk_insulation.empty?).to be(false)
+    expect(fine_insulation.empty?).to be(false)
+    bulk_insulation = bulk_insulation.get
+    fine_insulation = fine_insulation.get
+    bulk_insulation_r = bulk_insulation.thermalResistance
+    fine_insulation_r = fine_insulation.thermalResistance
+    expect(bulk_insulation_r).to be_within(TOL).of(7.307)         # once derated
+    expect(fine_insulation_r).to be_within(TOL).of(6.695)         # once derated
+
+    # OS:Material:NoMass,
+    #   {ced9e679-8ba3-4649-9138-28d5dc4ffe8e}, !- Handle
+    #   'Bulk Storage Roof' uprated m tbd,      !- Name
+    #   Smooth,                                 !- Roughness
+    #   7.30722894233504,                       !- Thermal Resistance {m2-K/W}
+    #   0.9,                                    !- Thermal Absorptance
+    #   0.7,                                    !- Solar Absorptance
+    #   0.7;                                    !- Visible Absorptance
+    #
+    # OS:Material:NoMass,
+    #   {334bf14d-fef4-40ab-96e2-6ef3407a8c60}, !- Handle
+    #   'Fine Storage Roof' uprated m tbd,      !- Name
+    #   Smooth,                                 !- Roughness
+    #   6.69548488394183,                       !- Thermal Resistance {m2-K/W}
+    #   0.9,                                    !- Thermal Absorptance
+    #   0.7,                                    !- Solar Absorptance
+    #   0.7;                                    !- Visible Absorptance
+
+    # TBD objects.
     expect(surfaces.key?(bulk)).to be(true)
     expect(surfaces.key?(fine)).to be(true)
     expect(surfaces[bulk].key?(:heatloss)).to be(true)
@@ -7336,12 +7387,12 @@ RSpec.describe TBD do
     expect(heatloss).to be_within(TOL).of(248.19)
     expect(area).to be_within(TOL).of(4529.88)
 
-    expect(surfaces[bulk].key?(:construction)).to be(true)
+    expect(surfaces[bulk].key?(:construction)).to be(true)     # not yet derated
     expect(surfaces[fine].key?(:construction)).to be(true)
     expect(surfaces[bulk][:construction].nameString).to eq(rf1)
     expect(surfaces[fine][:construction].nameString).to eq(rf1)  # no longer rf2
 
-    uprated = os_model.getConstructionByName(rf1)
+    uprated = os_model.getConstructionByName(rf1)              # not yet derated
     expect(uprated.empty?).to be(false)
     uprated = uprated.get
     expect(uprated.to_LayeredConstruction.empty?).to be(false)
@@ -7357,11 +7408,7 @@ RSpec.describe TBD do
       expect(layer.thermalResistance).to be_within(TOL).of(11.65) # m2.K/W (R66)
     end
     rt = rsi(uprated, roof1[:f])
-    expect(1/rt).to be_within(TOL).of(0.0849)                              # R67
-    expect(surfaces[bulk].key?(:ratio)).to be(true)
-    expect(surfaces[fine].key?(:ratio)).to be(true)
-    expect(surfaces[bulk][:ratio]).to be_within(TOL).of(-85.73)
-    expect(surfaces[fine][:ratio]).to be_within(TOL).of(-85.98)
+    expect(1/rt).to be_within(TOL).of(0.0849)         # R67 (with surface films)
 
     # Bulk storage roof demonstration.
     u = surfaces[bulk][:heatloss] / surfaces[bulk][:net]
@@ -7370,10 +7417,12 @@ RSpec.describe TBD do
     de_r = 1 / de_u
     bulk_r = de_r + roof1[:f]
     bulk_u = 1 / bulk_r
-    expect(de_u).to be_within(TOL).of(0.137)     # close to required Ut of 0.138
-    expect(de_r).to be_within(TOL).of(7.307)                         # not 11.65
-    ratio  = -(uprated_layer_r - de_r) * 100 / uprated_layer_r
-    # puts "bulk ratio = #{ratio}" # bulk ratio = -37.27 ... not -0.85% ?
+    expect(de_u).to be_within(TOL).of(0.137)    # bit below required Ut of 0.138
+    expect(de_r).to be_within(TOL).of(bulk_insulation_r)      # 7.307, not 11.65
+    ratio  = -(uprated_layer_r - de_r) * 100 / (uprated_layer_r + roof1[:f])
+    expect(ratio).to be_within(TOL).of(-36.84)
+    expect(surfaces[bulk].key?(:ratio)).to be(true)
+    expect(surfaces[bulk][:ratio]).to be_within(TOL).of(ratio)
 
     # Fine storage roof demonstration.
     u = surfaces[fine][:heatloss] / surfaces[fine][:net]
@@ -7382,14 +7431,19 @@ RSpec.describe TBD do
     de_r = 1 / de_u
     fine_r = de_r + roof1[:f]
     fine_u = 1 / fine_r
-    expect(de_u).to be_within(TOL).of(0.149)     # close to required Ut of 0.138
-    expect(de_r).to be_within(TOL).of(6.695)                         # not 11.65
-    ratio  = -(uprated_layer_r - de_r) * 100 / uprated_layer_r
-    # puts "fine ratio = #{ratio}" # fine ratio = -42.52 ... not -0.85% ?
+    expect(de_u).to be_within(TOL).of(0.149)        # above required Ut of 0.138
+    expect(de_r).to be_within(TOL).of(fine_insulation_r)      # 6.695, not 11.65
+    ratio  = -(uprated_layer_r - de_r) * 100 / (uprated_layer_r + roof1[:f])
+    expect(ratio).to be_within(TOL).of(-42.03)
+    expect(surfaces[fine].key?(:ratio)).to be(true)
+    expect(surfaces[fine][:ratio]).to be_within(TOL).of(ratio)
 
     ua = bulk_u * surfaces[bulk][:net] + fine_u * surfaces[fine][:net]
     ave_u = ua / area
     expect(ave_u).to be_within(TOL).of(argh[:roof_ut])   # area-weighted average
+
+    file = File.join(__dir__, "files/osms/out/up_warehouse.osm")
+    os_model.save(file, true)
   end
 
   it "can pre-process UA parameters" do

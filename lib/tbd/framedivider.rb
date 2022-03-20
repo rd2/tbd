@@ -515,7 +515,7 @@ def openings(model, surface)
       TBD.log(TBD::ERROR, msg)
       next
     end
-    c = c.get.to_Construction.get
+    c = c.get.to_LayeredConstruction.get
 
     # A subsurface may have an overall U-factor set by the user - a less
     # accurate option, yet easier to process (and often the only option

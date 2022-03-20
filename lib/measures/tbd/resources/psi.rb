@@ -1563,12 +1563,12 @@ def glazingAirFilmRSi(usi = 5.85)
     return 0.1216
   end
 
-  rsi = 1.0 / (0.025342 * usi + 29.163853)                        # exterior ...
+  rsi = 1 / (0.025342 * usi + 29.163853)                          # exterior ...
 
   if usi < 5.85
-    return rsi + 1.0 / (0.359073 * Math.log(usi) + 6.949915)    # ... + interior
+    return rsi + 1 / (0.359073 * Math.log(usi) + 6.949915)      # ... + interior
   else
-    return rsi + 1.0 / (1.788041 * usi - 2.886625)              # ... + interior
+    return rsi + 1 / (1.788041 * usi - 2.886625)                # ... + interior
   end
 end
 
@@ -1607,7 +1607,7 @@ def rsi(lc, film_RSi, temperature = 0.0)
   lc.layers.each do |m|
     # Fenestration materials first (ignoring shades, screens, etc.)
     unless m.to_SimpleGlazing.empty?
-      return 1.0 / m.to_SimpleGlazing.get.uFactor              # no need to loop
+      return 1 / m.to_SimpleGlazing.get.uFactor              # no need to loop
     end
     unless m.to_StandardGlazing.empty?
       rsi += m.to_StandardGlazing.get.thermalResistance
@@ -1822,22 +1822,24 @@ def derate(model, id, surface, lc)
   ltype          = surface[:ltype]
   r              = surface[:r]
   u              = surface[:heatloss] / surface[:net]
-  loss           = 0.0
-  de_u           = 1.0 / r + u                                       # derated U
-  de_r           = 1.0 / de_u                                        # derated R
+  loss           = 0
+  de_u           = 1 / r + u                                         # derated U
+  de_r           = 1 / de_u                                          # derated R
 
   if ltype == :massless
     m            = lc.getLayer(index).to_MasslessOpaqueMaterial
 
     unless m.empty?
       m          = m.get
+      up         = ""
+      up         = "uprated " if m.nameString.include?(" uprated")
       m          = m.clone(model)
       m          = m.to_MasslessOpaqueMaterial.get
-                   m.setName("'#{id}' m tbd")
+                   m.setName("'#{id}' #{up}m tbd")
 
       unless de_r > 0.001
         de_r     = 0.001
-        loss     = (de_u - 1.0 / de_r) * surface[:net]
+        loss     = (de_u - 1 / de_r) * surface[:net]
       end
       m.setThermalResistance(de_r)
     end
@@ -1846,17 +1848,19 @@ def derate(model, id, surface, lc)
     m            = lc.getLayer(index).to_StandardOpaqueMaterial
     unless m.empty?
       m          = m.get
+      up         = ""
+      up         = "uprated " if m.nameString.include?(" uprated")
       m          = m.clone(model)
       m          = m.to_StandardOpaqueMaterial.get
-                   m.setName("'#{id}' m tbd")
+                   m.setName("'#{id}' #{up}m tbd")
       k          = m.thermalConductivity
       if de_r > 0.001
         d        = de_r * k
         unless d > 0.003
           d      = 0.003
           k      = d / de_r
-          unless k < 3.0
-            k    = 3.0
+          unless k < 3
+            k    = 3
 
             loss = (de_u - k / d) * surface[:net]
           end
@@ -3102,9 +3106,14 @@ def processTBD(os_model, argh = {})
 
   # If user has selected a Ut to meet (see argh'ments :uprate_walls, :wall_ut &
   # :wall_option ... same triple arguments for roofs and exposed floors), first
-  # 'uprate' targeted insulation layers (see ua.rb).
+  # 'uprate' targeted insulation layers (see ua.rb) before derating. Check for
+  # new argh keys [:wall_uo], [:roof_uo] = uo and/or [:floor_uo].
+  #
+  # TO DO : report uo values in runner, JSON, etc. in exitTBD()
+  #
   if argh[:uprate_walls] || argh[:uprate_roofs] || argh[:uprate_floors]
     uprate(os_model, surfaces, argh)
+    # puts argh[:roof_uo] if argh.has_key?(:roof_uo)
   end
 
   # Derated (cloned) constructions are unique to each deratable surface.
@@ -3126,7 +3135,7 @@ def processTBD(os_model, argh = {})
       next unless id == s.nameString
       index = surface[:index]
       current_c = surface[:construction]
-      c = current_c.clone(os_model).to_Construction.get
+      c = current_c.clone(os_model).to_LayeredConstruction.get
 
       m = nil
       m = derate(os_model, id, surface, c) if index
@@ -3140,7 +3149,7 @@ def processTBD(os_model, argh = {})
 
         # Compute current RSi value from layers.
         current_R = s.filmResistance
-        current_c.to_Construction.get.layers.each do |l|
+        current_c.to_LayeredConstruction.get.layers.each do |l|
           r = 0
           unless l.to_MasslessOpaqueMaterial.empty?
             l = l.to_MasslessOpaqueMaterial.get
@@ -3182,7 +3191,7 @@ def processTBD(os_model, argh = {})
             if surfaces.key?(i) && adjacent.isConstructionDefaulted == false
               indx = surfaces[i][:index]
               current_cc = surfaces[i][:construction]
-              cc = current_cc.clone(os_model).to_Construction.get
+              cc = current_cc.clone(os_model).to_LayeredConstruction.get
 
               cc.setLayer(indx, m)
               cc.setName("#{i} c tbd")
@@ -3194,7 +3203,7 @@ def processTBD(os_model, argh = {})
         # Compute updated RSi value from layers.
         updated_R = s.filmResistance
         updated_c = s.construction.get
-        updated_c.to_Construction.get.layers.each do |l|
+        updated_c.to_LayeredConstruction.get.layers.each do |l|
           r = 0
           unless l.to_MasslessOpaqueMaterial.empty?
             l = l.to_MasslessOpaqueMaterial.get
@@ -3214,7 +3223,7 @@ def processTBD(os_model, argh = {})
         surface[:ratio] = ratio if ratio.abs > TOL
 
         # Storing underated U-factors value (for UA').
-        surface[:u] = 1.0 / current_R
+        surface[:u] = 1 / current_R
       end
     end
   end

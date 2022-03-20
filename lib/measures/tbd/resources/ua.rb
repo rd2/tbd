@@ -102,7 +102,7 @@ def uo(lc, id, heatloss, film, ut)
 
     unless m.empty?
       m          = m.get
-                   m.setName("#{m.nameString} uprated")
+                   m.setName("#{m.nameString} uprated")          # for debugging
 
       unless new_r > 0.001
         new_r    = 0.001
@@ -115,7 +115,7 @@ def uo(lc, id, heatloss, film, ut)
     m            = lc.getLayer(index).to_StandardOpaqueMaterial
     unless m.empty?
       m          = m.get
-                   m.setName("#{m.nameString} uprated")
+                   m.setName("#{m.nameString} uprated")          # for debugging
       k          = m.thermalConductivity
       if new_r > 0.001
         d        = new_r * k
@@ -214,6 +214,7 @@ def uprate(model, surfaces, argh)
     area = 0
     film = 100000000000000
     lc = nil
+    uo = nil
     id = ""
 
     all = g[:op] == "ALL roof constructions" ||
@@ -274,10 +275,20 @@ def uprate(model, surfaces, argh)
 
     if coll.empty?
       TBD.log(TBD::ERROR, "No construction to uprate - skipping")
+      next
     elsif lc                        # valid layered construction, good to uprate
+      index, ltype, r = deratableLayer(lc)
+      index = nil unless index.is_a?(Numeric)
+      index = nil unless index >= 0
+      index = nil unless index < lc.layers.size
+      unless index
+        TBD.log(TBD::ERROR, "Can't ID insulation index for #{id} - skipping")
+        next
+      end
       heatloss = 0                   # sum of applicable psi & khi effects [W/K]
       coll.each do |i, col|
         next unless col.key?(:s)
+        next unless col.is_a?(Hash)
         col[:s].keys.each do |nom|
           next unless surfaces.key?(nom)
           surface = surfaces[nom]
@@ -286,47 +297,41 @@ def uprate(model, surfaces, argh)
           next unless surface.key?(:construction)
           next unless surface.key?(:index)
           next unless surface.key?(:ltype)
+          next unless surface.key?(:r)
           next unless surface.key?(:type)
           type = surface[:type].to_s.downcase
           type = "roof" if type == "ceiling"
           next unless type.include?(label.to_s)
-          next unless surface.key?(:r)
 
           # Tally applicable psi + khi.
           heatloss += surface[:heatloss] if surface.key?(:heatloss)
 
           # Skip construction reassignment if already referencing right one.
-          next if surface[:construction] == lc
+          unless surface[:construction] == lc
+            s = model.getSurfaceByName(nom)
+            next if s.empty?
+            s = s.get
 
-          s = model.getSurfaceByName(nom)
-          next if s.empty?
-          s = s.get
-
-          if s.isConstructionDefaulted
-            set = defaultConstructionSet(model, s)
-            constructions = set.defaultExteriorSurfaceConstructions.get
-            case s.surfaceType.downcase
-            when "roofceiling"
-              constructions.setRoofCeilingConstruction(lc)
-            when "floor"
-              constructions.setFloorConstruction(lc)
+            if s.isConstructionDefaulted
+              set = defaultConstructionSet(model, s)
+              constructions = set.defaultExteriorSurfaceConstructions.get
+              case s.surfaceType.downcase
+              when "roofceiling"
+                constructions.setRoofCeilingConstruction(lc)
+              when "floor"
+                constructions.setFloorConstruction(lc)
+              else
+                constructions.setWallConstruction(lc)
+              end
             else
-              constructions.setWallConstruction(cc)
+              s.setConstruction(lc)
             end
-          else
-            s.setConstruction(lc)
-          end
 
-          # Reset TBD surface attributes.
-          index, ltype, r = deratableLayer(lc)
-          index = nil unless index.is_a?(Numeric)
-          index = nil unless index >= 0
-          index = nil unless index < lc.layers.size
-          if index
+            # Reset TBD surface attributes.
             surface[:construction] = lc
             surface[:index]        = index
             surface[:ltype]        = ltype
-            surface[:r]            = r
+            surface[:r]            = r                               # temporary
           end
         end
       end
@@ -342,13 +347,55 @@ def uprate(model, surfaces, argh)
       end
       coll.delete_if { |i, _| i != id }
 
+      unless coll.size == 1
+        TBD.log(TBD::DEBUG, "Collection should equal 1 for #{id} - skipping")
+        next
+      end
       uo = uo(lc, id, heatloss, film, g[:ut])
       unless uo
         TBD.log(TBD::ERROR, "Unable to uprate #{id} - skipping")
+        next
+      end
+      index, ltype, r = deratableLayer(lc)
+      index = nil unless index.is_a?(Numeric)
+      index = nil unless index >= 0
+      index = nil unless index < lc.layers.size
+      unless index
+        TBD.log(TBD::ERROR, "Cannot ID insulation index for #{id} - skipping")
+        next
+      end
+      # Loop through coll :s, and reset :r - likely modified by uo().
+      coll.values.first[:s].keys.each do |nom|
+        next unless surfaces.key?(nom)
+        surface = surfaces[nom]
+        next unless surface.key?(:deratable)
+        next unless surface[:deratable]
+        next unless surface.key?(:construction)
+        next unless surface[:construction] == lc
+        next unless surface.key?(:index)
+        next unless surface[:index] == index
+        next unless surface.key?(:ltype)
+        next unless surface[:ltype] == ltype
+        next unless surface.key?(:type)
+        type = surface[:type].to_s.downcase
+        type = "roof" if type == "ceiling"
+        next unless type.include?(label.to_s)
+        next unless surface.key?(:r)
+        surface[:r] = r                                              # final
       end
 
+      case label
+      when :wall
+        argh[:wall_uo] = uo
+      when :roof
+        argh[:roof_uo] = uo
+      else
+        argh[:floor_uo] = uo
+      end
+      
     else
       TBD.log(TBD::ERROR, "Nilled construction to uprate - skipping")
+      return false
     end
   end
 
