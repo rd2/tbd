@@ -1729,7 +1729,7 @@ def derate(model, id, surface, lc)
   end
   unless lc.is_a?(cl2)
     TBD.log(TBD::DEBUG,
-      "Can't derate '#{id}', #{c.class}? expected #{cl2} - skipping")
+      "Can't derate '#{id}', #{lc.class}? expected #{cl2} - skipping")
     return m
   end
   unless surface.key?(:heatloss)

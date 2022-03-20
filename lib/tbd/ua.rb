@@ -21,6 +21,144 @@
 # SOFTWARE.
 
 ##
+# Calculates construction Uo (including surface film resistances) to meet Ut.
+#
+# @param [OpenStudio::Model::LayeredConstruction] lc An OS layered construction
+# @param [String] id Layered construction identifier
+# @param [Double] heatloss Heat loss from major thermal bridging [W/K]
+# @param [Double] film Target surface film resistance [m2.K/W]
+# @param [Double] ut Target overall Ut for lc [W/m2.K]
+#
+# @return [Double] Returns (new) construction Uo [W/m2.K] required to meet Ut.
+def uo(lc, id, heatloss, film, ut)
+  uo = nil
+  cl = OpenStudio::Model::LayeredConstruction
+
+  unless id.is_a?(String)
+    TBD.log(TBD::DEBUG,
+      "Can't set Uo, #{id.class}? expected an ID String - skipping")
+    return uo
+  end
+  unless lc.is_a?(cl)
+    TBD.log(TBD::DEBUG,
+      "Can't set Uo for '#{id}', #{lc.class}? expected #{cl} - skipping")
+    return uo
+  end
+
+  index, ltype, r = deratableLayer(lc)      # insulating layer index, type & RSi
+  index = nil unless index.is_a?(Numeric)
+  index = nil unless index >= 0
+  index = nil unless index < lc.layers.size
+  unless index
+    TBD.log(TBD::DEBUG,
+      "Can't set Uo for '#{id}', invalid layer index - skipping")
+    return uo
+  end
+
+  unless heatloss.is_a?(Numeric) && heatloss > 0
+    TBD.log(TBD::DEBUG,
+      "Can't set Uo for '#{id}', negative or non-numeric heatloss - skipping")
+    return uo
+  end
+  unless film.is_a?(Numeric) && film > 0
+    TBD.log(TBD::DEBUG,
+      "Can't set Uo for '#{id}', negative or non-numeric film - skipping")
+    return uo
+  end
+  unless ut.is_a?(Numeric) && ut > 0 && ut < 5.678
+    TBD.log(TBD::DEBUG,
+      "Can't set Uo for '#{id}', negative or non-numeric Ut - skipping")
+    return uo
+  end
+
+  area = lc.getNetArea
+  if area < TOL
+    TBD.log(TBD::DEBUG,
+      "Can't set Uo for '#{id}', area near 0 m2 - skipping")
+    return uo
+  end
+
+  # First, calculate initial layer RSi to initially meet Ut target.
+  rt             = 1.0 / ut                             # target construction Rt
+  ro             = rsi(lc, film)                       # current construction Ro
+  new_r          = r + (rt - ro)                     # new, un-derated layer RSi
+  new_u          = 1.0 / new_r
+
+  # Then, uprate to counter expected major thermal bridging effects.
+  u_psi          = heatloss / area                              # from psi & khi
+  new_u          = new_u - u_psi        # uprated layer USi to counter psi & khi
+  new_r          = 1.0 / new_u          # uprated layer RSi to counter psi & khi
+
+  unless new_r > 0.001
+    TBD.log(TBD::DEBUG,
+      "Can't set Uo for '#{id}', new layer RSi value too low - skipping")
+    return uo
+  end
+
+  m              = nil
+  loss           = 0.0   # residual heatloss not assigned to layer (maybe) [W/K]
+  if ltype == :massless
+    m            = lc.getLayer(index).to_MasslessOpaqueMaterial
+
+    unless m.empty?
+      m          = m.get
+                   m.setName("#{m.nameString} uprated")
+
+      unless new_r > 0.001
+        new_r    = 0.001
+        loss     = (new_u - 1.0 / new_r) * area
+      end
+      m.setThermalResistance(new_r)
+    end
+
+  else                                                      # ltype == :standard
+    m            = lc.getLayer(index).to_StandardOpaqueMaterial
+    unless m.empty?
+      m          = m.get
+                   m.setName("#{m.nameString} uprated")
+      k          = m.thermalConductivity
+      if new_r > 0.001
+        d        = new_r * k
+        unless d > 0.003
+          d      = 0.003
+          k      = d / new_r
+          unless k < 3.0
+            k    = 3.0
+
+            loss = (new_u - k / d) * area
+          end
+        end
+      else                                                # new_r < 0.001 m2.K/W
+        d        = 0.001 * k
+        unless d > 0.003
+          d      = 0.003
+          k      = d / 0.001
+        end
+        loss     = (new_u - k / d) * area
+      end
+
+      m.setThickness(d)
+      m.setThermalConductivity(k)
+    end
+  end
+
+  unless m
+    TBD.log(TBD::DEBUG,
+      "Unable to uprate insulation layer of '#{id}' - skipping")
+  else
+    uo = 1.0 / rsi(lc, film)
+  end
+
+  if loss > TOL
+    h_loss  = format "%.3f", loss
+    TBD.log(TBD::WARN,
+      "Can't assign #{h_loss} W/K to '#{id}', too conductive - skipping")
+  end
+
+  uo
+end
+
+##
 # Uprate insulation layer of construction, based on user-selected Ut (argh).
 #
 # @param [OpenStudio::Model::Model] model An OpenStudio model
@@ -50,9 +188,9 @@ def uprate(model, surfaces, argh)
   argh[:uprate_walls]  = false unless argh.key?(:uprate_walls)
   argh[:uprate_roofs]  = false unless argh.key?(:uprate_roofs)
   argh[:uprate_floors] = false unless argh.key?(:uprate_floors)
-  argh[:wall_ut]       = 0     unless argh.key?(:wall_ut)
-  argh[:roof_ut]       = 0     unless argh.key?(:roof_ut)
-  argh[:floor_ut]      = 0     unless argh.key?(:floor_ut)
+  argh[:wall_ut]       = 5.678 unless argh.key?(:wall_ut)
+  argh[:roof_ut]       = 5.678 unless argh.key?(:roof_ut)
+  argh[:floor_ut]      = 5.678 unless argh.key?(:floor_ut)
   argh[:wall_option]   = ""    unless argh.key?(:wall_option)
   argh[:roof_option]   = ""    unless argh.key?(:roof_option)
   argh[:floor_option]  = ""    unless argh.key?(:floor_option)
@@ -69,199 +207,150 @@ def uprate(model, surfaces, argh)
   groups[:floor][:op] = argh[:floor_option]
 
   groups.each do |label, g|
-    if g[:up]
-      coll = {}
-      area = 0
-      film = 100000000000000
-      lc = nil
+    next unless g[:up]
+    next unless g[:ut].is_a?(Numeric)
+    next unless g[:ut] < 5.678
+    coll = {}
+    area = 0
+    film = 100000000000000
+    lc = nil
+    id = ""
 
-      all = g[:op] == "ALL roof constructions" ||
-            g[:op] == "ALL wall constructions" ||
-            g[:op] == "ALL floor constructions"
+    all = g[:op] == "ALL roof constructions" ||
+          g[:op] == "ALL wall constructions" ||
+          g[:op] == "ALL floor constructions"
 
-      if g[:op].empty?
-        TBD.log(TBD::ERROR, "Missing construction to uprate - skipping")
-      elsif all
-        model.getSurfaces.each do |s|
-          type = s.surfaceType.downcase
-          next unless type.include?(label.to_s)
-          next unless s.outsideBoundaryCondition.downcase == "outdoors"
-          next if s.construction.empty?
-          next if s.construction.get.to_LayeredConstruction.empty?
-          c = s.construction.get.to_LayeredConstruction.get
-          id = c.nameString
-          if c.getNetArea > area
-            area = c.getNetArea
-            lc = c
-          end
-          nom = s.nameString
-          film = s.filmResistance if s.filmResistance < film
-          coll[id] = {area: c.getNetArea, lc: c, s: {}} unless coll.key?(id)
-          coll[id][:s][nom] = {a: s.netArea} unless coll[id][:s].key?(nom)
+    if g[:op].empty?
+      TBD.log(TBD::ERROR, "Missing construction to uprate - skipping")
+    elsif all
+      model.getSurfaces.each do |s|
+        type = s.surfaceType.downcase
+        next unless type.include?(label.to_s)
+        next unless s.outsideBoundaryCondition.downcase == "outdoors"
+        next if s.construction.empty?
+        next if s.construction.get.to_LayeredConstruction.empty?
+        c = s.construction.get.to_LayeredConstruction.get
+        i = c.nameString
+        if c.getNetArea > area
+          area = c.getNetArea # reliable unless reused for other surface types
+          lc = c
+          id = i
         end
+        nom = s.nameString
+        film = s.filmResistance if s.filmResistance < film
+        coll[i] = {area: c.getNetArea, lc: c, s: {}} unless coll.key?(i)
+        coll[i][:s][nom] = {a: s.netArea} unless coll[i][:s].key?(nom)
+      end
+    else
+      id = g[:op]
+      c = model.getConstructionByName(id)
+      if c.empty?
+        TBD.log(TBD::ERROR,
+          "Unknown construction #{id} to uprate - skipping")
       else
-        c = model.getConstructionByName(g[:op])
+        c = c.get.to_LayeredConstruction
         if c.empty?
           TBD.log(TBD::ERROR,
-            "Unknown construction #{g[:op]} to uprate - skipping")
+            "Non-layered construction #{id} to uprate - skipping")
         else
-          c = c.get.to_LayeredConstruction
-          if c.empty?
-            TBD.log(TBD::ERROR,
-              "Non-layered construction #{g[:op]} to uprate - skipping")
-          else
-            lc = c.get
-            area = lc.getNetArea
-            coll[g[:op]] = {area: area, lc: lc, s: {}}
-            model.getSurfaces.each do |s|
-              type = s.surfaceType.downcase
-              next unless type.include?(label.to_s)
-              next unless s.outsideBoundaryCondition.downcase == "outdoors"
-              next if s.construction.empty?
-              next if s.construction.get.to_LayeredConstruction.empty?
-              lc = s.construction.get.to_LayeredConstruction.get
-              id = lc.nameString
-              next unless g[:op] == id
-              nom = s.nameString
-              film = s.filmResistance if s.filmResistance < film
-              coll[id][:s][nom] = {a: s.netArea} unless coll[id][:s].key?(nom)
-            end
-          end
-        end
-      end
-
-      if coll.empty?
-        TBD.log(TBD::ERROR, "No construction to uprate - skipping")
-      else
-        # Good to uprate. If "ALL <X> constructions" option, first reset
-        # OpenStudio surfaces' constructions to the prevalent construction.
-        coll.each do |id, col|
-          next unless col.key?(:s)
-          next if id == lc.nameString     # skip - already referencing right one
-          col[:s].keys.each do |nom|
-            next unless surfaces.key?(nom)
-            surface = surfaces[nom]
-            next unless surface.key?(:construction)
-            next if surface[:construction] == lc
-            puts "... #{surface[:construction].nameString} vs #{lc.nameString}"
-            next unless surface.key?(:index)
-            next unless surface.key?(:ltype)
-            next unless surface.key?(:r)
-
-            s = model.getSurfaceByName(nom)
-            next if s.empty?
-            s = s.get
-
-            if s.isConstructionDefaulted
-              set = defaultConstructionSet(model, s)
-              constructions = set.defaultExteriorSurfaceConstructions.get
-              case s.surfaceType.downcase
-              when "roofceiling"
-                constructions.setRoofCeilingConstruction(lc)
-              when "floor"
-                constructions.setFloorConstruction(lc)
-              else
-                constructions.setWallConstruction(cc)
-              end
-            else
-              s.setConstruction(lc)
-            end
-
-            puts "... now #{s.construction.get.to_LayeredConstruction.get.nameString} vs #{lc.nameString}"
-
-            # TO DO : Complete reset by adapting surfaces' Hash
-            # TO DO : tally (revised) net areas covered by layered construction
-            # TO DO : tally applicable psi + khi
-            # TO DO : calculate Uo to ensure Ut
-            # TO DO : adjust layered construction insulation layer.
-            # TO DO : RSpecs to ensure same UA totals.
-
+          lc = c.get
+          area = lc.getNetArea
+          coll[id] = {area: area, lc: lc, s: {}}
+          model.getSurfaces.each do |s|
+            type = s.surfaceType.downcase
+            next unless type.include?(label.to_s)
+            next unless s.outsideBoundaryCondition.downcase == "outdoors"
+            next if s.construction.empty?
+            next if s.construction.get.to_LayeredConstruction.empty?
+            lc = s.construction.get.to_LayeredConstruction.get
+            next unless id == lc.nameString
+            nom = s.nameString
+            film = s.filmResistance if s.filmResistance < film
+            coll[id][:s][nom] = {a: s.netArea} unless coll[id][:s].key?(nom)
           end
         end
       end
     end
-  end
 
-  # if argh[:uprate_roofs]
-  #   roofs = {}
-  #   area = 0
-  #   film = 100000000000000
-  #   lc = nil
-  #   opt = argh[:roof_option]
-  #
-  #   if opt.empty?
-  #     TBD.log(TBD::ERROR, "Missing roof construction to uprate - skipping")
-  #   elsif opt == "ALL roof constructions"
-  #     model.getSurfaces.each do |s|
-  #       type = s.surfaceType.downcase
-  #       next unless type == "roofceiling"
-  #       next unless s.outsideBoundaryCondition.downcase == "outdoors"
-  #       next if s.construction.empty?
-  #       next if s.construction.get.to_LayeredConstruction.empty?
-  #       c = s.construction.get.to_LayeredConstruction.get
-  #       id = c.nameString
-  #       if c.getNetArea > area
-  #         area = c.getNetArea
-  #         lc = c
-  #       end
-  #       nom = s.nameString
-  #       film = s.filmResistance if s.filmResistance < film
-  #       roofs[id] = {area: c.getNetArea, lc: c, s: {}} unless roofs.key?(id)
-  #       roofs[id][:s][nom] = {a: s.netArea} unless roofs[id][:s].key?(nom)
-  #     end
-  #   else
-  #     c = model.getConstructionByName(opt)
-  #     if c.empty?
-  #       TBD.log(TBD::ERROR,
-  #         "Unknown roof construction #{opt} to uprate - skipping")
-  #     else
-  #       c = c.get.to_LayeredConstruction
-  #       if c.empty?
-  #         TBD.log(TBD::ERROR,
-  #           "Non-layered roof construction #{opt} to uprate - skipping")
-  #       else
-  #         lc = c.get
-  #         area = lc.getNetArea
-  #         roofs[opt] = {area: area, lc: lc, s: {}}
-  #         model.getSurfaces.each do |s|
-  #           type = s.surfaceType.downcase
-  #           next unless type == "roofceiling"
-  #           next unless s.outsideBoundaryCondition.downcase == "outdoors"
-  #           next if s.construction.empty?
-  #           next if s.construction.get.to_LayeredConstruction.empty?
-  #           lc = s.construction.get.to_LayeredConstruction.get
-  #           id = lc.nameString
-  #           next unless opt == id
-  #           nom = s.nameString
-  #           film = s.filmResistance if s.filmResistance < film
-  #           roofs[opt][:s][nom] = {a: s.netArea} unless roofs[opt][:s].key?(nom)
-  #         end
-  #       end
-  #     end
-  #   end
-  #
-  #   if roofs.empty?
-  #     TBD.log(TBD::ERROR, "No roof construction to uprate - skipping")
-  #   else
-  #     # if roofs.values.first.key?(:s)
-  #     roofs.each do |id, roof|
-  #       next unless roof.key?(:s)
-  #       next if id == lc.nameString
-  #       roof[:s].each do |nom, s|
-  #         next unless surfaces.key?(nom)
-  #         puts nom
-  #       end
-  #
-  #       surfaces.each do |id, surface|
-  #         next unless surface.key?(:construction)
-  #         next unless surface[:construction] == lc
-  #         next unless surface.key?(:index)
-  #         next unless surface.key?(:ltype)
-  #         next unless surface.key?(:r)
-  #       end
-  #     end
-  #   end
-  # end
+    if coll.empty?
+      TBD.log(TBD::ERROR, "No construction to uprate - skipping")
+    elsif lc                        # valid layered construction, good to uprate
+      heatloss = 0                   # sum of applicable psi & khi effects [W/K]
+      coll.each do |i, col|
+        next unless col.key?(:s)
+        col[:s].keys.each do |nom|
+          next unless surfaces.key?(nom)
+          surface = surfaces[nom]
+          next unless surface.key?(:deratable)
+          next unless surface[:deratable]
+          next unless surface.key?(:construction)
+          next unless surface.key?(:index)
+          next unless surface.key?(:ltype)
+          next unless surface.key?(:type)
+          type = surface[:type].to_s.downcase
+          type = "roof" if type == "ceiling"
+          next unless type.include?(label.to_s)
+          next unless surface.key?(:r)
+
+          # Tally applicable psi + khi.
+          heatloss += surface[:heatloss] if surface.key?(:heatloss)
+
+          # Skip construction reassignment if already referencing right one.
+          next if surface[:construction] == lc
+
+          s = model.getSurfaceByName(nom)
+          next if s.empty?
+          s = s.get
+
+          if s.isConstructionDefaulted
+            set = defaultConstructionSet(model, s)
+            constructions = set.defaultExteriorSurfaceConstructions.get
+            case s.surfaceType.downcase
+            when "roofceiling"
+              constructions.setRoofCeilingConstruction(lc)
+            when "floor"
+              constructions.setFloorConstruction(lc)
+            else
+              constructions.setWallConstruction(cc)
+            end
+          else
+            s.setConstruction(lc)
+          end
+
+          # Reset TBD surface attributes.
+          index, ltype, r = deratableLayer(lc)
+          index = nil unless index.is_a?(Numeric)
+          index = nil unless index >= 0
+          index = nil unless index < lc.layers.size
+          if index
+            surface[:construction] = lc
+            surface[:index]        = index
+            surface[:ltype]        = ltype
+            surface[:r]            = r
+          end
+        end
+      end
+
+      # Merge to ensure a single entry for coll Hash.
+      coll.each do |i, col|
+        next unless coll.key?(id)
+        next if i == id
+        coll[id][:area] += col[:area]
+        col[:s].each do |nom, s|
+          coll[id][:s][nom] = s unless coll[id][:s].key?(nom)
+        end
+      end
+      coll.delete_if { |i, _| i != id }
+
+      uo = uo(lc, id, heatloss, film, g[:ut])
+      unless uo
+        TBD.log(TBD::ERROR, "Unable to uprate #{id} - skipping")
+      end
+
+    else
+      TBD.log(TBD::ERROR, "Nilled construction to uprate - skipping")
+    end
+  end
 
   true
 end

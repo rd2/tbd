@@ -2056,6 +2056,8 @@ RSpec.describe TBD do
         # name   = id.rjust(15, " ")
         # puts "#{name} RSi derated by #{ratio}%"
         expect(surface[:ratio]).to be_within(0.2).of(-53.0) if id == ids[:b]
+        expect(surface[:ratio]).to be_within(0.2).of(-15.6) if id == ids[:c]
+        expect(surface[:ratio]).to be_within(0.2).of(- 7.3) if id == ids[:i]
       else
         expect(surface[:boundary].downcase).to_not eq("outdoors")
       end
@@ -7271,9 +7273,8 @@ RSpec.describe TBD do
     flors[:c].keys.each { |id| flors[:chx] << id }
 
     expect(roofs[:c].size).to eq(3)
-    # puts roofs[:c].keys
-    # Typical Insulated Metal Building Roof R-10.31 1
-    # Typical Insulated Metal Building Roof R-18.18
+    rf1 = "Typical Insulated Metal Building Roof R-10.31 1"
+    rf2 = "Typical Insulated Metal Building Roof R-18.18"
     expect(roofs[:c].keys[0]).to eq("ALL roof constructions")
     expect(roofs[:c]["ALL roof constructions"][:a]).to be_within(TOL).of(0)
     roof1 = roofs[:c].values[1]
@@ -7281,13 +7282,30 @@ RSpec.describe TBD do
     expect(roof1[:a] > roof2[:a]).to be(true)
     expect(roof1[:f]).to be_within(TOL).of(roof2[:f])
     expect(roof1[:f]).to be_within(TOL).of(0.1360)
-    expect(1/rsi(roof1[:lc], roof1[:f])).to be_within(TOL).of(0.5512)  # R ~10.3
-    expect(1/rsi(roof2[:lc], roof2[:f])).to be_within(TOL).of(0.3124)  # R ~18.2
+    expect(1/rsi(roof1[:lc], roof1[:f])).to be_within(TOL).of(0.5512)    # R10.3
+    expect(1/rsi(roof2[:lc], roof2[:f])).to be_within(TOL).of(0.3124)    # R18.2
 
+    # Deeper dive into rf1.
+    targeted = os_model.getConstructionByName(rf1)
+    expect(targeted.empty?).to be(false)
+    targeted = targeted.get
+    expect(targeted.to_LayeredConstruction.empty?).to be(false)
+    targeted = targeted.to_LayeredConstruction.get
+    expect(targeted.is_a?(OpenStudio::Model::LayeredConstruction)).to be(true)
+    expect(targeted.layers.size).to eq(2)
+    targeted.layers.each do |layer|
+      next unless layer.nameString == "Typical Insulation R-9.53 1"
+      expect(layer.to_MasslessOpaqueMaterial.empty?).to be(false)
+      layer = layer.to_MasslessOpaqueMaterial.get
+      expect(layer.thermalResistance).to be_within(TOL).of(1.68) # m2.K/W (R9.5)
+    end
+
+    # argh[:roof_option]  = "Typical Insulated Metal Building Roof R-10.31 1"
+    argh[:roof_option]  = "ALL roof constructions"
     argh[:option]       = "poor (BETBG)"
     argh[:uprate_roofs] = true
-    argh[:roof_ut]      = 0.138                                      # NECB 2017
-    argh[:roof_option]  = "ALL roof constructions" # "Typical Insulated Metal Building Roof R-10.31 1"
+    argh[:roof_ut]      = 0.138                     # NECB 2017 (RSi 7.25 / R41)
+
     io, surfaces = processTBD(os_model, argh)
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
@@ -7299,6 +7317,79 @@ RSpec.describe TBD do
     expect(surfaces.size).to eq(23)
     expect(io.key?(:edges))
     expect(io[:edges].size).to eq(300)
+
+    bulk = "Bulk Storage Roof"
+    fine = "Fine Storage Roof"
+
+    expect(surfaces.key?(bulk)).to be(true)
+    expect(surfaces.key?(fine)).to be(true)
+    expect(surfaces[bulk].key?(:heatloss)).to be(true)
+    expect(surfaces[bulk].key?(:heatloss)).to be(true)
+    expect(surfaces[bulk].key?(:net)).to be(true)
+    expect(surfaces[fine].key?(:net)).to be(true)
+    expect(surfaces[bulk][:heatloss]).to be_within(TOL).of(161.02)
+    expect(surfaces[fine][:heatloss]).to be_within(TOL).of(87.16)
+    expect(surfaces[bulk][:net]).to be_within(TOL).of(3157.28)
+    expect(surfaces[fine][:net]).to be_within(TOL).of(1372.60)
+    heatloss = surfaces[bulk][:heatloss] + surfaces[fine][:heatloss]
+    area = surfaces[bulk][:net] + surfaces[fine][:net]
+    expect(heatloss).to be_within(TOL).of(248.19)
+    expect(area).to be_within(TOL).of(4529.88)
+
+    expect(surfaces[bulk].key?(:construction)).to be(true)
+    expect(surfaces[fine].key?(:construction)).to be(true)
+    expect(surfaces[bulk][:construction].nameString).to eq(rf1)
+    expect(surfaces[fine][:construction].nameString).to eq(rf1)  # no longer rf2
+
+    uprated = os_model.getConstructionByName(rf1)
+    expect(uprated.empty?).to be(false)
+    uprated = uprated.get
+    expect(uprated.to_LayeredConstruction.empty?).to be(false)
+    uprated = uprated.to_LayeredConstruction.get
+    expect(uprated.is_a?(OpenStudio::Model::LayeredConstruction)).to be(true)
+    expect(uprated.layers.size).to eq(2)
+    uprated_layer_r = 0
+    uprated.layers.each do |layer|
+      next unless layer.nameString == "Typical Insulation R-9.53 1 uprated"
+      expect(layer.to_MasslessOpaqueMaterial.empty?).to be(false)
+      layer = layer.to_MasslessOpaqueMaterial.get
+      uprated_layer_r = layer.thermalResistance
+      expect(layer.thermalResistance).to be_within(TOL).of(11.65) # m2.K/W (R66)
+    end
+    rt = rsi(uprated, roof1[:f])
+    expect(1/rt).to be_within(TOL).of(0.0849)                              # R67
+    expect(surfaces[bulk].key?(:ratio)).to be(true)
+    expect(surfaces[fine].key?(:ratio)).to be(true)
+    expect(surfaces[bulk][:ratio]).to be_within(TOL).of(-85.73)
+    expect(surfaces[fine][:ratio]).to be_within(TOL).of(-85.98)
+
+    # Bulk storage roof demonstration.
+    u = surfaces[bulk][:heatloss] / surfaces[bulk][:net]
+    expect(u).to be_within(TOL).of(0.051)                               # W/m2.K
+    de_u = 1 / uprated_layer_r + u
+    de_r = 1 / de_u
+    bulk_r = de_r + roof1[:f]
+    bulk_u = 1 / bulk_r
+    expect(de_u).to be_within(TOL).of(0.137)     # close to required Ut of 0.138
+    expect(de_r).to be_within(TOL).of(7.307)                         # not 11.65
+    ratio  = -(uprated_layer_r - de_r) * 100 / uprated_layer_r
+    # puts "bulk ratio = #{ratio}" # bulk ratio = -37.27 ... not -0.85% ?
+
+    # Fine storage roof demonstration.
+    u = surfaces[fine][:heatloss] / surfaces[fine][:net]
+    expect(u).to be_within(TOL).of(0.063)                               # W/m2.K
+    de_u = 1 / uprated_layer_r + u
+    de_r = 1 / de_u
+    fine_r = de_r + roof1[:f]
+    fine_u = 1 / fine_r
+    expect(de_u).to be_within(TOL).of(0.149)     # close to required Ut of 0.138
+    expect(de_r).to be_within(TOL).of(6.695)                         # not 11.65
+    ratio  = -(uprated_layer_r - de_r) * 100 / uprated_layer_r
+    # puts "fine ratio = #{ratio}" # fine ratio = -42.52 ... not -0.85% ?
+
+    ua = bulk_u * surfaces[bulk][:net] + fine_u * surfaces[fine][:net]
+    ave_u = ua / area
+    expect(ave_u).to be_within(TOL).of(argh[:roof_ut])   # area-weighted average
   end
 
   it "can pre-process UA parameters" do
