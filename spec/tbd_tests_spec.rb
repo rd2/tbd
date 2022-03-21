@@ -7353,24 +7353,6 @@ RSpec.describe TBD do
     expect(bulk_insulation_r).to be_within(TOL).of(7.307)         # once derated
     expect(fine_insulation_r).to be_within(TOL).of(6.695)         # once derated
 
-    # OS:Material:NoMass,
-    #   {ced9e679-8ba3-4649-9138-28d5dc4ffe8e}, !- Handle
-    #   'Bulk Storage Roof' uprated m tbd,      !- Name
-    #   Smooth,                                 !- Roughness
-    #   7.30722894233504,                       !- Thermal Resistance {m2-K/W}
-    #   0.9,                                    !- Thermal Absorptance
-    #   0.7,                                    !- Solar Absorptance
-    #   0.7;                                    !- Visible Absorptance
-    #
-    # OS:Material:NoMass,
-    #   {334bf14d-fef4-40ab-96e2-6ef3407a8c60}, !- Handle
-    #   'Fine Storage Roof' uprated m tbd,      !- Name
-    #   Smooth,                                 !- Roughness
-    #   6.69548488394183,                       !- Thermal Resistance {m2-K/W}
-    #   0.9,                                    !- Thermal Absorptance
-    #   0.7,                                    !- Solar Absorptance
-    #   0.7;                                    !- Visible Absorptance
-
     # TBD objects.
     expect(surfaces.key?(bulk)).to be(true)
     expect(surfaces.key?(fine)).to be(true)

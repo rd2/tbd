@@ -3285,9 +3285,9 @@ def processTBD(os_model, argh = {})
 end
 
 ##
-# TBD exit strategy strictly for OpenStudio Measures. Outputs TBD model
-# content/results if out && io are TRUE. Generates log errors and warnings,
-# even if io or out are FALSE.
+# TBD exit strategy strictly for OpenStudio Measures. May write out TBD model
+# content/results if requested (see argh). Always writes out minimal logs,
+# (see tbd.out.json).
 #
 # @param [Runner] runner OpenStudio Measure runner
 # @param [Hash] argh Arguments
@@ -3305,20 +3305,43 @@ def exitTBD(runner, argh = {})
   argh[:surfaces]  = nil   unless argh.key?(:surfaces)
 
   unless argh[:io] && argh[:surfaces]
-    if TBD.fatal?
-      status = "Halting all TBD processes, halting OpenStudio"
-    else
-      status = "Halting all TBD processes, yet running OpenStudio"
-    end
+    status = "Halting all TBD processes, yet running OpenStudio"
+    status = "Halting all TBD processes, and halting OpenStudio" if TBD.fatal?
   end
 
-  argh[:io]        = {}    unless argh[:io]
-  argh[:seed]      = ""    unless argh.key?(:seed)
-  argh[:version]   = ""    unless argh.key?(:version)
-  argh[:gen_ua]    = false unless argh.key?(:gen_ua)
-  argh[:ua_ref]    = ""    unless argh.key?(:ua_ref)
-  argh[:setpoints] = false unless argh.key?(:setpoints)
-  argh[:write_tbd] = false unless argh.key?(:write_tbd)
+  argh[:io]             = {}    unless argh[:io]
+  argh[:seed]           = ""    unless argh.key?(:seed)
+  argh[:version]        = ""    unless argh.key?(:version)
+  argh[:gen_ua]         = false unless argh.key?(:gen_ua)
+  argh[:ua_ref]         = ""    unless argh.key?(:ua_ref)
+  argh[:setpoints]      = false unless argh.key?(:setpoints)
+  argh[:write_tbd]      = false unless argh.key?(:write_tbd)
+  argh[:uprate_walls]   = false unless argh.key?(:uprate_walls)
+  argh[:uprate_roofs]   = false unless argh.key?(:uprate_roofs)
+  argh[:uprate_floors]  = false unless argh.key?(:uprate_floors)
+  argh[:wall_ut]        = 5.678 unless argh.key?(:wall_ut)
+  argh[:roof_ut]        = 5.678 unless argh.key?(:roof_ut)
+  argh[:floor_ut]       = 5.678 unless argh.key?(:floor_ut)
+  argh[:wall_option]    = ""    unless argh.key?(:wall_option)
+  argh[:roof_option]    = ""    unless argh.key?(:roof_option)
+  argh[:floor_option]   = ""    unless argh.key?(:floor_option)
+  argh[:wall_uo]        = nil   unless argh.key?(:wall_ut)
+  argh[:roof_uo]        = nil   unless argh.key?(:roof_ut)
+  argh[:floor_uo]       = nil   unless argh.key?(:floor_ut)
+
+  groups = {wall: {}, roof: {}, floor: {}}
+  groups[:wall ][:up] = argh[:uprate_walls]
+  groups[:roof ][:up] = argh[:uprate_roofs]
+  groups[:floor][:up] = argh[:uprate_floors]
+  groups[:wall ][:ut] = argh[:wall_ut]
+  groups[:roof ][:ut] = argh[:roof_ut]
+  groups[:floor][:ut] = argh[:floor_ut]
+  groups[:wall ][:op] = argh[:wall_option]
+  groups[:roof ][:op] = argh[:roof_option]
+  groups[:floor][:op] = argh[:floor_option]
+  groups[:wall ][:uo] = argh[:wall_uo]
+  groups[:roof ][:uo] = argh[:roof_uo]
+  groups[:floor][:uo] = argh[:floor_uo]
 
   io = argh[:io]
   out = argh[:write_tbd]
@@ -3328,11 +3351,26 @@ def exitTBD(runner, argh = {})
   descr = io[:description]
 
   unless io.key?(:schema)
-    schema = "https://github.com/rd2/tbd/blob/master/tbd.schema.json"
-    io[:schema] = schema
+    io[:schema] = "https://github.com/rd2/tbd/blob/master/tbd.schema.json"
   end
 
   tbd_log = { date: Time.now, status: status }
+
+  u_t = []
+  groups.each do |label, g|
+    next if TBD.fatal?
+    next unless g[:uo]
+    next unless g[:uo].is_a?(Numeric)
+
+    runner.registerInfo(" -") if u_t.empty?
+    uo = format("%.3f", g[:uo])
+    ut = format("%.3f", g[:ut])
+    output = "An initial #{label.to_s} Uo of #{uo} W/m2•K is required to "     \
+             "achieve an overall Ut of #{ut} W/m2•K for #{g[:op]}"
+    u_t << output
+    runner.registerInfo(output)
+  end
+  tbd_log[:ut] = u_t unless u_t.empty?
 
   ua_md_en = nil
   ua_md_fr = nil

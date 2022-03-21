@@ -20,7 +20,7 @@ ModelMeasure
 
 
 ### Alter OpenStudio model (Apply Measures Now)
-For EnergyPlus simulations, leave CHECKED. For iterative            exploration with Apply Measures Now, UNCHECK to preserve original            OpenStudio model.
+For EnergyPlus simulations, leave CHECKED. For iterative exploration with Apply Measures Now, UNCHECK to preserveoriginal OpenStudio model.
 **Name:** alter_model,
 **Type:** Boolean,
 **Units:** ,
@@ -28,7 +28,7 @@ For EnergyPlus simulations, leave CHECKED. For iterative            exploration 
 **Model Dependent:** false
 
 ### Load 'tbd.json'
-Loads existing 'tbd.json' file (under '/files'), may override            'default thermal bridge' set.
+Loads existing 'tbd.json' file (under '/files'), may override 'default thermal bridge' set.
 **Name:** load_tbd_json,
 **Type:** Boolean,
 **Units:** ,
@@ -36,7 +36,7 @@ Loads existing 'tbd.json' file (under '/files'), may override            'defaul
 **Model Dependent:** false
 
 ### Default thermal bridge set
-e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by            'tbd.json' file).
+e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by 'tbd.json' file).
 **Name:** option,
 **Type:** Choice,
 **Units:** ,
@@ -44,7 +44,7 @@ e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by            'tb
 **Model Dependent:** false
 
 ### Write 'tbd.out.json'
-Write out 'tbd.out.json' file e.g., to customize for subsequent            runs (edit, and place under '/files' as 'tbd.json').
+Write out 'tbd.out.json' file e.g., to customize for subsequentruns (edit, and place under '/files' as 'tbd.json').
 **Name:** write_tbd_json,
 **Type:** Boolean,
 **Units:** ,
@@ -92,7 +92,7 @@ Overall Ut target to meet for roof construction(s)
 **Model Dependent:** false
 
 ### Floor Ut target (W/m2•K)
-Overall Ut target to meet for floor construction(s)
+Overall Ut target to meet for exposed floor construction(s)
 **Name:** floor_ut,
 **Type:** Double,
 **Units:** ,
@@ -124,7 +124,7 @@ Target 1x (or 'ALL') floor construction(s) to 'uprate'
 **Model Dependent:** false
 
 ### Generate UA' report
-Compare ∑U•A + ∑PSI•L + ∑KHI•n : 'Design' vs UA' reference (see            pull-down option below).
+Compare ∑U•A + ∑PSI•L + ∑KHI•n : 'Design' vs UA' reference (see pull-down option below).
 **Name:** gen_UA_report,
 **Type:** Boolean,
 **Units:** ,
@@ -140,7 +140,7 @@ e.g. 'poor', 'regular', 'efficient', 'code'.
 **Model Dependent:** false
 
 ### Generate Kiva inputs
-Generates Kiva settings & objects for surfaces with 'foundation'               boundary conditions (not 'ground').
+Generates Kiva settings & objects for surfaces with 'foundation' boundary conditions (not 'ground').
 **Name:** gen_kiva,
 **Type:** Boolean,
 **Units:** ,
@@ -148,7 +148,7 @@ Generates Kiva settings & objects for surfaces with 'foundation'               b
 **Model Dependent:** false
 
 ### Force-generate Kiva inputs
-Overwrites 'ground' boundary conditions as 'foundation' before                 generating Kiva inputs (recommended).
+Overwrites 'ground' boundary conditions as 'foundation' before generating Kiva inputs (recommended).
 **Name:** gen_kiva_force,
 **Type:** Boolean,
 **Units:** ,

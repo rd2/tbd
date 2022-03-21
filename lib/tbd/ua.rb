@@ -54,10 +54,14 @@ def uo(lc, id, heatloss, film, ut)
       "Can't set Uo for '#{id}', invalid layer index - skipping")
     return uo
   end
-
-  unless heatloss.is_a?(Numeric) && heatloss > 0
+  unless heatloss.is_a?(Numeric)
     TBD.log(TBD::DEBUG,
-      "Can't set Uo for '#{id}', negative or non-numeric heatloss - skipping")
+      "Can't set Uo for '#{id}', non-numeric heatloss - skipping")
+    return uo
+  end
+  unless heatloss > 0
+    TBD.log(TBD::ERROR,
+      "Can't set Uo for '#{id}', 0 W/K heatloss - skipping")
     return uo
   end
   unless film.is_a?(Numeric) && film > 0
@@ -79,15 +83,15 @@ def uo(lc, id, heatloss, film, ut)
   end
 
   # First, calculate initial layer RSi to initially meet Ut target.
-  rt             = 1.0 / ut                             # target construction Rt
+  rt             = 1 / ut                               # target construction Rt
   ro             = rsi(lc, film)                       # current construction Ro
   new_r          = r + (rt - ro)                     # new, un-derated layer RSi
-  new_u          = 1.0 / new_r
+  new_u          = 1 / new_r
 
   # Then, uprate to counter expected major thermal bridging effects.
   u_psi          = heatloss / area                              # from psi & khi
   new_u          = new_u - u_psi        # uprated layer USi to counter psi & khi
-  new_r          = 1.0 / new_u          # uprated layer RSi to counter psi & khi
+  new_r          = 1 / new_u            # uprated layer RSi to counter psi & khi
 
   unless new_r > 0.001
     TBD.log(TBD::DEBUG,
@@ -106,7 +110,7 @@ def uo(lc, id, heatloss, film, ut)
 
       unless new_r > 0.001
         new_r    = 0.001
-        loss     = (new_u - 1.0 / new_r) * area
+        loss     = (new_u - 1 / new_r) * area
       end
       m.setThermalResistance(new_r)
     end
@@ -146,7 +150,7 @@ def uo(lc, id, heatloss, film, ut)
     TBD.log(TBD::DEBUG,
       "Unable to uprate insulation layer of '#{id}' - skipping")
   else
-    uo = 1.0 / rsi(lc, film)
+    uo = 1 / rsi(lc, film)
   end
 
   if loss > TOL
@@ -345,17 +349,19 @@ def uprate(model, surfaces, argh)
           coll[id][:s][nom] = s unless coll[id][:s].key?(nom)
         end
       end
-      coll.delete_if { |i, _| i != id }
 
+      coll.delete_if { |i, _| i != id }
       unless coll.size == 1
         TBD.log(TBD::DEBUG, "Collection should equal 1 for #{id} - skipping")
         next
       end
+
       uo = uo(lc, id, heatloss, film, g[:ut])
       unless uo
         TBD.log(TBD::ERROR, "Unable to uprate #{id} - skipping")
         next
       end
+
       index, ltype, r = deratableLayer(lc)
       index = nil unless index.is_a?(Numeric)
       index = nil unless index >= 0
@@ -364,6 +370,7 @@ def uprate(model, surfaces, argh)
         TBD.log(TBD::ERROR, "Cannot ID insulation index for #{id} - skipping")
         next
       end
+
       # Loop through coll :s, and reset :r - likely modified by uo().
       coll.values.first[:s].keys.each do |nom|
         next unless surfaces.key?(nom)
@@ -381,7 +388,7 @@ def uprate(model, surfaces, argh)
         type = "roof" if type == "ceiling"
         next unless type.include?(label.to_s)
         next unless surface.key?(:r)
-        surface[:r] = r                                              # final
+        surface[:r] = r                                                  # final
       end
 
       case label
@@ -392,7 +399,7 @@ def uprate(model, surfaces, argh)
       else
         argh[:floor_uo] = uo
       end
-      
+
     else
       TBD.log(TBD::ERROR, "Nilled construction to uprate - skipping")
       return false
@@ -446,11 +453,11 @@ def qc33(surfaces, sets, setpoints)
     cooling = surface[:cooling] if surface.key?(:cooling)
 
     # Start with surface U-factors.
-    ref = 1.0 / 5.46
-    ref = 1.0 / 3.60 if surface[:type] == :wall
+    ref = 1 / 5.46
+    ref = 1 / 3.60 if surface[:type] == :wall
 
     # Adjust for lower heating setpoint (assumes -25°C design conditions).
-    ref *= 43.0 / (heating + 25.0) if heating < 18.0 && cooling > 40.0
+    ref *= 43 / (heating + 25) if heating < 18 && cooling > 40
 
     # And store.
     surface[:ref] = ref
@@ -458,13 +465,13 @@ def qc33(surfaces, sets, setpoints)
     # Loop through subsurfaces.
     if surface.key?(:skylights)
       ref = 2.85
-      ref *= 43.0 / (heating + 25.0) if heating < 18.0 && cooling > 40.0
+      ref *= 43 / (heating + 25) if heating < 18 && cooling > 40
       surface[:skylights].values.map { |skylight| skylight[:ref] = ref }
     end
 
     if surface.key?(:windows)
       ref = 2.0
-      ref *= 43.0 / (heating + 25.0) if heating < 18.0 && cooling > 40.0
+      ref *= 43 / (heating + 25) if heating < 18 && cooling > 40
       surface[:windows].values.map { |window| window[:ref] = ref }
     end
 
@@ -472,7 +479,7 @@ def qc33(surfaces, sets, setpoints)
       surface[:doors].each do |i, door|
         ref = 0.9
         ref = 2.0 if door.key?(:glazed) && door[:glazed]
-        ref *= 43.0 / (heating + 25.0) if heating < 18.0 && cooling > 40.0
+        ref *= 43 / (heating + 25) if heating < 18 && cooling > 40
         door[:ref] = ref
       end
     end
@@ -492,6 +499,7 @@ def qc33(surfaces, sets, setpoints)
       end
     end
   end
+
   true
 end
 
@@ -1005,7 +1013,7 @@ def ua_md(ua, lang = :en)
     model = "* modèle : #{ua[:file]}" if ua.key?(:file) if lang == :fr
     model += " (v#{ua[:version]})" if ua.key?(:version)
     report << model unless model.empty?
-    report << "* TBD : v2.3.1"
+    report << "* TBD : v2.4.0"
     report << "* date : #{ua[:date]}"
     if lang == :en
       report << "* status : #{TBD.msg(TBD.status)}" unless TBD.status.zero?

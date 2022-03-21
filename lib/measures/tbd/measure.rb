@@ -54,9 +54,9 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args = OpenStudio::Measure::OSArgumentVector.new
 
     arg = "alter_model"
-    dsc = "For EnergyPlus simulations, leave CHECKED. For iterative \
-           exploration with Apply Measures Now, UNCHECK to preserve original \
-           OpenStudio model."
+    dsc = "For EnergyPlus simulations, leave CHECKED. For iterative "          \
+          "exploration with Apply Measures Now, UNCHECK to preserve"           \
+          "original OpenStudio model."
     alter = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
     alter.setDisplayName("Alter OpenStudio model (Apply Measures Now)")
     alter.setDescription(dsc)
@@ -64,8 +64,8 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args << alter
 
     arg = "load_tbd_json"
-    dsc = "Loads existing 'tbd.json' file (under '/files'), may override \
-           'default thermal bridge' set."
+    dsc = "Loads existing 'tbd.json' file (under '/files'), may override "     \
+          "'default thermal bridge' set."
     load_tbd = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
     load_tbd.setDisplayName("Load 'tbd.json'")
     load_tbd.setDescription(dsc)
@@ -77,8 +77,8 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     psi.set.keys.each { |k| chs << k.to_s }
 
     arg = "option"
-    dsc = "e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by \
-           'tbd.json' file)."
+    dsc = "e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by " \
+          "'tbd.json' file)."
     option = OpenStudio::Measure::OSArgument.makeChoiceArgument(arg, chs, false)
     option.setDisplayName("Default thermal bridge set")
     option.setDescription(dsc)
@@ -86,8 +86,8 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args << option
 
     arg = "write_tbd_json"
-    dsc = "Write out 'tbd.out.json' file e.g., to customize for subsequent \
-           runs (edit, and place under '/files' as 'tbd.json')."
+    dsc = "Write out 'tbd.out.json' file e.g., to customize for subsequent"    \
+          "runs (edit, and place under '/files' as 'tbd.json')."
     write_tbd = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
     write_tbd.setDisplayName("Write 'tbd.out.json'")
     write_tbd.setDescription(dsc)
@@ -178,7 +178,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args << roof_ut
 
     arg = "floor_ut"
-    dsc = "Overall Ut target to meet for floor construction(s)"
+    dsc = "Overall Ut target to meet for exposed floor construction(s)"
     floor_ut = OpenStudio::Measure::OSArgument.makeDoubleArgument(arg, false)
     floor_ut.setDisplayName("Floor Ut target (W/m2•K)")
     floor_ut.setDescription(dsc)
@@ -213,8 +213,8 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args << floor
 
     arg = "gen_UA_report"
-    dsc = "Compare ∑U•A + ∑PSI•L + ∑KHI•n : 'Design' vs UA' reference (see \
-           pull-down option below)."
+    dsc = "Compare ∑U•A + ∑PSI•L + ∑KHI•n : 'Design' vs UA' reference (see "   \
+          "pull-down option below)."
     gen_ua_report = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
     gen_ua_report.setDisplayName("Generate UA' report")
     gen_ua_report.setDescription(dsc)
@@ -230,8 +230,8 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args << ua_ref
 
     arg = "gen_kiva"
-    dsc = "Generates Kiva settings & objects for surfaces with 'foundation'    \
-           boundary conditions (not 'ground')."
+    dsc = "Generates Kiva settings & objects for surfaces with 'foundation' "  \
+          "boundary conditions (not 'ground')."
     gen_kiva = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
     gen_kiva.setDisplayName("Generate Kiva inputs")
     gen_kiva.setDescription(dsc)
@@ -239,8 +239,8 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args << gen_kiva
 
     arg = "gen_kiva_force"
-    dsc = "Overwrites 'ground' boundary conditions as 'foundation' before      \
-           generating Kiva inputs (recommended)."
+    dsc = "Overwrites 'ground' boundary conditions as 'foundation' before "    \
+          "generating Kiva inputs (recommended)."
     kiva_force = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
     kiva_force.setDisplayName("Force-generate Kiva inputs")
     kiva_force.setDescription(dsc)
@@ -275,6 +275,30 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     argh[:ua_ref] = runner.getStringArgumentValue("ua_reference", args)
     argh[:gen_kiva] = runner.getBoolArgumentValue("gen_kiva", args)
     argh[:kiva_force] = runner.getBoolArgumentValue("gen_kiva_force", args)
+
+    if argh[:wall_ut] < TOL
+      runner.registerError("Wall Ut must be greater than 0 W/m2•K - Halting")
+      return false
+    elsif argh[:wall_ut] > 5.678 - TOL
+      runner.registerError("Wall Ut must be lower than 5.678 W/m2•K - Halting")
+      return false
+    end
+
+    if argh[:roof_ut] < TOL
+      runner.registerError("Roof Ut must be greater than 0 W/m2•K - Halting")
+      return false
+    elsif argh[:roof_ut] > 5.678 - TOL
+      runner.registerError("Roof Ut must be lower than 5.678 W/m2•K - Halting")
+      return false
+    end
+
+    if argh[:floor_ut] < TOL
+      runner.registerError("Floor Ut must be greater than 0 W/m2•K - Halting")
+      return false
+    elsif argh[:floor_ut] > 5.678 - TOL
+      runner.registerError("Floor Ut must be lower than 5.678 W/m2•K - Halting")
+      return false
+    end
 
     # Use the built-in error checking.
     return false unless runner.validateUserArguments(arguments(mdl), args)
