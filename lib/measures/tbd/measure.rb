@@ -118,10 +118,6 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
         walls[:c][lc.nameString] = {a: lc.getNetArea} if type == "wall"
         roofs[:c][lc.nameString] = {a: lc.getNetArea} if type == "roofceiling"
         flors[:c][lc.nameString] = {a: lc.getNetArea} if type == "floor"
-
-        # TO DO : Ensure WALL vs ROOFCEILING vs FLOOR constructions are unique
-        # to type, i.e., a ROOFCEILING construction shouldn't be also referenced
-        # by an exposed FLOOR construction in the same OpenStudio model.
       end
 
       walls[:c] = walls[:c].sort_by{ |k,v| v[:a] }.reverse!.to_h
@@ -254,8 +250,6 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
   def run(mdl, runner, args)
     super(mdl, runner, args)
 
-    puts args
-
     # Assign the user inputs to variables.
     argh = {}
     argh[:alter] = runner.getBoolArgumentValue("alter_model", args)
@@ -275,6 +269,9 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     argh[:ua_ref] = runner.getStringArgumentValue("ua_reference", args)
     argh[:gen_kiva] = runner.getBoolArgumentValue("gen_kiva", args)
     argh[:kiva_force] = runner.getBoolArgumentValue("gen_kiva_force", args)
+
+    # Use the built-in error checking.
+    return false unless runner.validateUserArguments(arguments(mdl), args)
 
     if argh[:wall_ut] < TOL
       runner.registerError("Wall Ut must be greater than 0 W/m2•K - Halting")
@@ -299,9 +296,6 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
       runner.registerError("Floor Ut must be lower than 5.678 W/m2•K - Halting")
       return false
     end
-
-    # Use the built-in error checking.
-    return false unless runner.validateUserArguments(arguments(mdl), args)
 
     TBD.clean!
 

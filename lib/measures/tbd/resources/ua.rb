@@ -23,6 +23,7 @@
 ##
 # Calculates construction Uo (including surface film resistances) to meet Ut.
 #
+# @param [OpenStudio::Model::Model] model An OS model
 # @param [OpenStudio::Model::LayeredConstruction] lc An OS layered construction
 # @param [String] id Layered construction identifier
 # @param [Double] heatloss Heat loss from major thermal bridging [W/K]
@@ -30,56 +31,63 @@
 # @param [Double] ut Target overall Ut for lc [W/m2.K]
 #
 # @return [Double] Returns (new) construction Uo [W/m2.K] required to meet Ut.
-def uo(lc, id, heatloss, film, ut)
+def uo(model, lc, id, heatloss, film, ut)
   uo = nil
-  cl = OpenStudio::Model::LayeredConstruction
+  m = nil
+  cl1 = OpenStudio::Model::Model
+  cl2 = OpenStudio::Model::LayeredConstruction
 
   unless id.is_a?(String)
     TBD.log(TBD::DEBUG,
       "Can't set Uo, #{id.class}? expected an ID String - skipping")
-    return uo
+    return uo, m
   end
-  unless lc.is_a?(cl)
+  unless model && model.is_a?(cl1)
     TBD.log(TBD::DEBUG,
-      "Can't set Uo for '#{id}', #{lc.class}? expected #{cl} - skipping")
-    return uo
+      "Can't set Uo for #{id}, #{model.class}?  expected #{cl1} - skipping")
+    return uo, m
+  end
+  unless lc.is_a?(cl2)
+    TBD.log(TBD::DEBUG,
+      "Can't set Uo for '#{id}', #{lc.class}? expected #{cl2} - skipping")
+    return uo, m
   end
 
   index, ltype, r = deratableLayer(lc)      # insulating layer index, type & RSi
-  index = nil unless index.is_a?(Numeric)
-  index = nil unless index >= 0
-  index = nil unless index < lc.layers.size
+  index = uo, m unless index.is_a?(Numeric)
+  index = uo, m unless index >= 0
+  index = uo, m unless index < lc.layers.size
   unless index
     TBD.log(TBD::DEBUG,
       "Can't set Uo for '#{id}', invalid layer index - skipping")
-    return uo
+    return uo, m
   end
   unless heatloss.is_a?(Numeric)
     TBD.log(TBD::DEBUG,
       "Can't set Uo for '#{id}', non-numeric heatloss - skipping")
-    return uo
+    return uo, m
   end
   unless heatloss > 0
     TBD.log(TBD::ERROR,
       "Can't set Uo for '#{id}', 0 W/K heatloss - skipping")
-    return uo
+    return uo, m
   end
   unless film.is_a?(Numeric) && film > 0
     TBD.log(TBD::DEBUG,
       "Can't set Uo for '#{id}', negative or non-numeric film - skipping")
-    return uo
+    return uo, m
   end
   unless ut.is_a?(Numeric) && ut > 0 && ut < 5.678
     TBD.log(TBD::DEBUG,
       "Can't set Uo for '#{id}', negative or non-numeric Ut - skipping")
-    return uo
+    return uo, m
   end
 
   area = lc.getNetArea
   if area < TOL
     TBD.log(TBD::DEBUG,
       "Can't set Uo for '#{id}', area near 0 m2 - skipping")
-    return uo
+    return uo, m
   end
 
   # First, calculate initial layer RSi to initially meet Ut target.
@@ -96,17 +104,16 @@ def uo(lc, id, heatloss, film, ut)
   unless new_r > 0.001
     TBD.log(TBD::DEBUG,
       "Can't set Uo for '#{id}', new layer RSi value too low - skipping")
-    return uo
+    return uo, m
   end
 
-  m              = nil
   loss           = 0.0   # residual heatloss not assigned to layer (maybe) [W/K]
   if ltype == :massless
     m            = lc.getLayer(index).to_MasslessOpaqueMaterial
 
     unless m.empty?
-      m          = m.get
-                   m.setName("#{m.nameString} uprated")          # for debugging
+      m          = m.get.clone(model).to_MasslessOpaqueMaterial.get
+                   m.setName("#{id} uprated")
 
       unless new_r > 0.001
         new_r    = 0.001
@@ -118,9 +125,10 @@ def uo(lc, id, heatloss, film, ut)
   else                                                      # ltype == :standard
     m            = lc.getLayer(index).to_StandardOpaqueMaterial
     unless m.empty?
-      m          = m.get
-                   m.setName("#{m.nameString} uprated")          # for debugging
+      m          = m.get.clone(model).to_StandardOpaqueMaterial.get
+                   m.setName("#{id} uprated")
       k          = m.thermalConductivity
+
       if new_r > 0.001
         d        = new_r * k
         unless d > 0.003
@@ -149,6 +157,7 @@ def uo(lc, id, heatloss, film, ut)
   unless m
     TBD.log(TBD::DEBUG,
       "Unable to uprate insulation layer of '#{id}' - skipping")
+    return uo, nil
   else
     uo = 1 / rsi(lc, film)
   end
@@ -157,9 +166,10 @@ def uo(lc, id, heatloss, film, ut)
     h_loss  = format "%.3f", loss
     TBD.log(TBD::WARN,
       "Can't assign #{h_loss} W/K to '#{id}', too conductive - skipping")
+    return nil, nil
   end
 
-  uo
+  return uo, m
 end
 
 ##
@@ -221,28 +231,30 @@ def uprate(model, surfaces, argh)
     uo = nil
     id = ""
 
-    all = g[:op] == "ALL roof constructions" ||
-          g[:op] == "ALL wall constructions" ||
+    all = g[:op] == "ALL wall constructions" ||
+          g[:op] == "ALL roof constructions" ||
           g[:op] == "ALL floor constructions"
 
     if g[:op].empty?
       TBD.log(TBD::ERROR, "Missing construction to uprate - skipping")
     elsif all
       model.getSurfaces.each do |s|
-        type = s.surfaceType.downcase
-        next unless type.include?(label.to_s)
+        next unless s.surfaceType.downcase.include?(label.to_s)
         next unless s.outsideBoundaryCondition.downcase == "outdoors"
         next if s.construction.empty?
         next if s.construction.get.to_LayeredConstruction.empty?
         c = s.construction.get.to_LayeredConstruction.get
         i = c.nameString
+
+        # Reliable unless referenced by other surface types e.g. floor vs wall.
         if c.getNetArea > area
-          area = c.getNetArea # reliable unless reused for other surface types
+          area = c.getNetArea
           lc = c
           id = i
         end
-        nom = s.nameString
+
         film = s.filmResistance if s.filmResistance < film
+        nom = s.nameString
         coll[i] = {area: c.getNetArea, lc: c, s: {}} unless coll.key?(i)
         coll[i][:s][nom] = {a: s.netArea} unless coll[i][:s].key?(nom)
       end
@@ -262,8 +274,7 @@ def uprate(model, surfaces, argh)
           area = lc.getNetArea
           coll[id] = {area: area, lc: lc, s: {}}
           model.getSurfaces.each do |s|
-            type = s.surfaceType.downcase
-            next unless type.include?(label.to_s)
+            next unless s.surfaceType.downcase.include?(label.to_s)
             next unless s.outsideBoundaryCondition.downcase == "outdoors"
             next if s.construction.empty?
             next if s.construction.get.to_LayeredConstruction.empty?
@@ -281,6 +292,29 @@ def uprate(model, surfaces, argh)
       TBD.log(TBD::ERROR, "No construction to uprate - skipping")
       next
     elsif lc                        # valid layered construction, good to uprate
+      # Ensure lc is referenced by surface types == label.
+      model.getSurfaces.each do |s|
+        next if s.construction.empty?
+        next if s.construction.get.to_LayeredConstruction.empty?
+        c = s.construction.get.to_LayeredConstruction.get
+        i = c.nameString
+        next unless coll.key?(i)
+
+        unless s.surfaceType.downcase.include?(label.to_s)
+          TBD.log(TBD::ERROR,
+            "Won't uprate #{s.nameString}: (#{label.to_s} only) - cloning")
+          cloned = c.clone(model).to_LayeredConstruction.get
+          cloned.setName("#{i} cloned")
+          s.setConstruction(cloned)
+          if surfaces.key?(s.nameString)
+            surfaces[s.nameString][:construction] = cloned
+          end
+          coll[i][:s].delete(s.nameString)
+          coll[i][:area] = c.getNetArea
+          next
+        end
+      end
+
       index, ltype, r = deratableLayer(lc)
       index = nil unless index.is_a?(Numeric)
       index = nil unless index >= 0
@@ -342,8 +376,8 @@ def uprate(model, surfaces, argh)
 
       # Merge to ensure a single entry for coll Hash.
       coll.each do |i, col|
-        next unless coll.key?(id)
         next if i == id
+        next unless coll.key?(id)
         coll[id][:area] += col[:area]
         col[:s].each do |nom, s|
           coll[id][:s][nom] = s unless coll[id][:s].key?(nom)
@@ -356,13 +390,13 @@ def uprate(model, surfaces, argh)
         next
       end
 
-      uo = uo(lc, id, heatloss, film, g[:ut])
-      unless uo
+      uo, m = uo(model, lc, id, heatloss, film, g[:ut])
+      unless uo && m
         TBD.log(TBD::ERROR, "Unable to uprate #{id} - skipping")
         next
       end
 
-      index, ltype, r = deratableLayer(lc)
+      index, ltype, r = deratableLayer(lc)                      # retrieve index
       index = nil unless index.is_a?(Numeric)
       index = nil unless index >= 0
       index = nil unless index < lc.layers.size
@@ -370,6 +404,8 @@ def uprate(model, surfaces, argh)
         TBD.log(TBD::ERROR, "Cannot ID insulation index for #{id} - skipping")
         next
       end
+      lc.setLayer(index, m)
+      index, ltype, r = deratableLayer(lc)
 
       # Loop through coll :s, and reset :r - likely modified by uo().
       coll.values.first[:s].keys.each do |nom|

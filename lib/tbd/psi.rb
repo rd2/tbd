@@ -3108,12 +3108,8 @@ def processTBD(os_model, argh = {})
   # :wall_option ... same triple arguments for roofs and exposed floors), first
   # 'uprate' targeted insulation layers (see ua.rb) before derating. Check for
   # new argh keys [:wall_uo], [:roof_uo] = uo and/or [:floor_uo].
-  #
-  # TO DO : report uo values in runner, JSON, etc. in exitTBD()
-  #
   if argh[:uprate_walls] || argh[:uprate_roofs] || argh[:uprate_floors]
     uprate(os_model, surfaces, argh)
-    # puts argh[:roof_uo] if argh.has_key?(:roof_uo)
   end
 
   # Derated (cloned) constructions are unique to each deratable surface.
@@ -3146,25 +3142,7 @@ def processTBD(os_model, argh = {})
       if m
         c.setLayer(index, m)
         c.setName("#{id} c tbd")
-
-        # Compute current RSi value from layers.
-        current_R = s.filmResistance
-        current_c.to_LayeredConstruction.get.layers.each do |l|
-          r = 0
-          unless l.to_MasslessOpaqueMaterial.empty?
-            l = l.to_MasslessOpaqueMaterial.get
-            r = l.to_MasslessOpaqueMaterial.get.thermalResistance
-          end
-
-          unless l.to_StandardOpaqueMaterial.empty?
-            l = l.to_StandardOpaqueMaterial.get
-            k = l.thermalConductivity
-            d = l.thickness
-            r = d / k
-          end
-          current_R += r
-        end
-
+        current_R = rsi(current_c, s.filmResistance)
         # In principle, the derated "ratio" could be calculated simply by
         # accessing a surface's uFactor. However, it appears that air layers
         # within constructions (not air films) are ignored in OpenStudio's
@@ -3201,24 +3179,8 @@ def processTBD(os_model, argh = {})
         end
 
         # Compute updated RSi value from layers.
-        updated_R = s.filmResistance
-        updated_c = s.construction.get
-        updated_c.to_LayeredConstruction.get.layers.each do |l|
-          r = 0
-          unless l.to_MasslessOpaqueMaterial.empty?
-            l = l.to_MasslessOpaqueMaterial.get
-            r = l.thermalResistance
-          end
-
-          unless l.to_StandardOpaqueMaterial.empty?
-            l = l.to_StandardOpaqueMaterial.get
-            k = l.thermalConductivity
-            d = l.thickness
-            r = d / k
-          end
-          updated_R += r
-        end
-
+        updated_c = s.construction.get.to_LayeredConstruction.get
+        updated_R = rsi(updated_c, s.filmResistance)
         ratio  = -(current_R - updated_R) * 100 / current_R
         surface[:ratio] = ratio if ratio.abs > TOL
 
@@ -3350,9 +3312,8 @@ def exitTBD(runner, argh = {})
   io[:description] = descr unless io.key?(:description)
   descr = io[:description]
 
-  unless io.key?(:schema)
-    io[:schema] = "https://github.com/rd2/tbd/blob/master/tbd.schema.json"
-  end
+  schema_pth = "https://github.com/rd2/tbd/blob/master/tbd.schema.json"
+  io[:schema] = schema_pth unless io.key?(:schema)
 
   tbd_log = { date: Time.now, status: status }
 
