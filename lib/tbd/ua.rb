@@ -159,6 +159,7 @@ def uo(model, lc, id, heatloss, film, ut)
       "Unable to uprate insulation layer of '#{id}' - skipping")
     return uo, nil
   else
+    lc.setLayer(index, m)
     uo = 1 / rsi(lc, film)
   end
 
@@ -396,15 +397,6 @@ def uprate(model, surfaces, argh)
         next
       end
 
-      index, ltype, r = deratableLayer(lc)                      # retrieve index
-      index = nil unless index.is_a?(Numeric)
-      index = nil unless index >= 0
-      index = nil unless index < lc.layers.size
-      unless index
-        TBD.log(TBD::ERROR, "Cannot ID insulation index for #{id} - skipping")
-        next
-      end
-      lc.setLayer(index, m)
       index, ltype, r = deratableLayer(lc)
 
       # Loop through coll :s, and reset :r - likely modified by uo().

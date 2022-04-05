@@ -55,7 +55,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
 
     arg = "alter_model"
     dsc = "For EnergyPlus simulations, leave CHECKED. For iterative "          \
-          "exploration with Apply Measures Now, UNCHECK to preserve"           \
+          "exploration with Apply Measures Now, UNCHECK to preserve "          \
           "original OpenStudio model."
     alter = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
     alter.setDisplayName("Alter OpenStudio model (Apply Measures Now)")
@@ -86,7 +86,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args << option
 
     arg = "write_tbd_json"
-    dsc = "Write out 'tbd.out.json' file e.g., to customize for subsequent"    \
+    dsc = "Write out 'tbd.out.json' file e.g., to customize for subsequent "   \
           "runs (edit, and place under '/files' as 'tbd.json')."
     write_tbd = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
     write_tbd.setDisplayName("Write 'tbd.out.json'")
