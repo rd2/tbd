@@ -3,8 +3,8 @@
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>d5c2dc35-7f98-4dde-8192-baffa2226081</version_id>
-  <version_modified>20220406T132407Z</version_modified>
+  <version_id>5574e608-ce73-4391-afc6-7d4640f8d3d2</version_id>
+  <version_modified>20220406T134545Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -114,7 +114,7 @@
     <argument>
       <name>wall_option</name>
       <display_name>Wall construction(s) to 'uprate'</display_name>
-      <description>Target 1x (or 'ALL') wall construction(s) to 'uprate'.</description>
+      <description>Target 1x (or 'ALL') wall construction(s) to 'uprate', to achieve wall Ut target below.</description>
       <type>Choice</type>
       <required>false</required>
       <model_dependent>false</model_dependent>
@@ -133,7 +133,7 @@
     <argument>
       <name>roof_option</name>
       <display_name>Roof construction(s) to 'uprate'</display_name>
-      <description>Target 1x (or 'ALL') roof construction(s) to 'uprate'.</description>
+      <description>Target 1x (or 'ALL') roof construction(s) to 'uprate', to achieve roof Ut target below.</description>
       <type>Choice</type>
       <required>false</required>
       <model_dependent>false</model_dependent>
@@ -152,7 +152,7 @@
     <argument>
       <name>floor_option</name>
       <display_name>Floor construction(s) to 'uprate'</display_name>
-      <description>Target 1x (or 'ALL') floor construction(s) to 'uprate'.</description>
+      <description>Target 1x (or 'ALL') floor construction(s) to 'uprate', to achieve floor Ut target below.</description>
       <type>Choice</type>
       <required>false</required>
       <model_dependent>false</model_dependent>
@@ -422,16 +422,16 @@
       <checksum>EEDEA2A1</checksum>
     </file>
     <file>
-      <filename>README.md</filename>
-      <filetype>md</filetype>
-      <usage_type>readme</usage_type>
-      <checksum>4F2F1646</checksum>
-    </file>
-    <file>
       <filename>ua.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
       <checksum>0DFE5B37</checksum>
+    </file>
+    <file>
+      <filename>psi.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>8679FD9E</checksum>
     </file>
     <file>
       <version>
@@ -442,13 +442,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>82986B7D</checksum>
+      <checksum>601A57F2</checksum>
     </file>
     <file>
-      <filename>psi.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>8679FD9E</checksum>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>BD336A08</checksum>
     </file>
   </files>
 </measure>

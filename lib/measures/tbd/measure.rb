@@ -141,7 +141,8 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     end
 
     arg = "wall_option"
-    dsc = "Target 1x (or 'ALL') wall construction(s) to 'uprate'."
+    dsc = "Target 1x (or 'ALL') wall construction(s) to 'uprate', to achieve " \
+          "wall Ut target below."
     chx = walls[:chx]
     wall = OpenStudio::Measure::OSArgument.makeChoiceArgument(arg, chx, false)
     wall.setDisplayName("Wall construction(s) to 'uprate'")
@@ -150,7 +151,8 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args << wall
 
     arg = "roof_option"
-    dsc = "Target 1x (or 'ALL') roof construction(s) to 'uprate'."
+    dsc = "Target 1x (or 'ALL') roof construction(s) to 'uprate', to achieve " \
+          "roof Ut target below."
     chx = roofs[:chx]
     roof = OpenStudio::Measure::OSArgument.makeChoiceArgument(arg, chx, false)
     roof.setDisplayName("Roof construction(s) to 'uprate'")
@@ -159,7 +161,8 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args << roof
 
     arg = "floor_option"
-    dsc = "Target 1x (or 'ALL') floor construction(s) to 'uprate'."
+    dsc = "Target 1x (or 'ALL') floor construction(s) to 'uprate', to achieve "\
+          "floor Ut target below."
     chx = flors[:chx]
     floor = OpenStudio::Measure::OSArgument.makeChoiceArgument(arg, chx, false)
     floor.setDisplayName("Floor construction(s) to 'uprate'")

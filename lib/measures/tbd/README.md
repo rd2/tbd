@@ -52,7 +52,7 @@ Write out 'tbd.out.json' file e.g., to customize for subsequent runs (edit, and 
 **Model Dependent:** false
 
 ### Wall construction(s) to 'uprate'
-Target 1x (or 'ALL') wall construction(s) to 'uprate'.
+Target 1x (or 'ALL') wall construction(s) to 'uprate', to achieve wall Ut target below.
 **Name:** wall_option,
 **Type:** Choice,
 **Units:** ,
@@ -60,7 +60,7 @@ Target 1x (or 'ALL') wall construction(s) to 'uprate'.
 **Model Dependent:** false
 
 ### Roof construction(s) to 'uprate'
-Target 1x (or 'ALL') roof construction(s) to 'uprate'.
+Target 1x (or 'ALL') roof construction(s) to 'uprate', to achieve roof Ut target below.
 **Name:** roof_option,
 **Type:** Choice,
 **Units:** ,
@@ -68,7 +68,7 @@ Target 1x (or 'ALL') roof construction(s) to 'uprate'.
 **Model Dependent:** false
 
 ### Floor construction(s) to 'uprate'
-Target 1x (or 'ALL') floor construction(s) to 'uprate'.
+Target 1x (or 'ALL') floor construction(s) to 'uprate', to achieve floor Ut target below.
 **Name:** floor_option,
 **Type:** Choice,
 **Units:** ,
