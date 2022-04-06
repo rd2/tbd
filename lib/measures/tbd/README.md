@@ -51,56 +51,8 @@ Write out 'tbd.out.json' file e.g., to customize for subsequent runs (edit, and 
 **Required:** false,
 **Model Dependent:** false
 
-### Uprate wall construction(s)
-Uprates selected wall construction(s), to meet overall Ut target
-**Name:** uprate_walls,
-**Type:** Boolean,
-**Units:** ,
-**Required:** false,
-**Model Dependent:** false
-
-### Uprate roof construction(s)
-Uprates selected roof construction(s), to meet overall Ut target
-**Name:** uprate_roofs,
-**Type:** Boolean,
-**Units:** ,
-**Required:** false,
-**Model Dependent:** false
-
-### Uprate floor construction(s)
-Uprates selected floor construction(s), to meet overall Ut target
-**Name:** uprate_floors,
-**Type:** Boolean,
-**Units:** ,
-**Required:** false,
-**Model Dependent:** false
-
-### Wall Ut target (W/m2•K)
-Overall Ut target to meet for wall construction(s)
-**Name:** wall_ut,
-**Type:** Double,
-**Units:** ,
-**Required:** false,
-**Model Dependent:** false
-
-### Roof Ut target (W/m2•K)
-Overall Ut target to meet for roof construction(s)
-**Name:** roof_ut,
-**Type:** Double,
-**Units:** ,
-**Required:** false,
-**Model Dependent:** false
-
-### Floor Ut target (W/m2•K)
-Overall Ut target to meet for exposed floor construction(s)
-**Name:** floor_ut,
-**Type:** Double,
-**Units:** ,
-**Required:** false,
-**Model Dependent:** false
-
 ### Wall construction(s) to 'uprate'
-Target 1x (or 'ALL') wall construction(s) to 'uprate'
+Target 1x (or 'ALL') wall construction(s) to 'uprate'.
 **Name:** wall_option,
 **Type:** Choice,
 **Units:** ,
@@ -108,7 +60,7 @@ Target 1x (or 'ALL') wall construction(s) to 'uprate'
 **Model Dependent:** false
 
 ### Roof construction(s) to 'uprate'
-Target 1x (or 'ALL') roof construction(s) to 'uprate'
+Target 1x (or 'ALL') roof construction(s) to 'uprate'.
 **Name:** roof_option,
 **Type:** Choice,
 **Units:** ,
@@ -116,9 +68,33 @@ Target 1x (or 'ALL') roof construction(s) to 'uprate'
 **Model Dependent:** false
 
 ### Floor construction(s) to 'uprate'
-Target 1x (or 'ALL') floor construction(s) to 'uprate'
+Target 1x (or 'ALL') floor construction(s) to 'uprate'.
 **Name:** floor_option,
 **Type:** Choice,
+**Units:** ,
+**Required:** false,
+**Model Dependent:** false
+
+### Wall Ut target (W/m2•K)
+Overall Ut target to meet for wall construction(s). Ignored if previous wall 'uprate' option is set to 'NONE'.
+**Name:** wall_ut,
+**Type:** Double,
+**Units:** ,
+**Required:** false,
+**Model Dependent:** false
+
+### Roof Ut target (W/m2•K)
+Overall Ut target to meet for roof construction(s). Ignored if previous roof 'uprate' option is set to 'NONE'.
+**Name:** roof_ut,
+**Type:** Double,
+**Units:** ,
+**Required:** false,
+**Model Dependent:** false
+
+### Floor Ut target (W/m2•K)
+Overall Ut target to meet for floor construction(s). Ignored if previous floor 'uprate' option is set to 'NONE'.
+**Name:** floor_ut,
+**Type:** Double,
 **Units:** ,
 **Required:** false,
 **Model Dependent:** false

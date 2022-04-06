@@ -3,8 +3,8 @@
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>72678d72-ab47-4f59-a130-037e2bdbac09</version_id>
-  <version_modified>20220405T205827Z</version_modified>
+  <version_id>d5c2dc35-7f98-4dde-8192-baffa2226081</version_id>
+  <version_modified>20220406T132407Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -112,66 +112,66 @@
       </choices>
     </argument>
     <argument>
-      <name>uprate_walls</name>
-      <display_name>Uprate wall construction(s)</display_name>
-      <description>Uprates selected wall construction(s), to meet overall Ut target</description>
-      <type>Boolean</type>
+      <name>wall_option</name>
+      <display_name>Wall construction(s) to 'uprate'</display_name>
+      <description>Target 1x (or 'ALL') wall construction(s) to 'uprate'.</description>
+      <type>Choice</type>
       <required>false</required>
       <model_dependent>false</model_dependent>
-      <default_value>false</default_value>
+      <default_value>NONE</default_value>
       <choices>
         <choice>
-          <value>true</value>
-          <display_name>true</display_name>
+          <value>ALL wall constructions</value>
+          <display_name>ALL wall constructions</display_name>
         </choice>
         <choice>
-          <value>false</value>
-          <display_name>false</display_name>
+          <value>NONE</value>
+          <display_name>NONE</display_name>
         </choice>
       </choices>
     </argument>
     <argument>
-      <name>uprate_roofs</name>
-      <display_name>Uprate roof construction(s)</display_name>
-      <description>Uprates selected roof construction(s), to meet overall Ut target</description>
-      <type>Boolean</type>
+      <name>roof_option</name>
+      <display_name>Roof construction(s) to 'uprate'</display_name>
+      <description>Target 1x (or 'ALL') roof construction(s) to 'uprate'.</description>
+      <type>Choice</type>
       <required>false</required>
       <model_dependent>false</model_dependent>
-      <default_value>false</default_value>
+      <default_value>NONE</default_value>
       <choices>
         <choice>
-          <value>true</value>
-          <display_name>true</display_name>
+          <value>ALL roof constructions</value>
+          <display_name>ALL roof constructions</display_name>
         </choice>
         <choice>
-          <value>false</value>
-          <display_name>false</display_name>
+          <value>NONE</value>
+          <display_name>NONE</display_name>
         </choice>
       </choices>
     </argument>
     <argument>
-      <name>uprate_floors</name>
-      <display_name>Uprate floor construction(s)</display_name>
-      <description>Uprates selected floor construction(s), to meet overall Ut target</description>
-      <type>Boolean</type>
+      <name>floor_option</name>
+      <display_name>Floor construction(s) to 'uprate'</display_name>
+      <description>Target 1x (or 'ALL') floor construction(s) to 'uprate'.</description>
+      <type>Choice</type>
       <required>false</required>
       <model_dependent>false</model_dependent>
-      <default_value>false</default_value>
+      <default_value>NONE</default_value>
       <choices>
         <choice>
-          <value>true</value>
-          <display_name>true</display_name>
+          <value>ALL floor constructions</value>
+          <display_name>ALL floor constructions</display_name>
         </choice>
         <choice>
-          <value>false</value>
-          <display_name>false</display_name>
+          <value>NONE</value>
+          <display_name>NONE</display_name>
         </choice>
       </choices>
     </argument>
     <argument>
       <name>wall_ut</name>
       <display_name>Wall Ut target (W/m2•K)</display_name>
-      <description>Overall Ut target to meet for wall construction(s)</description>
+      <description>Overall Ut target to meet for wall construction(s). Ignored if previous wall 'uprate' option is set to 'NONE'.</description>
       <type>Double</type>
       <required>false</required>
       <model_dependent>false</model_dependent>
@@ -180,7 +180,7 @@
     <argument>
       <name>roof_ut</name>
       <display_name>Roof Ut target (W/m2•K)</display_name>
-      <description>Overall Ut target to meet for roof construction(s)</description>
+      <description>Overall Ut target to meet for roof construction(s). Ignored if previous roof 'uprate' option is set to 'NONE'.</description>
       <type>Double</type>
       <required>false</required>
       <model_dependent>false</model_dependent>
@@ -189,56 +189,11 @@
     <argument>
       <name>floor_ut</name>
       <display_name>Floor Ut target (W/m2•K)</display_name>
-      <description>Overall Ut target to meet for exposed floor construction(s)</description>
+      <description>Overall Ut target to meet for floor construction(s). Ignored if previous floor 'uprate' option is set to 'NONE'.</description>
       <type>Double</type>
       <required>false</required>
       <model_dependent>false</model_dependent>
       <default_value>0.162</default_value>
-    </argument>
-    <argument>
-      <name>wall_option</name>
-      <display_name>Wall construction(s) to 'uprate'</display_name>
-      <description>Target 1x (or 'ALL') wall construction(s) to 'uprate'</description>
-      <type>Choice</type>
-      <required>false</required>
-      <model_dependent>false</model_dependent>
-      <default_value>ALL wall constructions</default_value>
-      <choices>
-        <choice>
-          <value>ALL wall constructions</value>
-          <display_name>ALL wall constructions</display_name>
-        </choice>
-      </choices>
-    </argument>
-    <argument>
-      <name>roof_option</name>
-      <display_name>Roof construction(s) to 'uprate'</display_name>
-      <description>Target 1x (or 'ALL') roof construction(s) to 'uprate'</description>
-      <type>Choice</type>
-      <required>false</required>
-      <model_dependent>false</model_dependent>
-      <default_value>ALL roof constructions</default_value>
-      <choices>
-        <choice>
-          <value>ALL roof constructions</value>
-          <display_name>ALL roof constructions</display_name>
-        </choice>
-      </choices>
-    </argument>
-    <argument>
-      <name>floor_option</name>
-      <display_name>Floor construction(s) to 'uprate'</display_name>
-      <description>Target 1x (or 'ALL') floor construction(s) to 'uprate'</description>
-      <type>Choice</type>
-      <required>false</required>
-      <model_dependent>false</model_dependent>
-      <default_value>ALL floor constructions</default_value>
-      <choices>
-        <choice>
-          <value>ALL floor constructions</value>
-          <display_name>ALL floor constructions</display_name>
-        </choice>
-      </choices>
     </argument>
     <argument>
       <name>gen_UA_report</name>
@@ -455,22 +410,28 @@
       <checksum>D436DCBC</checksum>
     </file>
     <file>
-      <filename>tbd_tests.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>test</usage_type>
-      <checksum>2EC23A04</checksum>
-    </file>
-    <file>
       <filename>framedivider.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
       <checksum>2274EEFC</checksum>
     </file>
     <file>
-      <filename>psi.rb</filename>
+      <filename>tbd_tests.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>EEDEA2A1</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>4F2F1646</checksum>
+    </file>
+    <file>
+      <filename>ua.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>067D5EB8</checksum>
+      <checksum>0DFE5B37</checksum>
     </file>
     <file>
       <version>
@@ -481,19 +442,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>0D80F83C</checksum>
+      <checksum>82986B7D</checksum>
     </file>
     <file>
-      <filename>ua.rb</filename>
+      <filename>psi.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>938AE76E</checksum>
-    </file>
-    <file>
-      <filename>README.md</filename>
-      <filetype>md</filetype>
-      <usage_type>readme</usage_type>
-      <checksum>B52E7705</checksum>
+      <checksum>8679FD9E</checksum>
     </file>
   </files>
 </measure>

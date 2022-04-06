@@ -94,12 +94,19 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     write_tbd.setDefaultValue(false)
     args << write_tbd
 
-    walls = {c: {}, dft: "ALL wall constructions"}
-    roofs = {c: {}, dft: "ALL roof constructions"}
-    flors = {c: {}, dft: "ALL floor constructions"}
-    walls[:c][walls[:dft]] = {a: 100000000000000}
-    roofs[:c][roofs[:dft]] = {a: 100000000000000}
-    flors[:c][flors[:dft]] = {a: 100000000000000}
+    none = "NONE"
+    all_walls = "ALL wall constructions"
+    all_roofs = "ALL roof constructions"
+    all_flors = "ALL floor constructions"
+    walls = {c: {}}
+    roofs = {c: {}}
+    flors = {c: {}}
+    walls[:c][none] = {a: 0}
+    roofs[:c][none] = {a: 0}
+    flors[:c][none] = {a: 0}
+    walls[:c][all_walls] = {a: 100000000000000}
+    roofs[:c][all_roofs] = {a: 100000000000000}
+    flors[:c][all_flors] = {a: 100000000000000}
     walls[:chx] = OpenStudio::StringVector.new
     roofs[:chx] = OpenStudio::StringVector.new
     flors[:chx] = OpenStudio::StringVector.new
@@ -121,44 +128,48 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
       end
 
       walls[:c] = walls[:c].sort_by{ |k,v| v[:a] }.reverse!.to_h
-      walls[:c][walls[:dft]][:a] = 0
+      walls[:c][all_walls][:a] = 0
       walls[:c].keys.each { |id| walls[:chx] << id }
 
       roofs[:c] = roofs[:c].sort_by{ |k,v| v[:a] }.reverse!.to_h
-      roofs[:c][roofs[:dft]][:a] = 0
+      roofs[:c][all_roofs][:a] = 0
       roofs[:c].keys.each { |id| roofs[:chx] << id }
 
       flors[:c] = flors[:c].sort_by{ |k,v| v[:a] }.reverse!.to_h
-      flors[:c][flors[:dft]][:a] = 0
+      flors[:c][all_flors][:a] = 0
       flors[:c].keys.each { |id| flors[:chx] << id }
     end
 
-    arg = "uprate_walls"
-    dsc = "Uprates selected wall construction(s), to meet overall Ut target"
-    uprate_walls = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
-    uprate_walls.setDisplayName("Uprate wall construction(s)")
-    uprate_walls.setDescription(dsc)
-    uprate_walls.setDefaultValue(false)
-    args << uprate_walls
+    arg = "wall_option"
+    dsc = "Target 1x (or 'ALL') wall construction(s) to 'uprate'."
+    chx = walls[:chx]
+    wall = OpenStudio::Measure::OSArgument.makeChoiceArgument(arg, chx, false)
+    wall.setDisplayName("Wall construction(s) to 'uprate'")
+    wall.setDescription(dsc)
+    wall.setDefaultValue(chx.to_a.last)
+    args << wall
 
-    arg = "uprate_roofs"
-    dsc = "Uprates selected roof construction(s), to meet overall Ut target"
-    uprate_roofs = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
-    uprate_roofs.setDisplayName("Uprate roof construction(s)")
-    uprate_roofs.setDescription(dsc)
-    uprate_roofs.setDefaultValue(false)
-    args << uprate_roofs
+    arg = "roof_option"
+    dsc = "Target 1x (or 'ALL') roof construction(s) to 'uprate'."
+    chx = roofs[:chx]
+    roof = OpenStudio::Measure::OSArgument.makeChoiceArgument(arg, chx, false)
+    roof.setDisplayName("Roof construction(s) to 'uprate'")
+    roof.setDescription(dsc)
+    roof.setDefaultValue(chx.to_a.last)
+    args << roof
 
-    arg = "uprate_floors"
-    dsc = "Uprates selected floor construction(s), to meet overall Ut target"
-    uprate_floors = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
-    uprate_floors.setDisplayName("Uprate floor construction(s)")
-    uprate_floors.setDescription(dsc)
-    uprate_floors.setDefaultValue(false)
-    args << uprate_floors
+    arg = "floor_option"
+    dsc = "Target 1x (or 'ALL') floor construction(s) to 'uprate'."
+    chx = flors[:chx]
+    floor = OpenStudio::Measure::OSArgument.makeChoiceArgument(arg, chx, false)
+    floor.setDisplayName("Floor construction(s) to 'uprate'")
+    floor.setDescription(dsc)
+    floor.setDefaultValue(chx.to_a.last)
+    args << floor
 
     arg = "wall_ut"
-    dsc = "Overall Ut target to meet for wall construction(s)"
+    dsc = "Overall Ut target to meet for wall construction(s). Ignored if "    \
+          "previous wall 'uprate' option is set to 'NONE'."
     wall_ut = OpenStudio::Measure::OSArgument.makeDoubleArgument(arg, false)
     wall_ut.setDisplayName("Wall Ut target (W/m2•K)")
     wall_ut.setDescription(dsc)
@@ -166,7 +177,8 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args << wall_ut
 
     arg = "roof_ut"
-    dsc = "Overall Ut target to meet for roof construction(s)"
+    dsc = "Overall Ut target to meet for roof construction(s). Ignored if "    \
+          "previous roof 'uprate' option is set to 'NONE'."
     roof_ut = OpenStudio::Measure::OSArgument.makeDoubleArgument(arg, false)
     roof_ut.setDisplayName("Roof Ut target (W/m2•K)")
     roof_ut.setDescription(dsc)
@@ -174,39 +186,13 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args << roof_ut
 
     arg = "floor_ut"
-    dsc = "Overall Ut target to meet for exposed floor construction(s)"
+    dsc = "Overall Ut target to meet for floor construction(s). Ignored if "   \
+          "previous floor 'uprate' option is set to 'NONE'."
     floor_ut = OpenStudio::Measure::OSArgument.makeDoubleArgument(arg, false)
     floor_ut.setDisplayName("Floor Ut target (W/m2•K)")
     floor_ut.setDescription(dsc)
     floor_ut.setDefaultValue(0.162) # (NECB 2017, climate zone 7)
     args << floor_ut
-
-    arg = "wall_option"
-    dsc = "Target 1x (or 'ALL') wall construction(s) to 'uprate'"
-    chx = walls[:chx]
-    wall = OpenStudio::Measure::OSArgument.makeChoiceArgument(arg, chx, false)
-    wall.setDisplayName("Wall construction(s) to 'uprate'")
-    wall.setDescription(dsc)
-    wall.setDefaultValue(walls[:dft])
-    args << wall
-
-    arg = "roof_option"
-    dsc = "Target 1x (or 'ALL') roof construction(s) to 'uprate'"
-    chx = roofs[:chx]
-    roof = OpenStudio::Measure::OSArgument.makeChoiceArgument(arg, chx, false)
-    roof.setDisplayName("Roof construction(s) to 'uprate'")
-    roof.setDescription(dsc)
-    roof.setDefaultValue(roofs[:dft])
-    args << roof
-
-    arg = "floor_option"
-    dsc = "Target 1x (or 'ALL') floor construction(s) to 'uprate'"
-    chx = flors[:chx]
-    floor = OpenStudio::Measure::OSArgument.makeChoiceArgument(arg, chx, false)
-    floor.setDisplayName("Floor construction(s) to 'uprate'")
-    floor.setDescription(dsc)
-    floor.setDefaultValue(flors[:dft])
-    args << floor
 
     arg = "gen_UA_report"
     dsc = "Compare ∑U•A + ∑PSI•L + ∑KHI•n : 'Design' vs UA' reference (see "   \
@@ -256,9 +242,6 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     argh[:load_tbd] = runner.getBoolArgumentValue("load_tbd_json", args)
     argh[:option] = runner.getStringArgumentValue("option", args)
     argh[:write_tbd] = runner.getBoolArgumentValue("write_tbd_json", args)
-    argh[:uprate_walls] = runner.getBoolArgumentValue("uprate_walls", args)
-    argh[:uprate_roofs] = runner.getBoolArgumentValue("uprate_roofs", args)
-    argh[:uprate_floors] = runner.getBoolArgumentValue("uprate_floors", args)
     argh[:wall_ut] = runner.getDoubleArgumentValue("wall_ut", args)
     argh[:roof_ut] = runner.getDoubleArgumentValue("roof_ut", args)
     argh[:floor_ut] = runner.getDoubleArgumentValue("floor_ut", args)
@@ -269,6 +252,10 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     argh[:ua_ref] = runner.getStringArgumentValue("ua_reference", args)
     argh[:gen_kiva] = runner.getBoolArgumentValue("gen_kiva", args)
     argh[:kiva_force] = runner.getBoolArgumentValue("gen_kiva_force", args)
+
+    argh[:uprate_walls]  = argh[:wall_option]  != "NONE"
+    argh[:uprate_roofs]  = argh[:roof_option]  != "NONE"
+    argh[:uprate_floors] = argh[:floor_option] != "NONE"
 
     # Use the built-in error checking.
     return false unless runner.validateUserArguments(arguments(mdl), args)

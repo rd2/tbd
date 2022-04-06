@@ -232,9 +232,9 @@ def uprate(model, surfaces, argh)
     uo = nil
     id = ""
 
-    all = g[:op] == "ALL wall constructions" ||
-          g[:op] == "ALL roof constructions" ||
-          g[:op] == "ALL floor constructions"
+    all = g[:op].downcase == "all wall constructions" ||
+          g[:op].downcase == "all roof constructions" ||
+          g[:op].downcase == "all floor constructions"
 
     if g[:op].empty?
       TBD.log(TBD::ERROR, "Missing construction to uprate - skipping")

@@ -3323,7 +3323,6 @@ def exitTBD(runner, argh = {})
     next unless g[:uo]
     next unless g[:uo].is_a?(Numeric)
 
-    runner.registerInfo(" -") if u_t.empty?
     uo = format("%.3f", g[:uo])
     ut = format("%.3f", g[:ut])
     output = "An initial #{label.to_s} Uo of #{uo} W/m2•K is required to "     \
