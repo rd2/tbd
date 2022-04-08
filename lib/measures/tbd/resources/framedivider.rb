@@ -515,7 +515,7 @@ def openings(model, surface)
       TBD.log(TBD::ERROR, msg)
       next
     end
-    c = c.get.to_Construction.get
+    c = c.get.to_LayeredConstruction.get
 
     # A subsurface may have an overall U-factor set by the user - a less
     # accurate option, yet easier to process (and often the only option
@@ -671,13 +671,13 @@ def openings(model, surface)
     sub[:minz] = ( pts.map { |p| p.z } ).min
 
     if sub[:type] == :window
-      surf[:windows] = {} unless surf.has_key?(:windows)
+      surf[:windows] = {} unless surf.key?(:windows)
       surf[:windows][id] = sub
     elsif sub[:type] == :door
-      surf[:doors] = {} unless surf.has_key?(:doors)
+      surf[:doors] = {} unless surf.key?(:doors)
       surf[:doors][id] = sub
     else # skylight
-      surf[:skylights] = {} unless surf.has_key?(:skylights)
+      surf[:skylights] = {} unless surf.key?(:skylights)
       surf[:skylights][id] = sub
     end
   end

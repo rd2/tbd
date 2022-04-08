@@ -67,7 +67,7 @@ RSpec.describe TBD do
   # tbd_options << "regular (BETBG)"
   # tbd_options << "efficient (BETBG)"
   # tbd_options << "spandrel (BETBG)"
-  # tbd_options << "spandrel HP (BETBG)"
+  tbd_options << "spandrel HP (BETBG)"
   tbd_options << "code (Quebec)"
   # tbd_options << "uncompliant (Quebec)"
   tbd_options << "(non thermal bridging)"

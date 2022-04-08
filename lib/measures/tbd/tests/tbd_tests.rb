@@ -43,7 +43,7 @@ class TBDTest < Minitest::Test
 
     # get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
-    assert_equal(8, arguments.size)
+    assert_equal(14, arguments.size)
   end
 
   def test_no_load_tbd_json
@@ -207,6 +207,7 @@ class TBDTest < Minitest::Test
     assert_equal('Fail', result.value.valueName)
     assert(result.errors.size == 1)
     assert(result.warnings.size == 1)
+    puts result.warnings[0].logMessage
     log_message = "Can't find 'tbd.json' - simulation halted"
     assert(result.warnings[0].logMessage == log_message)
 
