@@ -4,13 +4,13 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=9515b8312f6b5eb4afdf013a72a352bac3fc920b">
+    <link rel="stylesheet" href="/assets/css/style.css?v=2d97e99df98faa1a4ecf5c855dddf555d6415a6f">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
 
-<!-- Begin Jekyll SEO tag v2.7.1 -->
+<!-- Begin Jekyll SEO tag v2.8.0 -->
 <title>Basics | TBD</title>
 <meta name="generator" content="Jekyll v3.9.0" />
 <meta property="og:title" content="Basics" />
@@ -20,10 +20,11 @@
 <link rel="canonical" href="http://localhost:4000/pages/basics.html" />
 <meta property="og:url" content="http://localhost:4000/pages/basics.html" />
 <meta property="og:site_name" content="TBD" />
+<meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Basics" />
 <script type="application/ld+json">
-{"@type":"WebPage","headline":"Basics","description":"Thermal Bridging &amp; Derating","url":"http://localhost:4000/pages/basics.html","@context":"https://schema.org"}</script>
+{"@context":"https://schema.org","@type":"WebPage","description":"Thermal Bridging &amp; Derating","headline":"Basics","url":"http://localhost:4000/pages/basics.html"}</script>
 <!-- End Jekyll SEO tag -->
 
     <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
@@ -66,7 +67,7 @@
 
 <p>Why? Let’s start by venturing that there’s more than one way to approach building energy modelling. One obvious scenario is to hire competent energy modellers who take care of everything - they’re specialized and very good at what they do. Yet it has its drawbacks as a <em>centralized</em> solution. TBD works just as well within more <em>distributed</em> approaches, where specialists may contribute to the same collective energy model, yet at different stages of the design and on different parts of the model - ideally under supervisory versioning control (just like software development). Architectural professionals should be encouraged to update and maintain geometry and construction parameters (including thermal bridging) of an OpenStudio model throughout the design process. Same goes for lighting consultants, estimators, LCA assessors, etc.</p>
 
-<p>In other cases, architects may simply wish to explore whether their designs comply with certain prescriptive envelope targets, which can be efficiently ascertained using OpenStudio &amp; TBD (and without running a single energy simulation). If they’re unsuccessful in achieving e.g., <a href="./ua.html" title="UA' assessments">UA’</a> trade-off targets, they can always seek to compensate by handing off the model to building energy modellers. And inheriting a complete <em>architectural</em> energy model this way can be a huge time saver. This fits in well within integrated design processes, while encouraging a healthy division of labour and fair distribution of professional liability. Let’s go over what TBD requires from a <em>minimal</em> OpenStudio model.</p>
+<p>In other cases, architects may simply wish to explore whether their designs comply with certain prescriptive envelope targets, which can be efficiently ascertained using OpenStudio &amp; TBD (and without running a single energy simulation). If they’re unsuccessful in achieving e.g., <a href="./ua.html" title="UA' assessments">UA’</a> trade-off targets, they can always seek to compensate by handing off the model to building energy modellers. For the latter, inheriting a complete <em>architectural</em> energy model this way can be a huge time saver. This fits in well within integrated design processes, while encouraging a healthy division of labour and fair distribution of professional liability. Let’s go over what TBD requires from a <em>minimal</em> OpenStudio model.</p>
 
 <h3 id="minimal-model-requirements">Minimal model requirements</h3>
 
@@ -84,7 +85,7 @@
 
 <p>If a <strong>more complete</strong> OpenStudio model has at least one space linked to a <em>thermal zone</em> having temperature setpoints, TBD instead seeks to only <em>derate</em> outdoor-facing surfaces of such <em>conditioned</em> spaces. TBD safely ignores outdoor-facing surfaces in <em>unconditioned</em> spaces like attics and crawlspaces, yet unfortunately also those of plenums.</p>
 
-<p>With a <strong>fairly complete</strong> OpenStudio model (<em>complete</em> with <em>thermal zones</em>, setpoints, and HVAC <em>air loops</em>), spaces become tagged as <em>indirectly-conditioned</em> plenums if their <em>thermal zones</em> actually correspond to <a href="https://bigladdersoftware.com/epx/docs/9-6/input-output-reference/group-air-path.html#airloophvacreturnplenum" title="EnergyPlus return air plenums">supply</a> or <a href="https://bigladdersoftware.com/epx/docs/9-6/input-output-reference/group-air-path.html#airloophvacsupplyplenum" title="EnergyPlus supply air plenums">return</a> plenums - let’s call this <strong>case A</strong>.</p>
+<p>With a <strong>fairly complete</strong> OpenStudio model (<em>complete</em> with <em>thermal zones</em>, setpoints, and HVAC <em>air loops</em>), spaces become tagged as <em>indirectly-conditioned</em> plenums if their <em>thermal zones</em> actually correspond to <a href="https://bigladdersoftware.com/epx/docs/9-6/input-output-reference/group-air-path.html#airloophvacsupplyplenum" title="EnergyPlus supply air plenums">supply</a> or <a href="https://bigladdersoftware.com/epx/docs/9-6/input-output-reference/group-air-path.html#airloophvacreturnplenum" title="EnergyPlus return air plenums">return</a> plenums - let’s call this <strong>case A</strong>.</p>
 
 <p>In absence of HVAC <em>air loops</em>, 2x other cases trigger a <em>plenum</em> tag: <strong>case B</strong> where the space is considered excluded from the building’s <em>total floor area</em> (an OpenStudio variable), while having its <em>thermal zone</em> referencing an <em>inactive</em> thermostat (i.e. can’t extract valid setpoints); or finally <strong>case C</strong> where the <em>spacetype</em> name is simply set to “plenum” (case insensitive).</p>
 
@@ -100,11 +101,11 @@
 
 <h3 id="tbd-menu-options">TBD menu options</h3>
 
-<p>Whether TBD is accessed from the <em>OpenStudio Application</em> Measures’ tab or through a <a href="https://nrel.github.io/OpenStudio-user-documentation/reference/command_line_interface/" title="OpenStudio CLI">CLI</a> <em>workflow</em>, users have access to the same <strong>8</strong> menu options (“Inputs”, shown here with their default values):</p>
+<p>Whether TBD is accessed from the <em>OpenStudio Application</em> Measures’ tab or through a <a href="https://nrel.github.io/OpenStudio-user-documentation/reference/command_line_interface/" title="OpenStudio CLI">CLI</a> <em>workflow</em>, users have access to the same <strong>14</strong> menu options (“Inputs”, shown here with their default values):</p>
 
 <p><img src="../assets/images/TBD-inputs.png" alt="TBD Menu Options" title="TBD Menu Options" /></p>
 
-<p>“JSON” input/output files, “UA’” reports and “KIVA” inputs are described in detail in the <a href="./custom.html" title="TBD customization">Customization</a>, <a href="./ua.html" title="UA' assessments">UA’</a> and <a href="./kiva.html" title="KIVA support">KIVA</a> sections, respectively.</p>
+<p>“JSON” input/output files, “Uprating” features, “UA’” reports and “KIVA” inputs are described in detail in the <a href="./custom.html" title="TBD customization">Customization</a>, <a href="./ut.html" title="Uprating">Uprating</a>, <a href="./ua.html" title="UA' assessments">UA’</a> and <a href="./kiva.html" title="KIVA support">KIVA</a> sections, respectively.</p>
 
 <p>The <strong>Default thermal bridge set</strong> pull-down menu of prepackaged, compact <em>psi</em> sets is key for newcomers, especially in the early design stages. Users simply need to switch between default sets (and rerun the measure) to get a sense of the degree of thermal <em>derating</em> that would take place in their building, and how this affects energy simulation results. It’s easy, yet coarse as the entire building is treated uniformly (check the <a href="./custom.html" title="TBD customization">Customization</a> section on handling multiple <em>psi</em> sets). Each default set holds a minimal shortlist of common thermal bridge <em>shorthands</em> for each edge TBD identifies:</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    "rimjoist" | wall/floor or sloped-roof/floor edge
@@ -223,7 +224,7 @@ fenestration | 0.500
     <p><strong>Iterative investigations</strong>: Users may simply want to get a status report of how well they’re managing thermal bridging in their projects. TBD provides the same user feedback (including errors &amp; warnings) in either mode. Consult the <a href="./reports.html" title="What TBD reports back">Reporting</a> section.</p>
   </li>
   <li>
-    <p><strong>UA’ reports</strong>: Similarly, TBD can generate at any moment <a href="./ua.html" title="UA' assessments">UA’</a> summaries (often admissible building energy code compliance paths).</p>
+    <p><strong>UA’ reports</strong>: Similarly, TBD can generate at any moment <a href="./ua.html" title="UA' assessments">UA’</a> summaries (often admissible building energy code compliance paths). Same for <a href="./ut.html" title="Uprating">uprating</a> features.</p>
   </li>
   <li>
     <p><strong>JSON output</strong>: Users can generate a complete, detailed list of every <em>major</em> thermal bridge in their OpenStudio model, which can be useful for automating cost estimation or simply for further <a href="./custom.html" title="TBD customization">customization</a>.</p>

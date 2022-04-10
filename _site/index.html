@@ -4,13 +4,13 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=9515b8312f6b5eb4afdf013a72a352bac3fc920b">
+    <link rel="stylesheet" href="/assets/css/style.css?v=2d97e99df98faa1a4ecf5c855dddf555d6415a6f">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
 
-<!-- Begin Jekyll SEO tag v2.7.1 -->
+<!-- Begin Jekyll SEO tag v2.8.0 -->
 <title>TBD | Thermal Bridging &amp; Derating</title>
 <meta name="generator" content="Jekyll v3.9.0" />
 <meta property="og:title" content="TBD" />
@@ -20,10 +20,11 @@
 <link rel="canonical" href="http://localhost:4000/" />
 <meta property="og:url" content="http://localhost:4000/" />
 <meta property="og:site_name" content="TBD" />
+<meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="TBD" />
 <script type="application/ld+json">
-{"@type":"WebSite","headline":"TBD","description":"Thermal Bridging &amp; Derating","url":"http://localhost:4000/","name":"TBD","@context":"https://schema.org"}</script>
+{"@context":"https://schema.org","@type":"WebSite","description":"Thermal Bridging &amp; Derating","headline":"TBD","name":"TBD","url":"http://localhost:4000/"}</script>
 <!-- End Jekyll SEO tag -->
 
     <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
@@ -75,7 +76,7 @@
 <h3 id="energy-simulation">Energy simulation</h3>
 
 <p>While materials, constructions and envelope surfaces are well-defined variables in OpenStudio (and energy simulation engines like EnergyPlus), shared <em>edges</em> and <em>points</em> are simply not! TBD automatically factors in <em>psi</em> and <em>khi</em> losses from <em>major</em> thermal bridges it manages, by further <em>derating</em> a construction’s <em>clear-field effective R-value</em> - more specifically by further decreasing its insulating layer thickness. If the insulation layer becomes too thin, TBD then increases insulation conductivity. This approach, in line with published research and standards such as ASHRAE’s <a href="https://www.techstreet.com/standards/rp-1365-thermal-performance-of-building-envelope-details-for-mid-and-high-rise-buildings?product_id=1806751">RP-1365</a>, <em>BETBG</em> &amp; <em>thermalenvelope.ca</em>, as well as ISO <a href="https://www.iso.org/standard/65710.html">10211</a> and <a href="https://www.iso.org/standard/65706.html">14683</a> Standards, is best summarized as follows:</p>
-<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Ut = Uo + ( ∑psi•L )/A + ( ∑khi•n )/A
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Ut = Uo + ( ∑psi • L )/A + ( ∑khi • n )/A
 </code></pre></div></div>
 <p>… where:</p>
 
@@ -106,8 +107,9 @@
   <li><a href="./pages/basics.html" title="Basic TBD workflow">TBD basics</a></li>
   <li><a href="./pages/custom.html" title="Customizing TBD inputs">TBD customization</a></li>
   <li><a href="./pages/reports.html" title="What TBD reports back">TBD reporting</a></li>
-  <li><a href="./pages/kiva.html" title="Kiva support">KIVA</a></li>
+  <li><a href="./pages/ut.html" title="Uprating' assessments">Uprating</a></li>
   <li><a href="./pages/ua.html" title="UA' assessments">UA’</a></li>
+  <li><a href="./pages/kiva.html" title="Kiva support">KIVA</a></li>
 </ul>
 
 <h3 id="support">Support</h3>

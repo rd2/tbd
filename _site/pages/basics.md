@@ -8,7 +8,7 @@ OpenStudio construction details and geometry are required architectural inputs f
 
 Why? Let's start by venturing that there's more than one way to approach building energy modelling. One obvious scenario is to hire competent energy modellers who take care of everything - they're specialized and very good at what they do. Yet it has its drawbacks as a _centralized_ solution. TBD works just as well within more _distributed_ approaches, where specialists may contribute to the same collective energy model, yet at different stages of the design and on different parts of the model - ideally under supervisory versioning control (just like software development). Architectural professionals should be encouraged to update and maintain geometry and construction parameters (including thermal bridging) of an OpenStudio model throughout the design process. Same goes for lighting consultants, estimators, LCA assessors, etc.
 
-In other cases, architects may simply wish to explore whether their designs comply with certain prescriptive envelope targets, which can be efficiently ascertained using OpenStudio & TBD (and without running a single energy simulation). If they're unsuccessful in achieving e.g., [UA'](./ua.html "UA' assessments") trade-off targets, they can always seek to compensate by handing off the model to building energy modellers. And inheriting a complete _architectural_ energy model this way can be a huge time saver. This fits in well within integrated design processes, while encouraging a healthy division of labour and fair distribution of professional liability. Let's go over what TBD requires from a _minimal_ OpenStudio model.
+In other cases, architects may simply wish to explore whether their designs comply with certain prescriptive envelope targets, which can be efficiently ascertained using OpenStudio & TBD (and without running a single energy simulation). If they're unsuccessful in achieving e.g., [UA'](./ua.html "UA' assessments") trade-off targets, they can always seek to compensate by handing off the model to building energy modellers. For the latter, inheriting a complete _architectural_ energy model this way can be a huge time saver. This fits in well within integrated design processes, while encouraging a healthy division of labour and fair distribution of professional liability. Let's go over what TBD requires from a _minimal_ OpenStudio model.
 
 ### Minimal model requirements
 
@@ -27,7 +27,7 @@ With __partial__ OpenStudio models, TBD seeks to _derate_ ALL outside-facing sur
 
 If a __more complete__ OpenStudio model has at least one space linked to a _thermal zone_ having temperature setpoints, TBD instead seeks to only _derate_ outdoor-facing surfaces of such _conditioned_ spaces. TBD safely ignores outdoor-facing surfaces in _unconditioned_ spaces like attics and crawlspaces, yet unfortunately also those of plenums.
 
-With a __fairly complete__ OpenStudio model (_complete_ with _thermal zones_, setpoints, and HVAC _air loops_), spaces become tagged as _indirectly-conditioned_ plenums if their _thermal zones_ actually correspond to [supply](https://bigladdersoftware.com/epx/docs/9-6/input-output-reference/group-air-path.html#airloophvacreturnplenum "EnergyPlus return air plenums") or [return](https://bigladdersoftware.com/epx/docs/9-6/input-output-reference/group-air-path.html#airloophvacsupplyplenum "EnergyPlus supply air plenums") plenums - let's call this __case A__.
+With a __fairly complete__ OpenStudio model (_complete_ with _thermal zones_, setpoints, and HVAC _air loops_), spaces become tagged as _indirectly-conditioned_ plenums if their _thermal zones_ actually correspond to [supply](https://bigladdersoftware.com/epx/docs/9-6/input-output-reference/group-air-path.html#airloophvacsupplyplenum "EnergyPlus supply air plenums") or [return](https://bigladdersoftware.com/epx/docs/9-6/input-output-reference/group-air-path.html#airloophvacreturnplenum "EnergyPlus return air plenums") plenums - let's call this __case A__.
 
 In absence of HVAC _air loops_, 2x other cases trigger a _plenum_ tag: __case B__ where the space is considered excluded from the building's _total floor area_ (an OpenStudio variable), while having its _thermal zone_ referencing an _inactive_ thermostat (i.e. can't extract valid setpoints); or finally __case C__ where the _spacetype_ name is simply set to "plenum" (case insensitive).
 
@@ -41,11 +41,11 @@ This is a __lot__ to ask of most technically proficient architects, as most item
 
 ### TBD menu options
 
-Whether TBD is accessed from the _OpenStudio Application_ Measures' tab or through a [CLI](https://nrel.github.io/OpenStudio-user-documentation/reference/command_line_interface/ "OpenStudio CLI") _workflow_, users have access to the same __8__ menu options ("Inputs", shown here with their default values):
+Whether TBD is accessed from the _OpenStudio Application_ Measures' tab or through a [CLI](https://nrel.github.io/OpenStudio-user-documentation/reference/command_line_interface/ "OpenStudio CLI") _workflow_, users have access to the same __14__ menu options ("Inputs", shown here with their default values):
 
 ![TBD Menu Options](../assets/images/TBD-inputs.png "TBD Menu Options")
 
-"JSON" input/output files, "UA'" reports and "KIVA" inputs are described in detail in the [Customization](./custom.html "TBD customization"), [UA'](./ua.html "UA' assessments") and [KIVA](./kiva.html "KIVA support") sections, respectively.
+"JSON" input/output files, "Uprating" features, "UA'" reports and "KIVA" inputs are described in detail in the [Customization](./custom.html "TBD customization"), [Uprating](./ut.html "Uprating"), [UA'](./ua.html "UA' assessments") and [KIVA](./kiva.html "KIVA support") sections, respectively.
 
 The __Default thermal bridge set__ pull-down menu of prepackaged, compact _psi_ sets is key for newcomers, especially in the early design stages. Users simply need to switch between default sets (and rerun the measure) to get a sense of the degree of thermal _derating_ that would take place in their building, and how this affects energy simulation results. It's easy, yet coarse as the entire building is treated uniformly (check the [Customization](./custom.html "TBD customization") section on handling multiple _psi_ sets). Each default set holds a minimal shortlist of common thermal bridge _shorthands_ for each edge TBD identifies:
 ```
@@ -169,7 +169,7 @@ However, there are _Apply Measures Now_ situations where permanent changes to an
 
 - __Iterative investigations__: Users may simply want to get a status report of how well they're managing thermal bridging in their projects. TBD provides the same user feedback (including errors & warnings) in either mode. Consult the [Reporting](./reports.html "What TBD reports back") section.
 
-- __UA' reports__: Similarly, TBD can generate at any moment [UA'](./ua.html "UA' assessments") summaries (often admissible building energy code compliance paths).
+- __UA' reports__: Similarly, TBD can generate at any moment [UA'](./ua.html "UA' assessments") summaries (often admissible building energy code compliance paths). Same for [uprating](./ut.html "Uprating") features.
 
 - __JSON output__: Users can generate a complete, detailed list of every _major_ thermal bridge in their OpenStudio model, which can be useful for automating cost estimation or simply for further [customization](./custom.html "TBD customization").
 

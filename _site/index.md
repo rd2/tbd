@@ -18,7 +18,7 @@ Relying on the OpenStudio [SDK](https://openstudio-sdk-documentation.s3.amazonaw
 
 While materials, constructions and envelope surfaces are well-defined variables in OpenStudio (and energy simulation engines like EnergyPlus), shared _edges_ and _points_ are simply not! TBD automatically factors in _psi_ and _khi_ losses from _major_ thermal bridges it manages, by further _derating_ a construction's _clear-field effective R-value_ - more specifically by further decreasing its insulating layer thickness. If the insulation layer becomes too thin, TBD then increases insulation conductivity. This approach, in line with published research and standards such as ASHRAE's [RP-1365](https://www.techstreet.com/standards/rp-1365-thermal-performance-of-building-envelope-details-for-mid-and-high-rise-buildings?product_id=1806751), _BETBG_ & _thermalenvelope.ca_, as well as ISO [10211](https://www.iso.org/standard/65710.html) and [14683](https://www.iso.org/standard/65706.html) Standards, is best summarized as follows:
 ```
-Ut = Uo + ( ∑psi•L )/A + ( ∑khi•n )/A
+Ut = Uo + ( ∑psi • L )/A + ( ∑khi • n )/A
 ```
 ... where:
 
@@ -46,8 +46,10 @@ In summary, users are required to have:
 - [TBD basics](./pages/basics.html "Basic TBD workflow")  
 - [TBD customization](./pages/custom.html "Customizing TBD inputs")  
 - [TBD reporting](./pages/reports.html "What TBD reports back")  
-- [KIVA](./pages/kiva.html "Kiva support")  
+- [Uprating](./pages/ut.html "Uprating' assessments")  
 - [UA'](./pages/ua.html "UA' assessments")  
+- [KIVA](./pages/kiva.html "Kiva support")  
+
 
 ### Support
 

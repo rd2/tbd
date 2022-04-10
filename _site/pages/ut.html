@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset='utf-8'>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link rel="stylesheet" href="/assets/css/style.css?v=2d97e99df98faa1a4ecf5c855dddf555d6415a6f">
+    <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Uprating | TBD</title>
+<meta name="generator" content="Jekyll v3.9.0" />
+<meta property="og:title" content="Uprating" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Thermal Bridging &amp; Derating" />
+<meta property="og:description" content="Thermal Bridging &amp; Derating" />
+<link rel="canonical" href="http://localhost:4000/pages/ut.html" />
+<meta property="og:url" content="http://localhost:4000/pages/ut.html" />
+<meta property="og:site_name" content="TBD" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Uprating" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"Thermal Bridging &amp; Derating","headline":"Uprating","url":"http://localhost:4000/pages/ut.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
+
+<!-- Setup Google Analytics -->
+
+
+
+<!-- You can set your favicon here -->
+<!-- link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" -->
+
+<!-- end custom head snippets -->
+
+  </head>
+
+  <body>
+    <div id="container">
+      <div class="inner">
+
+        <header>
+          <h1>Uprating</h1>
+          <h2>Thermal Bridging & Derating</h2>
+        </header>
+        <section id="downloads" class="clearfix">
+          
+          <a href="https://github.com/rd2/tbd/releases/download/v2.3.1/tbd.zip" id="download-zip" class="button"><span>Download .zip</span></a>
+          <a href="https://github.com/rd2/tbd/releases/download/v2.3.1/tbd.tar.gz" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
+          
+	
+        </section>
+        <hr>
+        <section id="main_content">
+          <h3 id="uprating">Uprating</h3>
+
+<p>By default, TBD presumes an OpenStudio model’s opaque surfaces (maybe in the hundreds) refer to one (or a few) common multilayered constructions that reflect <em>clear-field</em> design intent. TBD subsequently <em>derates</em> these multilayered constructions on a surface-per-surface basis for energy simulation purposes. So while each construction has a unique <em>clear-field</em> <strong>Uo</strong> value, each surface has a unique <em>derated</em> <strong>Ut</strong> value (once TBD is done).</p>
+
+<p>Depending on the <em>extent</em> of thermal bridging (due to each surface’s edge lengths and <em>psi</em> values), surface-specific <em>derating</em> can range from <em>barely noticeable</em> to <em>extensive</em> (e.g. &gt; 50%). One may start off with a single, common construction for all exterior wall surfaces, the latter will end up with sometimes radically different <strong>Ut</strong> values.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Ut = Uo + ( ∑psi • L )/A + ( ∑khi • n )/A
+</code></pre></div></div>
+
+<p>This presumption is consistent with typical building energy simulation workflows. Yet determining what should be the initial (common) construction <strong>Uo</strong> value may not be straightforward. What happens when designers are unsure of what initial <em>clear-field</em> <strong>Uo</strong> value they should start off with, given façade layouts and thermal bridging design choices? Is it economically wise to aim for much lower <strong>Uo</strong> values, as a means to compensate for <em>major</em> thermal bridging?</p>
+
+<p>In some cases, building professionals may even choose (or are required) to achieve a maximum, area-weighted average <strong>Ut</strong> for all exterior wall surfaces. It’s the case for prescriptive requirements of the Canadian NECB 2017 and 2020 editions, e.g., a final, wall area-weighted average <strong>Ut</strong> of 0.210 W/m2.K (R27) for climate zone 7 (NECB 2017). Depending on the <em>extent</em> of thermal bridging, the initial <em>clear-field</em> <strong>Uo</strong> value for that single, common construction may need to be 0.160 (or much, much lower).</p>
+
+<p>So in addition to <em>derating</em> construction <strong>Uo</strong> values (to final surface <strong>Ut</strong> values) for energy simulation purposes, TBD offers designers the option to first autogenerate required <em>clear-field</em> <strong>Uo</strong> values (a process called <em>uprating</em>) to meet a given target, by reordering the above equation.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Uo = Ut - ( ∑psi • L )/A + ( ∑khi • n )/A
+</code></pre></div></div>
+
+<p><em>Uprating</em> menu options (see <a href="./basics.html" title="Basic TBD workflow">Basics</a>), are paired together for <em>walls</em>, <em>roofs</em> and/or exposed <em>floors</em> (let’s make things easy here by limiting the discussion to walls). The default value assigned to the “Wall construction(s) to ‘uprate’” pull-down menu option is “NONE”, disabling any <em>uprating</em> calculations for walls. TBD nonetheless pre-scans an OpenStudio model to retrieve referenced wall constructions in order of prevalence - referenced constructions covering a larger area are listed higher up in the pull-down list. Users can either limit <em>uprating</em> calculations to one (1x) such referenced wall construction, or to “ALL wall constructions” in a building model. The latter is an all-encompassing solution, overriding previously set construction assignments (the most prevalent wall construction is nonetheless retained as the basis for subsequent <em>uprating</em> - and then <em>derating</em> - calculations). Users can also set the desired, area-weighted <strong>Ut</strong> value for selected walls (default values are those of the NECB 2017 for climate zone 7).</p>
+
+<p>TBD will log (and flash on screen if using the OpenStudio Application) the calculated <em>clear-field</em> <strong>Uo</strong> value required to achieve the desired area-weighted <strong>Ut</strong> for walls (see <a href="./reports.html" title="What TBD reports back">Reporting</a>).</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>An initial wall Uo of 0.162 W/m2•K is required to achieve an overall Ut of 0.210 W/m2•K for ALL wall constructions.
+</code></pre></div></div>
+
+<p>The <em>uprating</em> calculations are similar to <a href="./ua.html" title="UA' assessments">UA’</a>  assessments, yet in reverse order. In any <em>UA</em>-type exercise (like the <em>uprating</em> calculations), a significantly weaker component will have a disproportionate effect vs its area (as summarized in the very first paragraph of this <a href="../index.html" title="Thermal Bridging &amp; Derating">guide</a>, “In a nutshell …”). For very efficient envelope designs (e.g. continuous outboard insulation, thermally-broken cladding clips, minimal fenestration, favourable façade aspect ratios), the degree of <em>uprating</em> may be quite reasonable. It may however be very challenging (and onerous) to meet such ambitious <strong>Ut</strong> targets when factoring-in weaker components (e.g., spandrels, poor detailing, lots of fenestration).</p>
+
+<p>We strongly recommend to first investigate this feature relying on <em>Apply Measures Now</em> feedback (ideally UNCHECKing the <strong>Alter OpenStudio model</strong> option, as discussed at the end of <a href="./basics.html" title="Basic TBD workflow">Basics</a>), to get a sense of how significant the <em>uprating</em> calculations may end up altering your initial designs.</p>
+
+<p><a href="../index.html" title="Thermal Bridging &amp; Derating">back</a></p>
+
+        </section>
+
+        <footer>
+        
+          TBD is maintained by <a href="https://github.com/rd2">rd2</a><br>
+        
+          This page was generated by <a href="https://pages.github.com">GitHub Pages</a>.
+        </footer>
+
+      </div>
+    </div>
+  </body>
+</html>
