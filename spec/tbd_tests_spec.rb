@@ -1950,6 +1950,54 @@ RSpec.describe TBD do
     end
   end
 
+  it "can process cases with low temperature radiant heating" do
+    TBD.clean!
+    argh = {}
+
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    file = File.join(__dir__, "files/osms/in/smalloffice_IHS.osm")
+    path = OpenStudio::Path.new(file)
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    setpoints = heatingTemperatureSetpoints?(os_model)
+    setpoints = coolingTemperatureSetpoints?(os_model) || setpoints
+    expect(setpoints).to be(true)
+    airloops = airLoopsHVAC?(os_model)
+    expect(airloops).to be(true)
+
+    os_model.getSpaces.each do |space|
+      expect(space.thermalZone.empty?).to be(false)
+      zone = space.thermalZone.get
+      heating, _ = maxHeatScheduledSetpoint(zone)
+      cooling, _ = minCoolScheduledSetpoint(zone)
+
+      if zone.nameString == "Attic ZN"
+        expect(plenum?(space, airloops, setpoints)).to be(false)
+        expect(heating.nil?).to be(true)
+        expect(cooling.nil?).to be(true)
+      else
+        expect(plenum?(space, airloops, setpoints)).to be(false)
+        expect(heating).to be_within(0.1).of(22.5)
+        expect(cooling).to be_within(0.1).of(23.9)
+      end
+    end
+
+    argh[:option] = "(non thermal bridging)"
+    io, surfaces = processTBD(os_model, argh)
+    puts TBD.logs
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
+    expect(surfaces.size).to eq(43)
+    expect(io[:edges].size).to eq(105)
+  end
+
   it "can process DOE Prototype test_warehouse.osm" do
     TBD.clean!
     argh = {}
