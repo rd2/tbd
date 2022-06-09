@@ -1961,41 +1961,102 @@ RSpec.describe TBD do
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
 
-    setpoints = heatingTemperatureSetpoints?(os_model)
-    setpoints = coolingTemperatureSetpoints?(os_model) || setpoints
-    expect(setpoints).to be(true)
-    airloops = airLoopsHVAC?(os_model)
-    expect(airloops).to be(true)
+    version = os_model.getVersion.versionIdentifier.split('.').map(&:to_i)
+    v = version.join.to_i
+    expect(v).is_a?(Numeric)
 
-    os_model.getSpaces.each do |space|
-      expect(space.thermalZone.empty?).to be(false)
-      zone = space.thermalZone.get
-      heating, _ = maxHeatScheduledSetpoint(zone)
-      cooling, _ = minCoolScheduledSetpoint(zone)
+    unless v < 330
+      setpoints = heatingTemperatureSetpoints?(os_model)
+      setpoints = coolingTemperatureSetpoints?(os_model) || setpoints
+      expect(setpoints).to be(true)
+      airloops = airLoopsHVAC?(os_model)
+      expect(airloops).to be(true)
 
-      if zone.nameString == "Attic ZN"
-        expect(plenum?(space, airloops, setpoints)).to be(false)
-        expect(heating.nil?).to be(true)
-        expect(cooling.nil?).to be(true)
-      else
-        expect(plenum?(space, airloops, setpoints)).to be(false)
-        expect(heating).to be_within(0.1).of(22.5)
-        expect(cooling).to be_within(0.1).of(23.9)
+      os_model.getSpaces.each do |space|
+        expect(space.thermalZone.empty?).to be(false)
+        zone = space.thermalZone.get
+        heating, _ = maxHeatScheduledSetpoint(zone)
+        cooling, _ = minCoolScheduledSetpoint(zone)
+
+        if zone.nameString == "Attic ZN"
+          expect(plenum?(space, airloops, setpoints)).to be(false)
+          expect(heating.nil?).to be(true)
+          expect(cooling.nil?).to be(true)
+        else
+          expect(plenum?(space, airloops, setpoints)).to be(false)
+          # TBD will rely on scheduled setpoint temperatures of radiant systems
+          # IN ABSENCE of valid thermal zone thermostat scheduled setpoints.
+          expect(heating).to be_within(0.1).of(21.1)    # overrides 22.5 lowTrad
+          expect(cooling).to be_within(0.1).of(23.9)
+        end
       end
+
+      argh[:option] = "(non thermal bridging)"
+      io, surfaces = processTBD(os_model, argh)
+      puts TBD.logs
+      expect(TBD.status).to eq(0)
+      expect(TBD.logs.empty?).to be(true)
+      expect(io.nil?).to be(false)
+      expect(io.is_a?(Hash)).to be(true)
+      expect(io.empty?).to be(false)
+      expect(surfaces.nil?).to be(false)
+      expect(surfaces.is_a?(Hash)).to be(true)
+      expect(surfaces.size).to eq(43)
+      expect(io[:edges].size).to eq(105)
     end
 
-    argh[:option] = "(non thermal bridging)"
-    io, surfaces = processTBD(os_model, argh)
-    puts TBD.logs
-    expect(TBD.status).to eq(0)
-    expect(TBD.logs.empty?).to be(true)
-    expect(io.nil?).to be(false)
-    expect(io.is_a?(Hash)).to be(true)
-    expect(io.empty?).to be(false)
-    expect(surfaces.nil?).to be(false)
-    expect(surfaces.is_a?(Hash)).to be(true)
-    expect(surfaces.size).to eq(43)
-    expect(io[:edges].size).to eq(105)
+    # Again, yet with a OS:Schedule:FixedInterval.
+    TBD.clean!
+    argh = {}
+
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    file = File.join(__dir__, "files/osms/in/warehouse_IHS_pks.osm")
+    path = OpenStudio::Path.new(file)
+    os_model = translator.loadModel(path)
+    expect(os_model.empty?).to be(false)
+    os_model = os_model.get
+
+    version = os_model.getVersion.versionIdentifier.split('.').map(&:to_i)
+    v = version.join.to_i
+    expect(v).is_a?(Numeric)
+
+    unless v < 330
+      setpoints = heatingTemperatureSetpoints?(os_model)
+      setpoints = coolingTemperatureSetpoints?(os_model) || setpoints
+      expect(setpoints).to be(true)
+      airloops = airLoopsHVAC?(os_model)
+      expect(airloops).to be(true)
+
+      os_model.getSpaces.each do |space|
+        expect(space.thermalZone.empty?).to be(false)
+        zone = space.thermalZone.get
+        heating, _ = maxHeatScheduledSetpoint(zone)
+        cooling, _ = minCoolScheduledSetpoint(zone)
+        office = zone.nameString.include?("Office")
+        fine   = zone.nameString.include?("Fine")
+        bulk   = zone.nameString.include?("Bulk")
+        expect(plenum?(space, airloops, setpoints)).to be(false)
+        expect(heating).to be_within(0.1).of(21.1) if office
+        expect(heating).to be_within(0.1).of(15.6) if fine
+        expect(heating).to be_within(0.1).of(10.0) if bulk
+        expect(cooling).to be_within(0.1).of(23.9) if office
+        expect(cooling).to be_within(0.1).of(26.7) if fine
+        expect(cooling).to be_within(0.1).of(50.0) if bulk
+      end
+
+      argh[:option] = "(non thermal bridging)"
+      io, surfaces = processTBD(os_model, argh)
+      expect(TBD.status).to eq(0)
+      expect(TBD.logs.empty?).to be(true)
+      expect(io.nil?).to be(false)
+      expect(io.is_a?(Hash)).to be(true)
+      expect(io.empty?).to be(false)
+      expect(surfaces.nil?).to be(false)
+      expect(surfaces.is_a?(Hash)).to be(true)
+      expect(surfaces.size).to eq(23)
+      expect(io.key?(:edges))
+      expect(io[:edges].size).to eq(300)
+    end
   end
 
   it "can process DOE Prototype test_warehouse.osm" do
@@ -4940,6 +5001,10 @@ RSpec.describe TBD do
     expect(os_model_FD.empty?).to be(false)
     os_model_FD = os_model_FD.get
 
+    version = os_model_FD.getVersion.versionIdentifier.split('.').map(&:to_i)
+    v = version.join.to_i
+    expect(v).is_a?(Numeric)
+
     # Adding/validating Frame & Divider object.
     fd = OpenStudio::Model::WindowPropertyFrameAndDivider.new(os_model_FD)
     width = 0.03
@@ -4954,13 +5019,24 @@ RSpec.describe TBD do
     expect(width2).to be_within(0.001).of(width)               # good so far ...
 
     expect(window_FD.netArea).to be_within(0.01).of(5.58)
-    expect(window_FD.grossArea).to be_within(0.01).of(5.58)              # 5.89?
+    expect(window_FD.grossArea).to be_within(0.01).of(5.58)      # not 5.89 (OK)
     front_FD = os_model_FD.getSurfaceByName(nom)
     expect(front_FD.empty?).to be(false)
     front_FD = front_FD.get
     expect(front_FD.grossArea).to be_within(0.01).of(110.54)        # this is OK
-    expect(front_FD.netArea).to be_within(0.01).of(95.49)              # 95.17 ?
-    expect(front_FD.windowToWallRatio()).to be_within(0.01).of(0.101)  # 0.104 ?
+
+    unless v < 340
+      # As of v3.4.0, OpenStudio SDK (fully, consistently) supports F&D features.
+      #
+      #   https://github.com/NREL/OpenStudio/issues/4361
+      #
+      expect(window_FD.roughOpeningArea).to be_within(0.01).of(5.89)
+      expect(front_FD.netArea).to be_within(0.01).of(95.17)           # great !!
+      expect(front_FD.windowToWallRatio()).to be_within(0.01).of(0.104)     # !!
+    else
+      expect(front_FD.netArea).to be_within(0.01).of(95.49)             # !95.17
+      expect(front_FD.windowToWallRatio()).to be_within(0.01).of(0.101) # !0.104
+    end
 
     # If one runs a simulation with the exported file below ("os_model_FD.osm"),
     # EnergyPlus (HTML) will correctly report that the building WWR (gross
@@ -4973,7 +5049,7 @@ RSpec.describe TBD do
     # forward translating the subsurface and linked Frame & Divider objects to
     # EnergyPlus (triangular subsurfaces not tested).
     #
-    # There seems to be an obvious discrepency between the net area of the
+    # Before v3.4, there were discrepencies between the net area of the
     # "Office Front Wall" reported by the OpenStudio API vs EnergyPlus. This
     # may seem minor when looking at the numbers above, but keep in mind a
     # single glazed subsurface is modified for this comparison. This difference
@@ -5050,7 +5126,7 @@ RSpec.describe TBD do
     expect(wins[name].key?(:points)).to be(true)
 
     v1 = window_FD.vertices                   # original OSM vertices for window
-    p1 = wins[name][:points]       # TBD window vertices offset by frame width
+    p1 = wins[name][:points]         # TBD window vertices offset by frame width
     expect((p1[0].x - v1[0].x).abs).to be_within(0.01).of(width)
     expect((p1[1].x - v1[1].x).abs).to be_within(0.01).of(width)
     expect((p1[2].x - v1[2].x).abs).to be_within(0.01).of(width)
@@ -6516,8 +6592,8 @@ RSpec.describe TBD do
       #   (i) facing outdoors or
       #   (ii) facing UNCONDITIONED spaces like attics (see psi.rb).
       #
-      # Here, the ceiling is not tagged by TBD as a deratable surface - diffuser
-      # edges are therefore not logged in TBD's 'edges'.
+      # Here, the ceiling is not tagged by TBD as a deratable surface.
+      # Diffuser edges are therefore not logged in TBD's 'edges'.
       expect(surface.key?(:heatloss)).to be(false)
       expect(surface.key?(:ratio)).to be(false)
 

@@ -232,6 +232,32 @@ def scheduleCompactMinMax(sched)
 end
 
 ##
+# Return min & max values for schedule (fixed interval).
+#
+# @param [OpenStudio::Model::ScheduleFixedInterval] sched An OS schedule
+#
+# @return [Hash] :min & :max; nilled if invalid.
+def scheduleFixedIntervalMinMax(sched)
+  result = { min: nil, max: nil }
+
+  unless sched && sched.is_a?(OpenStudio::Model::ScheduleFixedInterval)
+    TBD.log(TBD::DEBUG,
+      "Invalid fixed interval MinMax schedule (argument) - skipping")
+    return result
+  end
+
+  min = nil
+  max = nil
+  values = sched.timeSeries.values
+  min = values.min if values.min.is_a?(Numeric)
+  max = values.max if values.max.is_a?(Numeric)
+
+  result[:min] = min
+  result[:max] = max
+  result
+end
+
+##
 # Return max zone heating temperature schedule setpoint [°C].
 #
 # @param [OpenStudio::Model::ThermalZone] zone An OS thermal zone
@@ -296,9 +322,6 @@ def maxHeatScheduledSetpoint(zone)
 
     next unless sched
 
-    # TO DO next : extend to schedule types
-      # https://s3.amazonaws.com/openstudio-sdk-documentation/cpp/OpenStudio-3.4.0-doc/model/html/classopenstudio_1_1model_1_1_schedule.html
-
     unless sched.to_ScheduleRuleset.empty?
       sched = sched.to_ScheduleRuleset.get
       max = scheduleRulesetMinMax(sched)[:max]
@@ -334,11 +357,22 @@ def maxHeatScheduledSetpoint(zone)
         end
       end
     end
+
+    unless sched.to_ScheduleFixedInterval.empty?
+      sched = sched.to_ScheduleFixedInterval.get
+      max = scheduleFixedIntervalMinMax(sched)[:max]
+      if max
+        if setpoint
+          setpoint = max if max > setpoint
+        else
+          setpoint = max
+        end
+      end
+    end
   end
 
-  # TO DO : revise logic here (shouldn't prioritize radiant setpoints)
-  return setpoint, dual if setpoint
   return setpoint, dual if zone.thermostat.empty?
+  setpoint = nil
   tstat = zone.thermostat.get
 
   unless tstat.to_ThermostatSetpointDualSetpoint.empty? &&
@@ -414,6 +448,19 @@ def maxHeatScheduledSetpoint(zone)
             setpoint = dd.values.max if dd.values.max > setpoint
           else
             setpoint = dd.values.max
+          end
+        end
+      end
+
+      unless sched.to_ScheduleFixedInterval.empty?
+        sched = sched.to_ScheduleFixedInterval.get
+        max = scheduleFixedIntervalMinMax(sched)[:max]
+
+        if max
+          if setpoint
+            setpoint = max if max > setpoint
+          else
+            setpoint = max
           end
         end
       end
@@ -532,10 +579,22 @@ def minCoolScheduledSetpoint(zone)
         end
       end
     end
+
+    unless sched.to_ScheduleFixedInterval.empty?
+      sched = sched.to_ScheduleFixedInterval.get
+      min = scheduleFixedIntervalMinMax(sched)[:min]
+      if min
+        if setpoint
+          setpoint = min if min < setpoint
+        else
+          setpoint = min
+        end
+      end
+    end
   end
 
-  return setpoint, dual if setpoint
   return setpoint, dual if zone.thermostat.empty?
+  setpoint = nil
   tstat = zone.thermostat.get
 
   unless tstat.to_ThermostatSetpointDualSetpoint.empty? &&
@@ -612,6 +671,19 @@ def minCoolScheduledSetpoint(zone)
             setpoint = dd.values.min if dd.values.min < setpoint
           else
             setpoint = dd.values.min
+          end
+        end
+      end
+
+      unless sched.to_ScheduleFixedInterval.empty?
+        sched = sched.to_ScheduleFixedInterval.get
+        min = scheduleFixedIntervalMinMax(sched)[:min]
+
+        if min
+          if setpoint
+            setpoint = min if min < setpoint
+          else
+            setpoint = min
           end
         end
       end
