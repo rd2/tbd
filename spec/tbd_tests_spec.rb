@@ -1954,18 +1954,18 @@ RSpec.describe TBD do
     TBD.clean!
     argh = {}
 
-    translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/smalloffice_IHS.osm")
-    path = OpenStudio::Path.new(file)
-    os_model = translator.loadModel(path)
-    expect(os_model.empty?).to be(false)
-    os_model = os_model.get
-
-    version = os_model.getVersion.versionIdentifier.split('.').map(&:to_i)
+    model = OpenStudio::Model::Model.new
+    version = model.getVersion.versionIdentifier.split('.').map(&:to_i)
     v = version.join.to_i
-    expect(v).is_a?(Numeric)
 
     unless v < 330
+      translator = OpenStudio::OSVersion::VersionTranslator.new
+      file = File.join(__dir__, "files/osms/in/smalloffice_IHS.osm")
+      path = OpenStudio::Path.new(file)
+      os_model = translator.loadModel(path)
+      expect(os_model.empty?).to be(false)
+      os_model = os_model.get
+
       setpoints = heatingTemperatureSetpoints?(os_model)
       setpoints = coolingTemperatureSetpoints?(os_model) || setpoints
       expect(setpoints).to be(true)
@@ -2003,24 +2003,18 @@ RSpec.describe TBD do
       expect(surfaces.is_a?(Hash)).to be(true)
       expect(surfaces.size).to eq(43)
       expect(io[:edges].size).to eq(105)
-    end
 
-    # Again, yet with a OS:Schedule:FixedInterval.
-    TBD.clean!
-    argh = {}
+      # Again, yet with a OS:Schedule:FixedInterval.
+      TBD.clean!
+      argh = {}
 
-    translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/warehouse_IHS_pks.osm")
-    path = OpenStudio::Path.new(file)
-    os_model = translator.loadModel(path)
-    expect(os_model.empty?).to be(false)
-    os_model = os_model.get
+      translator = OpenStudio::OSVersion::VersionTranslator.new
+      file = File.join(__dir__, "files/osms/in/warehouse_IHS_pks.osm")
+      path = OpenStudio::Path.new(file)
+      os_model = translator.loadModel(path)
+      expect(os_model.empty?).to be(false)
+      os_model = os_model.get
 
-    version = os_model.getVersion.versionIdentifier.split('.').map(&:to_i)
-    v = version.join.to_i
-    expect(v).is_a?(Numeric)
-
-    unless v < 330
       setpoints = heatingTemperatureSetpoints?(os_model)
       setpoints = coolingTemperatureSetpoints?(os_model) || setpoints
       expect(setpoints).to be(true)
