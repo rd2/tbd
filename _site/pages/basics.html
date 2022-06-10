@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=ab734726c6f3bf8b6092d0d1e0db7b0318221cce">
+    <link rel="stylesheet" href="/assets/css/style.css?v=72d0a847934a0ebc8061628c8f16e8a395be7651">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -12,7 +12,7 @@
 
 <!-- Begin Jekyll SEO tag v2.8.0 -->
 <title>Basics | TBD</title>
-<meta name="generator" content="Jekyll v3.9.0" />
+<meta name="generator" content="Jekyll v3.9.2" />
 <meta property="og:title" content="Basics" />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Thermal Bridging &amp; Derating" />
@@ -50,8 +50,8 @@
         </header>
         <section id="downloads" class="clearfix">
           
-          <a href="https://github.com/rd2/tbd/releases/download/v2.3.1/tbd.zip" id="download-zip" class="button"><span>Download .zip</span></a>
-          <a href="https://github.com/rd2/tbd/releases/download/v2.3.1/tbd.tar.gz" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
+          <a href="https://github.com/rd2/tbd/releases/download/v2.4.1/tbd.zip" id="download-zip" class="button"><span>Download .zip</span></a>
+          <a href="https://github.com/rd2/tbd/releases/download/v2.4.1/tbd.tar.gz" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
           
 	
         </section>
@@ -85,7 +85,7 @@
 
 <p>If a <strong>more complete</strong> OpenStudio model has at least one space linked to a <em>thermal zone</em> having temperature setpoints, TBD instead seeks to only <em>derate</em> outdoor-facing surfaces of such <em>conditioned</em> spaces. TBD safely ignores outdoor-facing surfaces in <em>unconditioned</em> spaces like attics and crawlspaces, yet unfortunately also those of plenums.</p>
 
-<p>With a <strong>fairly complete</strong> OpenStudio model (<em>complete</em> with <em>thermal zones</em>, setpoints, and HVAC <em>air loops</em>), spaces become tagged as <em>indirectly-conditioned</em> plenums if their <em>thermal zones</em> actually correspond to <a href="https://bigladdersoftware.com/epx/docs/9-6/input-output-reference/group-air-path.html#airloophvacsupplyplenum" title="EnergyPlus supply air plenums">supply</a> or <a href="https://bigladdersoftware.com/epx/docs/9-6/input-output-reference/group-air-path.html#airloophvacreturnplenum" title="EnergyPlus return air plenums">return</a> plenums - let’s call this <strong>case A</strong>.</p>
+<p>With a <strong>fairly complete</strong> OpenStudio model (<em>complete</em> with <em>thermal zones</em>, setpoints, and HVAC <em>air loops</em>), spaces become tagged as <em>indirectly-conditioned</em> plenums if their <em>thermal zones</em> actually correspond to <a href="https://bigladdersoftware.com/epx/docs/22-1/input-output-reference/group-air-path.html#airloophvacsupplyplenum" title="EnergyPlus supply air plenums">supply</a> or <a href="https://bigladdersoftware.com/epx/docs/22-1/input-output-reference/group-air-path.html#airloophvacreturnplenum" title="EnergyPlus return air plenums">return</a> plenums - let’s call this <strong>case A</strong>.</p>
 
 <p>In absence of HVAC <em>air loops</em>, 2x other cases trigger a <em>plenum</em> tag: <strong>case B</strong> where the space is considered excluded from the building’s <em>total floor area</em> (an OpenStudio variable), while having its <em>thermal zone</em> referencing an <em>inactive</em> thermostat (i.e. can’t extract valid setpoints); or finally <strong>case C</strong> where the <em>spacetype</em> name is simply set to “plenum” (case insensitive).</p>
 

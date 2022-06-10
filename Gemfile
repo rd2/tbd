@@ -16,6 +16,8 @@ gem "jekyll-theme-tactile", "~> 0.2.0"
 # uncomment the line below. To upgrade, run `bundle update github-pages`.
 gem "github-pages", "~> 226", group: :jekyll_plugins
 
+gem "faraday-retry"
+
 # If you have any plugins, put them here!
 group :jekyll_plugins do
   gem "jekyll-feed", "~> 0.12"

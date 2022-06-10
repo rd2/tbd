@@ -19,7 +19,6 @@
 # in the templates via {{ site.myvariable }}.
 
 # Build settings
-theme: tactile
 plugins:
   - jekyll-feed
 
