@@ -4,7 +4,17 @@ remote_theme: pages-themes/tactile@v0.2.0
 timezone: Canada/Eastern
 future: true
 show_downloads: true
-exclude: [spec, lib, json, Rakefile, tbd.gemspec, Gemfile, Gemfile.lock, README.md, v291_MacOS.md]
+exclude: [tbd.gemspec, Gemfile, Gemfile.lock]
 github:
-  zip_url: https://github.com/rd2/tbd/releases/download/v2.3.1/tbd.zip
-  tar_url: https://github.com/rd2/tbd/releases/download/v2.3.1/tbd.tar.gz
+  zip_url: https://github.com/rd2/tbd/releases/download/v2.4.1/tbd.zip
+  tar_url: https://github.com/rd2/tbd/releases/download/v2.4.1/tbd.tar.gz
+lsi: false
+safe: true
+source: [https://github.com/rd2/tbd]
+incremental: false
+highlighter: rouge
+gist:
+  noscript: false
+kramdown:
+  math_engine: mathjax
+  syntax_highlighter: rouge

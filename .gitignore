@@ -2,21 +2,11 @@
 /coverage/
 /html/
 /pkg/
-/spec/reports/
-/spec/test/
-/spec/*_suite_runs/
-/spec/files/alt_warehouse.osm
-/spec/files/alt2_warehouse.osm
-#/spec/files/*/
+/spec
 /test/
 /tmp/
-
-# graphviz output
-shell.dot
-shell.pdf
-
-# rspec failure tracking
-.rspec_status
+/lib/
+/json/
 
 ## Documentation cache and generated files:
 /.yardoc/
@@ -34,21 +24,6 @@ shell.pdf
 # Ignore IDE files
 /.idea
 *.rubocop-http*
-
-# measures tests
-lib/measures/.rubocop.yml
-lib/measures/test_results/*
-lib/measures/*/tests/output
-/lib/measures/test_results
-/lib/measures/.rubocop*
-/lib/measures/*/tests/tbd.json
-json/*out.json
-spec/files/osms/tbd.out.json
-os_model_KIVA.osm
-warehouse_KIVA.osm
-os_model_test.osm
-os_model_FD.osm
-*.md
 
 runner.conf
 
