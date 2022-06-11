@@ -28,6 +28,18 @@ remote_theme: pages-themes/tactile@v0.2.0
 timezone: Canada/Eastern
 future: true
 show_downloads: true
+exclude: [Gemfile, Gemfile.lock]
+
+# ...
+
+# Build settings
+markdown: kramdown
+theme: null # replace minima with null
+plugins:
+  - jekyll-feed
+
+# ...
+
 github:
   zip_url: https://github.com/rd2/tbd/releases/download/v2.4.1/tbd.zip
   tar_url: https://github.com/rd2/tbd/releases/download/v2.4.1/tbd.tar.gz
