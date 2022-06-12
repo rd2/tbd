@@ -121,6 +121,7 @@ def scheduleRulesetMinMax(sched)
   # 99cf713750661fe7d2082739f251269c2dfd9140/lib/openstudio-standards/
   # standards/Standards.ScheduleRuleset.rb#L124
   result = { min: nil, max: nil }
+
   unless sched && sched.is_a?(OpenStudio::Model::ScheduleRuleset)
     TBD.log(TBD::DEBUG,
       "Invalid ruleset MinMax schedule (argument) - skipping")
@@ -134,6 +135,7 @@ def scheduleRulesetMinMax(sched)
 
   min = nil
   max = nil
+
   profiles.each do |profile|
     profile.values.each do |value|
       next unless value.is_a?(Numeric)
@@ -169,6 +171,7 @@ def scheduleConstantMinMax(sched)
   # 99cf713750661fe7d2082739f251269c2dfd9140/lib/openstudio-standards/
   # standards/Standards.ScheduleConstant.rb#L21
   result = { min: nil, max: nil }
+
   unless sched && sched.is_a?(OpenStudio::Model::ScheduleConstant)
     TBD.log(TBD::DEBUG,
       "Invalid constant MinMax schedule (argument) - skipping")
@@ -198,6 +201,7 @@ def scheduleCompactMinMax(sched)
   # 99cf713750661fe7d2082739f251269c2dfd9140/lib/openstudio-standards/
   # standards/Standards.ScheduleCompact.rb#L8
   result = { min: nil, max: nil }
+
   unless sched && sched.is_a?(OpenStudio::Model::ScheduleCompact)
     TBD.log(TBD::DEBUG,
       "Invalid compact MinMax schedule (argument) - skipping")
@@ -206,9 +210,9 @@ def scheduleCompactMinMax(sched)
 
   min = nil
   max = nil
-
   vals = []
   prev_str = ""
+
   sched.extensibleGroups.each do |eg|
     if prev_str.include?("until")
       vals << eg.getDouble(0).get unless eg.getDouble(0).empty?
@@ -228,6 +232,32 @@ def scheduleCompactMinMax(sched)
 end
 
 ##
+# Return min & max values for schedule (fixed interval).
+#
+# @param [OpenStudio::Model::ScheduleFixedInterval] sched An OS schedule
+#
+# @return [Hash] :min & :max; nilled if invalid.
+def scheduleFixedIntervalMinMax(sched)
+  result = { min: nil, max: nil }
+
+  unless sched && sched.is_a?(OpenStudio::Model::ScheduleFixedInterval)
+    TBD.log(TBD::DEBUG,
+      "Invalid fixed interval MinMax schedule (argument) - skipping")
+    return result
+  end
+
+  min = nil
+  max = nil
+  values = sched.timeSeries.values
+  min = values.min if values.min.is_a?(Numeric)
+  max = values.max if values.max.is_a?(Numeric)
+
+  result[:min] = min
+  result[:max] = max
+  result
+end
+
+##
 # Return max zone heating temperature schedule setpoint [°C].
 #
 # @param [OpenStudio::Model::ThermalZone] zone An OS thermal zone
@@ -237,7 +267,7 @@ end
 def maxHeatScheduledSetpoint(zone)
   # Largely inspired from Parker & Marrec's "thermal_zone_heated?" procedure.
   # The solution here is a tad more relaxed to encompass SEMI-HEATED zones as
-  # per Canadian NECB criterai (basically any space with at least 10 W/m2 of
+  # per Canadian NECB criteria (basically any space with at least 10 W/m2 of
   # installed heating equipement i.e. below freezing in Canada).
   #
   # github.com/NREL/openstudio-standards/blob/
@@ -245,6 +275,7 @@ def maxHeatScheduledSetpoint(zone)
   # standards/Standards.ThermalZone.rb#L910
   setpoint = nil
   dual = false
+
   unless zone && zone.is_a?(OpenStudio::Model::ThermalZone)
     TBD.log(TBD::DEBUG,
       "Invalid max heat setpoint thermal zone (argument) - skipping")
@@ -264,9 +295,7 @@ def maxHeatScheduledSetpoint(zone)
 
     unless equip.to_ZoneHVACLowTemperatureRadiantElectric.empty?
       equip = equip.to_ZoneHVACLowTemperatureRadiantElectric.get
-      unless equip.heatingSetpointTemperatureSchedule.empty?
-        sched = equip.heatingSetpointTemperatureSchedule.get
-      end
+      sched = equip.heatingSetpointTemperatureSchedule
     end
 
     unless equip.to_ZoneHVACLowTempRadiantConstFlow.empty?
@@ -328,15 +357,28 @@ def maxHeatScheduledSetpoint(zone)
         end
       end
     end
+
+    unless sched.to_ScheduleFixedInterval.empty?
+      sched = sched.to_ScheduleFixedInterval.get
+      max = scheduleFixedIntervalMinMax(sched)[:max]
+      if max
+        if setpoint
+          setpoint = max if max > setpoint
+        else
+          setpoint = max
+        end
+      end
+    end
   end
 
-  return setpoint, dual if setpoint
   return setpoint, dual if zone.thermostat.empty?
+  setpoint = nil
   tstat = zone.thermostat.get
 
   unless tstat.to_ThermostatSetpointDualSetpoint.empty? &&
          tstat.to_ZoneControlThermostatStagedDualSetpoint.empty?
     dual = true
+
     unless tstat.to_ThermostatSetpointDualSetpoint.empty?
       tstat = tstat.to_ThermostatSetpointDualSetpoint.get
     else
@@ -349,6 +391,7 @@ def maxHeatScheduledSetpoint(zone)
       unless sched.to_ScheduleRuleset.empty?
         sched = sched.to_ScheduleRuleset.get
         max = scheduleRulesetMinMax(sched)[:max]
+
         if max
           if setpoint
             setpoint = max if max > setpoint
@@ -358,6 +401,7 @@ def maxHeatScheduledSetpoint(zone)
         end
 
         dd = sched.winterDesignDaySchedule
+
         unless dd.values.empty?
           if setpoint
             setpoint = dd.values.max if dd.values.max > setpoint
@@ -370,6 +414,7 @@ def maxHeatScheduledSetpoint(zone)
       unless sched.to_ScheduleConstant.empty?
         sched = sched.to_ScheduleConstant.get
         max = scheduleConstantMinMax(sched)[:max]
+
         if max
           if setpoint
             setpoint = max if max > setpoint
@@ -382,6 +427,7 @@ def maxHeatScheduledSetpoint(zone)
       unless sched.to_ScheduleCompact.empty?
         sched = sched.to_ScheduleCompact.get
         max = scheduleCompactMinMax(sched)[:max]
+
         if max
           if setpoint
             setpoint = max if max > setpoint
@@ -393,6 +439,7 @@ def maxHeatScheduledSetpoint(zone)
 
       unless sched.to_ScheduleYear.empty?
         sched = sched.to_ScheduleYear.get
+
         sched.getScheduleWeeks.each do |week|
           next if week.winterDesignDaySchedule.empty?
           dd = week.winterDesignDaySchedule.get
@@ -404,8 +451,22 @@ def maxHeatScheduledSetpoint(zone)
           end
         end
       end
+
+      unless sched.to_ScheduleFixedInterval.empty?
+        sched = sched.to_ScheduleFixedInterval.get
+        max = scheduleFixedIntervalMinMax(sched)[:max]
+
+        if max
+          if setpoint
+            setpoint = max if max > setpoint
+          else
+            setpoint = max
+          end
+        end
+      end
     end
   end
+
   return setpoint, dual
 end
 
@@ -417,6 +478,7 @@ end
 # @return [Bool] Returns true if valid heating temperature setpoints
 def heatingTemperatureSetpoints?(model)
   answer = false
+
   unless model && model.is_a?(OpenStudio::Model::Model)
     TBD.log(TBD::DEBUG,
       "Can't find or validate OSM (argument) for heating setpoints - skipping")
@@ -428,6 +490,7 @@ def heatingTemperatureSetpoints?(model)
     max, _ = maxHeatScheduledSetpoint(zone)
     return true if max
   end
+
   answer
 end
 
@@ -446,6 +509,7 @@ def minCoolScheduledSetpoint(zone)
   # standards/Standards.ThermalZone.rb#L1058
   setpoint = nil
   dual = false
+
   unless zone && zone.is_a?(OpenStudio::Model::ThermalZone)
     TBD.log(TBD::DEBUG,
       "Invalid min cool setpoint thermal zone (argument) - skipping")
@@ -515,15 +579,28 @@ def minCoolScheduledSetpoint(zone)
         end
       end
     end
+
+    unless sched.to_ScheduleFixedInterval.empty?
+      sched = sched.to_ScheduleFixedInterval.get
+      min = scheduleFixedIntervalMinMax(sched)[:min]
+      if min
+        if setpoint
+          setpoint = min if min < setpoint
+        else
+          setpoint = min
+        end
+      end
+    end
   end
 
-  return setpoint, dual if setpoint
   return setpoint, dual if zone.thermostat.empty?
+  setpoint = nil
   tstat = zone.thermostat.get
 
   unless tstat.to_ThermostatSetpointDualSetpoint.empty? &&
          tstat.to_ZoneControlThermostatStagedDualSetpoint.empty?
     dual = true
+
     unless tstat.to_ThermostatSetpointDualSetpoint.empty?
       tstat = tstat.to_ThermostatSetpointDualSetpoint.get
     else
@@ -536,6 +613,7 @@ def minCoolScheduledSetpoint(zone)
       unless sched.to_ScheduleRuleset.empty?
         sched = sched.to_ScheduleRuleset.get
         min = scheduleRulesetMinMax(sched)[:min]
+
         if min
           if setpoint
             setpoint = min if min < setpoint
@@ -545,6 +623,7 @@ def minCoolScheduledSetpoint(zone)
         end
 
         dd = sched.summerDesignDaySchedule
+
         unless dd.values.empty?
           if setpoint
             setpoint = dd.values.min if dd.values.min < setpoint
@@ -557,6 +636,7 @@ def minCoolScheduledSetpoint(zone)
       unless sched.to_ScheduleConstant.empty?
         sched = sched.to_ScheduleConstant.get
         min = scheduleConstantMinMax(sched)[:min]
+
         if min
           if setpoint
             setpoint = min if min < setpoint
@@ -569,6 +649,7 @@ def minCoolScheduledSetpoint(zone)
       unless sched.to_ScheduleCompact.empty?
         sched = sched.to_ScheduleCompact.get
         min = scheduleCompactMinMax(sched)[:min]
+
         if min
           if setpoint
             setpoint = min if min < setpoint
@@ -580,10 +661,12 @@ def minCoolScheduledSetpoint(zone)
 
       unless sched.to_ScheduleYear.empty?
         sched = sched.to_ScheduleYear.get
+
         sched.getScheduleWeeks.each do |week|
           next if week.summerDesignDaySchedule.empty?
           dd = week.summerDesignDaySchedule.get
           next unless dd.values.empty?
+
           if setpoint
             setpoint = dd.values.min if dd.values.min < setpoint
           else
@@ -591,8 +674,22 @@ def minCoolScheduledSetpoint(zone)
           end
         end
       end
+
+      unless sched.to_ScheduleFixedInterval.empty?
+        sched = sched.to_ScheduleFixedInterval.get
+        min = scheduleFixedIntervalMinMax(sched)[:min]
+
+        if min
+          if setpoint
+            setpoint = min if min < setpoint
+          else
+            setpoint = min
+          end
+        end
+      end
     end
   end
+
   return setpoint, dual
 end
 
@@ -604,6 +701,7 @@ end
 # @return [Bool] Returns true if valid cooling temperature setpoints
 def coolingTemperatureSetpoints?(model)
   answer = false
+
   unless model && model.is_a?(OpenStudio::Model::Model)
     TBD.log(TBD::DEBUG,
       "Can't find or validate OSM (argument) for cooling setpoints - skipping")
@@ -615,6 +713,7 @@ def coolingTemperatureSetpoints?(model)
     min, _ = minCoolScheduledSetpoint(zone)
     answer = true if min
   end
+
   answer
 end
 
@@ -626,6 +725,7 @@ end
 # @return [Bool] Returns true if HVAC air loops
 def airLoopsHVAC?(model)
   answer = false
+
   unless model && model.is_a?(OpenStudio::Model::Model)
     TBD.log(TBD::DEBUG,
       "Can't find or validate OSM (argument) for HVAC air loops - skipping")
@@ -638,6 +738,7 @@ def airLoopsHVAC?(model)
     answer = true unless zone.airLoopHVACs.empty?
     answer = true if zone.isPlenum
   end
+
   answer
 end
 
@@ -664,6 +765,7 @@ def plenum?(space, loops, setpoints)
   #           "inactive" thermostat (i.e., can't extract valid setpoints); or
   #   case C. spacetype is "plenum".
   cl = OpenStudio::Model::Space
+
   unless space && space.is_a?(cl)
     TBD.log(TBD::DEBUG,
       "Invalid plenum space (argument) - skipping")
@@ -700,10 +802,12 @@ def plenum?(space, loops, setpoints)
   unless space.spaceType.empty?                                         # case C
     type = space.spaceType.get
     return true if type.nameString.downcase == "plenum"
+
     unless type.standardsSpaceType.empty?
       type = type.standardsSpaceType.get
       return true if type.downcase == "plenum"
     end
   end
+
   false
 end
