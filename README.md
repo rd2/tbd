@@ -8,9 +8,10 @@ Building professionals and energy modellers are encouraged to first consult the 
 
 Questions can be posted on [UnmetHours](https://unmethours.com) - a very useful online resource for OpenStudio users.
 
-TBD can also be deployed as a Ruby gem, by adding this line to an application's _Gemfile_:
+TBD can also be deployed as a Ruby gem, by adding one of the following lines to an application's _Gemfile_:
 ```
-gem "tbd", github: "rd2/tbd", branch: "master"
+gem "tbd", git: "https://github.com/rd2/tbd", branch: "master"
+gem "tbd", git: "https://github.com/rd2/tbd", tag: "v2.4.3"
 ```  
 And then execute:
 ```
