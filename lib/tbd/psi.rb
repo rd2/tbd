@@ -1487,7 +1487,7 @@ def defaultConstructionSet(model, s)
   end
   if s.space.empty?
     TBD.log(TBD::ERROR,
-      "Missing space, can't find default constrcution set - skipping")
+      "Missing space, can't find default construction set - skipping")
     return nil
   end
 
