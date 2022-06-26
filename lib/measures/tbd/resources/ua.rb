@@ -97,6 +97,8 @@ def uo(model, lc, id, heatloss, film, ut)
   new_r          = r + (rt - ro)                     # new, un-derated layer RSi
   new_u          = 1 / new_r
 
+  # puts rt, ro, new_r, new_u
+
   # Then, uprate (if possible) to counter expected thermal bridging effects.
   u_psi          = heatloss / area                              # from psi & khi
   new_u          = new_u - u_psi        # uprated layer USi to counter psi & khi
@@ -151,8 +153,13 @@ def uo(model, lc, id, heatloss, film, ut)
         loss     = (new_u - k / d) * area
       end
 
-      m.setThickness(d)
-      m.setThermalConductivity(k)
+      unless m.setThickness(d)
+        TBD.log(TBD::ERROR,
+          "Unable to uprate insulation layer (> 3m) of '#{id}' - skipping")
+        return uo, nil
+      else
+        m.setThermalConductivity(k)
+      end
     end
   end
 

@@ -1,0 +1,91 @@
+{
+  "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
+  "description": "testing TBD JSON for 5ZoneNoHVAC",
+  "psis": [
+    {
+      "id": "BTAP-ExteriorWall-Mass-6 good",
+      "rimjoist": 0.02,
+      "parapet": 0.23,
+      "fenestration": 0.078,
+      "corner": 0.09,
+      "balcony": 0.2,
+      "party": 0.2,
+      "grade": 0.32,
+      "joint": 0.1,
+      "transition": 0.0
+    },
+    {
+      "id": "BTAP-ExteriorWall-Mass-2 good",
+      "rimjoist": 0.01,
+      "parapet": 0.23,
+      "fenestration": 0.078,
+      "corner": 0.09,
+      "balcony": 0.2,
+      "party": 0.2,
+      "grade": 0.32,
+      "joint": 0.1,
+      "transition": 0.0
+    },
+    {
+      "id": "BTAP-ExteriorWall-Metal-1 good",
+      "rimjoist": 0.03,
+      "parapet": 0.35,
+      "fenestration": 0.078,
+      "corner": 0.07,
+      "balcony": 0.2,
+      "party": 0.2,
+      "grade": 0.5,
+      "joint": 0.1,
+      "transition": 0.0
+    },
+    {
+      "id": "BTAP-ExteriorWall-WoodFramed-5 good",
+      "rimjoist": 0.03,
+      "parapet": 0.05,
+      "fenestration": 0.078,
+      "corner": 0.04,
+      "balcony": 0.2,
+      "party": 0.2,
+      "grade": 0.09,
+      "joint": 0.1,
+      "transition": 0.0
+    },
+    {
+      "id": "BTAP-ExteriorWall-SteelFramed-1 good",
+      "rimjoist": 0.09,
+      "parapet": 0.35,
+      "fenestration": 0.078,
+      "corner": 0.09,
+      "balcony": 0.2,
+      "party": 0.2,
+      "grade": 0.47,
+      "joint": 0.1,
+      "transition": 0.0
+    }
+  ],
+  "spacetypes": [
+    {
+      "id": "Warehouse - fine",
+      "psi": "BTAP-ExteriorWall-Mass-6 good"
+    },
+    {
+      "id": "Audience - auditorium",
+      "psi": "BTAP-ExteriorWall-Mass-2 good"
+    },
+    {
+      "id": "Workshop space",
+      "psi": "BTAP-ExteriorWall-Metal-1 good"
+    },
+    {
+      "id": "Office - enclosed",
+      "psi": "BTAP-ExteriorWall-WoodFramed-5 good"
+    },
+    {
+      "id": "Sales area",
+      "psi": "BTAP-ExteriorWall-SteelFramed-1 good"
+    }
+  ],
+  "building": {
+    "psi": "BTAP-ExteriorWall-Mass-2 good"
+  }
+}
