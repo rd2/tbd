@@ -789,8 +789,6 @@ def ua_summary(date = Time.now, argh = {})
         if edge.key?(:ref)
           loss = edge[:length] * edge[:ref]
         else
-          ratio = 0
-          ratio = edge[:ratio] if edge.key?(:ratio)
           loss = edge[:length] * val[tt] * edge[:ratio]
         end
 

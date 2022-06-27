@@ -496,7 +496,6 @@ class PSI
   #
   # @return [Symbol] Returns safe type; nil if none were found
   def safeType(p, type)
-    ok = @set.key?(p)
     tt = type
     tt = tt.to_sym unless tt.is_a?(Symbol)
     unless @has[p][tt]
@@ -1258,17 +1257,18 @@ def generateKiva(model, walls, floors, edges)
   # The following is loosely adapted from:
   # github.com/NREL/OpenStudio-resources/blob/develop/model/simulationtests/
   # foundation_kiva.rb ... thanks.
-
-  # Generate template for KIVA settings. This is usually not required (the
+  #
+  # Access to KIVA settings if needed. This is usually not required (the
   # default KIVA settings are fine), but its explicit inclusion in the OSM
-  # does offer users easy access to further (manually) tweak settings e.g.,
-  # soil properties if required. Initial tests show slight differences in
-  # simulation results w/w/o explcit inclusion of the KIVA settings template
-  # in the OSM. TO-DO: Check in.idf vs in.osm for any deviation from default
-  # values as specified in the IO Reference Manual.
-  foundation_kiva_settings = model.getFoundationKivaSettings
-
-  # One way to expose in-built default parameters (in the future), e.g.:
+  # does offer users easy access to further tweak settings e.g., soil properties
+  # if required. Initial tests show slight differences in simulation results
+  # w/w/o explcit inclusion of the KIVA settings template in the OSM.
+  #
+  # TO-DO: Check in.idf vs in.osm for any deviation from default values as
+  # specified in the IO Reference Manual. One way to expose in-built default
+  # parameters (in the future), e.g.:
+  #
+  # foundation_kiva_settings = model.getFoundationKivaSettings
   # soil_k = foundation_kiva_settings.soilConductivity
   # foundation_kiva_settings.setSoilConductivity(soil_k)
 
@@ -1928,8 +1928,6 @@ def processTBD(os_model, argh = {})
   argh[:ua_ref]        = ""    unless argh.key?(:ua_ref)
   argh[:gen_kiva]      = false unless argh.key?(:gen_kiva)
 
-  os_building = os_model.getBuilding
-
   # Create the Topolys Model.
   t_model = Topolys::Model.new
 
@@ -2173,8 +2171,8 @@ def processTBD(os_model, argh = {})
   tbdSurfaceEdges(shades, edges)
 
   # Generate OSM Kiva settings and objects if foundation-facing floors.
-  # 'kiva' == false if partial failure (log failure eventually).
-  kiva = generateKiva(os_model, walls, floors, edges) if argh[:gen_kiva]
+  # returns false if partial failure (log failure eventually).
+  generateKiva(os_model, walls, floors, edges) if argh[:gen_kiva]
 
   # Thermal bridging characteristics of edges are determined - in part - by
   # relative polar position of linked surfaces (or wires) around each edge.
@@ -2476,7 +2474,6 @@ def processTBD(os_model, argh = {})
           s2      = edge[:surfaces][i]
           concave = concave?(s1, s2)
           convex  = convex?(s1, s2)
-          flat    = !concave && !convex
 
           psi[:cornerconcave] = val[:cornerconcave] if concave
           psi[:cornerconvex]  = val[:cornerconvex]  if convex
@@ -2646,7 +2643,7 @@ def processTBD(os_model, argh = {})
     next if edge.key?(:psi)
     next unless edge.key?(:surfaces)
     next unless edge[:surfaces].size == 1
-    id, sub = edge[:surfaces].first
+    id, _ = edge[:surfaces].first
     next unless holes.key?(id)
     next unless holes[id].attributes.key?(:unhinged)
 
