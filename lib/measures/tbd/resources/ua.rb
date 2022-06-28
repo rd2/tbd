@@ -557,11 +557,12 @@ end
 def ua_summary(date = Time.now, argh = {})
   ua = {}
   argh = {}                    unless argh.is_a?(Hash)
+
   argh[:seed] = ""             unless argh.key?(:seed)
   argh[:ua_ref] = ""           unless argh.key?(:ua_ref)
   argh[:surfaces] = nil        unless argh.key?(:surfaces)
   argh[:version] = ""          unless argh.key?(:version)
-  argh[:io] = {}               unless argh.key(:io)
+  argh[:io] = {}               unless argh.key?(:io)
   argh[:io][:description] = "" unless argh[:io].key?(:description)
 
   unless argh[:surfaces] && argh[:surfaces].is_a?(Hash)
@@ -579,9 +580,8 @@ def ua_summary(date = Time.now, argh = {})
   ua[:descr]   = descr unless descr.nil? || descr.empty?
   ua[:file]    = file unless file.nil? || file.empty?
   ua[:version] = version unless version.nil? || version.empty?
-
-  ua[:model] = "∑U•A + ∑PSI•L + ∑KHI•n"
-  ua[:date] = date
+  ua[:model]   = "∑U•A + ∑PSI•L + ∑KHI•n"
+  ua[:date]    = date
 
   languages = [:en, :fr]
   languages.each { |lang| ua[lang] = {} }
