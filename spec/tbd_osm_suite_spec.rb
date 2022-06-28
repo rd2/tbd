@@ -1,7 +1,8 @@
 require "open3"
 require "json"
 require "openstudio"
-require 'parallel'
+require "parallel"
+require "fileutils"
 
 def get_clean_env
   new_env = {}
@@ -39,27 +40,27 @@ RSpec.describe TBD do
   end
 
   template_osw = nil
-  template_osw_file = File.join(__dir__, 'files/osws/osm_suite.osw')
-  File.open(template_osw_file, 'r') do |f|
+  template_osw_file = File.join(__dir__, "files/osws/osm_suite.osw")
+  File.open(template_osw_file, "r") do |f|
     template_osw = JSON.parse(f.read, {symbolize_names: true})
   end
 
-  osm_suite_runs_dir = File.join(__dir__, 'osm_suite_runs')
+  osm_suite_runs_dir = File.join(__dir__, "osm_suite_runs")
   FileUtils.mkdir_p(osm_suite_runs_dir)
 
   seed_osms = []
-  # seed_osms << 'seb.osm'
-  # seed_osms << 'test_seb.osm'
-  # seed_osms << 'test_secondaryschool.osm'
-  seed_osms << 'test_smalloffice.osm'
-  seed_osms << 'test_warehouse.osm'
+  # seed_osms << "seb.osm"
+  # seed_osms << "test_seb.osm"
+  # seed_osms << "test_secondaryschool.osm"
+  seed_osms << "test_smalloffice.osm"
+  seed_osms << "test_warehouse.osm"
 
   weather_files = {}
-  # weather_files['seb.osm'] = 'srrl_2013_amy.epw'
-  # weather_files['test_seb.osm'] = 'srrl_2013_amy.epw'
-  # weather_files['test_secondaryschool.osm'] = 'USA_TX_El.Paso.Intl.AP.722700_TMY3.epw'
-  weather_files['test_smalloffice.osm'] = 'USA_TX_El.Paso.Intl.AP.722700_TMY3.epw'
-  weather_files['test_warehouse.osm'] = 'USA_TX_El.Paso.Intl.AP.722700_TMY3.epw'
+  # weather_files["seb.osm"] = "srrl_2013_amy.epw"
+  # weather_files["test_seb.osm"] = "srrl_2013_amy.epw"
+  # weather_files["test_secondaryschool.osm"] = "USA_TX_El.Paso.Intl.AP.722700_TMY3.epw"
+  weather_files["test_smalloffice.osm"] = "USA_TX_El.Paso.Intl.AP.722700_TMY3.epw"
+  weather_files["test_warehouse.osm"] = "USA_TX_El.Paso.Intl.AP.722700_TMY3.epw"
 
   tbd_options = []
   tbd_options << "skip"
@@ -82,10 +83,10 @@ RSpec.describe TBD do
   Parallel.each(combos, in_threads: nproc) do |combo|
     seed_osm = combo[0]
     tbd_option = combo[1]
-    test_case_name = "#{seed_osm}_#{tbd_option}".gsub('.', '_')
+    test_case_name = "#{seed_osm}_#{tbd_option}".gsub(".", "_")
 
     test_dir = File.join(osm_suite_runs_dir, test_case_name)
-    if File.exist?(test_dir) && File.exist?(File.join(test_dir, 'out.osw'))
+    if File.exist?(test_dir) && File.exist?(File.join(test_dir, "out.osw"))
       next
     end
 
@@ -94,14 +95,14 @@ RSpec.describe TBD do
     osw = Marshal.load( Marshal.dump(template_osw) )
     osw[:seed_file] = seed_osm
     osw[:weather_file] = weather_files[seed_osm]
-    if tbd_option == 'skip'
+    if tbd_option == "skip"
       osw[:steps][0][:arguments][:__SKIP__] = true
     else
       osw[:steps][0][:arguments][:option] = tbd_option
     end
 
-    osw_file = File.join(test_dir, 'in.osw')
-    File.open(osw_file, 'w') do |f|
+    osw_file = File.join(test_dir, "in.osw")
+    File.open(osw_file, "w") do |f|
       f << JSON.pretty_generate(osw)
     end
 
@@ -115,11 +116,11 @@ RSpec.describe TBD do
   seed_osms.each do |seed_osm|
     results = {}
     tbd_options.each do |tbd_option|
-      test_case_name = "#{seed_osm}_#{tbd_option}".gsub('.', '_')
-      out_osw_file = File.join(osm_suite_runs_dir, test_case_name, 'out.osw')
+      test_case_name = "#{seed_osm}_#{tbd_option}".gsub(".", "_")
+      out_osw_file = File.join(osm_suite_runs_dir, test_case_name, "out.osw")
 
       results[tbd_option] = {}
-      File.open(out_osw_file, 'r') do |f|
+      File.open(out_osw_file, "r") do |f|
         results[tbd_option] = JSON.parse(f.read, {symbolize_names: true})
       end
     end
@@ -131,7 +132,7 @@ RSpec.describe TBD do
         expect(completed_status).to eq("Success")
         tbd_result = results[tbd_option][:steps][0][:result]
         os_result = results[tbd_option][:steps][1][:result]
-        total_site_energy = os_result[:step_values].select{|v| v[:name] == 'total_site_energy'}
+        total_site_energy = os_result[:step_values].select{|v| v[:name] == "total_site_energy"}
         puts "  tbd_option = #{tbd_option}"
         puts "    tbd_success = #{tbd_result[:step_result]}"
         puts "    os_success = #{os_result[:step_result]}"

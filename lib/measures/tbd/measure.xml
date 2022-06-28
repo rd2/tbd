@@ -3,8 +3,8 @@
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>1b71c193-55a7-451c-b54e-44717c10e040</version_id>
-  <version_modified>20220613T133430Z</version_modified>
+  <version_id>7d839a27-2fd6-438e-8689-6d86afe942be</version_id>
+  <version_modified>20220628T111531Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -416,12 +416,6 @@
       <checksum>EEDEA2A1</checksum>
     </file>
     <file>
-      <filename>psi.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>8679FD9E</checksum>
-    </file>
-    <file>
       <version>
         <software_program>OpenStudio</software_program>
         <identifier>2.9.1</identifier>
@@ -433,22 +427,28 @@
       <checksum>601A57F2</checksum>
     </file>
     <file>
-      <filename>README.md</filename>
-      <filetype>md</filetype>
-      <usage_type>readme</usage_type>
-      <checksum>BD336A08</checksum>
-    </file>
-    <file>
       <filename>conditioned.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
       <checksum>DC4AD6FB</checksum>
     </file>
     <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>BD336A08</checksum>
+    </file>
+    <file>
+      <filename>psi.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>52A85E91</checksum>
+    </file>
+    <file>
       <filename>ua.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>8BA51260</checksum>
+      <checksum>8B31DBFB</checksum>
     </file>
   </files>
 </measure>

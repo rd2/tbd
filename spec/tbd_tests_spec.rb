@@ -2765,7 +2765,7 @@ RSpec.describe TBD do
     # warehouse prototype building that TBD tags as (mild) transitions by
     # default. Both edges concern the "Fine Storage" space (likely as a means
     # to ensure surface convexity in the EnergyPlus model). The "ok" PSI set
-    # holds a single "joint" PSI value of 0.9 W/K per meter (let's assume both
+    # holds a single "joint" PSI value of 0.9 W/K per metre (let's assume both
     # edges are significant expansion joints, rather than modelling artifacts).
     # Each "expansion joint" here represents 4.27 m x 0.9 W/K per m = 3.84 W/K.
     # As wall constructions are the same for all 4x walls concerned, each wall
@@ -4209,8 +4209,8 @@ RSpec.describe TBD do
       # All applicable thermal bridges/edges derating the office walls inherit
       # the "Warehouse Office" spacetype PSI values (JSON file), except for the
       # shared :rimjoist with the Fine Storage space above. The "Warehouse Fine"
-      # spacetype set has a higher :rimjoist PSI value of 0.5 W/K per meter,
-      # which overrides the "Warehouse Office" value of 0.3 W/K per meter.
+      # spacetype set has a higher :rimjoist PSI value of 0.5 W/K per metre,
+      # which overrides the "Warehouse Office" value of 0.3 W/K per metre.
       name = "Office Left Wall"
       expect(heatloss).to be_within(0.01).of(11.61) if id == name
       name = "Office Front Wall"
@@ -4368,14 +4368,14 @@ RSpec.describe TBD do
         next if id.include?(" C")
         next unless edge[:type] == :rimjoist
 
-        # Inheriting "Building Story 1" :rimjoist PSI of 0.501 W/K per meter.
+        # Inheriting "Building Story 1" :rimjoist PSI of 0.501 W/K per metre.
         # The SEA unit is above an office space below, which has curtain wall.
         # RSi of insulation layers (to derate):
         #   - office walls   : 0.740 m2.K/W (26.1%)
         #   - SEA walls      : 2.100 m2.K/W (73.9%)
         #
-        #   - SEA walls      : 26.1% of 0.501 = 0.3702 W/K per meter
-        #   - other walls    : 50.0% of 0.501 = 0.2505 W/K per meter
+        #   - SEA walls      : 26.1% of 0.501 = 0.3702 W/K per metre
+        #   - other walls    : 50.0% of 0.501 = 0.2505 W/K per metre
         if id == "m SWall SEA" || id == "m EWall SEA"
           expect(edge[:psi]).to be_within(0.002).of(0.3702)
         else
@@ -7673,7 +7673,7 @@ RSpec.describe TBD do
     io, surfaces = processTBD(os_model, argh)
     expect(TBD.status).to eq(TBD::ERROR)
     expect(TBD.logs.size).to eq(1)
-    msg = "Won't uprate #{bulk}: (wall only) - cloning"
+    msg = "Won't uprate '#{bulk}': (wall only) - cloning"
     expect(TBD.logs.first[:message]).to eq(msg)
     expect(io.nil?).to be(false)
     expect(io.is_a?(Hash)).to be(true)
@@ -7992,7 +7992,7 @@ RSpec.describe TBD do
     io, surfaces = processTBD(os_model, argh)
     expect(TBD.status).to eq(TBD::ERROR)
     expect(TBD.logs.size).to eq(1)
-    msg = "Won't uprate #{bulk}: (wall only) - cloning"
+    msg = "Won't uprate '#{bulk}': (wall only) - cloning"
     expect(TBD.logs.first[:message]).to eq(msg)
     expect(io.nil?).to be(false)
     expect(io.is_a?(Hash)).to be(true)
@@ -8659,7 +8659,7 @@ RSpec.describe TBD do
     # retains the original autoselected edge type, yet applies reference PSI
     # values (e.g. code). So far so good. However, when "(non thermal bridging)"
     # is retained as a default PSI design set (not as a reference set), all edge
-    # types will necessarily have 0 W/K per meter as PSI-values. Same with the
+    # types will necessarily have 0 W/K per metre as PSI-values. Same with the
     # "efficient (BETBG)" PSI set (all but one type at 0.2 W/K per m). Not
     # obvious (for users) which edge type will be selected by TBD for multi-type
     # edges. This also has the undesirable effect of generating variations in
@@ -9161,5 +9161,245 @@ RSpec.describe TBD do
     kfs = os_model2.getFoundationKivas
     expect(kfs.empty?).to be(false)
     expect(kfs.size).to eq(3)
+  end
+
+  it "can test 5ZoneNoHVAC (failed) uprating" do
+    TBD.clean!
+    argh = {}
+    walls = []
+    construction = nil
+    id = "ASHRAE 189.1-2009 ExtWall Mass ClimateZone 5"
+
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    file = File.join(__dir__, "files/osms/in/5ZoneNoHVAC.osm")
+    path = OpenStudio::Path.new(file)
+    model = translator.loadModel(path)
+    expect(model.empty?).to be(false)
+    model = model.get
+
+    # Get geometry data for testing (4x exterior walls, same construction).
+    model.getSurfaces.each do |s|
+      next unless s.surfaceType == "Wall"
+      next unless s.outsideBoundaryCondition == "Outdoors"
+      walls << s.nameString
+      c = s.construction
+      expect(c.empty?).to be(false)
+      c = c.get.to_LayeredConstruction
+      expect(c.empty?).to be(false)
+      c = c.get
+      construction = c if construction.nil?
+      expect(c).to eq(construction)
+    end
+
+    expect(walls.size).to eq(4)
+    expect(construction.nameString).to eq(id)
+    expect(construction.layers.size).to eq(4)
+    insulation = construction.layers[2].to_StandardOpaqueMaterial
+    expect(insulation.empty?).to be(false)
+    insulation = insulation.get
+    expect(insulation.thickness).to be_within(0.0001).of(0.0794)
+    expect(insulation.thermalConductivity).to be_within(0.0001).of(0.0432)
+    original_r = insulation.thickness / insulation.thermalConductivity
+    expect(original_r).to be_within(TOL).of(1.8380)
+
+    argh[:option]        = "efficient (BETBG)"
+    io, surfaces = processTBD(model, argh)
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+
+    walls.each do |wall|
+      expect(surfaces.key?(wall)).to be(true)
+      expect(surfaces[wall].key?(:heatloss)).to be(true)
+      long = (surfaces[wall][:heatloss] - 27.746).abs < TOL     # 40 metres wide
+      short = (surfaces[wall][:heatloss] - 14.548).abs < TOL    # 20 metres wide
+      valid = long || short
+      expect(valid).to be(true)
+    end
+
+    # The 4-sided model has 2x "long" front/back + 2x "short" side exterior
+    # walls, with a total TBD-calculated heat loss (from thermal bridging) of:
+    #
+    #   2x 27.746 W/K + 2x 14.548 W/K = ~84.588 W/K
+    #
+    # Spread over ~273.6 m2 of gross wall area, that is A LOT! Why (given the
+    # "efficient" PSI values)? Each wall has a long "strip" window, almost the
+    # full wall width (reaching to within a few millimetres of each corner).
+    # This ~slices the host wall into 2x very narrow strips. Although the
+    # thermal bridging details are considered "efficient", the total length of
+    # linear thermal bridges is very high given the limited exposed (gross)
+    # area. If area-weighted, derating the insulation layer of the referenced
+    # wall construction above would entail factoring in this extra thermal
+    # conductance of ~0.309 W/m2.K (84.6/273.6), which would reduce the
+    # insulation thickness quite significantly.
+    #
+    #   Ut = Uo + ( ∑psi • L )/A
+    #
+    # Expressed otherwise:
+    #
+    #   Ut = Uo + 0.309
+    #
+    # So what initial Uo value should the construction have (prior to derating)
+    # to ensure compliance with NECB2017/2020 prescriptive requirements (one of
+    # the few energy codes with prescriptive Ut requirements)? For climate zone
+    # 7, the target Ut is 0.210 W/m2.K (Rsi 4.76 m2.K/W or R27). Taking into
+    # account air film resistances and non-insulating layer resistances
+    # (e.g. ~Rsi 1 m2.K/W), the prescribed (max) layer Ut becomes ~0.277
+    # (Rsi 3.6 or R20.5).
+    #
+    #   0.277 = Uo? + 0.309
+    #
+    # Duh-oh! Even with an infinitely thick insulation layer (Uo ~= 0), it would
+    # be impossible to reach NECB2017/2020 prescritive requirements with
+    # "efficient" thermal breaks. Solutions? Eliminate windows :\ Otherwise,
+    # further improve detailing as to achieve ~0.1 W/K per linear metre (easier
+    # said than done). Here, an average PSI value of 0.150 W/K per linear metre
+    # (i.e. ~76.1 W/K instead of ~84.6 W/K) still won't cut it for a Uo of
+    # 0.01 W/m2.K (Rsi 100 or R568). Instead, an average PSI value of 0.090
+    # (~45.6 W/K, very high performance) would allow compliance for a Uo of
+    # 0.1 W/m2.K (Rsi 10 or R57, ... $$$).
+    #
+    # Long story short: there will inevitably be cases, although rare, where
+    # TBD is unable to "uprate" a construction prior to "derating". This is
+    # neither a TBD bug nor an RP-1365/ISO model limitation. It is simply "bad"
+    # input, although likely unintentional. Nevertheless, TBD should exit in
+    # such cases with an ERROR message.
+    #
+    # And if one were to instead model each of the OpenStudio walls described
+    # above as 2x distinct OpenStudio surfaces? e.g.:
+    #   - 95% of exposed wall area Uo 0.01 W/m2.K
+    #   - 5% of exposed wall area as a "thermal bridge" strip (~5.6 W/m2.K *)
+    #
+    #     * (76.1 W/K over 5% of 273.6 m2)
+    #
+    # One would still consistently arrive at the same area-weighted average Ut,
+    # in this case 0.288 (> 0.277). No free lunches.
+    #
+    # ---
+    #
+    # TBD's "uprating" method reorders the equation and attempts the following:
+    #
+    #   Uo = 0.277 - ( ∑psi • L )/A
+    #
+    # The method exits with an ERROR in 2x cases:
+    #   - calculated Uo is negative, i.e. ( ∑psi • L )/A > 0.277
+    #   - calculated layer r violates E+ material constraints (e.g. too thin)
+    #
+    # Retrying the previous example, yet requesting uprating calculations:
+
+    TBD.clean!
+    argh = {}
+
+    model = translator.loadModel(path)
+    expect(model.empty?).to be(false)
+    model = model.get
+
+    argh[:option]        = "efficient (BETBG)"
+    argh[:uprate_walls]  = true
+    argh[:uprate_roofs]  = true
+    argh[:wall_option]   = "ALL wall constructions"
+    argh[:roof_option]   = "ALL roof constructions"
+    argh[:wall_ut]       = 0.210                # NECB CZ7 2017 (RSi 4.76 / R41)
+    argh[:roof_ut]       = 0.138                # NECB CZ7 2017 (RSi 7.25 / R41)
+    io, surfaces         = processTBD(model, argh)
+
+    expect(TBD.error?).to be(true)
+    expect(TBD.logs.empty?).to be(false)
+
+    # TBD.logs.each {|l| puts l[:message] }
+    #   Can't uprate 'ASHRAE [...] 5', calculated low or negative Rsi - skipping
+    #   Unable to uprate 'ASHRAE [...] 5' - skipping
+    #   No construction to uprate - skipping
+
+    TBD.clean!
+    argh = {}
+    walls = []
+
+    model = translator.loadModel(path)
+    expect(model.empty?).to be(false)
+    model = model.get
+
+    argh[:io_path]       = File.join(__dir__, "../json/tbd_5ZoneNoHVAC.json")
+    argh[:schema_path]   = File.join(__dir__, "../tbd.schema.json")
+    argh[:uprate_walls]  = true
+    argh[:uprate_roofs]  = true
+    argh[:wall_option]   = "ALL wall constructions"
+    argh[:roof_option]   = "ALL roof constructions"
+    argh[:wall_ut]       = 0.210                # NECB CZ7 2017 (RSi 4.76 / R41)
+    argh[:roof_ut]       = 0.138                # NECB CZ7 2017 (RSi 7.25 / R41)
+    io, surfaces         = processTBD(model, argh)
+
+    expect(TBD.status).to eq(0)
+
+    model.getSurfaces.each do |s|
+      next unless s.surfaceType == "Wall"
+      next unless s.outsideBoundaryCondition == "Outdoors"
+      walls << s.nameString
+      c = s.construction
+      expect(c.empty?).to be(false)
+      c = c.get.to_LayeredConstruction
+      expect(c.empty?).to be(false)
+      c = c.get
+      expect(c.nameString.include?(" c tbd")).to be(true)
+      expect(c.layers.size).to eq(4)
+      insul = c.layers[2].to_StandardOpaqueMaterial
+      expect(insul.empty?).to be(false)
+      insul = insul.get
+      expect(insul.nameString.include?(" uprated m tbd")).to be(true)
+      expect(insul.thermalConductivity).to be_within(0.0001).of(0.0432)
+      th1 = (insul.thickness - 0.191).abs < 0.001 # derated layer Rsi 4.42 (R26)
+      th2 = (insul.thickness - 0.186).abs < 0.001 # derated layer Rsi 4.31 (R25)
+      th = th1 || th2
+      expect(th).to be(true)
+    end
+
+    walls.each do |wall|
+      expect(surfaces.key?(wall)).to be(true)
+      expect(surfaces[wall].key?(:r)).to be(true) # uprated, underated layer Rsi
+      expect(surfaces[wall].key?(:u)).to be(true) # uprated, underated assembly
+      expect(surfaces[wall][:r]).to be_within(0.001).of(11.205) # R64
+      expect(surfaces[wall][:u]).to be_within(0.001).of(0.086)  # R66
+    end
+
+    # Variant, with PSI values generated by BTAP routines.
+    # Final attempt, with PSI values of 0.09 W/K per linear metre (JSON file).
+    model = OpenStudio::Model::Model.new
+    version = model.getVersion.versionIdentifier.split('.').map(&:to_i)
+    v = version.join.to_i
+
+    unless v < 320
+      file = File.join(__dir__, "files/osms/in/5ZoneNoHVAC_btap.osm")
+      path = OpenStudio::Path.new(file)
+      model = translator.loadModel(path)
+      expect(model.empty?).to be(false)
+      model = model.get
+      TBD.clean!
+      argh = {}
+
+      argh[:io_path]       = File.join(__dir__, "../json/tbd_5ZoneNoHVAC_btap.json")
+      argh[:schema_path]   = File.join(__dir__, "../tbd.schema.json")
+      argh[:uprate_walls]  = true
+      argh[:wall_option]   = "ALL wall constructions"
+      argh[:wall_ut]       = 0.210              # NECB CZ7 2017 (RSi 4.76 / R41)
+      io, surfaces         = processTBD(model, argh)
+
+      expect(argh.key?(:wall_uo)).to be(false)
+      expect(TBD.error?).to be(true)
+      # puts TBD.logs
+      # "Unable to uprate insulation layer (> 3m) of '...' - skipping"
+      # "Unable to uprate '...' - skipping"
+
+      # OpenStudio has a 3 metre (max.) limit for Standard Material thickness:
+      #
+      #   raw.githubusercontent.com/NREL/OpenStudio/develop/resources/
+      #   model/OpenStudio.idd
+      #
+      # EnergyPlus does not:
+      #
+      #   raw.githubusercontent.com/NREL/EnergyPlus/develop/idd/
+      #   V22-1-0-Energy%2B.idd
+      #
+      # Although this is a reasonable limit, why not sync with EnergyPlus?
+      # BTW, there is no max. R-value limit for OpenStudio Massless Materials.
+    end
   end
 end

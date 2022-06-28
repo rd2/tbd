@@ -48,17 +48,18 @@ def uo(model, lc, id, heatloss, film, ut)
     return uo, m
   end
   unless lc.is_a?(cl2)
-    TBD.log(TBD::DEBUG,
+    TBD.log(TBD::ERROR,
       "Can't set Uo for '#{id}', #{lc.class}? expected #{cl2} - skipping")
     return uo, m
   end
 
   index, ltype, r = deratableLayer(lc)      # insulating layer index, type & RSi
-  index = uo, m unless index.is_a?(Numeric)
-  index = uo, m unless index >= 0
-  index = uo, m unless index < lc.layers.size
+  index = nil unless index.is_a?(Numeric)
+  index = nil unless index >= 0
+  index = nil unless index < lc.layers.size
+
   unless index
-    TBD.log(TBD::DEBUG,
+    TBD.log(TBD::ERROR,
       "Can't set Uo for '#{id}', invalid layer index - skipping")
     return uo, m
   end
@@ -68,7 +69,7 @@ def uo(model, lc, id, heatloss, film, ut)
     return uo, m
   end
   unless heatloss > 0
-    TBD.log(TBD::ERROR,
+    TBD.log(TBD::WARN,
       "Can't set Uo for '#{id}', 0 W/K heatloss - skipping")
     return uo, m
   end
@@ -79,14 +80,14 @@ def uo(model, lc, id, heatloss, film, ut)
   end
   unless ut.is_a?(Numeric) && ut > 0 && ut < 5.678
     TBD.log(TBD::DEBUG,
-      "Can't set Uo for '#{id}', negative or non-numeric Ut - skipping")
+      "Can't set Uo for '#{id}': negative, non-numeric or low Ut - skipping")
     return uo, m
   end
 
   area = lc.getNetArea
   if area < TOL
-    TBD.log(TBD::DEBUG,
-      "Can't set Uo for '#{id}', area near 0 m2 - skipping")
+    TBD.log(TBD::ERROR,
+      "Can't set Uo for '#{id}', area ~0 m2 - skipping")
     return uo, m
   end
 
@@ -96,18 +97,21 @@ def uo(model, lc, id, heatloss, film, ut)
   new_r          = r + (rt - ro)                     # new, un-derated layer RSi
   new_u          = 1 / new_r
 
-  # Then, uprate to counter expected major thermal bridging effects.
+  # puts rt, ro, new_r, new_u
+
+  # Then, uprate (if possible) to counter expected thermal bridging effects.
   u_psi          = heatloss / area                              # from psi & khi
   new_u          = new_u - u_psi        # uprated layer USi to counter psi & khi
   new_r          = 1 / new_u            # uprated layer RSi to counter psi & khi
 
   unless new_r > 0.001
-    TBD.log(TBD::DEBUG,
-      "Can't set Uo for '#{id}', new layer RSi value too low - skipping")
+    TBD.log(TBD::ERROR,
+      "Can't uprate '#{id}', calculated low or negative Rsi - skipping")
     return uo, m
   end
 
   loss           = 0.0   # residual heatloss not assigned to layer (maybe) [W/K]
+
   if ltype == :massless
     m            = lc.getLayer(index).to_MasslessOpaqueMaterial
 
@@ -149,8 +153,13 @@ def uo(model, lc, id, heatloss, film, ut)
         loss     = (new_u - k / d) * area
       end
 
-      m.setThickness(d)
-      m.setThermalConductivity(k)
+      unless m.setThickness(d)
+        TBD.log(TBD::ERROR,
+          "Unable to uprate insulation layer (> 3m) of '#{id}' - skipping")
+        return uo, nil
+      else
+        m.setThermalConductivity(k)
+      end
     end
   end
 
@@ -165,7 +174,7 @@ def uo(model, lc, id, heatloss, film, ut)
 
   if loss > TOL
     h_loss  = format "%.3f", loss
-    TBD.log(TBD::WARN,
+    TBD.log(TBD::ERROR,
       "Can't assign #{h_loss} W/K to '#{id}', too conductive - skipping")
     return nil, nil
   end
@@ -262,18 +271,21 @@ def uprate(model, surfaces, argh)
     else
       id = g[:op]
       c = model.getConstructionByName(id)
+
       if c.empty?
         TBD.log(TBD::ERROR,
-          "Unknown construction #{id} to uprate - skipping")
+          "Unknown construction '#{id}' to uprate - skipping")
       else
         c = c.get.to_LayeredConstruction
+
         if c.empty?
           TBD.log(TBD::ERROR,
-            "Non-layered construction #{id} to uprate - skipping")
+            "Non-layered construction '#{id}' to uprate - skipping")
         else
           lc = c.get
           area = lc.getNetArea
           coll[id] = {area: area, lc: lc, s: {}}
+
           model.getSurfaces.each do |s|
             next unless s.surfaceType.downcase.include?(label.to_s)
             next unless s.outsideBoundaryCondition.downcase == "outdoors"
@@ -303,13 +315,15 @@ def uprate(model, surfaces, argh)
 
         unless s.surfaceType.downcase.include?(label.to_s)
           TBD.log(TBD::ERROR,
-            "Won't uprate #{s.nameString}: (#{label.to_s} only) - cloning")
+            "Won't uprate '#{s.nameString}': (#{label.to_s} only) - cloning")
           cloned = c.clone(model).to_LayeredConstruction.get
-          cloned.setName("#{i} cloned")
+          cloned.setName("'#{i}' cloned")
           s.setConstruction(cloned)
+
           if surfaces.key?(s.nameString)
             surfaces[s.nameString][:construction] = cloned
           end
+
           coll[i][:s].delete(s.nameString)
           coll[i][:area] = c.getNetArea
           next
@@ -320,10 +334,12 @@ def uprate(model, surfaces, argh)
       index = nil unless index.is_a?(Numeric)
       index = nil unless index >= 0
       index = nil unless index < lc.layers.size
+
       unless index
-        TBD.log(TBD::ERROR, "Can't ID insulation index for #{id} - skipping")
+        TBD.log(TBD::ERROR, "Can't ID insulation index for '#{id}' - skipping")
         next
       end
+
       heatloss = 0                   # sum of applicable psi & khi effects [W/K]
       coll.each do |i, col|
         next unless col.key?(:s)
@@ -387,13 +403,13 @@ def uprate(model, surfaces, argh)
 
       coll.delete_if { |i, _| i != id }
       unless coll.size == 1
-        TBD.log(TBD::DEBUG, "Collection should equal 1 for #{id} - skipping")
+        TBD.log(TBD::DEBUG, "Collection should equal 1 for '#{id}' - skipping")
         next
       end
 
       uo, m = uo(model, lc, id, heatloss, film, g[:ut])
       unless uo && m
-        TBD.log(TBD::ERROR, "Unable to uprate #{id} - skipping")
+        TBD.log(TBD::ERROR, "Unable to uprate '#{id}' - skipping")
         next
       end
 
@@ -541,11 +557,12 @@ end
 def ua_summary(date = Time.now, argh = {})
   ua = {}
   argh = {}                    unless argh.is_a?(Hash)
+
   argh[:seed] = ""             unless argh.key?(:seed)
   argh[:ua_ref] = ""           unless argh.key?(:ua_ref)
   argh[:surfaces] = nil        unless argh.key?(:surfaces)
   argh[:version] = ""          unless argh.key?(:version)
-  argh[:io] = {}               unless argh.key(:io)
+  argh[:io] = {}               unless argh.key?(:io)
   argh[:io][:description] = "" unless argh[:io].key?(:description)
 
   unless argh[:surfaces] && argh[:surfaces].is_a?(Hash)
@@ -563,9 +580,8 @@ def ua_summary(date = Time.now, argh = {})
   ua[:descr]   = descr unless descr.nil? || descr.empty?
   ua[:file]    = file unless file.nil? || file.empty?
   ua[:version] = version unless version.nil? || version.empty?
-
-  ua[:model] = "∑U•A + ∑PSI•L + ∑KHI•n"
-  ua[:date] = date
+  ua[:model]   = "∑U•A + ∑PSI•L + ∑KHI•n"
+  ua[:date]    = date
 
   languages = [:en, :fr]
   languages.each { |lang| ua[lang] = {} }
@@ -773,8 +789,6 @@ def ua_summary(date = Time.now, argh = {})
         if edge.key?(:ref)
           loss = edge[:length] * edge[:ref]
         else
-          ratio = 0
-          ratio = edge[:ratio] if edge.key?(:ratio)
           loss = edge[:length] * val[tt] * edge[:ratio]
         end
 
@@ -1041,7 +1055,7 @@ def ua_md(ua, lang = :en)
     model = "* modèle : #{ua[:file]}" if ua.key?(:file) if lang == :fr
     model += " (v#{ua[:version]})" if ua.key?(:version)
     report << model unless model.empty?
-    report << "* TBD : v2.4.3"
+    report << "* TBD : v2.4.4"
     report << "* date : #{ua[:date]}"
     if lang == :en
       report << "* status : #{TBD.msg(TBD.status)}" unless TBD.status.zero?
