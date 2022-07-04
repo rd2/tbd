@@ -228,7 +228,8 @@ module Topolys
         return nil
       end
 
-      new_point, length = project_point_on_edge(edge.v0.point, edge.v1.point, vertex.point)
+      # new_point, length - length unused here
+      new_point, _ = project_point_on_edge(edge.v0.point, edge.v1.point, vertex.point)
 
       return new_point
     end
@@ -1296,9 +1297,6 @@ module Topolys
   end # Face
 
   class Shell < Object
-
-    # @return [Array] Array of Face
-    attr_reader :faces
 
     # @return [Array] Array of all edges from outer faces
     attr_reader :all_edges

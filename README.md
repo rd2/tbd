@@ -11,7 +11,7 @@ Questions can be posted on [UnmetHours](https://unmethours.com) - a very useful 
 TBD can also be deployed as a Ruby gem, by adding one of the following lines to an application's _Gemfile_:
 ```
 gem "tbd", git: "https://github.com/rd2/tbd", branch: "master"
-gem "tbd", git: "https://github.com/rd2/tbd", tag: "v2.4.3"
+gem "tbd", git: "https://github.com/rd2/tbd", tag: "v2.4.5"
 ```  
 And then execute:
 ```
