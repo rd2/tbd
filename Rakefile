@@ -1,21 +1,11 @@
+require "bundler/gem_tasks"
 require "rspec/core/rake_task"
+
 RSpec::Core::RakeTask.new(:spec) do |t|
     t.rspec_opts = '--exclude-pattern \'spec/**/*suite_spec.rb\''
 end
 
-require "rubocop/rake_task"
-RuboCop::RakeTask.new
-
 task default: :spec
-
-require 'yard'
-YARD::Rake::YardocTask.new do |t|
-  t.files = ["lib/tbd/psi.rb",
-             "lib/tbd/conditioned.rb",
-             "lib/tbd/framedivider.rb",
-             "lib/tbd/ua.rb",
-             "lib/tbd/log.rb"]
-end
 
 desc "Update Library Files"
 task :update_library_files do
