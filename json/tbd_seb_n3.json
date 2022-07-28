@@ -1,8 +1,7 @@
 {
   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
   "description": "testing TBD JSON for seb.osm",
-  "psis": [
-    {
+  "psis": [{
       "id": "good",
       "parapet": 0.5,
       "rimjoist": 0.9
@@ -18,8 +17,7 @@
       "grade": 0.45
     }
   ],
-  "khis": [
-    {
+  "khis": [{
       "id": "column",
       "point": 0.5
     },
@@ -28,20 +26,17 @@
       "point": 0.5
     }
   ],
-  "surfaces": [
-    {
-      "id": "Entryway  Wall 5",
-      "khis": [
-        {
-          "id": "column",
-          "count": 3
-        },
-        {
-          "id": "support",
-          "count": 4
-        }
-      ],
-      "psi": "good"
-    }
-  ]
+  "surfaces": [{
+    "id": "Entryway  Wall 5",
+    "khis": [{
+        "id": "column",
+        "count": 3
+      },
+      {
+        "id": "support",
+        "count": 4
+      }
+    ],
+    "psi": "good"
+  }]
 }

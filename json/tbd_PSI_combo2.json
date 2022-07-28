@@ -1,8 +1,7 @@
 {
-  "description": "TBD JSON example - combining building vs surface vs edge PSI sets",
   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
-  "psis": [
-    {
+  "description": "TBD JSON example - combining building vs surface vs edge PSI sets",
+  "psis": [{
       "id": "OK",
       "rimjoist": 0.7,
       "parapet": 0.7,
@@ -27,26 +26,20 @@
       "party": 0.4
     }
   ],
-  "building": [
-    {
-      "psi": "Awesome"
-    }
-  ],
-  "surfaces": [
-    {
-      "id": "ground-floor restaurant South-wall",
-      "psi": "ok"
-    }
-  ],
-  "edges": [
-    {
-      "psi": "Party wall edge",
-      "type":"party",
-      "length": 4.3,
-      "surfaces": [
-        "ground-floor restaurant West-wall",
-        "ground-floor restaurant party wall"
-      ]
-    }
-  ]
+  "building": {
+    "psi": "Awesome"
+  },
+  "surfaces": [{
+    "id": "ground-floor restaurant South-wall",
+    "psi": "ok"
+  }],
+  "edges": [{
+    "psi": "Party wall edge",
+    "type": "party",
+    "length": 4.3,
+    "surfaces": [
+      "ground-floor restaurant West-wall",
+      "ground-floor restaurant party wall"
+    ]
+  }]
 }

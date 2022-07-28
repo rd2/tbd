@@ -1,0 +1,19 @@
+{
+  "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
+  "description": "testing TBD JSON for 5ZoneNoHVAC",
+  "psis": [
+    {
+      "id": "outstanding",
+      "rimjoist": 0.09,
+      "parapet": 0.09,
+      "fenestration": 0.09,
+      "corner": 0.09,
+      "balcony": 0.09,
+      "party": 0.09,
+      "grade": 0.09
+    }
+  ],
+  "building": {
+    "psi": "outstanding"
+  }
+}

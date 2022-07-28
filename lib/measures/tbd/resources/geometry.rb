@@ -346,6 +346,6 @@ module Topolys
       return result
     end
 
- end # BoundingBox
+  end # BoundingBox
 
 end # TOPOLYS

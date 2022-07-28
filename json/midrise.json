@@ -1,8 +1,7 @@
 {
   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
   "description": "sorting out multiple story PSI sets (midrise)",
-  "psis": [
-    {
+  "psis": [{
       "id": "compliant",
       "rimjoist": 0.3,
       "parapet": 0.325,
@@ -46,8 +45,10 @@
       "grade": 0.371
     }
   ],
-  "stories": [
-    {
+  "building": {
+    "psi": "compliant"
+  },
+  "stories": [{
       "id": "Building Story 1",
       "psi": "Building Story 1"
     },
@@ -58,11 +59,6 @@
     {
       "id": "Building Story 3",
       "psi": "Building Story 3"
-    }
-  ],
-  "building": [
-    {
-      "psi": "compliant"
     }
   ]
 }

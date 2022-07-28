@@ -20,12 +20,14 @@ end
 
 RSpec.describe TBD do
   it "it can run all the measure tests" do
-    measure_dir = File.join(File.dirname(__FILE__), "../../lib/measures")
+    measure_dir = File.join(__dir__, "../lib/measures")
     measure_tests = Dir.glob(measure_dir + "/*/tests/*.rb")
     measure_tests.each do |measure_test|
-      command = "'#{OpenStudio::getOpenStudioCLI}' '#{measure_test}'"
-      #puts command
+      command = "#{OpenStudio::getOpenStudioCLI} #{measure_test}"
       stdout_str, stderr_str, status = Open3.capture3(get_clean_env, command)
+      # puts "stdout_str : #{stdout_str}"
+      # puts "stderr_str : #{stderr_str}"
+      # puts "status : #{status}"
       expect(status.success?).to be(true)
     end
   end

@@ -1,21 +1,17 @@
 {
   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
   "description": "test_warehouse.osm with negative PSI values",
-  "psis": [
-    {
-      "id": "BETBG Detail 7.6.2",
-      "rimjoist": 0.0,
-      "parapet": 0.0,
-      "fenestration": 0.0,
-      "corner": -0.0471,
-      "balcony": 0.0,
-      "party": 0.0,
-      "grade": 0.0
-    }
-  ],
-  "building": [
-    {
-      "psi": "BETBG Detail 7.6.2"
-    }
-  ]
+  "psis": [{
+    "id": "BETBG Detail 7.6.2",
+    "rimjoist": 0.0,
+    "parapet": 0.0,
+    "fenestration": 0.0,
+    "corner": -0.0471,
+    "balcony": 0.0,
+    "party": 0.0,
+    "grade": 0.0
+  }],
+  "building": {
+    "psi": "BETBG Detail 7.6.2"
+  }
 }

@@ -1,14 +1,11 @@
 {
   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
   "description": "testing expansion joints for test_warehouse.osm",
-  "psis": [
-    {
-      "id": "ok",
-      "joint": 0.9
-    }
-  ],
-  "edges": [
-    {
+  "psis": [{
+    "id": "ok",
+    "joint": 0.9
+  }],
+  "edges": [{
       "psi": "ok",
       "type": "joint",
       "surfaces": [

@@ -1,45 +1,53 @@
-# Thermal Bridging & Derating (tbd)
-This is a repo for an OpenStudio Measure that _thermally derates_ outside-facing opaque constructions (walls, roofs and exposed floors), based on _major_ thermal bridges (balconies, corners, fenestration perimeters, and so on). It relies on both the OpenStudio API and the AutomaticMagic [Topolys](https://github.com/automaticmagic/topolys) gem.
+# Thermal Bridging & Derating (TBD)  
 
-Within the context of building energy simulation (and as required by recent building energy codes and standards) a construction's nominal R-value (or inversely, its nominal U-value) should ideally be _derated_ to adequately factor-in _minor_ and _major_ thermal bridging. _Minor_ thermal bridging is attributable to regularly-spaced framing (such as studs, Z-bars, etc.): the resulting derated R-value from minor thermal bridging, generally known as a construction's _clear-field effective R-value_, is typically independent of a surface's actual geometry or adjacencies to other surfaces. _Major_ thermal bridging instead relates to a surface's geometry and its immediate adjacencies (e.g. parapet along a roof/wall intersection, rim joists, wall corners), protruding surfaces and penetrations (e.g. cantilevered balconies), etc. The measure loops through an OpenStudio model's outside-facing surfaces, identifies shared _edges_ with nearby envelope, floor slab and shading surfaces (a proxy for cantilevered balconies), applies (from a list of arguments - e.g. _poor_, _regular_, _efficient_) predefined linear conductance sets (PSI-values, in W/K per linear meter) to individual edge lengths (in m), and consequently derates a construction's clear-field effective R-value. Users of the measure should observe new, surface-specific constructions to their OSM model and/or file, as well as systematic increases in construction U-values (i.e. decreases in insulating material thickness). The method and predefined values are taken from published research and standards such as ASHRAE's [RP-1365](https://www.techstreet.com/standards/rp-1365-thermal-performance-of-building-envelope-details-for-mid-and-high-rise-buildings?product_id=1806751), [BETBG](https://www.bchydro.com/powersmart/business/programs/new-construction.html) & [thermalenvelope.ca](https://thermalenvelope.ca), as well as ISO [10211](https://www.iso.org/standard/65710.html) and [14683](https://www.iso.org/standard/65706.html).
+An [OpenStudio Measure](https://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/) that first autodetects _major_ thermal bridges (like balconies, parapets and corners) in an OpenStudio model (.osm), and then _derates_ outside-facing, opaque surface constructions (walls, roofs and exposed floors). It relies on both the [OpenStudio SDK](https://openstudio-sdk-documentation.s3.amazonaws.com/index.html) and the AutomaticMagic [Topolys](https://github.com/automaticmagic/topolys) gem.
 
+## Guide & Downloads
 
-## TO DO
-[Enhancements](https://github.com/rd2/tbd/issues) and documentation are planned over the next few weeks and months, including:
-1. JSON I/O - _completed_
-2. dealing with ground-facing surfaces (e.g. KIVA foundations) - _completed_
-3. dealing with fully-glazed surfaces with thermal bridges
-4. adding point conductances - _completed_
-5. generating building-level clear-field R-values
-6. dealing with multipliers and spanners
-7. logging warnings and errors
-8. guide material, case examples, how-to's
+Building professionals and energy modellers are encouraged to first consult the online [Guide](https://rd2.github.io/tbd/) - it provides an overview of the underlying theory, references, suggested OpenStudio workflows, etc. Users can download the latest _TBD_ version directly from the Guide itself, or under [releases](https://github.com/rd2/tbd/releases), or via NREL's [BCL](https://bcl.nrel.gov) (search for "bridging" or "rd2").
 
-Submit [here](https://github.com/automaticmagic/topolys/issues) issues or desired enhancements more closely linked to Topolys.
+Questions can be posted on [UnmetHours](https://unmethours.com) - a very useful online resource for OpenStudio users.
 
-Energy modelers simply interested in using the TBD OpenStudio _measure_ can either download the latest [release](https://github.com/rd2/tbd/releases) or access the measure via NREL's [BCL](https://bcl.nrel.gov) ... search for _bridging_ or _rd2_. The following installation and testing instructions are for those interested in exploring/tweaking the code (cloned or forked version of TBD). The following should refer to OpenStudio 2.9.1, yet the measure is regularly tested against OpenStudio 3.0.0.
+TBD can also be deployed as a Ruby gem, by adding one of the following lines to an application's _Gemfile_:
+```
+gem "tbd", git: "https://github.com/rd2/tbd", branch: "master"
+gem "tbd", git: "https://github.com/rd2/tbd", tag: "v2.4.5"
+```  
+And then execute:
+```
+bundle update
+```
 
+## New Features  
 
-## Windows Instructions
+Upcoming enhancements are in the works. Bugs and new feature requests for _TBD_ should be submitted [here](https://github.com/rd2/tbd/issues), while those more closely linked to _Topolys_ should be submitted [here](https://github.com/automaticmagic/topolys/issues).
 
-### Installation
+## Development
 
-Install Ruby using the [RubyInstaller](https://rubyinstaller.org/downloads/archives/) for [Ruby 2.2.5 (x64)](https://dl.bintray.com/oneclick/rubyinstaller/rubyinstaller-2.2.5-x64.exe).
+The installation and testing instructions in this section are for developers interested in exploring/tweaking a cloned/forked version of the source code.
 
-Check the ruby installation returns the correct Ruby version (2.2.5):
+TBD is systematically tested against updated OpenStudio versions (since v2.9.1). The following instructions refer to OpenStudio v3.4.0 (requiring Ruby v2.7.2), strictly as an example. Adapt the instructions for more recent versions - see OpenStudio's [compatibility matrix](https://github.com/NREL/OpenStudio/wiki/OpenStudio-SDK-Version-Compatibility-Matrix).
+
+### Windows Installation
+
+Install Ruby using the [RubyInstaller](https://rubyinstaller.org/downloads/archives/) for [Ruby 2.7.2 (x64)](https://github.com/oneclick/rubyinstaller2/releases/tag/RubyInstaller-2.7.2-1/rubyinstaller-2.7.2-1-x64.exe).
+
+From the command line, check that the ruby installation returns the correct Ruby version:
 ```
 ruby -v
 ```
 
-Install bundler from the command line
+Install bundler:
 ```
-gem install bundler -v 1.17.3
+gem install bundler -v 2.1
 ```
 
-Install [OpenStudio 2.9.1](https://github.com/NREL/OpenStudio/releases/tag/v2.9.1).  Create a file ```C:\ruby-2.2.5-x64-mingw32\lib\ruby\site_ruby\openstudio.rb``` and point it to your OpenStudio installation by editing the contents.  E.g.:
+Install the OpenStudio SDK [3.4.0](https://github.com/NREL/OpenStudio/releases/tag/v3.4.0), or the OpenStudio Application [1.4.0](https://github.com/openstudiocoalition/OpenStudioApplication/releases/tag/v1.4.0).
 
-```ruby
-require 'C:\openstudio-2.9.1\Ruby\openstudio.rb'
+Create a new file ```C:\Ruby27-x64\lib\ruby\site_ruby\openstudio.rb```  (path may be different depending on the environment), and edit it so it _points_ to your new OpenStudio installation:
+
+```
+require 'C:\openstudio-3.4.0\Ruby\openstudio.rb'
 ```
 
 Verify your OpenStudio and Ruby configuration:
@@ -50,76 +58,21 @@ ruby -e "require 'openstudio'" -e "puts OpenStudio::Model::Model.new"
 Run basic tests to ensure the measure operates properly (see end of this README).
 
 
-## Run tests using Docker
+### MacOS Installation
 
-Install Docker for Windows:
-```
-https://docs.docker.com/docker-for-windows/install/
-```
+MacOS already comes with Ruby, but likely not the right Ruby version for the desired OpenStudio measure development [environment](https://github.com/NREL/OpenStudio/wiki/OpenStudio-SDK-Version-Compatibility-Matrix). Instructions here show how to install Ruby v2.7.2 alongside MacOS's own Ruby version. An OpenStudio v2.9.1 setup is described [here](https://github.com/rd2/tbd/blob/master/v291_MacOS.md).
 
-Pull the OpenStudio 2.9.1 Docker image:
-```
-docker pull nrel/openstudio:2.9.1
-```
-
-In the root repository:
-```
-docker run --name test --rm -d -t -v ${PWD}:/work -w /work nrel/openstudio:2.9.1
-docker exec -t test bundle update
-docker exec -t test bundle exec rake update_library_files
-docker exec -t test bundle exec rake
-docker kill test
-```
-
-
-## MacOS (e.g. Catalina 10.15.4) Instructions
-
-OpenStudio [2.9.1](https://github.com/NREL/OpenStudio/releases/tag/v2.9.1) is the most up-to-date version that remains [compatible](https://github.com/NREL/OpenStudio/wiki/OpenStudio-Version-Compatibility-Matrix) with SketchUp 2017. OpenStudio 2.9.1 measures require Ruby 2.2.5, which is several iterations behind the default Ruby 2.6 version available on any recently-purchased Mac. Although it is quite common for developers to have access to more than one Ruby version, some effort is required for Ruby versions < 2.3 (e.g. 2.2.5 is no longer officially supported, it requires OpenSSL-1.0 (not 1.1) which is considered deprecated). To help Mac users (and potentially Linux users as well), the following steps are recommended (although architecture-specific tweaks may be required).
-
-From a Terminal, install [Homebrew](https://brew.sh/index) - nice for package distribution and management. With a few tweaks, it will handle most package downloads, dependencies, etc. Using Homebrew, install OpenSSL-1.0, and then _rbenv_ (which allows users to manage multiple Ruby versions). One way of doing it:
+From a Terminal, install [Homebrew](https://brew.sh/index) - nice for package distribution and management. Using Homebrew, install _rbenv_ (which allows users to manage multiple Ruby versions) and finally Ruby:
 
 ```
-brew install rbenv/tap/openssl@1.0
-```
-
-By _tapping_, Homebrew provides a way to access third-party repositories that are usually no longer officially supported by Homebrew, like Ruby 2.2.5 and OpenSSL-1.0. The above instruction tells Homebrew to install compatible versions of OpenSSL-1.0 with _rbenv_ (e.g. 1.0.2t, 1.0.2u).
-
-Next, ensure that Homebrew and _rbenv_ use OpenSSL-1.0 (at least locally) for future, local Ruby development. Edit (or create) a user’s local _~/.zshrc_ file (instructions are here provided for zsh, the default macOS Terminal shell interface - for bash, adapt), by pasting-in the following:
-
-```
-eval "$(rbenv init - zsh)"
-export PATH="/usr/local/opt/openssl@1.0/bin:$PATH"
-export LDFLAGS="-L/usr/local/opt/openssl@1.0/lib"
-export CPPFLAGS="-I/usr/local/opt/openssl@1.0/include"
-export PKG_CONFIG_PATH="/usr/local/opt/openssl@1.0/lib/pkgconfig"
-export RUBY_CONFIGURE_OPTS="--with-openssl-dir=$(brew --prefix openssl@1.0)"
-```
-
-There’s probably more there than necessary, but it should do the trick for the next few steps, and for future work. Quit the Terminal and start a new one, or simply _source_ the zshrc file:
-
-```
-source ~/.zshrc
-```
-
-Make sure the right OpenSSL version is recognized, and then instruct Homebrew to switch over to it:
-
-```
-openssl version
-brew switch openssl 1.0.2t
-```
-
-… or whatever Openssl 1.0 version was installed, e.g. 1.0.2u. Then install _ruby-build_, _rbenv_ and finally Ruby 2.2.5:
-
-```
-brew install ruby-build
 brew install rbenv
-rbenv install 2.2.5
+rbenv init
+rbenv install 2.7.2
 ```
-
-Install OpenStudio 2.9.1. Then create the file _~/.rbenv/versions/2.2.5/lib/ruby/site_ruby/openstudio.rb_, and point it to your OpenStudio installation by editing the contents, e.g.:
+Install [bundler](https://bundler.io), great for managing Ruby gems and dependencies:
 
 ```
-require '/Applications/OpenStudio-2.9.1/Ruby/openstudio.rb'
+gem install bundler -v 2.1
 ```
 
 In the Terminal, check the Ruby version:
@@ -128,37 +81,41 @@ In the Terminal, check the Ruby version:
 ruby -v
 ```
 
-It should report the current Ruby version used by macOS (e.g. ‘system’, or '2.6'). To ensure Ruby 2.2.5 is used for developing OpenStudio v2.9.1-compatible measures, a safe way is to instruct _rbenv_ to use Ruby 2.2.5 for anything within a user’s OpenStudio directory (the default OpenStudio installation would add a /Users/user/OpenStudio folder, containing a Measures folder):
+... should still report the current Ruby version used by MacOS. To ensure the right version is used for developing OpenStudio Measures, instruct _rbenv_ to switch Ruby version _locally_ within a user’s chosen directory (e.g. "sandbox340"):
 
 ```
-cd ~/OpenStudio
-rbenv local 2.2.5
+mkdir ~/Documents/sandbox340
+cd ~/Documents/sandbox340
+rbenv local 2.7.2
 ruby -v
 ```
-
-… should report 2.2.5 as the local version of Ruby, to be used by default for anything under the OpenStudio directory tree (including anything under Measures). To ensure both Ruby versions are operational and safe, run the following checkup (once from a user’s home (or ~/) directory, then from within the local OpenStudio environment):
+… should report the desired _local_ Ruby version, to be used by default for anything under the "sandbox340" directory tree. To ensure both Ruby versions are operational and safe, run the following checkup twice - once from a user’s home (or ~/), then from within e.g., "sandbox340":
 
 ```
 cd ~/
-ruby -ropen-uri -e 'eval open("https://git.io/vQhWq").read'
-cd OpenStudio
-ruby -ropen-uri -e 'eval open("https://git.io/vQhWq").read'
+ruby -ropen-uri -e 'eval URI.open("https://git.io/vQhWq").read'
+cd ~/Documents/sandbox340
+ruby -ropen-uri -e 'eval URI.open("https://git.io/vQhWq").read'
 ```
 
-If successful, one should get a _Hooray!_ from both Ruby versions confirming valid communication with [Rubygems](https://rubygems.org/), yet with their specific RubyGems and OpenSSL versions, as well as their own SSL certificates. In some cases, (temporarily) switching over to an insecure http connection to rubygems.org (instead of the default https) may be necessary. It may also be necessary to first install bundler. If not, now’s a good time:
+If successful, one should get a ```Hooray!``` from both Ruby versions confirming valid communication with [Rubygems](https://rubygems.org/).
+
+Install the OpenStudio SDK [3.4.0](https://github.com/NREL/OpenStudio/releases/tag/v3.4.0), or the OpenStudio Application [1.4.0](https://github.com/openstudiocoalition/OpenStudioApplication/releases/tag/v1.4.0).
+
+Create a new file ```~/.rbenv/versions/2.7.2/lib/ruby/site_ruby/openstudio.rb```  (path may be different depending on the environment), and edit it so it _points_ to your new OpenStudio installation:
 
 ```
-cd ~/OpensStudio
-gem install bundler -v 1.17.3
+require '/Applications/OpenStudio-3.4.0/Ruby/openstudio.rb'
 ```
 
-Verify your OpenStudio and Ruby configuration:
+Verify your local OpenStudio and Ruby configuration:
 
 ```
+cd ~/Documents/sandbox340
 ruby -e "require 'openstudio'" -e "puts OpenStudio::Model::Model.new"
 ```
 
-Install the latest version of _git_ (e.g. through Homebrew), and _git clone_ the TBD measure under the user’s local OpenStudio Measures directory.
+Install the latest version of _git_ (e.g. through Homebrew), and ```git clone``` the TBD measure e.g., under "sandbox340".
 
 Run the basic tests below to ensure the measure operates as expected.
 
@@ -187,6 +144,24 @@ Or run all test suites:
 bundle update
 bundle exec rake suites_clean
 bundle exec rake suites_run
+```
+
+## Run tests using Docker - _optional_
+
+Install [Docker](https://docs.docker.com/desktop/#download-and-install).
+
+Pull the OpenStudio v3.4.0 Docker image:
+```
+docker pull nrel/openstudio:3.4.0
+```
+
+In the root repository:
+```
+docker run --name test --rm -d -t -v ${PWD}:/work -w /work nrel/openstudio:3.4.0
+docker exec -t test bundle update
+docker exec -t test bundle exec rake update_library_files
+docker exec -t test bundle exec rake
+docker kill test
 ```
 
 ## Support

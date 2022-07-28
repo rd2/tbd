@@ -1,21 +1,41 @@
+<?xml version="1.0"?>
 <measure>
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>d4d6b455-5b82-4ea2-b6af-3019d50d6616</version_id>
-  <version_modified>20210622T134315Z</version_modified>
+  <version_id>d3fdf097-6861-4eeb-9677-6d56e5e66e39</version_id>
+  <version_modified>20220728T034952Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
-  <description>Thermally derates opaque constructions from major thermal bridges</description>
-  <modeler_description>(see github.com/rd2/tbd)</modeler_description>
+  <description>Derates opaque constructions from major thermal bridges.</description>
+  <modeler_description>Consult rd2.github.io/tbd</modeler_description>
   <arguments>
     <argument>
-      <name>load_tbd_json</name>
-      <display_name>Load tbd.json</display_name>
-      <description>Loads existing tbd.json from model files directory, overrides other arguments if true.</description>
+      <name>alter_model</name>
+      <display_name>Alter OpenStudio model (Apply Measures Now)</display_name>
+      <description>For EnergyPlus simulations, leave CHECKED. For iterative exploration with Apply Measures Now, UNCHECK to preserve original OpenStudio model.</description>
       <type>Boolean</type>
-      <required>true</required>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>true</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>load_tbd_json</name>
+      <display_name>Load 'tbd.json'</display_name>
+      <description>Loads existing 'tbd.json' file (under '/files'), may override 'default thermal bridge' set.</description>
+      <type>Boolean</type>
+      <required>false</required>
       <model_dependent>false</model_dependent>
       <default_value>false</default_value>
       <choices>
@@ -31,10 +51,10 @@
     </argument>
     <argument>
       <name>option</name>
-      <display_name>Default thermal bridge option to use if not reading tbd.json</display_name>
-      <description>e.g. poor, regular, efficient, code</description>
+      <display_name>Default thermal bridge set</display_name>
+      <description>e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by 'tbd.json' file).</description>
       <type>Choice</type>
-      <required>true</required>
+      <required>false</required>
       <model_dependent>false</model_dependent>
       <default_value>poor (BETBG)</default_value>
       <choices>
@@ -63,6 +83,10 @@
           <display_name>code (Quebec)</display_name>
         </choice>
         <choice>
+          <value>uncompliant (Quebec)</value>
+          <display_name>uncompliant (Quebec)</display_name>
+        </choice>
+        <choice>
           <value>(non thermal bridging)</value>
           <display_name>(non thermal bridging)</display_name>
         </choice>
@@ -70,10 +94,10 @@
     </argument>
     <argument>
       <name>write_tbd_json</name>
-      <display_name>Write tbd.out.json</display_name>
-      <description>Write tbd.out.json to customize for subsequent runs. Edit and place in model files directory as tbd.json</description>
+      <display_name>Write 'tbd.out.json'</display_name>
+      <description>Write out 'tbd.out.json' file e.g., to customize for subsequent runs (edit, and place under '/files' as 'tbd.json').</description>
       <type>Boolean</type>
-      <required>true</required>
+      <required>false</required>
       <model_dependent>false</model_dependent>
       <default_value>false</default_value>
       <choices>
@@ -88,11 +112,157 @@
       </choices>
     </argument>
     <argument>
+      <name>wall_option</name>
+      <display_name>Wall construction(s) to 'uprate'</display_name>
+      <description>Target 1x (or 'ALL') wall construction(s) to 'uprate', to achieve wall Ut target below.</description>
+      <type>Choice</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>NONE</default_value>
+      <choices>
+        <choice>
+          <value>ALL wall constructions</value>
+          <display_name>ALL wall constructions</display_name>
+        </choice>
+        <choice>
+          <value>NONE</value>
+          <display_name>NONE</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>roof_option</name>
+      <display_name>Roof construction(s) to 'uprate'</display_name>
+      <description>Target 1x (or 'ALL') roof construction(s) to 'uprate', to achieve roof Ut target below.</description>
+      <type>Choice</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>NONE</default_value>
+      <choices>
+        <choice>
+          <value>ALL roof constructions</value>
+          <display_name>ALL roof constructions</display_name>
+        </choice>
+        <choice>
+          <value>NONE</value>
+          <display_name>NONE</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>floor_option</name>
+      <display_name>Floor construction(s) to 'uprate'</display_name>
+      <description>Target 1x (or 'ALL') floor construction(s) to 'uprate', to achieve floor Ut target below.</description>
+      <type>Choice</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>NONE</default_value>
+      <choices>
+        <choice>
+          <value>ALL floor constructions</value>
+          <display_name>ALL floor constructions</display_name>
+        </choice>
+        <choice>
+          <value>NONE</value>
+          <display_name>NONE</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>wall_ut</name>
+      <display_name>Wall Ut target (W/m2•K)</display_name>
+      <description>Overall Ut target to meet for wall construction(s). Ignored if previous wall 'uprate' option is set to 'NONE'.</description>
+      <type>Double</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>0.21</default_value>
+    </argument>
+    <argument>
+      <name>roof_ut</name>
+      <display_name>Roof Ut target (W/m2•K)</display_name>
+      <description>Overall Ut target to meet for roof construction(s). Ignored if previous roof 'uprate' option is set to 'NONE'.</description>
+      <type>Double</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>0.138</default_value>
+    </argument>
+    <argument>
+      <name>floor_ut</name>
+      <display_name>Floor Ut target (W/m2•K)</display_name>
+      <description>Overall Ut target to meet for floor construction(s). Ignored if previous floor 'uprate' option is set to 'NONE'.</description>
+      <type>Double</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>0.162</default_value>
+    </argument>
+    <argument>
+      <name>gen_UA_report</name>
+      <display_name>Generate UA' report</display_name>
+      <description>Compare ∑U•A + ∑PSI•L + ∑KHI•n : 'Design' vs UA' reference (see pull-down option below).</description>
+      <type>Boolean</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>ua_reference</name>
+      <display_name>UA' reference</display_name>
+      <description>e.g. 'poor', 'regular', 'efficient', 'code'.</description>
+      <type>Choice</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>code (Quebec)</default_value>
+      <choices>
+        <choice>
+          <value>poor (BETBG)</value>
+          <display_name>poor (BETBG)</display_name>
+        </choice>
+        <choice>
+          <value>regular (BETBG)</value>
+          <display_name>regular (BETBG)</display_name>
+        </choice>
+        <choice>
+          <value>efficient (BETBG)</value>
+          <display_name>efficient (BETBG)</display_name>
+        </choice>
+        <choice>
+          <value>spandrel (BETBG)</value>
+          <display_name>spandrel (BETBG)</display_name>
+        </choice>
+        <choice>
+          <value>spandrel HP (BETBG)</value>
+          <display_name>spandrel HP (BETBG)</display_name>
+        </choice>
+        <choice>
+          <value>code (Quebec)</value>
+          <display_name>code (Quebec)</display_name>
+        </choice>
+        <choice>
+          <value>uncompliant (Quebec)</value>
+          <display_name>uncompliant (Quebec)</display_name>
+        </choice>
+        <choice>
+          <value>(non thermal bridging)</value>
+          <display_name>(non thermal bridging)</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
       <name>gen_kiva</name>
       <display_name>Generate Kiva inputs</display_name>
-      <description>Generate OSM Kiva settings and objects if model surfaces have 'foundation' boundary conditions</description>
+      <description>Generates Kiva settings &amp; objects for surfaces with 'foundation' boundary conditions (not 'ground').</description>
       <type>Boolean</type>
-      <required>true</required>
+      <required>false</required>
       <model_dependent>false</model_dependent>
       <default_value>false</default_value>
       <choices>
@@ -109,9 +279,9 @@
     <argument>
       <name>gen_kiva_force</name>
       <display_name>Force-generate Kiva inputs</display_name>
-      <description>Overwrites all 'ground' boundary conditions as 'foundation' before generating OSM Kiva inputs</description>
+      <description>Overwrites 'ground' boundary conditions as 'foundation' before generating Kiva inputs (recommended).</description>
       <type>Boolean</type>
-      <required>true</required>
+      <required>false</required>
       <model_dependent>false</model_dependent>
       <default_value>false</default_value>
       <choices>
@@ -126,8 +296,8 @@
       </choices>
     </argument>
   </arguments>
-  <outputs/>
-  <provenances/>
+  <outputs />
+  <provenances />
   <tags>
     <tag>Envelope.Opaque</tag>
   </tags>
@@ -186,34 +356,10 @@
       <checksum>703C9964</checksum>
     </file>
     <file>
-      <filename>.gitkeep</filename>
-      <filetype>gitkeep</filetype>
-      <usage_type>doc</usage_type>
-      <checksum>00000000</checksum>
-    </file>
-    <file>
-      <filename>geometry.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>72504284</checksum>
-    </file>
-    <file>
-      <filename>model.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>B64E67F5</checksum>
-    </file>
-    <file>
-      <filename>model.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>B64E67F5</checksum>
-    </file>
-    <file>
-      <filename>tbd_tests.rb</filename>
-      <filetype>rb</filetype>
+      <filename>tbd_full_PSI.json</filename>
+      <filetype>json</filetype>
       <usage_type>test</usage_type>
-      <checksum>9DEC541E</checksum>
+      <checksum>0AAEA490</checksum>
     </file>
     <file>
       <filename>transformation.rb</filename>
@@ -222,16 +368,34 @@
       <checksum>8EC912F6</checksum>
     </file>
     <file>
-      <filename>version.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>9A36A4EF</checksum>
+      <filename>.gitkeep</filename>
+      <filetype>gitkeep</filetype>
+      <usage_type>doc</usage_type>
+      <checksum>32D70693</checksum>
     </file>
     <file>
       <filename>LICENSE.md</filename>
       <filetype>md</filetype>
       <usage_type>license</usage_type>
-      <checksum>4AB09951</checksum>
+      <checksum>CB393A2B</checksum>
+    </file>
+    <file>
+      <filename>log.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>D436DCBC</checksum>
+    </file>
+    <file>
+      <filename>framedivider.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>2274EEFC</checksum>
+    </file>
+    <file>
+      <filename>tbd_tests.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>EEDEA2A1</checksum>
     </file>
     <file>
       <version>
@@ -242,37 +406,49 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>3973E546</checksum>
-    </file>
-    <file>
-      <filename>README.md</filename>
-      <filetype>md</filetype>
-      <usage_type>readme</usage_type>
-      <checksum>54C6A3C1</checksum>
-    </file>
-    <file>
-      <filename>framedivider.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>4FC09FD7</checksum>
-    </file>
-    <file>
-      <filename>tbd_full_PSI.json</filename>
-      <filetype>json</filetype>
-      <usage_type>test</usage_type>
-      <checksum>0AAEA490</checksum>
+      <checksum>601A57F2</checksum>
     </file>
     <file>
       <filename>conditioned.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>4F6B1483</checksum>
+      <checksum>DC4AD6FB</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>BD336A08</checksum>
     </file>
     <file>
       <filename>psi.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>10B284B8</checksum>
+      <checksum>52A85E91</checksum>
+    </file>
+    <file>
+      <filename>geometry.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>D80E9AE6</checksum>
+    </file>
+    <file>
+      <filename>model.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>57ED37BF</checksum>
+    </file>
+    <file>
+      <filename>ua.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>F6F8E336</checksum>
+    </file>
+    <file>
+      <filename>version.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>05CC939E</checksum>
     </file>
   </files>
 </measure>

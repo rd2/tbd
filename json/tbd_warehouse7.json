@@ -1,8 +1,7 @@
 {
   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
   "description": "testing heads, sills & jambs for test_warehouse.osm",
-  "psis": [
-    {
+  "psis": [{
       "id": "detailed",
       "head": 0.500,
       "sill": 0.300,
@@ -19,17 +18,11 @@
       "grade": 0.45
     }
   ],
-  "surfaces":
-  [
-    {
-      "id": "Bulk Storage Roof",
-      "psi": "detailed"
-    }
-  ],
-  "building":
-  [
-    {
-      "psi": "compliant"
-    }
-  ]
+  "building": {
+    "psi": "compliant"
+  },
+  "surfaces": [{
+    "id": "Bulk Storage Roof",
+    "psi": "detailed"
+  }]
 }
