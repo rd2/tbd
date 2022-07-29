@@ -28,7 +28,7 @@ Gem::Specification.new do |s|
   s.required_ruby_version    = [">= 2.5.0", "< 2.7.3"]
   s.metadata                 = {}
 
-  # s.add_dependency             "topolys"
+  s.add_dependency             "topolys",        "~> 0"
   s.add_dependency             "osut",           "~> 0"
   s.add_dependency             "json-schema",    "~> 2.7.0"
 
