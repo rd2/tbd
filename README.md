@@ -8,14 +8,16 @@ Building professionals and energy modellers are encouraged to first consult the 
 
 Questions can be posted on [UnmetHours](https://unmethours.com) - a very useful online resource for OpenStudio users.
 
-TBD can also be deployed as a Ruby gem, by adding one of the following lines to an application's _Gemfile_:
+TBD can also be deployed as a Ruby gem, by adding:  
+
 ```
 gem "tbd", git: "https://github.com/rd2/tbd", branch: "master"
-gem "tbd", git: "https://github.com/rd2/tbd", tag: "v2.4.5"
 ```  
-And then execute:
+
+... in a v2.1 [bundled](https://bundler.io) _Measure_ development environment "Gemfile" (or instead as a _gemspec_ dependency), and then run:  
+
 ```
-bundle update
+bundle install (or 'bundle update')
 ```
 
 ## New Features  
@@ -55,7 +57,7 @@ Verify your OpenStudio and Ruby configuration:
 ruby -e "require 'openstudio'" -e "puts OpenStudio::Model::Model.new"
 ```
 
-Run basic tests to ensure the measure operates properly (see end of this README).
+`git clone` the TBD repo, then run basic tests to ensure the measure operates properly (see end of this README).
 
 
 ### MacOS Installation
@@ -115,9 +117,7 @@ cd ~/Documents/sandbox340
 ruby -e "require 'openstudio'" -e "puts OpenStudio::Model::Model.new"
 ```
 
-Install the latest version of _git_ (e.g. through Homebrew), and ```git clone``` the TBD measure e.g., under "sandbox340".
-
-Run the basic tests below to ensure the measure operates as expected.
+Install the latest version of _git_ (e.g. through Homebrew), then ```git clone``` the TBD repo, e.g. under "sandbox340". Run the basic tests below to ensure the measure operates as expected.
 
 
 ## Complete list of test commands
@@ -125,7 +125,7 @@ Run the basic tests below to ensure the measure operates as expected.
 Run the following (basic) tests in the root repository of the cloned TBD measure:
 ```
 bundle update
-bundle exec rake update_library_files
+bundle exec rake libraries
 bundle exec rake
 ```
 
@@ -159,7 +159,6 @@ In the root repository:
 ```
 docker run --name test --rm -d -t -v ${PWD}:/work -w /work nrel/openstudio:3.4.0
 docker exec -t test bundle update
-docker exec -t test bundle exec rake update_library_files
 docker exec -t test bundle exec rake
 docker kill test
 ```
