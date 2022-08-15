@@ -8,7 +8,7 @@
 Derates opaque constructions from major thermal bridges.
 
 ## Modeler Description
-Consult rd2.github.io/tbd
+Check out rd2.github.io/tbd
 
 ## Measure Type
 ModelMeasure

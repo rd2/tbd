@@ -104,9 +104,9 @@ class TBDTest < Minitest::Test
     measure = TBDMeasure.new
 
     # Output dirs
-    seed_dir = File.join(__dir__, 'output/load_tbd_json/')
+    seed_dir = File.join(__dir__, "output/load_tbd_json/")
     FileUtils.mkdir_p(seed_dir)
-    seed_path = File.join(seed_dir, 'in.osm')
+    seed_path = File.join(seed_dir, "in.osm")
 
     # create runner with empty OSW
     osw = OpenStudio::WorkflowJSON.new
@@ -118,8 +118,8 @@ class TBDTest < Minitest::Test
     model.save(seed_path, true)
 
     # copy tdb.json next to seed
-    origin_pth = File.join(__dir__, 'tbd_full_PSI.json')
-    target_pth = File.join(seed_dir, 'tbd.json')
+    origin_pth = File.join(__dir__, "tbd_full_PSI.json")
+    target_pth = File.join(seed_dir, "tbd.json")
     FileUtils.cp(origin_pth, target_pth)
 
     # get arguments
@@ -162,9 +162,9 @@ class TBDTest < Minitest::Test
     measure = TBDMeasure.new
 
     # Output dirs
-    seed_dir = File.join(__dir__, 'output/load_tbd_json_error/')
+    seed_dir = File.join(__dir__, "output/load_tbd_json_error/")
     FileUtils.mkdir_p(seed_dir)
-    seed_path = File.join(seed_dir, 'in.osm')
+    seed_path = File.join(seed_dir, "in.osm")
 
     # create runner with empty OSW
     osw = OpenStudio::WorkflowJSON.new

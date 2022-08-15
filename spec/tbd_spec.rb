@@ -4,16 +4,16 @@ require "openstudio"
 def get_clean_env
   new_env = {}
   new_env["BUNDLER_ORIG_MANPATH"] = nil
-  new_env["BUNDLER_ORIG_PATH"] = nil
-  new_env["BUNDLER_VERSION"] = nil
-  new_env["BUNDLE_BIN_PATH"] = nil
-  new_env["RUBYLIB"] = nil
-  new_env["RUBYOPT"] = nil
-  new_env["GEM_PATH"] = nil
-  new_env["GEM_HOME"] = nil
-  new_env["BUNDLE_GEMFILE"] = nil
-  new_env["BUNDLE_PATH"] = nil
-  new_env["BUNDLE_WITHOUT"] = nil
+  new_env["BUNDLER_ORIG_PATH"   ] = nil
+  new_env["BUNDLER_VERSION"     ] = nil
+  new_env["BUNDLE_BIN_PATH"     ] = nil
+  new_env["RUBYLIB"             ] = nil
+  new_env["RUBYOPT"             ] = nil
+  new_env["GEM_PATH"            ] = nil
+  new_env["GEM_HOME"            ] = nil
+  new_env["BUNDLE_GEMFILE"      ] = nil
+  new_env["BUNDLE_PATH"         ] = nil
+  new_env["BUNDLE_WITHOUT"      ] = nil
 
   return new_env
 end

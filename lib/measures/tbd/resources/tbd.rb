@@ -22,60 +22,22 @@
 
 require "openstudio"
 
-begin
-  # Try to load from the Topolys gem.
-  require "topolys"
+# Topolys gem files.
+require_relative "model"
+require_relative "geometry"
+require_relative "transformation"
+require_relative "version"
 
-  puts "... relying on the Topolys gem"
-rescue LoadError
-  require_relative "topolys/model"
-  require_relative "topolys/geometry"
-  require_relative "topolys/transformation"
-  require_relative "topolys/version"
+# OSlg gem file.
+require_relative "oslog"
 
-  puts "... fallback to local Topolys files"
-end
+# OSut gem file.
+require_relative "utils"
 
-begin
-  # Try to load from the OSlg gem.
-  require "oslg"
-
-  puts "... relying on the OSlg gem"
-rescue LoadError
-  require_relative "oslg/oslog"
-  require_relative "osut/version"
-
-  puts "... fallback to local OSlg files"
-end
-
-begin
-  # Try to load from the OSut gem.
-  require "osut"
-
-  puts "... relying on the OSut gem"
-rescue LoadError
-  require_relative "osut/utils"
-  require_relative "osut/version"
-
-  puts "... fallback to local OSut files"
-end
-
-begin
-  # Try to load from the TBD gem.
-  require "tbd/psi"
-  require "tbd/geo"
-  require "tbd/ua"
-  require "tbd/version"
-
-  puts "... relying on the TBD gem"
-rescue LoadError
-  require_relative "tbd/psi"
-  require_relative "tbd/geo"
-  require_relative "tbd/ua"
-  require_relative "tbd/version"
-
-  puts "... fallback to local TBD files"
-end
+# TBD gem files.
+require_relative "psi"
+require_relative "geo"
+require_relative "ua"
 
 module TBD
   extend OSut         #                                     OpenStudio utilities
