@@ -7196,7 +7196,7 @@ RSpec.describe TBD do
 
       argh[:schema_path] = File.join(__dir__, "../tbd.schema.json")
       argh[:io_path] = File.join(__dir__, "../json/tbd_5Z.out.json")
-      json2 = TBD.process(os_model, argh)
+      json2 = TBD.process(os_model2, argh)
       expect(json2.is_a?(Hash)).to be(true)
       expect(json2.key?(:io)).to be(true)
       expect(json2.key?(:surfaces)).to be(true)
@@ -7204,9 +7204,9 @@ RSpec.describe TBD do
       surfaces = json2[:surfaces]
       expect(TBD.status).to eq(0)
       expect(TBD.logs.empty?).to be(true)
-      expect(io.nil?).to be(false)
-      expect(io.is_a?(Hash)).to be(true)
-      expect(io.empty?).to be(false)
+      expect(io2.nil?).to be(false)
+      expect(io2.is_a?(Hash)).to be(true)
+      expect(io2.empty?).to be(false)
       expect(surfaces.nil?).to be(false)
       expect(surfaces.is_a?(Hash)).to be(true)
       expect(surfaces.size).to eq(40)
