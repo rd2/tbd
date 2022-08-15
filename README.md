@@ -28,7 +28,7 @@ Upcoming enhancements are in the works. Bugs and new feature requests for _TBD_ 
 
 The installation and testing instructions in this section are for developers interested in exploring/tweaking a cloned/forked version of the source code.
 
-TBD is systematically tested against updated OpenStudio versions (since v2.9.1). The following instructions refer to OpenStudio v3.4.0 (requiring Ruby v2.7.2), strictly as an example. Adapt the instructions for more recent versions - see OpenStudio's [compatibility matrix](https://github.com/NREL/OpenStudio/wiki/OpenStudio-SDK-Version-Compatibility-Matrix).
+TBD is systematically tested against updated OpenStudio versions (since v3.0.0). The following instructions refer to OpenStudio v3.4.0 (requiring Ruby v2.7.2), strictly as an example. Adapt the instructions for more recent versions - see OpenStudio's [compatibility matrix](https://github.com/NREL/OpenStudio/wiki/OpenStudio-SDK-Version-Compatibility-Matrix).
 
 ### Windows Installation
 
@@ -62,7 +62,7 @@ ruby -e "require 'openstudio'" -e "puts OpenStudio::Model::Model.new"
 
 ### MacOS Installation
 
-MacOS already comes with Ruby, but likely not the right Ruby version for the desired OpenStudio measure development [environment](https://github.com/NREL/OpenStudio/wiki/OpenStudio-SDK-Version-Compatibility-Matrix). Instructions here show how to install Ruby v2.7.2 alongside MacOS's own Ruby version. An OpenStudio v2.9.1 setup is described [here](https://github.com/rd2/tbd/blob/master/v291_MacOS.md).
+MacOS already comes with Ruby, but likely not the right Ruby version for the desired OpenStudio measure development [environment](https://github.com/NREL/OpenStudio/wiki/OpenStudio-SDK-Version-Compatibility-Matrix). Instructions here show how to install Ruby v2.7.2 alongside MacOS's own Ruby version. Although no longer officially supported, instructions for an OpenStudio v2.9.1 setup is described [here](https://github.com/rd2/tbd/blob/master/v291_MacOS.md).
 
 From a Terminal, install [Homebrew](https://brew.sh/index) - nice for package distribution and management. Using Homebrew, install _rbenv_ (which allows users to manage multiple Ruby versions) and finally Ruby:
 
