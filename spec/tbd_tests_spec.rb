@@ -5101,7 +5101,12 @@ RSpec.describe TBD do
         expect(sub.allowDaylightingDeviceTubularDiffuser).to be(false)
         expect(sub.allowDaylightingDeviceTubularDome    ).to be(false)
       when "Skylight"
-        expect(sub.allowWindowPropertyFrameAndDivider   ).to be(true )
+        if version < 321
+          expect(sub.allowWindowPropertyFrameAndDivider   ).to be(false)
+        else
+          expect(sub.allowWindowPropertyFrameAndDivider   ).to be(true )
+        end
+
         next if version < 330
         expect(sub.allowDaylightingDeviceTubularDiffuser).to be(false)
         expect(sub.allowDaylightingDeviceTubularDome    ).to be(false)
