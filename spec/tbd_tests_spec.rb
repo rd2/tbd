@@ -16,7 +16,7 @@ RSpec.describe TBD do
     # and resting on four main pillars. For the purposes of the spec, vertical
     # access (elevator and stairs, fully glazed) are modelled as extensions
     # of either space.
-
+  
     # Apart from populating the OpenStudio model, the bulk of the next few
     # hundred is copy of the processTBD method. It is repeated step-by-step
     # here for detailed testing purposes.
@@ -5051,6 +5051,68 @@ RSpec.describe TBD do
 
   it "can factor-in Frame & Divider (F&D) objects" do
     TBD.clean!
+
+    version = OpenStudio.openStudioVersion.split(".").map(&:to_i).join.to_i
+
+    # Aide-mémoire: attributes/objects subsurfaces are allowed to have/be.
+    model = OpenStudio::Model::Model.new
+    vec   = OpenStudio::Point3dVector.new
+    vec  << OpenStudio::Point3d.new(  2.00,  0.00,  3.00)
+    vec  << OpenStudio::Point3d.new(  2.00,  0.00,  1.00)
+    vec  << OpenStudio::Point3d.new(  4.00,  0.00,  1.00)
+    vec  << OpenStudio::Point3d.new(  4.00,  0.00,  3.00)
+    sub   = OpenStudio::Model::SubSurface.new(vec, model)
+
+    OpenStudio::Model::SubSurface.validSubSurfaceTypeValues.each do |type|
+      expect(sub.setSubSurfaceType(type)).to be(true)
+      # puts sub.subSurfaceType
+      # FixedWindow
+      # OperableWindow
+      # Door
+      # GlassDoor
+      # OverheadDoor
+      # Skylight
+      # TubularDaylightDome
+      # TubularDaylightDiffuser
+      case type
+      when "FixedWindow"
+        expect(sub.allowDaylightingDeviceTubularDiffuser).to be(false)
+        expect(sub.allowDaylightingDeviceTubularDome    ).to be(false)
+        expect(sub.allowWindowPropertyFrameAndDivider   ).to be(true )
+      when "OperableWindow"
+        expect(sub.allowDaylightingDeviceTubularDiffuser).to be(false)
+        expect(sub.allowDaylightingDeviceTubularDome    ).to be(false)
+        expect(sub.allowWindowPropertyFrameAndDivider   ).to be(true )
+      when "Door"
+        expect(sub.allowDaylightingDeviceTubularDiffuser).to be(false)
+        expect(sub.allowDaylightingDeviceTubularDome    ).to be(false)
+        expect(sub.allowWindowPropertyFrameAndDivider   ).to be(false)
+      when "GlassDoor"
+        expect(sub.allowDaylightingDeviceTubularDiffuser).to be(false)
+        expect(sub.allowDaylightingDeviceTubularDome    ).to be(false)
+        expect(sub.allowWindowPropertyFrameAndDivider   ).to be(true )
+      when "OverheadDoor"
+        expect(sub.allowDaylightingDeviceTubularDiffuser).to be(false)
+        expect(sub.allowDaylightingDeviceTubularDome    ).to be(false)
+        expect(sub.allowWindowPropertyFrameAndDivider   ).to be(false)
+      when "Skylight"
+        expect(sub.allowDaylightingDeviceTubularDiffuser).to be(false)
+        expect(sub.allowDaylightingDeviceTubularDome    ).to be(false)
+        expect(sub.allowWindowPropertyFrameAndDivider   ).to be(true )
+      when "TubularDaylightDome"
+        expect(sub.allowDaylightingDeviceTubularDiffuser).to be(false)
+        expect(sub.allowDaylightingDeviceTubularDome    ).to be(true )
+        expect(sub.allowWindowPropertyFrameAndDivider   ).to be(false)
+      when "TubularDaylightDiffuser"
+        expect(sub.allowDaylightingDeviceTubularDiffuser).to be(true )
+        expect(sub.allowDaylightingDeviceTubularDome    ).to be(false)
+        expect(sub.allowWindowPropertyFrameAndDivider   ).to be(false)
+      else
+        puts "Unknown SubSurfaceType: #{type} !"
+        expect(true).to be(false)
+      end
+    end
+
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
@@ -5152,10 +5214,6 @@ RSpec.describe TBD do
     expect(os_model_FD.empty?).to be(false)
     os_model_FD = os_model_FD.get
 
-    version = os_model_FD.getVersion.versionIdentifier.split('.').map(&:to_i)
-    v = version.join.to_i
-    expect(v).is_a?(Numeric)
-
     # Adding/validating Frame & Divider object.
     fd = OpenStudio::Model::WindowPropertyFrameAndDivider.new(os_model_FD)
     width = 0.03
@@ -5176,17 +5234,26 @@ RSpec.describe TBD do
     front_FD = front_FD.get
     expect(front_FD.grossArea).to be_within(0.01).of(110.54)        # this is OK
 
-    unless v < 340
-      # As of v3.4.0, OpenStudio SDK (fully, consistently) supports F&D features.
+    unless version < 340
+      # As of v3.4.0, SDK-reported wall WWR ratio calculations will ignore
+      # frames that no longer 'fit' within the parent surface parent polygon,
+      # or overlaps any of its siblings.
+      #
+      # For older SDK versions, TBD/OSut methods are required to do the same.
       #
       #   https://github.com/NREL/OpenStudio/issues/4361
       #
+      # Here, the parent wall net area reflects the added (valid) frame areas.
+      # However, as demonstrated in the OSut spec test, this net area reports
+      # erroneous values when F&D objects 'conflict', e.g. they don't fit in, or
+      # they overlap their siblings. For v340 and up, one can only rely on WWR
+      # to safely determine TRUE net area for a parent surface.
       expect(window_FD.roughOpeningArea).to be_within(0.01).of(5.89)
       expect(front_FD.netArea).to be_within(0.01).of(95.17)           # great !!
-      expect(front_FD.windowToWallRatio()).to be_within(0.01).of(0.104)     # !!
+      expect(front_FD.windowToWallRatio).to be_within(0.01).of(0.104)       # !!
     else
       expect(front_FD.netArea).to be_within(0.01).of(95.49)             # !95.17
-      expect(front_FD.windowToWallRatio()).to be_within(0.01).of(0.101) # !0.104
+      expect(front_FD.windowToWallRatio).to be_within(0.01).of(0.101)   # !0.104
     end
 
     # If one runs a simulation with the exported file below ("os_model_FD.osm"),
@@ -5200,8 +5267,8 @@ RSpec.describe TBD do
     # forward translating the subsurface and linked Frame & Divider objects to
     # EnergyPlus (triangular subsurfaces not tested).
     #
-    # Before v3.4, there were discrepencies between the net area of the
-    # "Office Front Wall" reported by the OpenStudio API vs EnergyPlus. This
+    # For pior versions to v3.4, there are discrepencies between the net area of
+    # the "Office Front Wall" reported by the OpenStudio API vs EnergyPlus. This
     # may seem minor when looking at the numbers above, but keep in mind a
     # single glazed subsurface is modified for this comparison. This difference
     # could easily reach 5% to 10% for models with many windows, especially
@@ -5210,7 +5277,6 @@ RSpec.describe TBD do
     # ... subsurface.netArea calculation here could be reconsidered :
     # https://github.com/NREL/OpenStudio/blob/
     # 70a5549c439eda69d6c514a7275254f71f7e3d2b/src/model/Surface.cpp#L1446
-    #
     pth = File.join(__dir__, "files/osms/out/os_model_FD.osm")
     os_model_FD.save(pth, true)
 
@@ -5234,16 +5300,18 @@ RSpec.describe TBD do
     expect(surfaces.size).to eq(23)
 
     # TBD calling on framedivider.rb workarounds.
-    net_area = surfaces[nom][:net]
+    net_area   = surfaces[nom][:net]
     gross_area = surfaces[nom][:gross]
     expect(net_area).to be_within(0.01).of(95.17)                  # ! API 95.49
     expect(gross_area).to be_within(0.01).of(110.54)                      # same
 
     expect(surfaces[nom].key?(:windows)).to be(true)
     expect(surfaces[nom][:windows].size).to eq(2)
+
     surfaces[nom][:windows].each do |i, window|
       expect(window.key?(:points)).to be(true)
       expect(window[:points].size).to eq(4)
+
       if i == name
         expect(window.key?(:gross)).to be(true)
         expect(window[:gross]).to be_within(0.01).of(5.89)          # ! API 5.58
@@ -5270,7 +5338,7 @@ RSpec.describe TBD do
     expect(json.key?(:surfaces)).to be(true)
     io       = json[:io]
     surfaces = json[:surfaces]
-    expect(TBD.status).to eq(WRN)          # surfaces have already been derated.
+    expect(TBD.status).to eq(WRN)           # surfaces have already been derated
     expect(TBD.logs.size).to eq(12)
     expect(io.nil?).to be(false)
     expect(io.is_a?(Hash)).to be(true)
@@ -5287,23 +5355,36 @@ RSpec.describe TBD do
     expect(wins["clerestory"].key?(:points)).to be(true)
     expect(wins[name].key?(:points)).to be(true)
 
-    v1 = window_FD.vertices                   # original OSM vertices for window
-    p1 = wins[name][:points]         # TBD window vertices offset by frame width
-    expect((p1[0].x - v1[0].x).abs).to be_within(0.01).of(width)
-    expect((p1[1].x - v1[1].x).abs).to be_within(0.01).of(width)
-    expect((p1[2].x - v1[2].x).abs).to be_within(0.01).of(width)
-    expect((p1[3].x - v1[3].x).abs).to be_within(0.01).of(width)
-    expect((p1[0].y - v1[0].y).abs).to be_within(0.01).of(0)
-    expect((p1[1].y - v1[1].y).abs).to be_within(0.01).of(0)
-    expect((p1[2].y - v1[2].y).abs).to be_within(0.01).of(0)
-    expect((p1[3].y - v1[3].y).abs).to be_within(0.01).of(0)
-    expect((p1[0].z - v1[0].z).abs).to be_within(0.01).of(width)
-    expect((p1[1].z - v1[1].z).abs).to be_within(0.01).of(width)
-    expect((p1[2].z - v1[2].z).abs).to be_within(0.01).of(width)
-    expect((p1[3].z - v1[3].z).abs).to be_within(0.01).of(width)
+    v1 = window_FD.vertices              # original OSM vertices for window
+    f1 = TBD.offset(v1, width, 300)      # offset vertices, forcing v300 version
+    expect(f1.is_a?(OpenStudio::Point3dVector)).to be(true)
+    expect(f1.size).to eq(4)
+    f1.each { |f| expect(f.is_a?(OpenStudio::Point3d)).to be(true) }
+    f1area = OpenStudio.getArea(f1)
+    expect(f1area.empty?).to be(false)
+    f1area = f1area.get
+    expect(f1area).to be_within(TOL).of(5.89)
+    expect(f1area).to be_within(TOL).of(wins[name][:area])
+    expect(f1area).to be_within(TOL).of(wins[name][:gross])
+
+    # For SDK versions prior to v321, the offset vertices are generated in the
+    # right order with respect to the original subsurface vertices.
+    expect((f1[0].x - v1[0].x).abs).to be_within(0.01).of(width)
+    expect((f1[1].x - v1[1].x).abs).to be_within(0.01).of(width)
+    expect((f1[2].x - v1[2].x).abs).to be_within(0.01).of(width)
+    expect((f1[3].x - v1[3].x).abs).to be_within(0.01).of(width)
+    expect((f1[0].y - v1[0].y).abs).to be_within(0.01).of(0)
+    expect((f1[1].y - v1[1].y).abs).to be_within(0.01).of(0)
+    expect((f1[2].y - v1[2].y).abs).to be_within(0.01).of(0)
+    expect((f1[3].y - v1[3].y).abs).to be_within(0.01).of(0)
+    expect((f1[0].z - v1[0].z).abs).to be_within(0.01).of(width)
+    expect((f1[1].z - v1[1].z).abs).to be_within(0.01).of(width)
+    expect((f1[2].z - v1[2].z).abs).to be_within(0.01).of(width)
+    expect((f1[3].z - v1[3].z).abs).to be_within(0.01).of(width)
 
     v2 = clerestory.vertices
     p2 = wins["clerestory"][:points]             # same as original OSM vertices
+
     expect((p2[0].x - v2[0].x).abs).to be_within(0.01).of(0)
     expect((p2[1].x - v2[1].x).abs).to be_within(0.01).of(0)
     expect((p2[2].x - v2[2].x).abs).to be_within(0.01).of(0)
@@ -5319,18 +5400,16 @@ RSpec.describe TBD do
 
     # In addition, the top of the "Office Front Wall Window 1" is aligned with
     # the bottom of the clerestory, i.e. no conflicts between siblings.
-    expect((p1[0].z - p2[1].z).abs).to be_within(0.01).of(0)
-    expect((p1[3].z - p2[2].z).abs).to be_within(0.01).of(0)
+    expect((f1[0].z - p2[1].z).abs).to be_within(0.01).of(0)
+    expect((f1[3].z - p2[2].z).abs).to be_within(0.01).of(0)
     expect(TBD.status).to eq(WRN)
 
     # Testing both 'fits?' & 'overlaps?' functions.
     TBD.clean!
-    vec1 = OpenStudio::Point3dVector.new
     vec2 = OpenStudio::Point3dVector.new
-    p1.each { |p| vec1 << OpenStudio::Point3d.new(p.x, p.y, p.z) }
     p2.each { |p| vec2 << OpenStudio::Point3d.new(p.x, p.y, p.z) }
-    expect(TBD.fits?(vec1, vec2)).to be(false)
-    expect(TBD.overlaps?(vec1, vec2)).to be(false)
+    expect(TBD.fits?(f1, vec2)).to be(false)
+    expect(TBD.overlaps?(f1, vec2)).to be(false)
     expect(TBD.status).to eq(0)
 
     # Same exercise, yet provide clerestory with Frame & Divider.
@@ -5374,7 +5453,7 @@ RSpec.describe TBD do
     # Divider parameters), TBD will ignore Frame & Divider coordinates and fall
     # back to original OpenStudio subsurface vertices.
     v1 = window_FD.vertices                   # original OSM vertices for window
-    p1 = wins[name][:points]        # TBD window vertices offset by frame width
+    p1 = wins[name][:points]                  # Topolys vertices, as original
     expect((p1[0].x - v1[0].x).abs).to be_within(0.01).of(0)
     expect((p1[1].x - v1[1].x).abs).to be_within(0.01).of(0)
     expect((p1[2].x - v1[2].x).abs).to be_within(0.01).of(0)
@@ -5418,95 +5497,88 @@ RSpec.describe TBD do
     expect(TBD.status).to eq(0)
 
 
+    # --- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- --- #
     # Testing more complex cases e.g., triangular windows, irregular 4-side
     # windows, rough opening edges overlapping parent surface edges.
-    fd_model = OpenStudio::Model::Model.new
-    space = OpenStudio::Model::Space.new(fd_model)
-    space.setName("FD space")
-    tr = TBD.transforms(fd_model, space)
-    expect(tr.is_a?(Hash)).to be(true)
-    expect(tr.key?(:t)).to be(true)
-    expect(tr.key?(:r)).to be(true)
-    expect(tr[:t].nil?).to be(false)
-    expect(tr[:r].nil?).to be(false)
-    t = tr[:t]
-    r = tr[:r]
+    model = OpenStudio::Model::Model.new
+    space = OpenStudio::Model::Space.new(model)
+    space.setName("Space")
 
     # All subsurfaces are Simple Glazing constructions.
-    fenestration = OpenStudio::Model::Construction.new(fd_model)
+    fenestration = OpenStudio::Model::Construction.new(model)
     expect(fenestration.handle.to_s.empty?).to be(false)
     expect(fenestration.nameString.empty?).to be(false)
-    expect(fenestration.nameString).to eq("Construction 1")
     fenestration.setName("FD fenestration")
     expect(fenestration.nameString).to eq("FD fenestration")
     expect(fenestration.layers.size).to eq(0)
 
-    glazing = OpenStudio::Model::SimpleGlazing.new(fd_model)
+    glazing = OpenStudio::Model::SimpleGlazing.new(model)
     expect(glazing.handle.to_s.empty?).to be(false)
     expect(glazing.nameString.empty?).to be(false)
-    expect(glazing.nameString).to eq("Window Material Simple Glazing System 1")
     glazing.setName("FD glazing")
     expect(glazing.nameString).to eq("FD glazing")
     expect(glazing.setUFactor(2.0)).to be(true)
-    expect(glazing.setSolarHeatGainCoefficient(0.50)).to be(true)
-    expect(glazing.setVisibleTransmittance(0.70)).to be(true)
 
     layers = OpenStudio::Model::MaterialVector.new
     layers << glazing
     expect(fenestration.setLayers(layers)).to be(true)
     expect(fenestration.layers.size).to eq(1)
-    expect(fenestration.layers[0].handle.to_s).to eq(glazing.handle.to_s)
-    expect(fenestration.uFactor.empty?).to be(false)
-    expect(fenestration.uFactor.get).to be_within(0.1).of(2.0)
 
-    vec = OpenStudio::Point3dVector.new
+    vec  = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new(  0.00,  0.00, 10.00)
     vec << OpenStudio::Point3d.new(  0.00,  0.00,  0.00)
     vec << OpenStudio::Point3d.new( 10.00,  0.00,  0.00)
     vec << OpenStudio::Point3d.new( 10.00,  0.00, 10.00)
-    dad = OpenStudio::Model::Surface.new(vec, fd_model)
+    dad  = OpenStudio::Model::Surface.new(vec, model)
     dad.setName("dad")
     expect(dad.setSpace(space)).to be(true)
 
-    vec = OpenStudio::Point3dVector.new
+    vec  = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new(  2.00,  0.00,  8.00)
     vec << OpenStudio::Point3d.new(  1.00,  0.00,  6.00)
     vec << OpenStudio::Point3d.new(  4.00,  0.00,  9.00)
-    w1 = OpenStudio::Model::SubSurface.new(vec, fd_model)
+    w1   = OpenStudio::Model::SubSurface.new(vec, model)
     w1.setName("w1")
     expect(w1.setSubSurfaceType("FixedWindow")).to be(true)
     expect(w1.setSurface(dad)).to be(true)
     expect(w1.setConstruction(fenestration)).to be(true)
     expect(w1.uFactor.empty?).to be(false)
     expect(w1.uFactor.get).to be_within(0.1).of(2.0)
+    expect(w1.netArea).to be_within(TOL).of(1.50)
+    expect(w1.grossArea).to be_within(TOL).of(1.50)
 
-    vec = OpenStudio::Point3dVector.new
+    vec  = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new(  7.00,  0.00,  4.00)
     vec << OpenStudio::Point3d.new(  4.00,  0.00,  1.00)
     vec << OpenStudio::Point3d.new(  8.00,  0.00,  2.00)
     vec << OpenStudio::Point3d.new(  9.00,  0.00,  3.00)
-    w2 = OpenStudio::Model::SubSurface.new(vec, fd_model)
+    w2   = OpenStudio::Model::SubSurface.new(vec, model)
     w2.setName("w2")
     expect(w2.setSubSurfaceType("FixedWindow")).to be(true)
     expect(w2.setSurface(dad)).to be(true)
     expect(w2.setConstruction(fenestration)).to be(true)
     expect(w2.uFactor.empty?).to be(false)
     expect(w2.uFactor.get).to be_within(0.1).of(2.0)
+    expect(w2.netArea).to be_within(TOL).of(6.00)
+    expect(w2.grossArea).to be_within(TOL).of(6.00)
 
-    vec = OpenStudio::Point3dVector.new
+    vec  = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new(  9.00,  0.00,  9.80)
     vec << OpenStudio::Point3d.new(  9.80,  0.00,  9.00)
     vec << OpenStudio::Point3d.new(  9.80,  0.00,  9.80)
-    w3 = OpenStudio::Model::SubSurface.new(vec, fd_model)
+    w3   = OpenStudio::Model::SubSurface.new(vec, model)
     w3.setName("w3")
     expect(w3.setSubSurfaceType("FixedWindow")).to be(true)
     expect(w3.setSurface(dad)).to be(true)
     expect(w3.setConstruction(fenestration)).to be(true)
     expect(w3.uFactor.empty?).to be(false)
     expect(w3.uFactor.get).to be_within(0.1).of(2.0)
+    expect(w3.netArea).to be_within(TOL).of(0.32)
+    expect(w3.grossArea).to be_within(TOL).of(0.32)
 
     # Without Frame & Divider objects linked to subsurface.
-    surface = TBD.properties(fd_model, dad)
+    surface = TBD.properties(model, dad)
+    puts TBD.logs
     expect(surface.nil?).to be(false)
     expect(surface.is_a?(Hash)).to be(true)
     expect(surface.key?(:gross)).to be(true)
@@ -5519,22 +5591,44 @@ RSpec.describe TBD do
     expect(surface[:windows]["w1"].is_a?(Hash)).to be(true)
     expect(surface[:windows]["w1"].key?(:gross)).to be(true)
     expect(surface[:windows]["w1"][:gross]).to be_within(0.01).of(1.5)
-    expect(surface[:windows]["w1"].key?(:u)).to be(true)
-    expect(surface[:windows]["w1"][:u]).to be_within(0.01).of(2.0)
     expect(surface[:windows]["w1"].key?(:points)).to be(true)
     expect(surface[:windows]["w1"][:points].size).to eq(3)
 
-    # Adding a Frame & Divider object.
-    fd = OpenStudio::Model::WindowPropertyFrameAndDivider.new(fd_model)
+    # Adding a Frame & Divider object ...
+    fd = OpenStudio::Model::WindowPropertyFrameAndDivider.new(model)
     expect(fd.setFrameWidth(0.200)).to be(true)   # 200mm (wide!) around glazing
     expect(fd.setFrameConductance(0.500)).to be(true)
 
     expect(w1.allowWindowPropertyFrameAndDivider).to be(true)
     expect(w1.setWindowPropertyFrameAndDivider(fd)).to be(true)
     width = w1.windowPropertyFrameAndDivider.get.frameWidth
-    expect(width).to be_within(0.001).of(0.200)                # good so far ...
+    expect(width).to be_within(0.001).of(0.200)                # ... good so far
 
-    surface = TBD.properties(fd_model, dad)
+    # TBD's 'properties' method relies on OSut's 'offset' solution when dealing
+    # with subsurfaces with F&D. It offers 3x options:
+    #   1. native, 3D vector-based calculations (only option for SDK < v321)
+    #   2. SDK's reliance on Boost's 'buffer' (default for v300 < SDK < v340)
+    #   3. SDK's 'rough opening' vertices (default for SDK v340+)
+    #
+    # Options #2 & #3 both rely on Boost's buffer. But SDK v340+ doesn't
+    # correct generated Boost vertices (back to counterclockwise). Option #2
+    # ensures counterclockwise sequences, although the first vertex in the array
+    # is no longer in sync with the original OpenStudio vertices. Not
+    # consequential for fitting and overlapping detection, or net/gross/rough
+    # areas tallies. Otherwise, both options generate the same vertices.
+    #
+    # For triangular subsurfaces, Options #2 & #3 may generate additional
+    # vertices near acute angles, e.g. 6 (3 of which would be ~colinear).
+    # Calculated areas, as well as fitting & overlapping detection, still work.
+    # Yet inaccuracies do creep in with respect to Option #1. To maintain
+    # consistency in TBD calculations when switching SDK versions, TBD's use of
+    # OSut's offset method is as follows (see 'properties' in geo.rb):
+    #
+    #    offset(s.vertices, width, 300)
+    #
+    # There may be slight differences in reported SDK results vs TBD UA reports
+    # (e.g. WWR, net areas) with acute triangular windows ... which is fine.
+    surface = TBD.properties(model, dad)
     expect(surface.nil?).to be(false)
     expect(surface.is_a?(Hash)).to be(true)
     expect(surface.key?(:windows)).to be(true)
@@ -5543,16 +5637,14 @@ RSpec.describe TBD do
     expect(surface[:windows]["w1"].is_a?(Hash)).to be(true)
     expect(surface[:windows]["w1"].key?(:gross)).to be(true)
     expect(surface[:windows]["w1"][:gross]).to be_within(0.01).of(3.75)
-    expect(surface[:windows]["w1"].key?(:u)).to be(true)
-    expect(surface[:windows]["w1"][:u]).to be_within(0.01).of(2.0)
     expect(surface[:windows]["w1"].key?(:points)).to be(true)
-
     ptz = surface[:windows]["w1"][:points]
-    expect(ptz.size).to eq(3)
-
+    expect(ptz.size).to eq(3)        # 6 without the '300' offset argument above
     vec = OpenStudio::Point3dVector.new
-    ptz.each { |p| vec << t * OpenStudio::Point3d.new(p.x, p.y, p.z) }
-
+    ptz.each { |o| vec << OpenStudio::Point3d.new(o.x, o.y, o.z) }
+    vec_area = OpenStudio.getArea(vec)
+    expect(vec_area.empty?).to be(false)
+    expect(vec_area.get).to be_within(TOL).of(surface[:windows]["w1"][:area])
     # The following X & Z coordinates are all offset by 0.200 (frame width),
     # with respect to the original subsurface coordinates. For acute angles,
     # the rough opening edge intersection can be far, far away from the glazing
@@ -5573,7 +5665,7 @@ RSpec.describe TBD do
     width = w2.windowPropertyFrameAndDivider.get.frameWidth
     expect(width).to be_within(0.001).of(0.200)
 
-    surface = TBD.properties(fd_model, dad)
+    surface = TBD.properties(model, dad)
     expect(surface.nil?).to be(false)
     expect(surface.is_a?(Hash)).to be(true)
     expect(surface.key?(:windows)).to be(true)
@@ -5582,17 +5674,11 @@ RSpec.describe TBD do
     expect(surface[:windows]["w2"].is_a?(Hash)).to be(true)
     expect(surface[:windows]["w2"].key?(:gross)).to be(true)
     expect(surface[:windows]["w2"][:gross]).to be_within(0.01).of(8.64)
-    expect(surface[:windows]["w2"].key?(:u)).to be(true)
-    expect(surface[:windows]["w2"][:u]).to be_within(0.01).of(2.0)
     expect(surface[:windows]["w2"].key?(:points)).to be(true)
-
     ptz = surface[:windows]["w2"][:points]
     expect(ptz.size).to eq(4)
-
     vec = OpenStudio::Point3dVector.new
-    ptz.each { |p| vec << t * OpenStudio::Point3d.new(p.x, p.y, p.z) }
-
-    # # This window would have 2 shared edges (@right angle) with the parent.
+    ptz.each { |o| vec << OpenStudio::Point3d.new(o.x, o.y, o.z) }
     expect(vec[0].x).to be_within(0.01).of( 6.96)
     expect(vec[0].y).to be_within(0.01).of( 0.00)
     expect(vec[0].z).to be_within(0.01).of( 4.24)
@@ -5612,7 +5698,7 @@ RSpec.describe TBD do
     width = w3.windowPropertyFrameAndDivider.get.frameWidth
     expect(width).to be_within(0.001).of(0.200)
 
-    surface = TBD.properties(fd_model, dad)
+    surface = TBD.properties(model, dad)
     expect(surface.nil?).to be(false)
     expect(surface.is_a?(Hash)).to be(true)
     expect(surface.key?(:windows)).to be(true)
@@ -5621,17 +5707,12 @@ RSpec.describe TBD do
     expect(surface[:windows]["w3"].is_a?(Hash)).to be(true)
     expect(surface[:windows]["w3"].key?(:gross)).to be(true)
     expect(surface[:windows]["w3"][:gross]).to be_within(0.01).of(1.1)
-    expect(surface[:windows]["w3"].key?(:u)).to be(true)
-    expect(surface[:windows]["w3"][:u]).to be_within(0.01).of(2.0)
     expect(surface[:windows]["w3"].key?(:points)).to be(true)
-
     ptz = surface[:windows]["w3"][:points]
     expect(ptz.size).to eq(3)
-
     vec = OpenStudio::Point3dVector.new
-    ptz.each { |p| vec << t * OpenStudio::Point3d.new(p.x, p.y, p.z) }
-
-    # # This window would have 2 shared edges (@right angle) with the parent.
+    ptz.each { |o| vec << OpenStudio::Point3d.new(o.x, o.y, o.z) }
+    # This window would have 2 shared edges (@right angle) with the parent.
     expect(vec[0].x).to be_within(0.01).of( 8.52)
     expect(vec[0].y).to be_within(0.01).of( 0.00)
     expect(vec[0].z).to be_within(0.01).of(10.00)
@@ -5643,88 +5724,87 @@ RSpec.describe TBD do
     expect(vec[2].z).to be_within(0.01).of(10.00)
 
 
+    # --- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- --- #
     # Repeat exercise, with parent surface & subsurfaces rotated 120 (CW).
     # (i.e., negative coordinates, Y-axis coordinates, etc.)
-    fd2_model = OpenStudio::Model::Model.new
-    space2 = OpenStudio::Model::Space.new(fd2_model)
-    space2.setName("FD 2 space")
-    tr = TBD.transforms(fd2_model, space2)
-    expect(tr.is_a?(Hash)).to be(true)
-    expect(tr.key?(:t)).to be(true)
-    expect(tr.key?(:r)).to be(true)
-    expect(tr[:t].nil?).to be(false)
-    expect(tr[:r].nil?).to be(false)
-    t = tr[:t]
-    r = tr[:r]
+    model = OpenStudio::Model::Model.new
+    space = OpenStudio::Model::Space.new(model)
+    space.setName("Space")
 
     # All subsurfaces are Simple Glazing constructions.
-    fenestration = OpenStudio::Model::Construction.new(fd2_model)
+    fenestration = OpenStudio::Model::Construction.new(model)
     expect(fenestration.handle.to_s.empty?).to be(false)
     expect(fenestration.nameString.empty?).to be(false)
-    expect(fenestration.nameString).to eq("Construction 1")
-    fenestration.setName("FD2 fenestration")
-    expect(fenestration.nameString).to eq("FD2 fenestration")
+    fenestration.setName("FD fenestration")
+    expect(fenestration.nameString).to eq("FD fenestration")
     expect(fenestration.layers.size).to eq(0)
 
-    glazing = OpenStudio::Model::SimpleGlazing.new(fd2_model)
+    glazing = OpenStudio::Model::SimpleGlazing.new(model)
     expect(glazing.handle.to_s.empty?).to be(false)
     expect(glazing.nameString.empty?).to be(false)
-    expect(glazing.nameString).to eq("Window Material Simple Glazing System 1")
-    glazing.setName("FD2 glazing")
-    expect(glazing.nameString).to eq("FD2 glazing")
+    glazing.setName("FD glazing")
+    expect(glazing.nameString).to eq("FD glazing")
     expect(glazing.setUFactor(2.0)).to be(true)
-    expect(glazing.setSolarHeatGainCoefficient(0.50)).to be(true)
-    expect(glazing.setVisibleTransmittance(0.70)).to be(true)
 
     layers = OpenStudio::Model::MaterialVector.new
     layers << glazing
     expect(fenestration.setLayers(layers)).to be(true)
     expect(fenestration.layers.size).to eq(1)
-    expect(fenestration.layers[0].handle.to_s).to eq(glazing.handle.to_s)
 
-    vec = OpenStudio::Point3dVector.new
+    vec  = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new(  0.00,  0.00, 10.00)
     vec << OpenStudio::Point3d.new(  0.00,  0.00,  0.00)
     vec << OpenStudio::Point3d.new( -5.00, -8.66,  0.00)
     vec << OpenStudio::Point3d.new( -5.00, -8.66, 10.00)
-    dad = OpenStudio::Model::Surface.new(vec, fd2_model)
+    dad  = OpenStudio::Model::Surface.new(vec, model)
     dad.setName("dad")
-    expect(dad.setSpace(space2)).to be(true)
+    expect(dad.setSpace(space)).to be(true)
 
-    vec = OpenStudio::Point3dVector.new
+    vec  = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new( -1.00, -1.73,  8.00)
     vec << OpenStudio::Point3d.new( -0.50, -0.87,  6.00)
     vec << OpenStudio::Point3d.new( -2.00, -3.46,  9.00)
-    w1 = OpenStudio::Model::SubSurface.new(vec, fd2_model)
+    w1   = OpenStudio::Model::SubSurface.new(vec, model)
     w1.setName("w1")
     expect(w1.setSubSurfaceType("FixedWindow")).to be(true)
     expect(w1.setSurface(dad)).to be(true)
     expect(w1.setConstruction(fenestration)).to be(true)
+    expect(w1.uFactor.empty?).to be(false)
+    expect(w1.uFactor.get).to be_within(0.1).of(2.0)
+    expect(w1.netArea).to be_within(TOL).of(1.50)
+    expect(w1.grossArea).to be_within(TOL).of(1.50)
 
-    vec = OpenStudio::Point3dVector.new
+    vec  = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new( -3.50, -6.06,  4.00)
     vec << OpenStudio::Point3d.new( -2.00, -3.46,  1.00)
     vec << OpenStudio::Point3d.new( -4.00, -6.93,  2.00)
     vec << OpenStudio::Point3d.new( -4.50, -7.79,  3.00)
-    w2 = OpenStudio::Model::SubSurface.new(vec, fd2_model)
+    w2   = OpenStudio::Model::SubSurface.new(vec, model)
     w2.setName("w2")
     expect(w2.setSubSurfaceType("FixedWindow")).to be(true)
     expect(w2.setSurface(dad)).to be(true)
     expect(w2.setConstruction(fenestration)).to be(true)
+    expect(w2.uFactor.empty?).to be(false)
+    expect(w2.uFactor.get).to be_within(0.1).of(2.0)
+    expect(w2.netArea).to be_within(TOL).of(6.00)
+    expect(w2.grossArea).to be_within(TOL).of(6.00)
 
-    vec = OpenStudio::Point3dVector.new
+    vec  = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new( -4.50, -7.79,  9.80)
     vec << OpenStudio::Point3d.new( -4.90, -8.49,  9.00)
     vec << OpenStudio::Point3d.new( -4.90, -8.49,  9.80)
-    w3 = OpenStudio::Model::SubSurface.new(vec, fd2_model)
+    w3   = OpenStudio::Model::SubSurface.new(vec, model)
     w3.setName("w3")
     expect(w3.setSubSurfaceType("FixedWindow")).to be(true)
     expect(w3.setSurface(dad)).to be(true)
     expect(w3.setConstruction(fenestration)).to be(true)
-    expect(w3.grossArea).to be_within(0.01).of(0.32)
+    expect(w3.uFactor.empty?).to be(false)
+    expect(w3.uFactor.get).to be_within(0.1).of(2.0)
+    expect(w3.netArea).to be_within(TOL).of(0.32)
+    expect(w3.grossArea).to be_within(TOL).of(0.32)
 
     # Without Frame & Divider objects linked to subsurface.
-    surface = TBD.properties(fd2_model, dad)
+    surface = TBD.properties(model, dad)
     expect(surface.nil?).to be(false)
     expect(surface.is_a?(Hash)).to be(true)
     expect(surface.key?(:gross)).to be(true)
@@ -5737,27 +5817,24 @@ RSpec.describe TBD do
     expect(surface[:windows]["w1"].is_a?(Hash)).to be(true)
     expect(surface[:windows]["w1"].key?(:gross)).to be(true)
     expect(surface[:windows]["w1"][:gross]).to be_within(0.01).of(1.5)
-    expect(surface[:windows]["w1"].key?(:u)).to be(true)
-    expect(surface[:windows]["w1"][:u]).to be_within(0.01).of(2.0)
     expect(surface[:windows]["w1"].key?(:points)).to be(true)
     expect(surface[:windows]["w1"][:points].size).to eq(3)
-
     expect(surface[:windows].key?("w3"))
     expect(surface[:windows]["w3"].is_a?(Hash)).to be(true)
     expect(surface[:windows]["w3"].key?(:gross)).to be(true)
     expect(surface[:windows]["w3"][:gross]).to be_within(0.01).of(0.32)
 
     # Adding a Frame & Divider object.
-    fd2 = OpenStudio::Model::WindowPropertyFrameAndDivider.new(fd2_model)
-    expect(fd2.setFrameWidth(0.200)).to be(true)   # 200mm (wide!) around glazing
-    expect(fd2.setFrameConductance(0.500)).to be(true)
+    fd = OpenStudio::Model::WindowPropertyFrameAndDivider.new(model)
+    expect(fd.setFrameWidth(0.200)).to be(true)   # 200mm (wide!) around glazing
+    expect(fd.setFrameConductance(0.500)).to be(true)
 
     expect(w1.allowWindowPropertyFrameAndDivider).to be(true)
-    expect(w1.setWindowPropertyFrameAndDivider(fd2)).to be(true)
+    expect(w1.setWindowPropertyFrameAndDivider(fd)).to be(true)
     width = w1.windowPropertyFrameAndDivider.get.frameWidth
     expect(width).to be_within(0.001).of(0.200)                # good so far ...
 
-    surface = TBD.properties(fd_model, dad)
+    surface = TBD.properties(model, dad)
     expect(surface.nil?).to be(false)
     expect(surface.is_a?(Hash)).to be(true)
     expect(surface.key?(:windows)).to be(true)
@@ -5766,25 +5843,20 @@ RSpec.describe TBD do
     expect(surface[:windows]["w1"].is_a?(Hash)).to be(true)
     expect(surface[:windows]["w1"].key?(:gross)).to be(true)
     expect(surface[:windows]["w1"][:gross]).to be_within(0.01).of(3.75)
-    expect(surface[:windows]["w1"].key?(:u)).to be(true)
-    expect(surface[:windows]["w1"][:u]).to be_within(0.01).of(2.0)
     expect(surface[:windows]["w1"].key?(:points)).to be(true)
-
     ptz = surface[:windows]["w1"][:points]
+    expect(ptz.is_a?(Array))
     expect(ptz.size).to eq(3)
-
     vec = OpenStudio::Point3dVector.new
-    ptz.each { |p| vec << t * OpenStudio::Point3d.new(p.x, p.y, p.z) }
-
-    # The following X & Z coordinates are all offset by 0.200 (frame width),
-    # with respect to the original subsurface coordinates. For acute angles,
-    # the rough opening edge intersection can be far, far away from the glazing
-    # coordinates (+1m).
+    ptz.each { |o| vec << OpenStudio::Point3d.new(o.x, o.y, o.z) }
+    area = OpenStudio.getArea(vec)
+    expect(area.empty?).to be(false)
+    expect(area.get).to be_within(TOL).of(surface[:windows]["w1"][:area])
     expect(vec[0].x).to be_within(0.01).of(-0.93)
     expect(vec[0].y).to be_within(0.01).of(-1.60)
     expect(vec[0].z).to be_within(0.01).of( 8.15)
     expect(vec[1].x).to be_within(0.01).of(-0.13)
-    expect(vec[1].y).to be_within(0.01).of(-0.24) # SketchUP (-0.23)
+    expect(vec[1].y).to be_within(0.01).of(-0.24)             # SketchUP (-0.23)
     expect(vec[1].z).to be_within(0.01).of( 4.99)
     expect(vec[2].x).to be_within(0.01).of(-2.51)
     expect(vec[2].y).to be_within(0.01).of(-4.34)
@@ -5792,11 +5864,11 @@ RSpec.describe TBD do
 
     # Adding a Frame & Divider object for w2.
     expect(w2.allowWindowPropertyFrameAndDivider).to be(true)
-    expect(w2.setWindowPropertyFrameAndDivider(fd2)).to be(true)
+    expect(w2.setWindowPropertyFrameAndDivider(fd)).to be(true)
     width = w2.windowPropertyFrameAndDivider.get.frameWidth
     expect(width).to be_within(0.001).of(0.200)
 
-    surface = TBD.properties(fd_model, dad)
+    surface = TBD.properties(model, dad)
     expect(surface.nil?).to be(false)
     expect(surface.is_a?(Hash)).to be(true)
     expect(surface.key?(:windows)).to be(true)
@@ -5805,17 +5877,14 @@ RSpec.describe TBD do
     expect(surface[:windows]["w2"].is_a?(Hash)).to be(true)
     expect(surface[:windows]["w2"].key?(:gross)).to be(true)
     expect(surface[:windows]["w2"][:gross]).to be_within(0.01).of(8.64)
-    expect(surface[:windows]["w2"].key?(:u)).to be(true)
-    expect(surface[:windows]["w2"][:u]).to be_within(0.01).of(2.0)
     expect(surface[:windows]["w2"].key?(:points)).to be(true)
-
     ptz = surface[:windows]["w2"][:points]
     expect(ptz.size).to eq(4)
-
     vec = OpenStudio::Point3dVector.new
-    ptz.each { |p| vec << t * OpenStudio::Point3d.new(p.x, p.y, p.z) }
-
-    # # This window would have 2 shared edges (@right angle) with the parent.
+    ptz.each { |o| vec << OpenStudio::Point3d.new(o.x, o.y, o.z) }
+    area = OpenStudio.getArea(vec)
+    expect(area.empty?).to be(false)
+    expect(area.get).to be_within(TOL).of(surface[:windows]["w2"][:area])
     expect(vec[0].x).to be_within(0.01).of(-3.48)
     expect(vec[0].y).to be_within(0.01).of(-6.03)
     expect(vec[0].z).to be_within(0.01).of( 4.24)
@@ -5831,11 +5900,11 @@ RSpec.describe TBD do
 
     # Adding a Frame & Divider object for w3.
     expect(w3.allowWindowPropertyFrameAndDivider).to be(true)
-    expect(w3.setWindowPropertyFrameAndDivider(fd2)).to be(true)
+    expect(w3.setWindowPropertyFrameAndDivider(fd)).to be(true)
     width = w3.windowPropertyFrameAndDivider.get.frameWidth
     expect(width).to be_within(0.001).of(0.200)
 
-    surface = TBD.properties(fd_model, dad)
+    surface = TBD.properties(model, dad)
     expect(surface.nil?).to be(false)
     expect(surface.is_a?(Hash)).to be(true)
     expect(surface.key?(:windows)).to be(true)
@@ -5843,20 +5912,17 @@ RSpec.describe TBD do
     expect(surface[:windows].key?("w3"))
     expect(surface[:windows]["w3"].is_a?(Hash)).to be(true)
     expect(surface[:windows]["w3"].key?(:gross)).to be(true)
-    expect(surface[:windows]["w3"][:gross]).to be_within(0.01).of(1.1)
-    expect(surface[:windows]["w3"].key?(:u)).to be(true)
-    expect(surface[:windows]["w3"][:u]).to be_within(0.01).of(2.0)
     expect(surface[:windows]["w3"].key?(:points)).to be(true)
-
     ptz = surface[:windows]["w3"][:points]
     expect(ptz.size).to eq(3)
-
     vec = OpenStudio::Point3dVector.new
-    ptz.each { |p| vec << t * OpenStudio::Point3d.new(p.x, p.y, p.z) }
-
-    # # This window would have 2 shared edges (@right angle) with the parent.
+    ptz.each { |o| vec << OpenStudio::Point3d.new(o.x, o.y, o.z) }
+    area = OpenStudio.getArea(vec)
+    expect(area.empty?).to be(false)
+    expect(area.get).to be_within(TOL).of(surface[:windows]["w3"][:area])
+    expect(surface[:windows]["w3"][:gross]).to be_within(0.01).of(1.1)
     expect(vec[0].x).to be_within(0.01).of(-4.26)
-    expect(vec[0].y).to be_within(0.01).of(-7.37) # SketchUp (-7.38)
+    expect(vec[0].y).to be_within(0.01).of(-7.37)             # SketchUp (-7.38)
     expect(vec[0].z).to be_within(0.01).of(10.00)
     expect(vec[1].x).to be_within(0.01).of(-5.00)
     expect(vec[1].y).to be_within(0.01).of(-8.66)
@@ -5866,86 +5932,86 @@ RSpec.describe TBD do
     expect(vec[2].z).to be_within(0.01).of(10.00)
 
 
+    # --- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- --- #
     # Repeat 3rd time - 2x 30° rotations (along the 2 other axes).
-    fd3_model = OpenStudio::Model::Model.new
-    space3 = OpenStudio::Model::Space.new(fd3_model)
-    space3.setName("FD 3 space")
-    tr = TBD.transforms(fd3_model, space3)
-    expect(tr.is_a?(Hash)).to be(true)
-    expect(tr.key?(:t)).to be(true)
-    expect(tr.key?(:r)).to be(true)
-    expect(tr[:t].nil?).to be(false)
-    expect(tr[:r].nil?).to be(false)
-    t = tr[:t]
-    r = tr[:r]
+    model = OpenStudio::Model::Model.new
+    space = OpenStudio::Model::Space.new(model)
+    space.setName("Space")
 
     # All subsurfaces are Simple Glazing constructions.
-    fenestration = OpenStudio::Model::Construction.new(fd3_model)
+    fenestration = OpenStudio::Model::Construction.new(model)
     expect(fenestration.handle.to_s.empty?).to be(false)
     expect(fenestration.nameString.empty?).to be(false)
-    expect(fenestration.nameString).to eq("Construction 1")
     fenestration.setName("FD3 fenestration")
     expect(fenestration.nameString).to eq("FD3 fenestration")
     expect(fenestration.layers.size).to eq(0)
 
-    glazing = OpenStudio::Model::SimpleGlazing.new(fd3_model)
+    glazing = OpenStudio::Model::SimpleGlazing.new(model)
     expect(glazing.handle.to_s.empty?).to be(false)
     expect(glazing.nameString.empty?).to be(false)
-    expect(glazing.nameString).to eq("Window Material Simple Glazing System 1")
     glazing.setName("FD3 glazing")
     expect(glazing.nameString).to eq("FD3 glazing")
     expect(glazing.setUFactor(2.0)).to be(true)
-    expect(glazing.setSolarHeatGainCoefficient(0.50)).to be(true)
-    expect(glazing.setVisibleTransmittance(0.70)).to be(true)
 
     layers = OpenStudio::Model::MaterialVector.new
     layers << glazing
     expect(fenestration.setLayers(layers)).to be(true)
     expect(fenestration.layers.size).to eq(1)
-    expect(fenestration.layers[0].handle.to_s).to eq(glazing.handle.to_s)
 
-    vec = OpenStudio::Point3dVector.new
+    vec  = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new( -1.25,  6.50,  7.50)
     vec << OpenStudio::Point3d.new(  0.00,  0.00,  0.00)
     vec << OpenStudio::Point3d.new( -6.50, -6.25,  4.33)
     vec << OpenStudio::Point3d.new( -7.75,  0.25, 11.83)
-    dad = OpenStudio::Model::Surface.new(vec, fd3_model)
+    dad  = OpenStudio::Model::Surface.new(vec, model)
     dad.setName("dad")
-    dad.setSpace(space3)
+    expect(dad.setSpace(space)).to be(true)
 
-    vec = OpenStudio::Point3dVector.new
+    vec  = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new( -2.30,  3.95,  6.87)
     vec << OpenStudio::Point3d.new( -1.40,  3.27,  4.93)
     vec << OpenStudio::Point3d.new( -3.72,  3.35,  8.48)
-    w1 = OpenStudio::Model::SubSurface.new(vec, fd3_model)
+    w1   = OpenStudio::Model::SubSurface.new(vec, model)
     w1.setName("w1")
     expect(w1.setSubSurfaceType("FixedWindow")).to be(true)
     expect(w1.setSurface(dad)).to be(true)
     expect(w1.setConstruction(fenestration)).to be(true)
+    expect(w1.uFactor.empty?).to be(false)
+    expect(w1.uFactor.get).to be_within(0.1).of(2.0)
+    expect(w1.netArea).to be_within(TOL).of(1.50)
+    expect(w1.grossArea).to be_within(TOL).of(1.50)
 
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new( -5.05, -1.78,  6.03)
     vec << OpenStudio::Point3d.new( -2.72, -1.85,  2.48)
     vec << OpenStudio::Point3d.new( -5.45, -3.70,  4.96)
     vec << OpenStudio::Point3d.new( -6.22, -3.68,  6.15)
-    w2 = OpenStudio::Model::SubSurface.new(vec, fd3_model)
+    w2 = OpenStudio::Model::SubSurface.new(vec, model)
     w2.setName("w2")
     expect(w2.setSubSurfaceType("FixedWindow")).to be(true)
     expect(w2.setSurface(dad)).to be(true)
     expect(w2.setConstruction(fenestration)).to be(true)
+    expect(w2.uFactor.empty?).to be(false)
+    expect(w2.uFactor.get).to be_within(0.1).of(2.0)
+    expect(w2.netArea).to be_within(TOL).of(6.00)
+    expect(w2.grossArea).to be_within(TOL).of(6.00)
 
     vec = OpenStudio::Point3dVector.new
     vec << OpenStudio::Point3d.new( -7.07,  0.74, 11.25)
     vec << OpenStudio::Point3d.new( -7.49, -0.28, 10.99)
     vec << OpenStudio::Point3d.new( -7.59,  0.24, 11.59)
-    w3 = OpenStudio::Model::SubSurface.new(vec, fd3_model)
+    w3 = OpenStudio::Model::SubSurface.new(vec, model)
     w3.setName("w3")
     expect(w3.setSubSurfaceType("FixedWindow")).to be(true)
     expect(w3.setSurface(dad)).to be(true)
     expect(w3.setConstruction(fenestration)).to be(true)
+    expect(w3.uFactor.empty?).to be(false)
+    expect(w3.uFactor.get).to be_within(0.1).of(2.0)
+    expect(w3.netArea).to be_within(TOL).of(0.32)
+    expect(w3.grossArea).to be_within(TOL).of(0.32)
 
     # Without Frame & Divider objects linked to subsurface.
-    surface = TBD.properties(fd_model, dad)
+    surface = TBD.properties(model, dad)
     expect(surface.nil?).to be(false)
     expect(surface.is_a?(Hash)).to be(true)
     expect(surface.key?(:gross)).to be(true)
@@ -5964,16 +6030,16 @@ RSpec.describe TBD do
     expect(surface[:windows]["w1"][:points].size).to eq(3)
 
     # Adding a Frame & Divider object.
-    fd3 = OpenStudio::Model::WindowPropertyFrameAndDivider.new(fd3_model)
-    expect(fd3.setFrameWidth(0.200)).to be(true)  # 200mm (wide!) around glazing
-    expect(fd3.setFrameConductance(0.500)).to be(true)
+    fd = OpenStudio::Model::WindowPropertyFrameAndDivider.new(model)
+    expect(fd.setFrameWidth(0.200)).to be(true)
+    expect(fd.setFrameConductance(0.500)).to be(true)
 
     expect(w1.allowWindowPropertyFrameAndDivider).to be(true)
-    expect(w1.setWindowPropertyFrameAndDivider(fd3)).to be(true)
+    expect(w1.setWindowPropertyFrameAndDivider(fd)).to be(true)
     width = w1.windowPropertyFrameAndDivider.get.frameWidth
-    expect(width).to be_within(0.001).of(0.200)                # good so far ...
+    expect(width).to be_within(0.001).of(0.200)
 
-    surface = TBD.properties(fd_model, dad)
+    surface = TBD.properties(model, dad)
     expect(surface.nil?).to be(false)
     expect(surface.is_a?(Hash)).to be(true)
     expect(surface.key?(:windows)).to be(true)
@@ -5982,20 +6048,15 @@ RSpec.describe TBD do
     expect(surface[:windows]["w1"].is_a?(Hash)).to be(true)
     expect(surface[:windows]["w1"].key?(:gross)).to be(true)
     expect(surface[:windows]["w1"][:gross]).to be_within(0.02).of(3.75)
-    expect(surface[:windows]["w1"].key?(:u)).to be(true)
-    expect(surface[:windows]["w1"][:u]).to be_within(0.01).of(2.0)
     expect(surface[:windows]["w1"].key?(:points)).to be(true)
-
     ptz = surface[:windows]["w1"][:points]
+    expect(ptz.is_a?(Array))
     expect(ptz.size).to eq(3)
-
     vec = OpenStudio::Point3dVector.new
-    ptz.each { |p| vec << t * OpenStudio::Point3d.new(p.x, p.y, p.z) }
-
-    # The following X & Z coordinates are all offset by 0.200 (frame width),
-    # with respect to the original subsurface coordinates. For acute angles,
-    # the rough opening edge intersection can be far, far away from the glazing
-    # coordinates (+1m).
+    ptz.each { |o| vec << OpenStudio::Point3d.new(o.x, o.y, o.z) }
+    area = OpenStudio.getArea(vec)
+    expect(area.empty?).to be(false)
+    expect(area.get).to be_within(TOL).of(surface[:windows]["w1"][:area])
     expect(vec[0].x).to be_within(0.01).of(-2.22)
     expect(vec[0].y).to be_within(0.01).of( 4.14)
     expect(vec[0].z).to be_within(0.01).of( 6.91)
@@ -6004,15 +6065,15 @@ RSpec.describe TBD do
     expect(vec[1].z).to be_within(0.01).of( 3.86)
     expect(vec[2].x).to be_within(0.01).of(-4.47)
     expect(vec[2].y).to be_within(0.01).of( 3.19)
-    expect(vec[2].z).to be_within(0.01).of( 9.46) # SketchUp (-9.47)
+    expect(vec[2].z).to be_within(0.01).of( 9.46)             # SketchUp (-9.47)
 
     # Adding a Frame & Divider object for w2.
     expect(w2.allowWindowPropertyFrameAndDivider).to be(true)
-    expect(w2.setWindowPropertyFrameAndDivider(fd3)).to be(true)
+    expect(w2.setWindowPropertyFrameAndDivider(fd)).to be(true)
     width = w2.windowPropertyFrameAndDivider.get.frameWidth
     expect(width).to be_within(0.001).of(0.200)
 
-    surface = TBD.properties(fd_model, dad)
+    surface = TBD.properties(model, dad)
     expect(surface.nil?).to be(false)
     expect(surface.is_a?(Hash)).to be(true)
     expect(surface.key?(:windows)).to be(true)
@@ -6024,14 +6085,13 @@ RSpec.describe TBD do
     expect(surface[:windows]["w2"].key?(:u)).to be(true)
     expect(surface[:windows]["w2"][:u]).to be_within(0.01).of(2.0)
     expect(surface[:windows]["w2"].key?(:points)).to be(true)
-
     ptz = surface[:windows]["w2"][:points]
     expect(ptz.size).to eq(4)
-
     vec = OpenStudio::Point3dVector.new
-    ptz.each { |p| vec << t * OpenStudio::Point3d.new(p.x, p.y, p.z) }
-
-    # # This window would have 2 shared edges (@right angle) with the parent.
+    ptz.each { |o| vec << OpenStudio::Point3d.new(o.x, o.y, o.z) }
+    area = OpenStudio.getArea(vec)
+    expect(area.empty?).to be(false)
+    expect(area.get).to be_within(TOL).of(surface[:windows]["w2"][:area])
     expect(vec[0].x).to be_within(0.01).of(-5.05)
     expect(vec[0].y).to be_within(0.01).of(-1.59)
     expect(vec[0].z).to be_within(0.01).of( 6.20)
@@ -6047,11 +6107,10 @@ RSpec.describe TBD do
 
     # Adding a Frame & Divider object for w3.
     expect(w3.allowWindowPropertyFrameAndDivider).to be(true)
-    expect(w3.setWindowPropertyFrameAndDivider(fd3)).to be(true)
+    expect(w3.setWindowPropertyFrameAndDivider(fd)).to be(true)
     width = w3.windowPropertyFrameAndDivider.get.frameWidth
     expect(width).to be_within(0.001).of(0.200)
-
-    surface = TBD.properties(fd_model, dad)
+    surface = TBD.properties(model, dad)
     expect(surface.nil?).to be(false)
     expect(surface.is_a?(Hash)).to be(true)
     expect(surface.key?(:windows)).to be(true)
@@ -6063,14 +6122,14 @@ RSpec.describe TBD do
     expect(surface[:windows]["w3"].key?(:u)).to be(true)
     expect(surface[:windows]["w3"][:u]).to be_within(0.01).of(2.0)
     expect(surface[:windows]["w3"].key?(:points)).to be(true)
-
     ptz = surface[:windows]["w3"][:points]
     expect(ptz.size).to eq(3)
-
     vec = OpenStudio::Point3dVector.new
-    ptz.each { |p| vec << t * OpenStudio::Point3d.new(p.x, p.y, p.z) }
-
-    # This window would have 2 shared edges (@right angle) with the parent.
+    ptz.each { |o| vec << OpenStudio::Point3d.new(o.x, o.y, o.z) }
+    area = OpenStudio.getArea(vec)
+    expect(area.empty?).to be(false)
+    expect(area.get).to be_within(TOL).of(surface[:windows]["w3"][:area])
+    expect(surface[:windows]["w3"][:gross]).to be_within(0.01).of(1.1)
     expect(vec[0].x).to be_within(0.01).of(-6.78)
     expect(vec[0].y).to be_within(0.01).of( 1.17)
     expect(vec[0].z).to be_within(0.01).of(11.19)

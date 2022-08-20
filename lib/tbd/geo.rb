@@ -212,201 +212,6 @@ module TBD
   end
 
   ##
-  # Generate offset vertices by a certain width.
-  #
-  # @param pts [Array] OpenStudio Point3D vector/array
-  # @param width [Float] offset width (m)
-  #
-  # @return [Array] offset Topolys 3D points
-  # @return [Array] original OpenStudio points if failed
-  def offset(pts = [], width = 0)
-    mth = "TBD::#{__callee__}"
-
-    valid = pts.is_a?(OpenStudio::Point3dVector) || pts.is_a?(Array)
-    return mismatch("pts", pts, cl1, mth, DBG, pts) unless valid
-    return invalid("width", mth, 2, DBG, pts) unless width.respond_to?(:to_f)
-
-    width = width.to_f
-    return pts if width < TOL
-    four = true if pts.size == 4
-
-    ptz     = {}
-    ptz[:A] = {}
-    ptz[:B] = {}
-    ptz[:C] = {}
-    ptz[:D] = {} if four
-
-    ptz[:A][:pt] = Topolys::Point3D.new(pts[0].x, pts[0].y, pts[0].z)
-    ptz[:B][:pt] = Topolys::Point3D.new(pts[1].x, pts[1].y, pts[1].z)
-    ptz[:C][:pt] = Topolys::Point3D.new(pts[2].x, pts[2].y, pts[2].z)
-    ptz[:D][:pt] = Topolys::Point3D.new(pts[3].x, pts[3].y, pts[3].z) if four
-
-    # Generate vector pairs, from next point & from previous point.
-    #
-    #
-    #
-    #
-    #
-    #
-    #             A <---------- B
-    #              ^
-    #               \
-    #                \
-    #                 C (or D)
-    #
-    ptz[:A][:from_next] = ptz[:A][:pt] - ptz[:B][:pt]
-    ptz[:A][:from_prev] = ptz[:A][:pt] - ptz[:C][:pt] unless four
-    ptz[:A][:from_prev] = ptz[:A][:pt] - ptz[:D][:pt] if four
-
-    ptz[:B][:from_next] = ptz[:B][:pt] - ptz[:C][:pt]
-    ptz[:B][:from_prev] = ptz[:B][:pt] - ptz[:A][:pt]
-
-    ptz[:C][:from_next] = ptz[:C][:pt] - ptz[:A][:pt] unless four
-    ptz[:C][:from_next] = ptz[:C][:pt] - ptz[:D][:pt] if four
-    ptz[:C][:from_prev] = ptz[:C][:pt] - ptz[:B][:pt]
-
-    ptz[:D][:from_next] = ptz[:D][:pt] - ptz[:A][:pt] if four
-    ptz[:D][:from_prev] = ptz[:D][:pt] - ptz[:C][:pt] if four
-
-    # Generate 3D plane from vectors.
-    #
-    #
-    #             |  <<< 3D plane ... from point A, with normal B>A
-    #             |
-    #             |
-    #             |
-    # <---------- A <---------- B
-    #             |\
-    #             | \
-    #             |  \
-    #             |   C (or D)
-    #
-    ptz[:A][:pl_from_next] = Topolys::Plane3D.new(ptz[:A][:pt], ptz[:A][:from_next])
-    ptz[:A][:pl_from_prev] = Topolys::Plane3D.new(ptz[:A][:pt], ptz[:A][:from_prev])
-
-    ptz[:B][:pl_from_next] = Topolys::Plane3D.new(ptz[:B][:pt], ptz[:B][:from_next])
-    ptz[:B][:pl_from_prev] = Topolys::Plane3D.new(ptz[:B][:pt], ptz[:B][:from_prev])
-
-    ptz[:C][:pl_from_next] = Topolys::Plane3D.new(ptz[:C][:pt], ptz[:C][:from_next])
-    ptz[:C][:pl_from_prev] = Topolys::Plane3D.new(ptz[:C][:pt], ptz[:C][:from_prev])
-
-    ptz[:D][:pl_from_next] = Topolys::Plane3D.new(ptz[:D][:pt], ptz[:D][:from_next]) if four
-    ptz[:D][:pl_from_prev] = Topolys::Plane3D.new(ptz[:D][:pt], ptz[:D][:from_prev]) if four
-
-    # Project an extended point (pC) unto 3D plane.
-    #
-    #             pC   <<< projected unto extended B>A 3D plane
-    #        eC   |
-    #          \  |
-    #           \ |
-    #            \|
-    # <---------- A <---------- B
-    #             |\
-    #             | \
-    #             |  \
-    #             |   C (or D)
-    #
-    ptz[:A][:prev_unto_next_pl] = ptz[:A][:pl_from_next].project(ptz[:A][:pt] +
-                                  ptz[:A][:from_prev])
-    ptz[:A][:next_unto_prev_pl] = ptz[:A][:pl_from_prev].project(ptz[:A][:pt] +
-                                  ptz[:A][:from_next])
-
-    ptz[:B][:prev_unto_next_pl] = ptz[:B][:pl_from_next].project(ptz[:B][:pt] +
-                                  ptz[:B][:from_prev])
-    ptz[:B][:next_unto_prev_pl] = ptz[:B][:pl_from_prev].project(ptz[:B][:pt] +
-                                  ptz[:B][:from_next])
-
-    ptz[:C][:prev_unto_next_pl] = ptz[:C][:pl_from_next].project(ptz[:C][:pt] +
-                                  ptz[:C][:from_prev])
-    ptz[:C][:next_unto_prev_pl] = ptz[:C][:pl_from_prev].project(ptz[:C][:pt] +
-                                  ptz[:C][:from_next])
-
-    ptz[:D][:prev_unto_next_pl] = ptz[:D][:pl_from_next].project(ptz[:D][:pt] +
-                                  ptz[:D][:from_prev]) if four
-    ptz[:D][:next_unto_prev_pl] = ptz[:D][:pl_from_prev].project(ptz[:D][:pt] +
-                                  ptz[:D][:from_next]) if four
-
-    # Generate vector from point (e.g. A) to projected extended point (pC).
-    #
-    #             pC
-    #        eC   ^
-    #          \  |
-    #           \ |
-    #            \|
-    # <---------- A <---------- B
-    #             |\
-    #             | \
-    #             |  \
-    #             |   C (or D)
-    #
-    ptz[:A][:n_prev_unto_next_pl] = ptz[:A][:prev_unto_next_pl] - ptz[:A][:pt]
-    ptz[:A][:n_next_unto_prev_pl] = ptz[:A][:next_unto_prev_pl] - ptz[:A][:pt]
-
-    ptz[:B][:n_prev_unto_next_pl] = ptz[:B][:prev_unto_next_pl] - ptz[:B][:pt]
-    ptz[:B][:n_next_unto_prev_pl] = ptz[:B][:next_unto_prev_pl] - ptz[:B][:pt]
-
-    ptz[:C][:n_prev_unto_next_pl] = ptz[:C][:prev_unto_next_pl] - ptz[:C][:pt]
-    ptz[:C][:n_next_unto_prev_pl] = ptz[:C][:next_unto_prev_pl] - ptz[:C][:pt]
-
-    ptz[:D][:n_prev_unto_next_pl] = ptz[:D][:prev_unto_next_pl] - ptz[:D][:pt] if four
-    ptz[:D][:n_next_unto_prev_pl] = ptz[:D][:next_unto_prev_pl] - ptz[:D][:pt] if four
-
-    # Fetch angle between both extended vectors (A>pC & A>pB), then normalize (Cn).
-    #
-    #             pC
-    #        eC   ^
-    #          \  |
-    #           \ Cn
-    #            \|
-    # <---------- A <---------- B
-    #             |\
-    #             | \
-    #             |  \
-    #             |   C (or D)
-    #
-    ptz[:A][:angle] = ptz[:A][:n_prev_unto_next_pl].angle(ptz[:A][:n_next_unto_prev_pl])
-    ptz[:B][:angle] = ptz[:B][:n_prev_unto_next_pl].angle(ptz[:B][:n_next_unto_prev_pl])
-    ptz[:C][:angle] = ptz[:C][:n_prev_unto_next_pl].angle(ptz[:C][:n_next_unto_prev_pl])
-    ptz[:D][:angle] = ptz[:D][:n_prev_unto_next_pl].angle(ptz[:D][:n_next_unto_prev_pl]) if four
-
-    # Generate new 3D points A', B', C' (and D') ... zigzag.
-    #
-    #
-    #
-    #
-    #     A' ---------------------- B'
-    #      \
-    #       \      A <---------- B
-    #        \      \
-    #         \      \
-    #          \      \
-    #           C'      C
-    ptz[:A][:from_next].normalize!
-    ptz[:A][:n_prev_unto_next_pl].normalize!
-    ptz[:A][:p] = ptz[:A][:pt] + (ptz[:A][:n_prev_unto_next_pl] * width) +
-                 (ptz[:A][:from_next] * width * Math.tan(ptz[:A][:angle]/2))
-
-    ptz[:B][:from_next].normalize!
-    ptz[:B][:n_prev_unto_next_pl].normalize!
-    ptz[:B][:p] = ptz[:B][:pt] + (ptz[:B][:n_prev_unto_next_pl] * width) +
-                 (ptz[:B][:from_next] * width * Math.tan(ptz[:B][:angle]/2))
-
-    ptz[:C][:from_next].normalize!
-    ptz[:C][:n_prev_unto_next_pl].normalize!
-    ptz[:C][:p] = ptz[:C][:pt] + (ptz[:C][:n_prev_unto_next_pl] * width) +
-                 (ptz[:C][:from_next] * width * Math.tan(ptz[:C][:angle]/2))
-
-    if four
-      ptz[:D][:from_next].normalize!
-      ptz[:D][:n_prev_unto_next_pl].normalize!
-      ptz[:D][:p] = ptz[:D][:pt] + (ptz[:D][:n_prev_unto_next_pl] * width) +
-                   (ptz[:D][:from_next] * width * Math.tan(ptz[:D][:angle]/2))
-    end
-
-    ptz
-  end
-
-  ##
   # Return site-specific (or true) Topolys normal vector of OpenStudio surface.
   #
   # @param s [OpenStudio::Model::PlanarSurface] a planar surface
@@ -506,6 +311,8 @@ module TBD
       valid    = s.vertices.size == 3 || s.vertices.size == 4
       log(ERR, "Skipping '#{id}': vertex # 3 or 4 (#{mth})")        unless valid
       next                                                          unless valid
+      vec      = s.vertices
+      area     = s.grossArea
       typ      = s.subSurfaceType.downcase
       type     = :skylight
       type     = :window       if typ.include?("window" )
@@ -517,12 +324,12 @@ module TBD
 
       # Determine if TDD dome subsurface is unhinged i.e. unconnected to parent.
       if domed
-        unhinged = true unless s.plane.equal(surface.plane)
+        unhinged = true                      unless s.plane.equal(surface.plane)
+        n        = s.outwardNormal               if unhinged
       end
 
-      zero = s.grossArea < TOL
-      log(ERR, "Skipping '#{id}': gross area ~zero (#{mth})")            if zero
-      next                                                               if zero
+      log(ERR, "Skipping '#{id}': gross area ~zero (#{mth})")      if area < TOL
+      next                                                         if area < TOL
       c = s.construction
       log(ERR, "Skipping '#{id}': missing construction (#{mth})")    if c.empty?
       next                                                           if c.empty?
@@ -553,7 +360,7 @@ module TBD
       # If all else fails, TBD will calculate an approximate whole product
       # U-factor by adding up the subsurface's layered construction material
       # thermal resistances (as well as the subsurface's parent surface film
-      # resistances). This is the least accurate option, especially if
+      # resistances). This is the least reliable option, especially if
       # subsurfaces have Frame & Divider objects, or irregular geometry.
       u = s.uFactor
       u = u.get                                                  unless u.empty?
@@ -561,12 +368,8 @@ module TBD
       if tubular & s.respond_to?(:daylightingDeviceTubular)       # OSM > v3.3.0
         unless s.daylightingDeviceTubular.empty?
           r = s.daylightingDeviceTubular.get.effectiveThermalResistance
-          u = 1 / r if r > TOL
+          u = 1 / r                                                   if r > TOL
         end
-      end
-
-      if s.respond_to?(:assemblyUFactor)     # favour this U-factor unless empty
-        u = s.assemblyUFactor.get unless s.assemblyUFactor.empty?
       end
 
       unless u.is_a?(Numeric)
@@ -575,54 +378,22 @@ module TBD
 
       unless u.is_a?(Numeric)
         r = rsi(c, surface.filmResistance)
-        log(ERR, "Skipping '#{id}': U-factor unavailable (#{mth})") if r < TOL
-        next if r < TOL
+        log(ERR, "Skipping '#{id}': U-factor unavailable (#{mth})")   if r < TOL
+        next                                                          if r < TOL
         u = 1 / r
       end
 
-      # Should verify convexity of vertex wire/face ...
-      #
-      #       A
-      #      / \
-      #     /   \
-      #    /     \
-      #   / C --- D    <<< allowed as OpenStudio/E+ subsurface?
-      #  / /
-      #  B
-      #
-      # Should convert (annoying) 4-point subsurface into triangle ...
-      #        A
-      #       / \
-      #      /   \
-      #     /     \
-      #    B - C - D   <<< allowed as OpenStudio/E+ subsurface?
-      #
-      four = s.vertices.size == 4
+      frame = s.allowWindowPropertyFrameAndDivider
+      frame = false if s.windowPropertyFrameAndDivider.empty?
 
-      if tubular || s.windowPropertyFrameAndDivider.empty?
-        vec = s.vertices
-        area = s.grossArea
-        n = s.outwardNormal if unhinged
-      else
-        fd = true
+      if frame
+        fd    = true
         width = s.windowPropertyFrameAndDivider.get.frameWidth
-        ptz = offset(s.vertices, width)
-
-        # Re-convert Topolys 3D points into OpenStudio 3D points.
-        vec = OpenStudio::Point3dVector.new
-        vec << OpenStudio::Point3d.new(ptz[:A][:p].x,
-                                       ptz[:A][:p].y,
-                                       ptz[:A][:p].z)
-        vec << OpenStudio::Point3d.new(ptz[:B][:p].x,
-                                       ptz[:B][:p].y,
-                                       ptz[:B][:p].z)
-        vec << OpenStudio::Point3d.new(ptz[:C][:p].x,
-                                       ptz[:C][:p].y,
-                                       ptz[:C][:p].z)
-        vec << OpenStudio::Point3d.new(ptz[:D][:p].x,
-                                       ptz[:D][:p].y,
-                                       ptz[:D][:p].z) if four
-        area = OpenStudio::getArea(vec).get
+        vec   = offset(vec, width, 300)
+        area  = OpenStudio.getArea(vec)
+        log(ERR, "Skipping '#{id}': invalid offset (#{mth})") if area.empty?
+        next                                                  if area.empty?
+        area = area.get
       end
 
       sub = { v:        s.vertices,
@@ -635,16 +406,15 @@ module TBD
               unhinged: unhinged }
 
       sub[:glazed] = true if glazed
-
-      subs[id] = sub
+      subs[id]     = sub
     end
 
     valid = true
-    # Test for conflicts (with fits?, overlaps?) between surfaces to determine
-    # whether to keep original points or switch to std::vector of revised
-    # coordinates, offset by Frame & Divider frame width. This will also
-    # inadvertently catch pre-existing (yet nonetheless invalid) OpenStudio
-    # inputs (without Frame & Dividers).
+    # Test for conflicts (with fits?, overlaps?) between sub/surfaces to
+    # determine whether to keep original points or switch to std::vector of
+    # revised coordinates, offset by Frame & Divider frame width. This will
+    # also inadvertently catch pre-existing (yet nonetheless invalid)
+    # OpenStudio inputs (without Frame & Dividers).
     subs.each do |id, sub|
       break                                                         unless fd
       break                                                         unless valid
@@ -653,10 +423,10 @@ module TBD
 
       subs.each do |i, sb|
         break                                                       unless valid
-        next if i == id
+        next                                                          if i == id
         oops = overlaps?(sb[:points], sub[:points], id, nom)
-        log(ERR, "Skipping '#{id}': overlaps sibling '#{i}' (#{mth})")  if oops
-        valid = false                                                   if oops
+        log(ERR, "Skipping '#{id}': overlaps sibling '#{i}' (#{mth})")   if oops
+        valid = false                                                    if oops
       end
     end
 
@@ -684,7 +454,7 @@ module TBD
         type = types.slice(0..-2).to_sym
 
         if sub[:type] == type
-          surf[types]     = {} unless surf.key?(types)
+          surf[types]     = {}                           unless surf.key?(types)
           surf[types][id] = sub
         end
       end

@@ -628,7 +628,7 @@ module OSut
     mth = "OSut::#{__callee__}"
     cl  = OpenStudio::Model::Model
 
-    return mismatch("model", model, cl, mth, DBG, false) unless model.is_a?(cl)
+    return mismatch("model", model, cl, mth, DBG, false)  unless model.is_a?(cl)
 
     model.getThermalZones.each do |zone|
       return true if minCoolScheduledSetpoint(zone)[:spt]
@@ -648,12 +648,12 @@ module OSut
     mth = "OSut::#{__callee__}"
     cl  = OpenStudio::Model::Model
 
-    return mismatch("model", model, cl, mth, DBG, false) unless model.is_a?(cl)
+    return mismatch("model", model, cl, mth, DBG, false)  unless model.is_a?(cl)
 
     model.getThermalZones.each do |zone|
-      next if zone.canBePlenum
-      return true unless zone.airLoopHVACs.empty?
-      return true if zone.isPlenum
+      next                                           if zone.canBePlenum
+      return true                                unless zone.airLoopHVACs.empty?
+      return true                                    if zone.isPlenum
     end
 
     false
@@ -678,7 +678,7 @@ module OSut
     # A space may be tagged as a plenum if:
     #
     # CASE A: its zone's "isPlenum" == true (SDK method) for a fully-developed
-    #         OpenStudio model (complete with HVAC air loops);
+    #         OpenStudio model (complete with HVAC air loops); OR
     #
     # CASE B: (IN ABSENCE OF HVAC AIRLOOPS) if it's excluded from a building's
     #         total floor area yet linked to a zone holding an 'inactive'
@@ -737,8 +737,8 @@ module OSut
     cl     = OpenStudio::Model::Model
     limits = nil
 
-    return mismatch("model", model, cl, mth)    unless model.is_a?(cl)
-    return invalid("availability", avl, 2, mth) unless avl.respond_to?(:to_s)
+    return mismatch("model", model, cl, mth)       unless model.is_a?(cl)
+    return invalid("availability", avl, 2, mth)    unless avl.respond_to?(:to_s)
 
     # Either fetch availability ScheduleTypeLimits object, or create one.
     model.getScheduleTypeLimitss.each do |l|
@@ -769,9 +769,9 @@ module OSut
     off  = OpenStudio::Model::ScheduleDay.new(model, 0)
 
     # Seasonal availability start/end dates.
-    year = model.yearDescription
-    return empty("yearDescription", mth, ERR) if year.empty?
-    year = year.get
+    year  = model.yearDescription
+    return  empty("yearDescription", mth, ERR) if year.empty?
+    year  = year.get
     may01 = year.makeDate(OpenStudio::MonthOfYear.new("May"),  1)
     oct31 = year.makeDate(OpenStudio::MonthOfYear.new("Oct"), 31)
 
@@ -957,17 +957,17 @@ module OSut
     cl1 = OpenStudio::Model::Model
     cl2 = OpenStudio::Model::Surface
 
-    return mismatch("model", model, cl1, mth) unless model.is_a?(cl1)
-    return invalid("s", mth, 2)               unless s.respond_to?(NS)
-    id = s.nameString
-    return mismatch(id, s, cl2, mth)          unless s.is_a?(cl2)
+    return mismatch("model", model, cl1, mth)           unless model.is_a?(cl1)
+    return invalid("s", mth, 2)                         unless s.respond_to?(NS)
+    id   = s.nameString
+    return mismatch(id, s, cl2, mth)                    unless s.is_a?(cl2)
 
     ok = s.isConstructionDefaulted
     log(ERR, "'#{id}' construction not defaulted (#{mth})")            unless ok
     return nil                                                         unless ok
-    return empty("'#{id}' construction", mth, ERR) if s.construction.empty?
+    return empty("'#{id}' construction", mth, ERR)      if s.construction.empty?
     base = s.construction.get
-    return empty("'#{id}' space", mth, ERR) if s.space.empty?
+    return empty("'#{id}' space", mth, ERR)             if s.space.empty?
     space = s.space.get
     type = s.surfaceType
     ground = false
@@ -981,7 +981,7 @@ module OSut
 
     unless space.defaultConstructionSet.empty?
       set = space.defaultConstructionSet.get
-      return set if holdsConstruction?(set, base, ground, exterior, type)
+      return set        if holdsConstruction?(set, base, ground, exterior, type)
     end
 
     unless space.spaceType.empty?
@@ -989,7 +989,7 @@ module OSut
 
       unless spacetype.defaultConstructionSet.empty?
         set = spacetype.defaultConstructionSet.get
-        return set if holdsConstruction?(set, base, ground, exterior, type)
+        return set      if holdsConstruction?(set, base, ground, exterior, type)
       end
     end
 
@@ -998,7 +998,7 @@ module OSut
 
       unless story.defaultConstructionSet.empty?
         set = story.defaultConstructionSet.get
-        return set if holdsConstruction?(set, base, ground, exterior, type)
+        return set      if holdsConstruction?(set, base, ground, exterior, type)
       end
     end
 
@@ -1006,7 +1006,7 @@ module OSut
 
     unless building.defaultConstructionSet.empty?
       set = building.defaultConstructionSet.get
-      return set if holdsConstruction?(set, base, ground, exterior, type)
+      return set        if holdsConstruction?(set, base, ground, exterior, type)
     end
 
     nil
@@ -1036,15 +1036,15 @@ module OSut
   #
   # @param lc [OpenStudio::LayeredConstruction] a layered construction
   #
-  # @return [Double] total layered construction thickness
-  # @return [Double] 0 if invalid input
+  # @return [Float] total layered construction thickness
+  # @return [Float] 0 if invalid input
   def thickness(lc = nil)
     mth = "OSut::#{__callee__}"
     cl  = OpenStudio::Model::LayeredConstruction
 
-    return invalid("lc", mth, 1, DBG, 0.0)     unless lc.respond_to?(NS)
+    return invalid("lc", mth, 1, DBG, 0.0)             unless lc.respond_to?(NS)
     id = lc.nameString
-    return mismatch(id, lc, cl, mth, DBG, 0.0) unless lc.is_a?(cl)
+    return mismatch(id, lc, cl, mth, DBG, 0.0)         unless lc.is_a?(cl)
 
     ok = standardOpaqueLayers?(lc)
     log(ERR, "'#{id}' holds non-StandardOpaqueMaterial(s) (#{mth})")   unless ok
@@ -1166,9 +1166,9 @@ module OSut
     res = { index: nil, type: nil, r: 0.0 }
     i   = 0                                                           # iterator
 
-    return invalid("lc", mth, 1, DBG, res)      unless lc.respond_to?(NS)
-    id = lc.nameString
-    return mismatch(id, lc, cl1, mth, DBG, res) unless lc.is_a?(cl)
+    return invalid("lc", mth, 1, DBG, res)             unless lc.respond_to?(NS)
+    id   = lc.nameString
+    return mismatch(id, lc, cl1, mth, DBG, res)        unless lc.is_a?(cl)
 
     lc.layers.each do |m|
       unless m.to_MasslessOpaqueMaterial.empty?
@@ -1178,9 +1178,9 @@ module OSut
           i += 1
           next
         else
-          res[:r]     = m.thermalResistance
+          res[:r    ] = m.thermalResistance
           res[:index] = i
-          res[:type]  = :massless
+          res[:type ] = :massless
         end
       end
 
@@ -1193,9 +1193,9 @@ module OSut
           i += 1
           next
         else
-          res[:r]     = d / k
+          res[:r    ] = d / k
           res[:index] = i
-          res[:type]  = :standard
+          res[:type ] = :standard
         end
       end
 
@@ -1231,6 +1231,28 @@ module OSut
   end
 
   ##
+  # Return a scalar product of an OpenStudio Vector3d.
+  #
+  # @param v [OpenStudio::Vector3d] a vector
+  # @param m [Float] a scalar
+  #
+  # @return [OpenStudio::Vector3d] modified vector
+  # @return [OpenStudio::Vector3d] provided (or empty) vector if invalid input
+  def scalar(v = OpenStudio::Vector3d.new(0,0,0), m = 0)
+    mth = "OSut::#{__callee__}"
+    cl1 = OpenStudio::Vector3d
+    cl2 = Numeric
+
+    return mismatch("vector", v, cl1, mth, DBG, v) unless v.is_a?(cl1)
+    return mismatch("x", v.x, cl2, mth, DBG, v)    unless v.x.respond_to?(:to_f)
+    return mismatch("y", v.y, cl2, mth, DBG, v)    unless v.y.respond_to?(:to_f)
+    return mismatch("z", v.z, cl2, mth, DBG, v)    unless v.z.respond_to?(:to_f)
+    return mismatch("m", m, cl2,  mth, DBG, v)     unless m.respond_to?(:to_f)
+
+    OpenStudio::Vector3d.new(m * v.x, m * v.y, m * v.z)
+  end
+
+  ##
   # Flatten OpenStudio 3D points vs Z-axis (Z=0).
   #
   # @param pts [Array] an OpenStudio Point3D array/vector
@@ -1243,8 +1265,8 @@ module OSut
     v   = OpenStudio::Point3dVector.new
 
     valid = pts.is_a?(cl1) || pts.is_a?(Array)
-    return mismatch("points", pts, cl1, mth, DBG, v)     unless valid
-    pts.each { |pt| mismatch("pt", pt, cl2, mth, ERR, v) unless pt.is_a?(cl2) }
+    return mismatch("points", pts, cl1, mth, DBG, v)      unless valid
+    pts.each { |pt| mismatch("pt", pt, cl2, mth, ERR, v)  unless pt.is_a?(cl2) }
     pts.each { |pt| v << OpenStudio::Point3d.new(pt.x, pt.y, 0) }
 
     v
@@ -1268,40 +1290,47 @@ module OSut
 
     return invalid("id1", mth, 3, DBG, a) unless id1.respond_to?(:to_s)
     return invalid("id2", mth, 4, DBG, a) unless id2.respond_to?(:to_s)
+
     i1  = id1.to_s
     i2  = id2.to_s
     i1  = "poly1" if i1.empty?
     i2  = "poly2" if i2.empty?
+
     valid1 = p1.is_a?(cl1) || p1.is_a?(Array)
     valid2 = p2.is_a?(cl1) || p2.is_a?(Array)
+
     return mismatch(i1, p1, cl1, mth, DBG, a) unless valid1
     return mismatch(i2, p2, cl1, mth, DBG, a) unless valid2
-    return empty(i1, mth, ERR, a) if p1.empty?
-    return empty(i2, mth, ERR, a) if p2.empty?
+    return empty(i1, mth, ERR, a)                 if p1.empty?
+    return empty(i2, mth, ERR, a)                 if p2.empty?
+
     p1.each { |v| return mismatch(i1, v, cl2, mth, ERR, a) unless v.is_a?(cl2) }
     p2.each { |v| return mismatch(i2, v, cl2, mth, ERR, a) unless v.is_a?(cl2) }
 
-    ft = OpenStudio::Transformation::alignFace(p1).inverse
-    ft_p1 = flatZ( (ft * p1).reverse )
-    return false if ft_p1.empty?
-    area1 = OpenStudio::getArea(ft_p1)
-    return empty("#{i1} area", mth, ERR, a) if area1.empty?
+    # XY-plane transformation matrix ... needs to be clockwise for boost.
+    ft    = OpenStudio::Transformation.alignFace(p1)
+    ft_p1 = flatZ( (ft.inverse * p1)         )
+    return  false                                                if ft_p1.empty?
+    cw    = OpenStudio.pointInPolygon(ft_p1.first, ft_p1, TOL)
+    ft_p1 = flatZ( (ft.inverse * p1).reverse )               unless cw
+    ft_p2 = flatZ( (ft.inverse * p2).reverse )               unless cw
+    ft_p2 = flatZ( (ft.inverse * p2)         )                   if cw
+    return  false                                                if ft_p2.empty?
+    area1 = OpenStudio.getArea(ft_p1)
+    area2 = OpenStudio.getArea(ft_p2)
+    return  empty("#{i1} area", mth, ERR, a)                     if area1.empty?
+    return  empty("#{i2} area", mth, ERR, a)                     if area2.empty?
     area1 = area1.get
-    ft_p2 = flatZ( (ft * p2).reverse )
-    return false if ft_p2.empty?
-    area2 = OpenStudio::getArea(ft_p2)
-    return empty("#{i2} area", mth, ERR, a) if area2.empty?
     area2 = area2.get
-    union = OpenStudio::join(ft_p1, ft_p2, TOL2)
-    return false if union.empty?
+    union = OpenStudio.join(ft_p1, ft_p2, TOL2)
+    return  false                                                if union.empty?
     union = union.get
-    area = OpenStudio::getArea(union)
-    return empty("#{i1}:#{i2} union area", mth, ERR, a) if area.empty?
+    area  = OpenStudio.getArea(union)
+    return  empty("#{i1}:#{i2} union area", mth, ERR, a)         if area.empty?
     area = area.get
-
-    return false if area < TOL
-    return true if (area - area2).abs < TOL
-    return false if (area - area2).abs > TOL
+    return false                                     if area < TOL
+    return true                                      if (area - area2).abs < TOL
+    return false                                     if (area - area2).abs > TOL
 
     true
   end
@@ -1324,40 +1353,277 @@ module OSut
 
     return invalid("id1", mth, 3, DBG, a) unless id1.respond_to?(:to_s)
     return invalid("id2", mth, 4, DBG, a) unless id2.respond_to?(:to_s)
+
     i1 = id1.to_s
     i2 = id2.to_s
     i1 = "poly1" if i1.empty?
     i2 = "poly2" if i2.empty?
+
     valid1 = p1.is_a?(cl1) || p1.is_a?(Array)
     valid2 = p2.is_a?(cl1) || p2.is_a?(Array)
+
     return mismatch(i1, p1, cl1, mth, DBG, a) unless valid1
     return mismatch(i2, p2, cl1, mth, DBG, a) unless valid2
-    return empty(i1, mth, ERR, a) if p1.empty?
-    return empty(i2, mth, ERR, a) if p2.empty?
+    return empty(i1, mth, ERR, a)                 if p1.empty?
+    return empty(i2, mth, ERR, a)                 if p2.empty?
+
     p1.each { |v| return mismatch(i1, v, cl2, mth, ERR, a) unless v.is_a?(cl2) }
     p2.each { |v| return mismatch(i2, v, cl2, mth, ERR, a) unless v.is_a?(cl2) }
 
-    ft = OpenStudio::Transformation::alignFace(p1).inverse
-    ft_p1 = flatZ( (ft * p1).reverse )
-    return false if ft_p1.empty?
-    area1 = OpenStudio::getArea(ft_p1)
-    return empty("#{i1} area", mth, ERR, a) if area1.empty?
+    # XY-plane transformation matrix ... needs to be clockwise for boost.
+    ft    = OpenStudio::Transformation.alignFace(p1)
+    ft_p1 = flatZ( (ft.inverse * p1)         )
+    ft_p2 = flatZ( (ft.inverse * p2)         )
+    return  false                                                if ft_p1.empty?
+    return  false                                                if ft_p2.empty?
+    cw    = OpenStudio.pointInPolygon(ft_p1.first, ft_p1, TOL)
+    ft_p1 = flatZ( (ft.inverse * p1).reverse )               unless cw
+    ft_p2 = flatZ( (ft.inverse * p2).reverse )               unless cw
+    return  false                                                if ft_p1.empty?
+    return  false                                                if ft_p2.empty?
+    area1 = OpenStudio.getArea(ft_p1)
+    area2 = OpenStudio.getArea(ft_p2)
+    return  empty("#{i1} area", mth, ERR, a)                     if area1.empty?
+    return  empty("#{i2} area", mth, ERR, a)                     if area2.empty?
     area1 = area1.get
-    ft_p2 = flatZ( (ft * p2).reverse )
-    return false if ft_p2.empty?
-    area2 = OpenStudio::getArea(ft_p2)
-    return empty("#{i2} area", mth, ERR, a) if area2.empty?
     area2 = area2.get
-    union = OpenStudio::join(ft_p1, ft_p2, TOL2)
-    return false if union.empty?
+    union = OpenStudio.join(ft_p1, ft_p2, TOL2)
+    return  false                                                if union.empty?
     union = union.get
-    area = OpenStudio::getArea(union)
-    return empty("#{i1}:#{i2} union area", mth, ERR, a) if area.empty?
+    area  = OpenStudio.getArea(union)
+    return empty("#{i1}:#{i2} union area", mth, ERR, a)          if area.empty?
     area = area.get
-
-    return false if area < TOL
+    return false                                                 if area < TOL
 
     true
+  end
+
+  ##
+  # Generate offset vertices (by width) for a 3- or 4-sided, convex polygon.
+  #
+  # @param p1 [OpenStudio::Point3dVector] OpenStudio Point3D vector/array
+  # @param w [Float] offset width (min: 0.0254m)
+  # @param v [Integer] OpenStudio SDK version, eg '321' for 'v3.2.1' (optional)
+  #
+  # @return [OpenStudio::Point3dVector] offset points if successful
+  # @return [OpenStudio::Point3dVector] original points if invalid input
+  def offset(p1 = [], w = 0, v = 0)
+    mth   = "TBD::#{__callee__}"
+    cl    = OpenStudio::Point3d
+    vrsn  = OpenStudio.openStudioVersion.split(".").map(&:to_i).join.to_i
+
+    valid = p1.is_a?(OpenStudio::Point3dVector) || p1.is_a?(Array)
+    return  mismatch("pts", p1, cl1, mth, DBG, p1)  unless valid
+    return  empty("pts", mth, ERR, p1)                  if p1.empty?
+    valid = p1.size == 3 || p1.size == 4
+    iv    = true if p1.size == 4
+    return  invalid("pts", mth, 1, DBG, p1)         unless valid
+    return  invalid("width", mth, 2, DBG, p1)       unless w.respond_to?(:to_f)
+    w     = w.to_f
+    return  p1                                          if w < 0.0254
+    v     = v.to_i                                      if v.respond_to?(:to_i)
+    v     = 0                                       unless v.respond_to?(:to_i)
+    v     = vrsn                                        if v.zero?
+
+    p1.each { |x| return mismatch("p", x, cl, mth, ERR, p1) unless x.is_a?(cl) }
+
+    unless v < 340
+      # XY-plane transformation matrix ... needs to be clockwise for boost.
+      ft     = OpenStudio::Transformation::alignFace(p1)
+      ft_pts = flatZ( (ft.inverse * p1) )
+      return   p1                                       if ft_pts.empty?
+      cw     = OpenStudio::pointInPolygon(ft_pts.first, ft_pts, TOL)
+      ft_pts = flatZ( (ft.inverse * p1).reverse )   unless cw
+      offset = OpenStudio.buffer(ft_pts, w, TOL)
+      return   p1                                       if offset.empty?
+      offset = offset.get
+      offset =  ft * offset                             if cw
+      offset = (ft * offset).reverse                unless cw
+
+      pz = OpenStudio::Point3dVector.new
+      offset.each { |o| pz << OpenStudio::Point3d.new(o.x, o.y, o.z ) }
+      return pz
+    else                                                  # brute force approach
+      pz     = {}
+      pz[:A] = {}
+      pz[:B] = {}
+      pz[:C] = {}
+      pz[:D] = {}                                                          if iv
+
+      pz[:A][:p] = OpenStudio::Point3d.new(p1[0].x, p1[0].y, p1[0].z)
+      pz[:B][:p] = OpenStudio::Point3d.new(p1[1].x, p1[1].y, p1[1].z)
+      pz[:C][:p] = OpenStudio::Point3d.new(p1[2].x, p1[2].y, p1[2].z)
+      pz[:D][:p] = OpenStudio::Point3d.new(p1[3].x, p1[3].y, p1[3].z)      if iv
+
+      pzAp = pz[:A][:p]
+      pzBp = pz[:B][:p]
+      pzCp = pz[:C][:p]
+      pzDp = pz[:D][:p]                                                    if iv
+
+      # Generate vector pairs, from next point & from previous point.
+      # :f_n : "from next"
+      # :f_p : "from previous"
+      #
+      #
+      #
+      #
+      #
+      #
+      #             A <---------- B
+      #              ^
+      #               \
+      #                \
+      #                 C (or D)
+      #
+      pz[:A][:f_n] = pzAp - pzBp
+      pz[:A][:f_p] = pzAp - pzCp                                       unless iv
+      pz[:A][:f_p] = pzAp - pzDp                                           if iv
+
+      pz[:B][:f_n] = pzBp - pzCp
+      pz[:B][:f_p] = pzBp - pzAp
+
+      pz[:C][:f_n] = pzCp - pzAp                                       unless iv
+      pz[:C][:f_n] = pzCp - pzDp                                           if iv
+      pz[:C][:f_p] = pzCp - pzBp
+
+      pz[:D][:f_n] = pzDp - pzAp                                           if iv
+      pz[:D][:f_p] = pzDp - pzCp                                           if iv
+
+      # Generate 3D plane from vectors.
+      #
+      #
+      #             |  <<< 3D plane ... from point A, with normal B>A
+      #             |
+      #             |
+      #             |
+      # <---------- A <---------- B
+      #             |\
+      #             | \
+      #             |  \
+      #             |   C (or D)
+      #
+      pz[:A][:pl_f_n] = OpenStudio::Plane.new(pzAp, pz[:A][:f_n])
+      pz[:A][:pl_f_p] = OpenStudio::Plane.new(pzAp, pz[:A][:f_p])
+
+      pz[:B][:pl_f_n] = OpenStudio::Plane.new(pzBp, pz[:B][:f_n])
+      pz[:B][:pl_f_p] = OpenStudio::Plane.new(pzBp, pz[:B][:f_p])
+
+      pz[:C][:pl_f_n] = OpenStudio::Plane.new(pzCp, pz[:C][:f_n])
+      pz[:C][:pl_f_p] = OpenStudio::Plane.new(pzCp, pz[:C][:f_p])
+
+      pz[:D][:pl_f_n] = OpenStudio::Plane.new(pzDp, pz[:D][:f_n])          if iv
+      pz[:D][:pl_f_p] = OpenStudio::Plane.new(pzDp, pz[:D][:f_p])          if iv
+
+      # Project an extended point (pC) unto 3D plane.
+      #
+      #             pC   <<< projected unto extended B>A 3D plane
+      #        eC   |
+      #          \  |
+      #           \ |
+      #            \|
+      # <---------- A <---------- B
+      #             |\
+      #             | \
+      #             |  \
+      #             |   C (or D)
+      #
+      pz[:A][:p_n_pl] = pz[:A][:pl_f_n].project(pz[:A][:p] + pz[:A][:f_p])
+      pz[:A][:n_p_pl] = pz[:A][:pl_f_p].project(pz[:A][:p] + pz[:A][:f_n])
+
+      pz[:B][:p_n_pl] = pz[:B][:pl_f_n].project(pz[:B][:p] + pz[:B][:f_p])
+      pz[:B][:n_p_pl] = pz[:B][:pl_f_p].project(pz[:B][:p] + pz[:B][:f_n])
+
+      pz[:C][:p_n_pl] = pz[:C][:pl_f_n].project(pz[:C][:p] + pz[:C][:f_p])
+      pz[:C][:n_p_pl] = pz[:C][:pl_f_p].project(pz[:C][:p] + pz[:C][:f_n])
+
+      pz[:D][:p_n_pl] = pz[:D][:pl_f_n].project(pz[:D][:p] + pz[:D][:f_p]) if iv
+      pz[:D][:n_p_pl] = pz[:D][:pl_f_p].project(pz[:D][:p] + pz[:D][:f_n]) if iv
+
+      # Generate vector from point (e.g. A) to projected extended point (pC).
+      #
+      #             pC
+      #        eC   ^
+      #          \  |
+      #           \ |
+      #            \|
+      # <---------- A <---------- B
+      #             |\
+      #             | \
+      #             |  \
+      #             |   C (or D)
+      #
+      pz[:A][:n_p_n_pl] = pz[:A][:p_n_pl] - pzAp
+      pz[:A][:n_n_p_pl] = pz[:A][:n_p_pl] - pzAp
+
+      pz[:B][:n_p_n_pl] = pz[:B][:p_n_pl] - pzBp
+      pz[:B][:n_n_p_pl] = pz[:B][:n_p_pl] - pzBp
+
+      pz[:C][:n_p_n_pl] = pz[:C][:p_n_pl] - pzCp
+      pz[:C][:n_n_p_pl] = pz[:C][:n_p_pl] - pzCp
+
+      pz[:D][:n_p_n_pl] = pz[:D][:p_n_pl] - pzDp                           if iv
+      pz[:D][:n_n_p_pl] = pz[:D][:n_p_pl] - pzDp                           if iv
+
+      # Fetch angle between both extended vectors (A>pC & A>pB),
+      # ... then normalize (Cn).
+      #
+      #             pC
+      #        eC   ^
+      #          \  |
+      #           \ Cn
+      #            \|
+      # <---------- A <---------- B
+      #             |\
+      #             | \
+      #             |  \
+      #             |   C (or D)
+      #
+      a1 = OpenStudio.getAngle(pz[:A][:n_p_n_pl], pz[:A][:n_n_p_pl])
+      a2 = OpenStudio.getAngle(pz[:B][:n_p_n_pl], pz[:B][:n_n_p_pl])
+      a3 = OpenStudio.getAngle(pz[:C][:n_p_n_pl], pz[:C][:n_n_p_pl])
+      a4 = OpenStudio.getAngle(pz[:D][:n_p_n_pl], pz[:D][:n_n_p_pl])       if iv
+
+      # Generate new 3D points A', B', C' (and D') ... zigzag.
+      #
+      #
+      #
+      #
+      #     A' ---------------------- B'
+      #      \
+      #       \      A <---------- B
+      #        \      \
+      #         \      \
+      #          \      \
+      #           C'      C
+      pz[:A][:f_n].normalize
+      pz[:A][:n_p_n_pl].normalize
+      pzAp = pzAp + scalar(pz[:A][:n_p_n_pl], w)
+      pzAp = pzAp + scalar(pz[:A][:f_n], w * Math.tan(a1/2))
+
+      pz[:B][:f_n].normalize
+      pz[:B][:n_p_n_pl].normalize
+      pzBp = pzBp + scalar(pz[:B][:n_p_n_pl], w)
+      pzBp = pzBp + scalar(pz[:B][:f_n], w * Math.tan(a2/2))
+
+      pz[:C][:f_n].normalize
+      pz[:C][:n_p_n_pl].normalize
+      pzCp = pzCp + scalar(pz[:C][:n_p_n_pl], w)
+      pzCp = pzCp + scalar(pz[:C][:f_n], w * Math.tan(a3/2))
+
+      pz[:D][:f_n].normalize                                               if iv
+      pz[:D][:n_p_n_pl].normalize                                          if iv
+      pzDp = pzDp + scalar(pz[:D][:n_p_n_pl], w)                           if iv
+      pzDp = pzDp + scalar(pz[:D][:f_n], w * Math.tan(a4/2))               if iv
+
+      # Re-convert to OpenStudio 3D points.
+      vec  = OpenStudio::Point3dVector.new
+      vec << OpenStudio::Point3d.new(pzAp.x, pzAp.y, pzAp.z)
+      vec << OpenStudio::Point3d.new(pzBp.x, pzBp.y, pzBp.z)
+      vec << OpenStudio::Point3d.new(pzCp.x, pzCp.y, pzCp.z)
+      vec << OpenStudio::Point3d.new(pzDp.x, pzDp.y, pzDp.z)               if iv
+
+      return vec
+    end
   end
 
   ##
