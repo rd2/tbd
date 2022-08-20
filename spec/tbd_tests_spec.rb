@@ -16,7 +16,7 @@ RSpec.describe TBD do
     # and resting on four main pillars. For the purposes of the spec, vertical
     # access (elevator and stairs, fully glazed) are modelled as extensions
     # of either space.
-  
+
     # Apart from populating the OpenStudio model, the bulk of the next few
     # hundred is copy of the processTBD method. It is repeated step-by-step
     # here for detailed testing purposes.
@@ -5076,37 +5076,45 @@ RSpec.describe TBD do
       # TubularDaylightDiffuser
       case type
       when "FixedWindow"
+        expect(sub.allowWindowPropertyFrameAndDivider   ).to be(true )
+        next if version < 330
         expect(sub.allowDaylightingDeviceTubularDiffuser).to be(false)
         expect(sub.allowDaylightingDeviceTubularDome    ).to be(false)
-        expect(sub.allowWindowPropertyFrameAndDivider   ).to be(true )
       when "OperableWindow"
+        expect(sub.allowWindowPropertyFrameAndDivider   ).to be(true )
+        next if version < 330
         expect(sub.allowDaylightingDeviceTubularDiffuser).to be(false)
         expect(sub.allowDaylightingDeviceTubularDome    ).to be(false)
-        expect(sub.allowWindowPropertyFrameAndDivider   ).to be(true )
       when "Door"
+        expect(sub.allowWindowPropertyFrameAndDivider   ).to be(false)
+        next if version < 330
         expect(sub.allowDaylightingDeviceTubularDiffuser).to be(false)
         expect(sub.allowDaylightingDeviceTubularDome    ).to be(false)
-        expect(sub.allowWindowPropertyFrameAndDivider   ).to be(false)
       when "GlassDoor"
+        expect(sub.allowWindowPropertyFrameAndDivider   ).to be(true )
+        next if version < 330
         expect(sub.allowDaylightingDeviceTubularDiffuser).to be(false)
         expect(sub.allowDaylightingDeviceTubularDome    ).to be(false)
-        expect(sub.allowWindowPropertyFrameAndDivider   ).to be(true )
       when "OverheadDoor"
-        expect(sub.allowDaylightingDeviceTubularDiffuser).to be(false)
-        expect(sub.allowDaylightingDeviceTubularDome    ).to be(false)
         expect(sub.allowWindowPropertyFrameAndDivider   ).to be(false)
-      when "Skylight"
+        next if version < 330
         expect(sub.allowDaylightingDeviceTubularDiffuser).to be(false)
         expect(sub.allowDaylightingDeviceTubularDome    ).to be(false)
+      when "Skylight"
         expect(sub.allowWindowPropertyFrameAndDivider   ).to be(true )
+        next if version < 330
+        expect(sub.allowDaylightingDeviceTubularDiffuser).to be(false)
+        expect(sub.allowDaylightingDeviceTubularDome    ).to be(false)
       when "TubularDaylightDome"
+        expect(sub.allowWindowPropertyFrameAndDivider   ).to be(false)
+        next if version < 330
         expect(sub.allowDaylightingDeviceTubularDiffuser).to be(false)
         expect(sub.allowDaylightingDeviceTubularDome    ).to be(true )
-        expect(sub.allowWindowPropertyFrameAndDivider   ).to be(false)
       when "TubularDaylightDiffuser"
+        expect(sub.allowWindowPropertyFrameAndDivider   ).to be(false)
+        next if version < 330
         expect(sub.allowDaylightingDeviceTubularDiffuser).to be(true )
         expect(sub.allowDaylightingDeviceTubularDome    ).to be(false)
-        expect(sub.allowWindowPropertyFrameAndDivider   ).to be(false)
       else
         puts "Unknown SubSurfaceType: #{type} !"
         expect(true).to be(false)
