@@ -1,6 +1,6 @@
 # Thermal Bridging & Derating (TBD)  
 
-An [OpenStudio Measure](https://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/) that first autodetects _major_ thermal bridges (like balconies, parapets and corners) in an OpenStudio model (.osm), and then _derates_ outside-facing, opaque surface constructions (walls, roofs and exposed floors). It relies on both the [OpenStudio SDK](https://openstudio-sdk-documentation.s3.amazonaws.com/index.html) and the AutomaticMagic [Topolys](https://github.com/automaticmagic/topolys) gem.
+An [OpenStudio Measure](https://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/) that first autodetects _major_ thermal bridges (like balconies, parapets and corners) in an OpenStudio model (.osm), and then _derates_ outside-facing, opaque surface constructions (walls, roofs and exposed floors). It interacts with the [OpenStudio SDK](https://openstudio-sdk-documentation.s3.amazonaws.com/index.html) and relies on the AutomaticMagic [Topolys](https://github.com/automaticmagic/topolys) gem, as well as the [OSut](https://rubygems.org/gems/osut/versions/0.2.7) gem.
 
 ## Guide & Downloads
 
@@ -22,7 +22,7 @@ bundle install (or 'bundle update')
 
 ## New Features  
 
-Upcoming enhancements are in the works. Bugs and new feature requests for _TBD_ should be submitted [here](https://github.com/rd2/tbd/issues), while those more closely linked to _Topolys_ should be submitted [here](https://github.com/automaticmagic/topolys/issues).
+Upcoming enhancements are in the works. Bugs or new feature requests for _TBD_ should be submitted [here](https://github.com/rd2/tbd/issues), while those more closely linked to _Topolys_ or _OSut_ should be submitted [here](https://github.com/automaticmagic/topolys/issues) or [here](https://github.com/rd2/osut/issues), respectively.
 
 ## Development
 
