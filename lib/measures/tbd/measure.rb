@@ -224,23 +224,23 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     super(mdl, runner, args)
 
     argh = {}
-    argh[:alter] = runner.getBoolArgumentValue("alter_model", args)
-    argh[:load_tbd] = runner.getBoolArgumentValue("load_tbd_json", args)
-    argh[:option] = runner.getStringArgumentValue("option", args)
-    argh[:write_tbd] = runner.getBoolArgumentValue("write_tbd_json", args)
-    argh[:wall_ut] = runner.getDoubleArgumentValue("wall_ut", args)
-    argh[:roof_ut] = runner.getDoubleArgumentValue("roof_ut", args)
-    argh[:floor_ut] = runner.getDoubleArgumentValue("floor_ut", args)
-    argh[:wall_option] = runner.getStringArgumentValue("wall_option", args)
-    argh[:roof_option] = runner.getStringArgumentValue("roof_option", args)
-    argh[:floor_option] = runner.getStringArgumentValue("floor_option", args)
-    argh[:gen_ua] = runner.getBoolArgumentValue("gen_UA_report", args)
-    argh[:ua_ref] = runner.getStringArgumentValue("ua_reference", args)
-    argh[:gen_kiva] = runner.getBoolArgumentValue("gen_kiva", args)
-    argh[:kiva_force] = runner.getBoolArgumentValue("gen_kiva_force", args)
+    argh[:alter        ] = runner.getBoolArgumentValue("alter_model",      args)
+    argh[:load_tbd     ] = runner.getBoolArgumentValue("load_tbd_json",    args)
+    argh[:option       ] = runner.getStringArgumentValue("option",         args)
+    argh[:write_tbd    ] = runner.getBoolArgumentValue("write_tbd_json",   args)
+    argh[:wall_ut      ] = runner.getDoubleArgumentValue("wall_ut",        args)
+    argh[:roof_ut      ] = runner.getDoubleArgumentValue("roof_ut",        args)
+    argh[:floor_ut     ] = runner.getDoubleArgumentValue("floor_ut",       args)
+    argh[:wall_option  ] = runner.getStringArgumentValue("wall_option",    args)
+    argh[:roof_option  ] = runner.getStringArgumentValue("roof_option",    args)
+    argh[:floor_option ] = runner.getStringArgumentValue("floor_option",   args)
+    argh[:gen_ua       ] = runner.getBoolArgumentValue("gen_UA_report",    args)
+    argh[:ua_ref       ] = runner.getStringArgumentValue("ua_reference",   args)
+    argh[:gen_kiva     ] = runner.getBoolArgumentValue("gen_kiva",         args)
+    argh[:kiva_force   ] = runner.getBoolArgumentValue("gen_kiva_force",   args)
 
-    argh[:uprate_walls]  = argh[:wall_option]  != "NONE"
-    argh[:uprate_roofs]  = argh[:roof_option]  != "NONE"
+    argh[:uprate_walls ] = argh[:wall_option]  != "NONE"
+    argh[:uprate_roofs ] = argh[:roof_option]  != "NONE"
     argh[:uprate_floors] = argh[:floor_option] != "NONE"
 
     return false unless runner.validateUserArguments(arguments(mdl), args)
@@ -311,11 +311,13 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
       model.addObjects(mdl.toIdfFile.objects)
     end
 
-    argh[:version] = model.getVersion.versionIdentifier
-    argh[:io], argh[:surfaces] = TBD.process(model, argh)
-    ok = argh[:setpoints]
-    argh[:setpoints] = TBD.heatingTemperatureSetpoints?(model)
-    argh[:setpoints] = TBD.coolingTemperatureSetpoints?(model) || ok
+    argh[:version]   = model.getVersion.versionIdentifier
+    tbd              = TBD.process(model, argh)
+    argh[:io      ]  = tbd[:io]
+    argh[:surfaces]  = tbd[:surfaces]
+    setpoints        = TBD.heatingTemperatureSetpoints?(model)
+    setpoints        = TBD.coolingTemperatureSetpoints?(model) || setpoints
+    argh[:setpoints] = setpoints
 
     return TBD.exit(runner, argh)
   end
