@@ -3918,14 +3918,14 @@ RSpec.describe TBD do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = File.join(__dir__, "files/osms/in/warehouse.osm")
     path = OpenStudio::Path.new(file)
-    os_model = translator.loadModel(path)
-    expect(os_model.empty?).to be(false)
-    os_model = os_model.get
+    model = translator.loadModel(path)
+    expect(model.empty?).to be(false)
+    model = model.get
 
-    argh[:option] = "compliant"        # superseded by :building PSI set on file
-    argh[:io_path] = File.join(__dir__, "../json/tbd_warehouse4.json")
+    argh[:option     ] = "compliant"   # superseded by :building PSI set on file
+    argh[:io_path    ] = File.join(__dir__, "../json/tbd_warehouse4.json")
     argh[:schema_path] = File.join(__dir__, "../tbd.schema.json")
-    json = TBD.process(os_model, argh)
+    json = TBD.process(model, argh)
     expect(json.is_a?(Hash)).to be(true)
     expect(json.key?(:io)).to be(true)
     expect(json.key?(:surfaces)).to be(true)
