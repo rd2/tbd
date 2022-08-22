@@ -554,12 +554,14 @@ module TBD
   # @return [Bool] false if invalid input
   def kiva(model = nil, walls = {}, floors = {}, edges = {})
     mth = "TBD::#{__callee__}"
-    cl = OpenStudio::Model::Model
+    cl1 = OpenStudio::Model::Model
+    cl2 = Hash
+    a   = false
 
-    return mismatch("model", model, cl, mth)           unless model.is_a?(cl)
-    return mismatch("walls", walls, Hash, mth)         unless walls.is_a?(Hash)
-    return mismatch("floors", floors, Hash, mth)       unless floors.is_a?(Hash)
-    return mismatch("edges", edges, Hash, mth)         unless edges.is_a?(Hash)
+    return mismatch("model", model, cl1, mth, DBG, a)   unless model.is_a?(cl1)
+    return mismatch("walls", walls, cl2, mth, DBG, a)   unless walls.is_a?(cl2)
+    return mismatch("floors", floors, cl2, mth, DBG, a) unless floors.is_a?(cl2)
+    return mismatch("edges", edges, cl2, mth, DBG, a)   unless edges.is_a?(cl2)
 
     # Strictly relying on Kiva's total exposed perimeter approach.
     arg = "TotalExposedPerimeter"
@@ -574,144 +576,137 @@ module TBD
     # users easy access to further tweak settings, e.g. soil properties if
     # required. Initial tests show slight differences in simulation results
     # w/w/o explcit inclusion of the KIVA settings template in the model.
-    #
-    # TO-DO: Check in.idf vs in.osm for any deviation from default values as
-    # specified in the IO Reference Manual. One way to expose in-built default
-    # parameters (in the future), e.g.:
-    #
-    #   foundation_kiva_settings = model.getFoundationKivaSettings
-    #   soil_k = foundation_kiva_settings.soilConductivity
-    #   foundation_kiva_settings.setSoilConductivity(soil_k)
-
-    # Generic 1" XPS insulation (for slab-on-grade setup) - unused if basement.
-    xps25 = OpenStudio::Model::StandardOpaqueMaterial.new(model)
-    xps25.setName("XPS 25mm")
-    xps25.setRoughness("Rough")
-    xps25.setThickness(0.0254)
-    xps25.setConductivity(0.029)
-    xps25.setDensity(28)
-    xps25.setSpecificHeat(1450)
-    xps25.setThermalAbsorptance(0.9)
-    xps25.setSolarAbsorptance(0.7)
+    settings = model.getFoundationKivaSettings
+    k = settings.soilConductivity
+    settings.setSoilConductivity(k)
 
     # Tag foundation-facing floors, then walls.
-    edges.values.each do |edge|
+    edges.each do |code1, edge|
       edge[:surfaces].keys.each do |id|
-
-        # Start by processing edge-linked foundation-facing floors.
         next unless floors.key?(id)
         next unless floors[id][:boundary].downcase == "foundation"
+        next     if floors[id].key?(:kiva)
+        floors[id][:kiva   ] = :slab                  # initially slabs-on-grade
+        floors[id][:exposed] = 0.0 # slab-on-grade or basement walkout perimeter
 
-        # By default, foundation floors are initially slabs-on-grade.
-        floors[id][:kiva] = :slab
-
-        # Re(tag) floors as basements if foundation-facing walls.
-        edge[:surfaces].keys.each do |i|
+        edge[:surfaces].keys.each do |i|              # loop around current edge
+          next     if i == id
           next unless walls.key?(i)
           next unless walls[i][:boundary].downcase == "foundation"
-          next if walls[i].key?(:kiva)
-
-          # (Re)tag as :basement if edge-linked foundation walls.
+          next     if walls[i].key?(:kiva)
           floors[id][:kiva] = :basement
-          walls[i][:kiva] = id
+          walls[i  ][:kiva] = id
         end
-      end
-    end
 
-    # Fetch exposed perimeters.
-    edges.values.each do |edge|
-      edge[:surfaces].keys.each do |id|
-        next unless floors.key?(id)
-        next unless floors[id].key?(:kiva)
-
-        # Initialize if first iteration.
-        floors[id][:exposed] = 0.0 unless floors[id].key?(:exposed)
-
-        edge[:surfaces].keys.each do |i|
+        edge[:surfaces].keys.each do |i|              # loop around current edge
+          next    if i == id
           next unless walls.key?(i)
-          b = walls[i][:boundary].downcase
-          next unless b == "outdoors"
+          next unless walls[i][:boundary].downcase == "outdoors"
           floors[id][:exposed] += edge[:length]
         end
-      end
-    end
 
-    # Generate unique Kiva foundation per foundation-facing floor.
-    edges.values.each do |edge|
-      edge[:surfaces].keys.each do |id|
-        next unless floors.key?(id)
-        next unless floors[id].key?(:kiva)
-        next if floors[id].key?(:foundation)
+        edges.each do |code2, e|                 # loop around other floor edges
+          next if code1 == code2                             #  skip - same edge
+
+          e[:surfaces].keys.each do |i|
+            next unless i == id                              # good - same floor
+
+            e[:surfaces].keys.each do |ii|
+              next     if i == ii
+              next unless walls.key?(ii)
+              next unless walls[ii][:boundary].downcase == "foundation"
+              next     if walls[ii].key?(:kiva)
+              floors[id][:kiva] = :basement
+              walls[ii ][:kiva] = id
+            end
+
+            e[:surfaces].keys.each do |ii|
+              next    if i == ii
+              next unless walls.key?(ii)
+              next unless walls[ii][:boundary].downcase == "outdoors"
+              floors[id][:exposed] += e[:length]
+            end
+          end
+        end
 
         floors[id][:foundation] = OpenStudio::Model::FoundationKiva.new(model)
+        floors[id][:foundation].setName("KIVA Foundation Floor '#{id}'")
 
-        # It's assumed that generated foundation walls have insulated
-        # constructions. Perimeter insulation for slabs-on-grade.
-        # Typical circa-1980 slab-on-grade (perimeter) insulation setup.
-        if floors[id][:kiva] == :slab
+        floor = model.getSurfaceByName(id)
+        kiva  = false if floor.empty?
+        next          if floor.empty?
+        floor          = floor.get
+        construction   = floor.construction
+        kiva = false  if construction.empty?
+        next          if construction.empty?
+        construction   = construction.get
+        floor.setAdjacentFoundation(floors[id][:foundation])
+        floor.setConstruction(construction)
+        ep  = floors[id][:exposed]
+        per = floor.surfacePropertyExposedFoundationPerimeter
+
+        if per.empty?
+          per = floor.createSurfacePropertyExposedFoundationPerimeter(arg, ep)
+        else
+          per = per.get
+        end
+
+        kiva = false unless per.respond_to?(:totalExposedPerimeter)
+        next         unless per.respond_to?(:totalExposedPerimeter)
+
+        perimeter = per.totalExposedPerimeter
+        kiva = false if perimeter.empty?
+        next         if perimeter.empty?
+        perimeter     = perimeter.get
+
+        if ep < 0.001
+          ok   = per.setTotalExposedPerimeter(0.000)
+          ok   = per.setTotalExposedPerimeter(0.001) unless ok
+          kiva = false unless ok
+          next         unless ok
+        elsif (perimeter - ep).abs > TOL
+          ok   = per.setTotalExposedPerimeter(ep)
+          kiva = false unless ok
+          next         unless ok
+
+          # Generic 1" XPS insulation for exposed perimeter.
+          xps25 = model.getStandardOpaqueMaterialByName("XPS 25mm")
+
+          if xps25.empty?
+            xps25 = OpenStudio::Model::StandardOpaqueMaterial.new(model)
+            xps25.setName("XPS 25mm")
+            xps25.setRoughness("Rough")
+            xps25.setThickness(0.0254)
+            xps25.setConductivity(0.029)
+            xps25.setDensity(28)
+            xps25.setSpecificHeat(1450)
+            xps25.setThermalAbsorptance(0.9)
+            xps25.setSolarAbsorptance(0.7)
+          else
+            xps25 = xps25.get
+          end
+
           floors[id][:foundation].setInteriorHorizontalInsulationMaterial(xps25)
           floors[id][:foundation].setInteriorHorizontalInsulationWidth(0.6)
         end
-
-        # Locate OSM surface and assign Kiva foundation & perimeter objects.
-        found = false
-
-        model.getSurfaces.each do |s|
-          next unless s.nameString == id
-          next unless s.outsideBoundaryCondition.downcase == "foundation"
-          found = true
-
-          # Retrieve surface (standard) construction (which may be defaulted)
-          # before assigning a Kiva Foundation object to the surface. Then
-          # reassign the construction (no longer defaulted).
-          construction = s.construction.get
-          s.setAdjacentFoundation(floors[id][:foundation])
-          s.setConstruction(construction)
-
-          # Generate surface's Kiva exposed perimeter object.
-          ep = floors[id][:exposed]
-          #ep = TOL if ep < TOL
-          perimeter = s.createSurfacePropertyExposedFoundationPerimeter(arg, ep)
-
-          # The following 5x lines are a (temporary?) fix for exposed perimeter
-          # lengths of 0m - a perfectly valid entry in an IDF, e.g. "core" slab.
-          # Unfortunately OpenStudio (currently) rejects 0 as an inclusive
-          # minimum value. So despite passing a valid 0 "exp" argument,
-          # OpenStudio does not initialize the "TotalExposedPerimeter" entry.
-          # Compare relevant EnergyPlus vs OpenStudio .idd entries.
-          #
-          # The fix: if a valid Kiva exposed perimeter is equal or less than
-          # 1mm, fetch perimeter object and attempt to explicitely set the
-          # exposed perimeter length to 0m. If unsuccessful (situation remains
-          # unfixed), then set to 1mm. Simulations results should be virtually
-          # identical.
-          unless ep > 0.001 || perimeter.empty?
-            perimeter = perimeter.get
-            success = perimeter.setTotalExposedPerimeter(0)
-            perimeter.setTotalExposedPerimeter(0.001) unless success
-          end
-
-        end
-        kiva = found
       end
     end
 
-    # Link foundation walls to right Kiva foundation objects (if applicable).
-    edges.values.each do |edge|
-      edge[:surfaces].keys.each do |i|
-        next unless walls.key?(i)
-        next unless walls[i].key?(:kiva)
-        id = walls[i][:kiva]
-        next unless floors.key?(id)
-        next unless floors[id].key?(:foundation)
-
-        # Locate OSM wall.
-        model.getSurfaces.each do |s|
-          next unless s.nameString == i
-          s.setAdjacentFoundation(floors[id][:foundation])
-          s.setConstruction(s.construction.get)
-        end
-      end
+    walls.each do |i, wall|
+      next unless wall.key?(:kiva)
+      id        = walls[i][:kiva]
+      next unless floors.key?(id)
+      next unless floors[id].key?(:foundation)
+      mur           = model.getSurfaceByName(i)         # locate OpenStudio wall
+      kiva = false if mur.empty?
+      next         if mur.empty?
+      mur           = mur.get
+      construction  = mur.construction
+      kiva = false if construction.empty?
+      next         if construction.empty?
+      construction  = construction.get
+      mur.setAdjacentFoundation(floors[id][:foundation])
+      mur.setConstruction(construction)
     end
 
     kiva

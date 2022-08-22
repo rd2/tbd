@@ -1476,12 +1476,12 @@ RSpec.describe TBD do
     end
   end # can process thermal bridging and derating : LoScrigno
 
-  it "can process DOE Prototype test_smalloffice.osm" do
+  it "can process DOE Prototype smalloffice.osm" do
     TBD.clean!
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_smalloffice.osm")
+    file = File.join(__dir__, "files/osms/in/smalloffice.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -1748,12 +1748,12 @@ RSpec.describe TBD do
     end
   end
 
-  it "can process DOE prototype test_smalloffice.osm (hardset)" do
+  it "can process DOE prototype smalloffice.osm (hardset)" do
     TBD.clean!
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_smalloffice.osm")
+    file = File.join(__dir__, "files/osms/in/smalloffice.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -2044,12 +2044,12 @@ RSpec.describe TBD do
     end
   end
 
-  it "can process DOE Prototype test_warehouse.osm" do
+  it "can process DOE Prototype warehouse.osm" do
     TBD.clean!
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    file = File.join(__dir__, "files/osms/in/warehouse.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -2163,12 +2163,12 @@ RSpec.describe TBD do
     end
   end
 
-  it "can process DOE Prototype test_warehouse.osm + JSON I/O" do
+  it "can process DOE Prototype warehouse.osm + JSON I/O" do
     TBD.clean!
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    file = File.join(__dir__, "files/osms/in/warehouse.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -2358,12 +2358,12 @@ RSpec.describe TBD do
     expect(FileUtils.identical?(outP, outP2)).to be(true)
   end
 
-  it "can process DOE Prototype test_warehouse.osm + JSON I/O (2)" do
+  it "can process DOE Prototype warehouse.osm + JSON I/O (2)" do
     TBD.clean!
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    file = File.join(__dir__, "files/osms/in/warehouse.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -2526,12 +2526,12 @@ RSpec.describe TBD do
     expect(FileUtils.identical?(outP, outP2)).to be(true)
   end
 
-  it "can process test_seb.osm" do
+  it "can process seb.osm" do
     TBD.clean!
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/seb.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -2651,7 +2651,7 @@ RSpec.describe TBD do
             p: "Openarea 1 Wall 7",
             q: "Open area 1 DroppedCeiling" }.freeze
 
-    # If one simulates the test_seb.osm, EnergyPlus reports the plenum as an
+    # If one simulates the seb.osm, EnergyPlus reports the plenum as an
     # UNCONDITIONED zone, so it's more akin (at least initially) to an attic:
     # it's vented (infiltration) and there's necessarily heat conduction with
     # the outdoors and with the zone below. But otherwise, it's a dead zone
@@ -2774,7 +2774,7 @@ RSpec.describe TBD do
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    file = File.join(__dir__, "files/osms/in/warehouse.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -2921,12 +2921,12 @@ RSpec.describe TBD do
     end
   end
 
-  it "can process test_seb.osm (0 W/K per m)" do
+  it "can process seb.osm (0 W/K per m)" do
     TBD.clean!
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/seb.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -2961,12 +2961,12 @@ RSpec.describe TBD do
     end
   end
 
-  it "can process test_seb.osm (0 W/K per m) with JSON" do
+  it "can process seb.osm (0 W/K per m) with JSON" do
     TBD.clean!
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/seb.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -2997,12 +2997,12 @@ RSpec.describe TBD do
     end
   end
 
-  it "can process test_seb.osm (0 W/K per m) with JSON (non-0)" do
+  it "can process seb.osm (0 W/K per m) with JSON (non-0)" do
     TBD.clean!
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/seb.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -3149,12 +3149,12 @@ RSpec.describe TBD do
     end
   end
 
-  it "can process test_seb.osm (0 W/K per m) with JSON (non-0) 2" do
+  it "can process seb.osm (0 W/K per m) with JSON (non-0) 2" do
     TBD.clean!
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/seb.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -3296,12 +3296,12 @@ RSpec.describe TBD do
     end
   end
 
-  it "can process test_seb.osm (0 W/K per m) with JSON (non-0) 3" do
+  it "can process seb.osm (0 W/K per m) with JSON (non-0) 3" do
     TBD.clean!
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/seb.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -3448,7 +3448,7 @@ RSpec.describe TBD do
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/seb.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -3487,7 +3487,7 @@ RSpec.describe TBD do
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/seb.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -3741,7 +3741,7 @@ RSpec.describe TBD do
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/seb.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -3783,7 +3783,7 @@ RSpec.describe TBD do
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/seb.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -3822,7 +3822,7 @@ RSpec.describe TBD do
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/seb.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -3861,7 +3861,7 @@ RSpec.describe TBD do
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/seb.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -3916,7 +3916,7 @@ RSpec.describe TBD do
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    file = File.join(__dir__, "files/osms/in/warehouse.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -4267,7 +4267,7 @@ RSpec.describe TBD do
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    file = File.join(__dir__, "files/osms/in/warehouse.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -4328,7 +4328,7 @@ RSpec.describe TBD do
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_smalloffice.osm")
+    file = File.join(__dir__, "files/osms/in/smalloffice.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -4380,6 +4380,7 @@ RSpec.describe TBD do
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
     os_model = os_model.get
+
 
     # Testing min/max cooling/heating setpoints
     setpoints = TBD.heatingTemperatureSetpoints?(os_model)
@@ -4510,7 +4511,7 @@ RSpec.describe TBD do
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/seb.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -4632,7 +4633,7 @@ RSpec.describe TBD do
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_smalloffice.osm")
+    file = File.join(__dir__, "files/osms/in/smalloffice.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -4710,7 +4711,7 @@ RSpec.describe TBD do
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    file = File.join(__dir__, "files/osms/in/warehouse.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -5129,7 +5130,7 @@ RSpec.describe TBD do
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    file = File.join(__dir__, "files/osms/in/warehouse.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -5221,7 +5222,7 @@ RSpec.describe TBD do
 
     # Open another warehouse model and add/assign a Frame & Divider object.
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    file = File.join(__dir__, "files/osms/in/warehouse.osm")
     path = OpenStudio::Path.new(file)
     os_model_FD = translator.loadModel(path)
     expect(os_model_FD.empty?).to be(false)
@@ -6159,7 +6160,7 @@ RSpec.describe TBD do
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    file = File.join(__dir__, "files/osms/in/warehouse.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -6643,7 +6644,7 @@ RSpec.describe TBD do
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    file = File.join(__dir__, "files/osms/in/warehouse.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -7298,7 +7299,7 @@ RSpec.describe TBD do
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_smalloffice.osm")
+    file = File.join(__dir__, "files/osms/in/smalloffice.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -7576,7 +7577,7 @@ RSpec.describe TBD do
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    file = File.join(__dir__, "files/osms/in/warehouse.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -7623,7 +7624,7 @@ RSpec.describe TBD do
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    file = File.join(__dir__, "files/osms/in/warehouse.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -7885,7 +7886,7 @@ RSpec.describe TBD do
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    file = File.join(__dir__, "files/osms/in/warehouse.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -8216,7 +8217,7 @@ RSpec.describe TBD do
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    file = File.join(__dir__, "files/osms/in/warehouse.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -8547,7 +8548,7 @@ RSpec.describe TBD do
     argh = {}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    file = File.join(__dir__, "files/osms/in/warehouse.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -8621,7 +8622,7 @@ RSpec.describe TBD do
     expect(val.empty?).to be(false)
 
     argh[:option] = "poor (BETBG)"
-    argh[:seed] = "./files/osms/in/test_warehouse.osm"
+    argh[:seed] = "./files/osms/in/warehouse.osm"
     argh[:io_path] = File.join(__dir__, "../json/tbd_warehouse10.json")
     argh[:schema_path] = File.join(__dir__, "../tbd.schema.json")
     argh[:gen_ua] = true
@@ -8997,7 +8998,7 @@ RSpec.describe TBD do
     # Try with an incomplete reference, e.g. (non thermal bridging)
     TBD.clean!
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    file = File.join(__dir__, "files/osms/in/warehouse.osm")
     path = OpenStudio::Path.new(file)
     os_model = translator.loadModel(path)
     expect(os_model.empty?).to be(false)
@@ -9093,7 +9094,7 @@ RSpec.describe TBD do
     argh3 = {option: "poor (BETBG)"}
 
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    file = File.join(__dir__, "files/osms/in/warehouse.osm")
     path = OpenStudio::Path.new(file)
     model = translator.loadModel(path)
     expect(model.empty?).to be(false)
@@ -9196,7 +9197,7 @@ RSpec.describe TBD do
 
     # Testing the Macumber solution.
     TBD.clean!
-    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    file = File.join(__dir__, "files/osms/in/warehouse.osm")
     path = OpenStudio::Path.new(file)
     model = translator.loadModel(path)
     expect(model.empty?).to be(false)
@@ -9240,34 +9241,23 @@ RSpec.describe TBD do
   it "can generate and access KIVA inputs (seb)" do
     TBD.clean!
     argh = {}
-
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_seb.osm")
+    file = File.join(__dir__, "files/osms/in/seb.osm")
     path = OpenStudio::Path.new(file)
-    os_model = translator.loadModel(path)
-    expect(os_model.empty?).to be(false)
-    os_model = os_model.get
-
-    # Set one of the ground-facing surfaces to (Kiva) "Foundation".
-    os_model.getSurfaces.each do |s|
-      next unless s.nameString == "Open area 1 Floor"
-      construction = s.construction.get
-      expect(s.setOutsideBoundaryCondition("Foundation")).to be(true)
-      expect(s.setConstruction(construction)).to be(true)
-    end
-
-    # The following materials and foundation objects are provided here as
-    # placeholders for future tests.
+    model = translator.loadModel(path)
+    expect(model.empty?).to be(false)
+    model = model.get
 
     # For continuous insulation and/or finishings, OpenStudio/EnergyPlus/Kiva
-    # offer 2x solutions : (i) adapt surface construction by adding required
-    # insulation and/or finishing layers *, or (ii) add layers as Kiva custom
-    # blocks. The former is preferred here. TO DO: sensitivity analysis.
-
-    # * ... only "standard" OS Materials can be used - not "massless" ones.
+    # offer 2x solutions :
+    #
+    #   1. Add standard - not massless - materials as new construction layers
+    #   2. Add Kiva custom blocks
+    #
+    # ... sticking with Option #1. A few examples:
 
     # Generic 1-1/2" XPS insulation.
-    xps_38mm = OpenStudio::Model::StandardOpaqueMaterial.new(os_model)
+    xps_38mm = OpenStudio::Model::StandardOpaqueMaterial.new(model)
     xps_38mm.setName("XPS_38mm")
     xps_38mm.setRoughness("Rough")
     xps_38mm.setThickness(0.0381)
@@ -9278,7 +9268,7 @@ RSpec.describe TBD do
     xps_38mm.setSolarAbsorptance(0.7)
 
     # 1. Current code-compliant slab-on-grade (perimeter) solution.
-    kiva_slab_2020s = OpenStudio::Model::FoundationKiva.new(os_model)
+    kiva_slab_2020s = OpenStudio::Model::FoundationKiva.new(model)
     kiva_slab_2020s.setName("Kiva slab 2020s")
     kiva_slab_2020s.setInteriorHorizontalInsulationMaterial(xps_38mm)
     kiva_slab_2020s.setInteriorHorizontalInsulationWidth(1.2)
@@ -9287,74 +9277,79 @@ RSpec.describe TBD do
 
     # 2. Beyond-code slab-on-grade (continuous) insulation setup. Add 1-1/2"
     #    XPS insulation layer (under slab) to surface construction.
-    kiva_slab_HP = OpenStudio::Model::FoundationKiva.new(os_model)
+    kiva_slab_HP = OpenStudio::Model::FoundationKiva.new(model)
     kiva_slab_HP.setName("Kiva slab HP")
 
     # 3. Do the same for (full height) basements - no insulation under slab for
     #    vintages 1980s & 2020s. Add (full-height) layered insulation and/or
     #    finishing to basement wall construction.
-    kiva_basement = OpenStudio::Model::FoundationKiva.new(os_model)
+    kiva_basement = OpenStudio::Model::FoundationKiva.new(model)
     kiva_basement.setName("Kiva basement")
 
     # 4. Beyond-code basement slab (perimeter) insulation setup. Add
     #    (full-height)layered insulation and/or finishing to basement wall
     #    construction.
-    kiva_basement_HP = OpenStudio::Model::FoundationKiva.new(os_model)
+    kiva_basement_HP = OpenStudio::Model::FoundationKiva.new(model)
     kiva_basement_HP.setName("Kiva basement HP")
     kiva_basement_HP.setInteriorHorizontalInsulationMaterial(xps_38mm)
     kiva_basement_HP.setInteriorHorizontalInsulationWidth(1.2)
     kiva_basement_HP.setInteriorVerticalInsulationMaterial(xps_38mm)
     kiva_basement_HP.setInteriorVerticalInsulationDepth(0.138)
 
-    # Attach (1) slab-on-grade Kiva foundation object to floor surface.
-    os_model.getSurfaces.each do |s|
-      next unless s.nameString == "Open area 1 Floor"
-      s.setAdjacentFoundation(kiva_slab_2020s)
-      arg = "TotalExposedPerimeter"
-      s.createSurfacePropertyExposedFoundationPerimeter(arg, 12.59)
-    end
+    # Set "Foundation" as boundary condition of 1x slab-on-grade, and link it
+    # to 1x Kiva Foundation object.
+    oa1f = model.getSurfaceByName("Open area 1 Floor")
+    expect(oa1f.empty?).to be(false)
+    oa1f = oa1f.get
+    expect(oa1f.setOutsideBoundaryCondition("Foundation")).to be(true)
+    oa1f.setAdjacentFoundation(kiva_slab_2020s)
+    construction = oa1f.construction
+    expect(construction.empty?).to be(false)
+    construction = construction.get
+    expect(oa1f.setConstruction(construction)).to be(true)
+    arg = "TotalExposedPerimeter"
+    per = oa1f.createSurfacePropertyExposedFoundationPerimeter(arg, 12.59)
+    expect(per.empty?).to be(false)
 
-    file = File.join(__dir__, "files/osms/out/os_model_KIVA.osm")
-    os_model.save(file, true)
+    file = File.join(__dir__, "files/osms/out/seb_KIVA.osm")
+    model.save(file, true)
 
-    # Now re-open for testing.
+    # Re-open for testing.
     path = OpenStudio::Path.new(file)
-    os_model2 = translator.loadModel(path)
-    expect(os_model2.empty?).to be(false)
-    os_model2 = os_model2.get
+    model = translator.loadModel(path)
+    expect(model.empty?).to be(false)
+    model = model.get
 
-    os_model2.getSurfaces.each do |s|
-      next unless s.isGroundSurface
-      next unless s.nameString == "Open area 1 Floor"
-      construction = s.construction.get
-      expect(s.setOutsideBoundaryCondition("Foundation")).to be(true)
-      expect(s.setConstruction(construction)).to be(true)
-    end
+    oa1f = model.getSurfaceByName("Open area 1 Floor")
+    expect(oa1f.empty?).to be(false)
+    oa1f = oa1f.get
+    expect(oa1f.outsideBoundaryCondition.downcase).to eq("foundation")
+    foundation = oa1f.adjacentFoundation
+    expect(foundation.empty?).to be(false)
+    foundation = foundation.get
 
-    # Set one of the linked outside-facing walls to (Kiva) "Foundation"
-    os_model2.getSurfaces.each do |s|
-      next unless s.nameString == "Openarea 1 Wall 5"
-      construction = s.construction.get
-      expect(s.setOutsideBoundaryCondition("Foundation")).to be(true)
-      expect(s.setConstruction(construction)).to be(true)
-    end
+    oa15 = model.getSurfaceByName("Openarea 1 Wall 5")              # 3.89m wide
+    expect(oa15.empty?).to be(false)
+    oa15 = oa15.get
+    construction = oa15.construction.get
+    expect(oa15.setOutsideBoundaryCondition("Foundation")).to be(true)
+    expect(oa15.setAdjacentFoundation(foundation)).to be(true)
+    expect(oa15.setConstruction(construction)).to be(true)
 
-    kfs = os_model2.getFoundationKivas
+    kfs = model.getFoundationKivas
     expect(kfs.empty?).to be(false)
     expect(kfs.size).to eq(4)
-
-    settings = os_model2.getFoundationKivaSettings
+    settings = model.getFoundationKivaSettings
     expect(settings.soilConductivity).to be_within(0.01).of(1.73)
 
-    argh[:option] = "poor (BETBG)"
+    argh[:option  ] = "poor (BETBG)"
     argh[:gen_kiva] = true
-    json = TBD.process(os_model2, argh)
+    json = TBD.process(model, argh)
     expect(json.is_a?(Hash)).to be(true)
     expect(json.key?(:io)).to be(true)
     expect(json.key?(:surfaces)).to be(true)
     io       = json[:io]
     surfaces = json[:surfaces]
-
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
     expect(io.nil?).to be(false)
@@ -9364,8 +9359,10 @@ RSpec.describe TBD do
     expect(surfaces.is_a?(Hash)).to be(true)
     expect(surfaces.size).to eq(56)
 
+    found_floor = false
+    found_wall  = false
+
     surfaces.each do |id, surface|
-      next unless surface.key?(:foundation)
       next unless surface.key?(:kiva)
       expect(id).to eq("Open area 1 Floor").or eq("Openarea 1 Wall 5")
 
@@ -9373,32 +9370,38 @@ RSpec.describe TBD do
         expect(surface[:kiva]).to eq(:basement)
         expect(surface.key?(:exposed)).to be (true)
         expect(surface[:exposed]).to be_within(0.01).of(8.70)     # 12.59 - 3.89
+        found_floor = true
       else
         expect(surface[:kiva]).to eq("Open area 1 Floor")
+        found_wall = true
       end
     end
+
+    expect(found_floor).to be(true)
+    expect(found_wall).to be(true)
+
+    file = File.join(__dir__, "files/osms/out/seb_KIVA2.osm")
+    model.save(file, true)
   end
 
   it "can generate and access KIVA inputs (midrise apts - variant)" do
     TBD.clean!
     argh = {}
-
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = File.join(__dir__, "files/osms/in/midrise_KIVA.osm")
     path = OpenStudio::Path.new(file)
-    os_model = translator.loadModel(path)
-    expect(os_model.empty?).to be(false)
-    os_model = os_model.get
+    model = translator.loadModel(path)
+    expect(model.empty?).to be(false)
+    model = model.get
 
-    argh[:option] = "poor (BETBG)"
+    argh[:option  ] = "poor (BETBG)"
     argh[:gen_kiva] = true
-    json = TBD.process(os_model, argh)
+    json = TBD.process(model, argh)
     expect(json.is_a?(Hash)).to be(true)
     expect(json.key?(:io)).to be(true)
     expect(json.key?(:surfaces)).to be(true)
     io       = json[:io]
     surfaces = json[:surfaces]
-
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?).to be(true)
     expect(io.nil?).to be(false)
@@ -9414,42 +9417,40 @@ RSpec.describe TBD do
       next unless surface.key?(:kiva)
       expect(surface[:kiva]).to eq(:slab)
       expect(surface.key?(:exposed)).to be(true)
-      exp = surface[:exposed]
-
-      found = false
-      os_model.getSurfaces.each do |s|
-        next unless s.nameString == id
-        next unless s.outsideBoundaryCondition.downcase == "foundation"
-        found = true
-
-        expect(exp).to be_within(0.01).of(3.36) if id == "g Floor C"
-      end
-      expect(found).to be(true)
+      expect(id).to eq("g Floor C")
+      expect(surface[:exposed]).to be_within(TOL).of(3.36)
+      gFC = model.getSurfaceByName("g Floor C")
+      expect(gFC.empty?).to be(false)
+      gFC = gFC.get
+      expect(gFC.outsideBoundaryCondition.downcase).to eq("foundation")
     end
+
+    file = File.join(__dir__, "files/osms/out/midrise_KIVA2.osm")
+    model.save(file, true)
   end
 
   it "can generate multiple KIVA exposed perimeters (midrise apts - variant)" do
     TBD.clean!
     argh = {}
-
     translator = OpenStudio::OSVersion::VersionTranslator.new
     file = File.join(__dir__, "files/osms/in/midrise_KIVA.osm")
     path = OpenStudio::Path.new(file)
-    os_model = translator.loadModel(path)
-    expect(os_model.empty?).to be(false)
-    os_model = os_model.get
+    model = translator.loadModel(path)
+    expect(model.empty?).to be(false)
+    model = model.get
 
     # Reset all ground-facing floor surfaces as "foundations".
-    os_model.getSurfaces.each do |s|
+    model.getSurfaces.each do |s|
       next unless s.outsideBoundaryCondition.downcase == "ground"
+      expect(s.construction.empty?).to be(false)
       construction = s.construction.get
       expect(s.setOutsideBoundaryCondition("Foundation")).to be(true)
       expect(s.setConstruction(construction)).to be(true)
     end
 
-    argh[:option] = "poor (BETBG)"
+    argh[:option  ] = "poor (BETBG)"
     argh[:gen_kiva] = true
-    json = TBD.process(os_model, argh)
+    json = TBD.process(model, argh)
     expect(json.is_a?(Hash)).to be(true)
     expect(json.key?(:io)).to be(true)
     expect(json.key?(:surfaces)).to be(true)
@@ -9471,9 +9472,9 @@ RSpec.describe TBD do
       expect(surface[:kiva]).to eq(:slab)
       expect(surface.key?(:exposed)).to be(true)
       exp = surface[:exposed]
-
       found = false
-      os_model.getSurfaces.each do |s|
+
+      model.getSurfaces.each do |s|
         next unless s.nameString == id
         next unless s.outsideBoundaryCondition.downcase == "foundation"
         found = true
@@ -9488,36 +9489,40 @@ RSpec.describe TBD do
         expect(exp).to be_within(0.01).of(11.58) if id == "g GFloor N2A"
         expect(exp).to be_within(0.01).of( 3.36) if id == "g Floor C"
       end
+
       expect(found).to be(true)
     end
+
+    file = File.join(__dir__, "files/osms/out/midrise_KIVA3.osm")
+    model.save(file, true)
   end
 
   it "can generate KIVA exposed perimeters (warehouse)" do
     TBD.clean!
     argh = {}
-
     translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/test_warehouse.osm")
+    file = File.join(__dir__, "files/osms/in/warehouse.osm")
     path = OpenStudio::Path.new(file)
-    os_model = translator.loadModel(path)
-    expect(os_model.empty?).to be(false)
-    os_model = os_model.get
+    model = translator.loadModel(path)
+    expect(model.empty?).to be(false)
+    model = model.get
 
     fl1 = "Fine Storage Floor"
     fl2 = "Office Floor"
     fl3 = "Bulk Storage Floor"
 
     # Reset all ground-facing floor surfaces as "foundations".
-    os_model.getSurfaces.each do |s|
+    model.getSurfaces.each do |s|
       next unless s.outsideBoundaryCondition.downcase == "ground"
+      expect(s.construction.empty?).to be(false)
       construction = s.construction.get
       expect(s.setOutsideBoundaryCondition("Foundation")).to be(true)
       expect(s.setConstruction(construction)).to be(true)
     end
 
-    argh[:option] = "(non thermal bridging)"
+    argh[:option  ] = "(non thermal bridging)"
     argh[:gen_kiva] = true
-    json = TBD.process(os_model, argh)
+    json = TBD.process(model, argh)
     expect(json.is_a?(Hash)).to be(true)
     expect(json.key?(:io)).to be(true)
     expect(json.key?(:surfaces)).to be(true)
@@ -9539,9 +9544,9 @@ RSpec.describe TBD do
       expect(surface[:kiva]).to eq(:slab)
       expect(surface.key?(:exposed)).to be(true)
       exp = surface[:exposed]
-
       found = false
-      os_model.getSurfaces.each do |s|
+
+      model.getSurfaces.each do |s|
         next unless s.nameString == id
         next unless s.outsideBoundaryCondition.downcase == "foundation"
         found = true
@@ -9550,25 +9555,26 @@ RSpec.describe TBD do
         expect(exp).to be_within(0.01).of( 35.05) if id == "fl2"
         expect(exp).to be_within(0.01).of(185.92) if id == "fl3"
       end
+
       expect(found).to be(true)
     end
 
     pth = File.join(__dir__, "files/osms/out/warehouse_KIVA.osm")
-    os_model.save(pth, true)
+    model.save(pth, true)
 
     # Now re-open for testing.
     path = OpenStudio::Path.new(pth)
-    os_model2 = translator.loadModel(path)
-    expect(os_model2.empty?).to be(false)
-    os_model2 = os_model2.get
+    model = translator.loadModel(path)
+    expect(model.empty?).to be(false)
+    model = model.get
 
-    os_model2.getSurfaces.each do |s|
+    model.getSurfaces.each do |s|
       next unless s.isGroundSurface
       expect(s.nameString).to eq(fl1).or eq(fl2).or eq(fl3)
       expect(s.outsideBoundaryCondition).to eq("Foundation")
     end
 
-    kfs = os_model2.getFoundationKivas
+    kfs = model.getFoundationKivas
     expect(kfs.empty?).to be(false)
     expect(kfs.size).to eq(3)
   end
