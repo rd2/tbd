@@ -70,7 +70,7 @@ class TBDTest < Minitest::Test
 
     # Create hash of argument values. If the argument has a default that you
     # want to use, you don't need it in the hash.
-    args_hash = {}
+    args_hash = { "write_tbd_json" => true, "gen_UA_report" => true }
     # using defaults values from measure.rb for other arguments
 
     # populate argument with specified hash value if specified

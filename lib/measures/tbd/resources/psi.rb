@@ -1784,7 +1784,7 @@ module TBD
         deratables.each do |id, deratable|
           [:windows, :doors, :skylights].each do |types|
             next unless tbd[:surfaces][id].key?(types)
-            
+
             tbd[:surfaces][id][types].keys.each do |sub|
               deratables.delete(id) if apertures.key?(sub)
             end
@@ -2010,6 +2010,11 @@ module TBD
       state = "Halting all TBD processes, and halting OpenStudio"      if fatal?
     end
 
+    # runner.registerInfo("ARGH[:io] does have key 'edges'") if argh[:io].key?(:edges)
+    # runner.registerInfo("ARGH[:io] does NOT have key 'edges'") unless argh[:io].key?(:edges)
+    # runner.registerInfo("ARGH does have key 'gen_ua'") if argh.key?(:gen_ua)
+    # runner.registerInfo("ARGH does NOT have key 'gen_ua'") unless argh.key?(:gen_ua)
+
     argh[:io           ] = {}    unless argh[:io]
     argh[:seed         ] = ""    unless argh.key?(:seed)
     argh[:version      ] = ""    unless argh.key?(:version)
@@ -2108,6 +2113,8 @@ module TBD
       end
 
       runner.registerInfo(" -")
+    # else
+    #   runner.registerInfo("can't process UA")
     end
 
     results = []
@@ -2175,6 +2182,15 @@ module TBD
     end
 
     out_path = File.join(out_dir, "tbd.out.json")
+
+    # runner.registerInfo("io NOW does have key 'edges'")         if io.key?(:edges)
+    # runner.registerInfo("io NOW does NOT have key 'edges'") unless io.key?(:edges)
+    # runner.registerInfo("io NOW does have key 'log'")           if io.key?(:log)
+    # runner.registerInfo("io NOW does NOT have key 'log'")   unless io.key?(:log)
+
+    # if io.key?(:log)
+    #   runner.registerInfo("io[:log] NOW does have key 'ua'") if io[:log].key?(:ua)
+    # end
 
     File.open(out_path, 'w') do |file|
       file.puts JSON::pretty_generate(io)

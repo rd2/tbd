@@ -234,7 +234,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     argh[:wall_option  ] = runner.getStringArgumentValue("wall_option",    args)
     argh[:roof_option  ] = runner.getStringArgumentValue("roof_option",    args)
     argh[:floor_option ] = runner.getStringArgumentValue("floor_option",   args)
-    argh[:gen_ua       ] = runner.getBoolArgumentValue("gen_UA_report",    args)
+    argh[:gen_ua] = runner.getBoolArgumentValue("gen_UA_report",    args)
     argh[:ua_ref       ] = runner.getStringArgumentValue("ua_reference",   args)
     argh[:gen_kiva     ] = runner.getBoolArgumentValue("gen_kiva",         args)
     argh[:kiva_force   ] = runner.getBoolArgumentValue("gen_kiva_force",   args)
@@ -315,6 +315,12 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     tbd              = TBD.process(model, argh)
     argh[:io      ]  = tbd[:io]
     argh[:surfaces]  = tbd[:surfaces]
+
+    runner.registerInfo("argh[:io] does have key 'edges'")          if argh[:io].key?(:edges)
+    runner.registerInfo("argh[:io] does NOT have key 'edges'")  unless argh[:io].key?(:edges)
+    runner.registerInfo("argh does have key 'gen_ua'")              if argh.key?(:gen_ua)
+    runner.registerInfo("argh does NOT have key 'gen_ua'")      unless argh.key?(:gen_ua)
+
     setpoints        = TBD.heatingTemperatureSetpoints?(model)
     setpoints        = TBD.coolingTemperatureSetpoints?(model) || setpoints
     argh[:setpoints] = setpoints

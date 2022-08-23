@@ -1,7 +1,6 @@
 require "tbd"
 
 RSpec.describe TBD do
-
   it "can compute uFactor for ceilings, walls, and floors" do
 
     os_model = OpenStudio::Model::Model.new
