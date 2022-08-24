@@ -99,7 +99,7 @@ module TBD
           k    = 3.0                                            unless k < 3.0
           loss = (new_u - k / d) * area                         unless k < 3.0
         end
-      else                                              # new_r < 0.001 m2.K/W
+      else                                                # new_r < 0.001 m2.K/W
         d    = 0.001 * k
         d    = 0.003                                            unless d > 0.003
         k    = d / 0.001                                        unless d > 0.003
@@ -248,7 +248,7 @@ module TBD
           next unless coll.key?(i)
 
           unless sss.surfaceType.downcase.include?(label.to_s)
-            log(ERR, "Uprating #{label.to_s} - not '#{sss.nameString}' (#{mth})")
+            log(ERR, "Uprating #{label.to_s}, not '#{sss.nameString}' (#{mth})")
             cloned = c.clone(model).to_LayeredConstruction.get
             cloned.setName("'#{i}' cloned")
             sss.setConstruction(cloned)
@@ -359,17 +359,12 @@ module TBD
           type = "roof" if type == "ceiling"
           next unless type.include?(label.to_s)
           next unless s[nom].key?(:r)
-          s[nom][:r] = lyr[:r]                                                # final
+          s[nom][:r] = lyr[:r]                                           # final
         end
 
-        case label
-        when :wall
-          argh[:wall_uo ] = uo
-        when :roof
-          argh[:roof_uo ] = uo
-        else
-          argh[:floor_uo] = uo
-        end
+        argh[:wall_uo ] = res[:uo] if label == :wall
+        argh[:roof_uo ] = res[:uo] if label == :roof
+        argh[:floor_uo] = res[:uo] if label == :floor
       else
         log(ERR, "Nilled construction to uprate - (#{mth})")
         return false

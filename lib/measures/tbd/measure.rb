@@ -223,7 +223,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
   def run(mdl, runner, args)
     super(mdl, runner, args)
 
-    argh = {}
+    argh                 = {}
     argh[:alter        ] = runner.getBoolArgumentValue("alter_model",      args)
     argh[:load_tbd     ] = runner.getBoolArgumentValue("load_tbd_json",    args)
     argh[:option       ] = runner.getStringArgumentValue("option",         args)
@@ -234,13 +234,13 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     argh[:wall_option  ] = runner.getStringArgumentValue("wall_option",    args)
     argh[:roof_option  ] = runner.getStringArgumentValue("roof_option",    args)
     argh[:floor_option ] = runner.getStringArgumentValue("floor_option",   args)
-    argh[:gen_ua] = runner.getBoolArgumentValue("gen_UA_report",    args)
+    argh[:gen_ua       ] = runner.getBoolArgumentValue("gen_UA_report",    args)
     argh[:ua_ref       ] = runner.getStringArgumentValue("ua_reference",   args)
     argh[:gen_kiva     ] = runner.getBoolArgumentValue("gen_kiva",         args)
     argh[:kiva_force   ] = runner.getBoolArgumentValue("gen_kiva_force",   args)
 
-    argh[:uprate_walls ] = argh[:wall_option]  != "NONE"
-    argh[:uprate_roofs ] = argh[:roof_option]  != "NONE"
+    argh[:uprate_walls ] = argh[:wall_option ] != "NONE"
+    argh[:uprate_roofs ] = argh[:roof_option ] != "NONE"
     argh[:uprate_floors] = argh[:floor_option] != "NONE"
 
     return false unless runner.validateUserArguments(arguments(mdl), args)
@@ -271,7 +271,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
 
     TBD.clean!
     argh[:schema_path] = nil
-    argh[:io_path] = nil
+    argh[:io_path    ] = nil
 
     if argh[:load_tbd]
       argh[:io_path] = runner.workflow.findFile('tbd.json')
@@ -311,16 +311,10 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
       model.addObjects(mdl.toIdfFile.objects)
     end
 
-    argh[:version]   = model.getVersion.versionIdentifier
+    argh[:version ]  = model.getVersion.versionIdentifier
     tbd              = TBD.process(model, argh)
     argh[:io      ]  = tbd[:io]
     argh[:surfaces]  = tbd[:surfaces]
-
-    runner.registerInfo("argh[:io] does have key 'edges'")          if argh[:io].key?(:edges)
-    runner.registerInfo("argh[:io] does NOT have key 'edges'")  unless argh[:io].key?(:edges)
-    runner.registerInfo("argh does have key 'gen_ua'")              if argh.key?(:gen_ua)
-    runner.registerInfo("argh does NOT have key 'gen_ua'")      unless argh.key?(:gen_ua)
-
     setpoints        = TBD.heatingTemperatureSetpoints?(model)
     setpoints        = TBD.coolingTemperatureSetpoints?(model) || setpoints
     argh[:setpoints] = setpoints

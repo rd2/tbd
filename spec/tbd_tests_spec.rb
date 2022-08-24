@@ -8014,7 +8014,7 @@ RSpec.describe TBD do
     surfaces = json[:surfaces]
     expect(TBD.status).to eq(ERR)
     expect(TBD.logs.size).to eq(1)
-    msg = "Uprating wall - not '#{bulk}' (TBD::uprate)"
+    msg = "Uprating wall, not '#{bulk}' (TBD::uprate)"
     expect(TBD.logs.first[:message]).to eq(msg)
     expect(io.nil?).to be(false)
     expect(io.is_a?(Hash)).to be(true)
@@ -8331,10 +8331,10 @@ RSpec.describe TBD do
     expect(bulk_roof.setConstruction(targeted)).to be(true)
     expect(bulk_roof.isConstructionDefaulted).to be(false)
 
-    argh[:wall_option]  = "ALL wall constructions"
-    argh[:option]       = "efficient (BETBG)"                # vs preceding test
+    argh[:wall_option ] = "ALL wall constructions"
+    argh[:option      ] = "efficient (BETBG)"                # vs preceding test
     argh[:uprate_walls] = true
-    argh[:wall_ut]      = 0.210                                          # (R27)
+    argh[:wall_ut     ] = 0.210                                          # (R27)
 
     json = TBD.process(os_model, argh)
     expect(json.is_a?(Hash)).to be(true)
@@ -8344,7 +8344,7 @@ RSpec.describe TBD do
     surfaces = json[:surfaces]
     expect(TBD.status).to eq(ERR)
     expect(TBD.logs.size).to eq(1)
-    msg = "Uprating wall - not '#{bulk}' (TBD::uprate)"
+    msg = "Uprating wall, not '#{bulk}' (TBD::uprate)"
     expect(TBD.logs.first[:message]).to eq(msg)
     expect(io.nil?).to be(false)
     expect(io.is_a?(Hash)).to be(true)
@@ -9618,7 +9618,7 @@ RSpec.describe TBD do
     original_r = insulation.thickness / insulation.thermalConductivity
     expect(original_r).to be_within(TOL).of(1.8380)
 
-    argh[:option]        = "efficient (BETBG)"
+    argh[:option] = "efficient (BETBG)"
     json = TBD.process(model, argh)
     expect(json.is_a?(Hash)).to be(true)
     expect(json.key?(:io)).to be(true)
@@ -9659,7 +9659,7 @@ RSpec.describe TBD do
     #
     #   Ut = Uo + 0.309
     #
-    # So what initial Uo value should the construction have (prior to derating)
+    # So what initial Uo value should the construction offer (prior to derating)
     # to ensure compliance with NECB2017/2020 prescriptive requirements (one of
     # the few energy codes with prescriptive Ut requirements)? For climate zone
     # 7, the target Ut is 0.210 W/m2.K (Rsi 4.76 m2.K/W or R27). Taking into
@@ -9706,21 +9706,19 @@ RSpec.describe TBD do
     #   - calculated layer r violates E+ material constraints (e.g. too thin)
     #
     # Retrying the previous example, yet requesting uprating calculations:
-
     TBD.clean!
-    argh = {}
-
+    argh  = {}
     model = translator.loadModel(path)
     expect(model.empty?).to be(false)
     model = model.get
 
-    argh[:option]        = "efficient (BETBG)"
-    argh[:uprate_walls]  = true
-    argh[:uprate_roofs]  = true
-    argh[:wall_option]   = "ALL wall constructions"
-    argh[:roof_option]   = "ALL roof constructions"
-    argh[:wall_ut]       = 0.210                # NECB CZ7 2017 (RSi 4.76 / R41)
-    argh[:roof_ut]       = 0.138                # NECB CZ7 2017 (RSi 7.25 / R41)
+    argh[:option      ] = "efficient (BETBG)"
+    argh[:uprate_walls] = true
+    argh[:uprate_roofs] = true
+    argh[:wall_option ] = "ALL wall constructions"
+    argh[:roof_option ] = "ALL roof constructions"
+    argh[:wall_ut     ] = 0.210                 # NECB CZ7 2017 (RSi 4.76 / R27)
+    argh[:roof_ut     ] = 0.138                 # NECB CZ7 2017 (RSi 7.25 / R41)
     json = TBD.process(model, argh)
     expect(json.is_a?(Hash)).to be(true)
     expect(json.key?(:io)).to be(true)
@@ -9729,28 +9727,31 @@ RSpec.describe TBD do
     surfaces = json[:surfaces]
     expect(TBD.error?).to be(true)
     expect(TBD.logs.empty?).to be(false)
+    expect(TBD.logs.size).to eq(2)
+    expect(TBD.logs.first[:message].include?("Zero")).to be(true)
+    expect(TBD.logs.first[:message].include?(": new Rsi")).to be(true)    # ~< 0
+    expect(TBD.logs.last[:message].include?("Unable to uprate")).to be(true)
+    expect(argh.key?(:wall_uo)).to be(false)
+    expect(argh.key?(:roof_uo)).to be(true)
+    expect(argh[:roof_uo].nil?).to be(false)
+    expect(argh[:roof_uo]).to be_within(TOL).of(0.118)          # RSi 8.47 (R48)
 
-    # TBD.logs.each {|l| puts l[:message] }
-    #   Can't uprate 'ASHRAE [...] 5', calculated low or negative Rsi - skipping
-    #   Unable to uprate 'ASHRAE [...] 5' - skipping
-    #   No construction to uprate - skipping
-
+    # --- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- --- #
     TBD.clean!
-    argh = {}
+    argh  = {}
     walls = []
-
     model = translator.loadModel(path)
     expect(model.empty?).to be(false)
     model = model.get
 
-    argh[:io_path]       = File.join(__dir__, "../json/tbd_5ZoneNoHVAC.json")
-    argh[:schema_path]   = File.join(__dir__, "../tbd.schema.json")
-    argh[:uprate_walls]  = true
-    argh[:uprate_roofs]  = true
-    argh[:wall_option]   = "ALL wall constructions"
-    argh[:roof_option]   = "ALL roof constructions"
-    argh[:wall_ut]       = 0.210                # NECB CZ7 2017 (RSi 4.76 / R41)
-    argh[:roof_ut]       = 0.138                # NECB CZ7 2017 (RSi 7.25 / R41)
+    argh[:io_path     ] = File.join(__dir__, "../json/tbd_5ZoneNoHVAC.json")
+    argh[:schema_path ] = File.join(__dir__, "../tbd.schema.json")
+    argh[:uprate_walls] = true
+    argh[:uprate_roofs] = true
+    argh[:wall_option ] = "ALL wall constructions"
+    argh[:roof_option ] = "ALL roof constructions"
+    argh[:wall_ut     ] = 0.210                 # NECB CZ7 2017 (RSi 4.76 / R27)
+    argh[:roof_ut     ] = 0.138                 # NECB CZ7 2017 (RSi 7.25 / R41)
     json = TBD.process(model, argh)
     expect(json.is_a?(Hash)).to be(true)
     expect(json.key?(:io)).to be(true)
@@ -9758,6 +9759,12 @@ RSpec.describe TBD do
     io       = json[:io]
     surfaces = json[:surfaces]
     expect(TBD.status).to eq(0)
+    expect(argh.key?(:wall_uo)).to be(true)
+    expect(argh.key?(:roof_uo)).to be(true)
+    expect(argh[:wall_uo].nil?).to be(false)
+    expect(argh[:roof_uo].nil?).to be(false)
+    expect(argh[:wall_uo]).to be_within(TOL).of(0.086)         # RSi 11.63 (R66)
+    expect(argh[:roof_uo]).to be_within(TOL).of(0.129)         # RSi  7.75 (R44)
 
     model.getSurfaces.each do |s|
       next unless s.surfaceType == "Wall"
@@ -9777,21 +9784,21 @@ RSpec.describe TBD do
       expect(insul.thermalConductivity).to be_within(0.0001).of(0.0432)
       th1 = (insul.thickness - 0.191).abs < 0.001 # derated layer Rsi 4.42 (R26)
       th2 = (insul.thickness - 0.186).abs < 0.001 # derated layer Rsi 4.31 (R25)
-      th = th1 || th2
+      th = th1 || th2                     # depending if 'short' or 'long' walls
       expect(th).to be(true)
     end
 
     walls.each do |wall|
       expect(surfaces.key?(wall)).to be(true)
       expect(surfaces[wall].key?(:r)).to be(true) # uprated, underated layer Rsi
-      expect(surfaces[wall].key?(:u)).to be(true) # uprated, underated assembly
-      expect(surfaces[wall][:r]).to be_within(0.001).of(11.205) # R64
-      expect(surfaces[wall][:u]).to be_within(0.001).of(0.086)  # R66
+      expect(surfaces[wall].key?(:u)).to be(true) #  uprated, underated assembly
+      expect(surfaces[wall][:r]).to be_within(0.001).of(11.205)            # R64
+      expect(surfaces[wall][:u]).to be_within(0.001).of(0.086)             # R66
     end
 
-    # Variant, with PSI values generated by BTAP routines.
+    # --- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- --- #
     # Final attempt, with PSI values of 0.09 W/K per linear metre (JSON file).
-    model = OpenStudio::Model::Model.new
+    model   = OpenStudio::Model::Model.new
     version = model.getVersion.versionIdentifier.split('.').map(&:to_i)
     v = version.join.to_i
 
@@ -9803,36 +9810,26 @@ RSpec.describe TBD do
       model = model.get
       TBD.clean!
       argh = {}
+      argh[:io_path] = File.join(__dir__, "../json/tbd_5ZoneNoHVAC_btap.json")
 
-      argh[:io_path]       = File.join(__dir__, "../json/tbd_5ZoneNoHVAC_btap.json")
-      argh[:schema_path]   = File.join(__dir__, "../tbd.schema.json")
-      argh[:uprate_walls]  = true
-      argh[:wall_option]   = "ALL wall constructions"
-      argh[:wall_ut]       = 0.210              # NECB CZ7 2017 (RSi 4.76 / R41)
+      argh[:schema_path ] = File.join(__dir__, "../tbd.schema.json")
+      argh[:uprate_walls] = true
+      argh[:wall_option ] = "ALL wall constructions"
+      argh[:wall_ut     ] = 0.210              # NECB CZ7 2017 (RSi 4.76 / R41)
       json = TBD.process(model, argh)
       expect(json.is_a?(Hash)).to be(true)
       expect(json.key?(:io)).to be(true)
       expect(json.key?(:surfaces)).to be(true)
       io       = json[:io]
       surfaces = json[:surfaces]
-      expect(argh.key?(:wall_uo)).to be(false)
       expect(TBD.error?).to be(true)
-      # puts TBD.logs
-      # "Unable to uprate insulation layer (> 3m) of '...' - skipping"
-      # "Unable to uprate '...' - skipping"
-
-      # OpenStudio has a 3 metre (max.) limit for Standard Material thickness:
-      #
-      #   raw.githubusercontent.com/NREL/OpenStudio/develop/resources/
-      #   model/OpenStudio.idd
-      #
-      # EnergyPlus does not:
-      #
-      #   raw.githubusercontent.com/NREL/EnergyPlus/develop/idd/
-      #   V22-1-0-Energy%2B.idd
-      #
-      # Although this is a reasonable limit, why not sync with EnergyPlus?
-      # BTW, there is no max. R-value limit for OpenStudio Massless Materials.
+      expect(TBD.logs.empty?).to be(false)
+      expect(TBD.logs.size).to eq(2)
+      expect(TBD.logs.first[:message].include?("Invalid")).to be(true)
+      expect(TBD.logs.first[:message].include?("Can't uprate ")).to be(true)
+      expect(TBD.logs.last[:message].include?("Unable to uprate")).to be(true)
+      expect(argh.key?(:wall_uo)).to be(false)
+      expect(argh.key?(:roof_uo)).to be(false)
     end
   end
 end

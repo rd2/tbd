@@ -1976,7 +1976,6 @@ module TBD
 
     # Populate UA' trade-off reference values (optional).
     ua = argh[:gen_ua] && argh[:ua_ref] && argh[:ua_ref] == "code (Quebec)"
-
     qc33(tbd[:surfaces], json[:psi], setpoints)                            if ua
 
     tbd[:io] = json[:io]
@@ -2000,60 +1999,55 @@ module TBD
     # level for debugging purposes. By default, log status is set < DBG
     # while log level is set @INF.
     state = msg(status)
-    state = msg(INF)                 if status.zero?
-    argh                 = {}    unless argh.is_a?(Hash)
-    argh[:io]            = nil   unless argh.key?(:io)
-    argh[:surfaces]      = nil   unless argh.key?(:surfaces)
+    state = msg(INF)          if status.zero?
+    argh            = {}  unless argh.is_a?(Hash)
+    argh[:io      ] = nil unless argh.key?(:io)
+    argh[:surfaces] = nil unless argh.key?(:surfaces)
 
     unless argh[:io] && argh[:surfaces]
       state = "Halting all TBD processes, yet running OpenStudio"
       state = "Halting all TBD processes, and halting OpenStudio"      if fatal?
     end
 
-    # runner.registerInfo("ARGH[:io] does have key 'edges'") if argh[:io].key?(:edges)
-    # runner.registerInfo("ARGH[:io] does NOT have key 'edges'") unless argh[:io].key?(:edges)
-    # runner.registerInfo("ARGH does have key 'gen_ua'") if argh.key?(:gen_ua)
-    # runner.registerInfo("ARGH does NOT have key 'gen_ua'") unless argh.key?(:gen_ua)
-
     argh[:io           ] = {}    unless argh[:io]
-    argh[:seed         ] = ""    unless argh.key?(:seed)
-    argh[:version      ] = ""    unless argh.key?(:version)
-    argh[:gen_ua       ] = false unless argh.key?(:gen_ua)
-    argh[:ua_ref       ] = ""    unless argh.key?(:ua_ref)
-    argh[:setpoints    ] = false unless argh.key?(:setpoints)
-    argh[:write_tbd    ] = false unless argh.key?(:write_tbd)
-    argh[:uprate_walls ] = false unless argh.key?(:uprate_walls)
-    argh[:uprate_roofs ] = false unless argh.key?(:uprate_roofs)
+    argh[:seed         ] = ""    unless argh.key?(:seed         )
+    argh[:version      ] = ""    unless argh.key?(:version      )
+    argh[:gen_ua       ] = false unless argh.key?(:gen_ua       )
+    argh[:ua_ref       ] = ""    unless argh.key?(:ua_ref       )
+    argh[:setpoints    ] = false unless argh.key?(:setpoints    )
+    argh[:write_tbd    ] = false unless argh.key?(:write_tbd    )
+    argh[:uprate_walls ] = false unless argh.key?(:uprate_walls )
+    argh[:uprate_roofs ] = false unless argh.key?(:uprate_roofs )
     argh[:uprate_floors] = false unless argh.key?(:uprate_floors)
-    argh[:wall_ut      ] = 5.678 unless argh.key?(:wall_ut)
-    argh[:roof_ut      ] = 5.678 unless argh.key?(:roof_ut)
-    argh[:floor_ut     ] = 5.678 unless argh.key?(:floor_ut)
-    argh[:wall_option  ] = ""    unless argh.key?(:wall_option)
-    argh[:roof_option  ] = ""    unless argh.key?(:roof_option)
-    argh[:floor_option ] = ""    unless argh.key?(:floor_option)
-    argh[:wall_uo      ] = nil   unless argh.key?(:wall_ut)
-    argh[:roof_uo      ] = nil   unless argh.key?(:roof_ut)
-    argh[:floor_uo     ] = nil   unless argh.key?(:floor_ut)
+    argh[:wall_ut      ] = 5.678 unless argh.key?(:wall_ut      )
+    argh[:roof_ut      ] = 5.678 unless argh.key?(:roof_ut      )
+    argh[:floor_ut     ] = 5.678 unless argh.key?(:floor_ut     )
+    argh[:wall_option  ] = ""    unless argh.key?(:wall_option  )
+    argh[:roof_option  ] = ""    unless argh.key?(:roof_option  )
+    argh[:floor_option ] = ""    unless argh.key?(:floor_option )
+    argh[:wall_uo      ] = nil   unless argh.key?(:wall_ut      )
+    argh[:roof_uo      ] = nil   unless argh.key?(:roof_ut      )
+    argh[:floor_uo     ] = nil   unless argh.key?(:floor_ut     )
 
     groups              = { wall: {}, roof: {}, floor: {} }
-    groups[:wall ][:up] = argh[:uprate_walls]
-    groups[:roof ][:up] = argh[:uprate_roofs]
+    groups[:wall ][:up] = argh[:uprate_walls ]
+    groups[:roof ][:up] = argh[:uprate_roofs ]
     groups[:floor][:up] = argh[:uprate_floors]
-    groups[:wall ][:ut] = argh[:wall_ut]
-    groups[:roof ][:ut] = argh[:roof_ut]
-    groups[:floor][:ut] = argh[:floor_ut]
-    groups[:wall ][:op] = argh[:wall_option]
-    groups[:roof ][:op] = argh[:roof_option]
-    groups[:floor][:op] = argh[:floor_option]
-    groups[:wall ][:uo] = argh[:wall_uo]
-    groups[:roof ][:uo] = argh[:roof_uo]
-    groups[:floor][:uo] = argh[:floor_uo]
+    groups[:wall ][:ut] = argh[:wall_ut      ]
+    groups[:roof ][:ut] = argh[:roof_ut      ]
+    groups[:floor][:ut] = argh[:floor_ut     ]
+    groups[:wall ][:op] = argh[:wall_option  ]
+    groups[:roof ][:op] = argh[:roof_option  ]
+    groups[:floor][:op] = argh[:floor_option ]
+    groups[:wall ][:uo] = argh[:wall_uo      ]
+    groups[:roof ][:uo] = argh[:roof_uo      ]
+    groups[:floor][:uo] = argh[:floor_uo     ]
 
-    io               = argh[:io]
+    io               = argh[:io       ]
     out              = argh[:write_tbd]
     descr            = ""
     descr            = argh[:seed] unless argh[:seed].empty?
-    io[:description] = descr unless io.key?(:description)
+    io[:description] = descr       unless io.key?(:description)
     descr            = io[:description]
 
     schema_pth  = "https://github.com/rd2/tbd/blob/master/tbd.schema.json"
@@ -2062,7 +2056,7 @@ module TBD
     u_t         = []
 
     groups.each do |label, g|
-      next if fatal?
+      next     if fatal?
       next unless g[:uo]
       next unless g[:uo].is_a?(Numeric)
 
@@ -2113,8 +2107,6 @@ module TBD
       end
 
       runner.registerInfo(" -")
-    # else
-    #   runner.registerInfo("can't process UA")
     end
 
     results = []
@@ -2137,8 +2129,8 @@ module TBD
     logs.each do |l|
       tbd_msgs << { level: tag(l[:level]), message: l[:message] }
 
-      runner.registerWarning(l[:message])                     if l[:level] > INF
-      runner.registerInfo(l[:message])                    unless l[:level] > INF
+      runner.registerWarning(l[:message]) if l[:level] >  INF
+      runner.registerInfo(l[:message])    if l[:level] <= INF
     end
 
     tbd_log[:messages] = tbd_msgs unless tbd_msgs.empty?
@@ -2182,15 +2174,6 @@ module TBD
     end
 
     out_path = File.join(out_dir, "tbd.out.json")
-
-    # runner.registerInfo("io NOW does have key 'edges'")         if io.key?(:edges)
-    # runner.registerInfo("io NOW does NOT have key 'edges'") unless io.key?(:edges)
-    # runner.registerInfo("io NOW does have key 'log'")           if io.key?(:log)
-    # runner.registerInfo("io NOW does NOT have key 'log'")   unless io.key?(:log)
-
-    # if io.key?(:log)
-    #   runner.registerInfo("io[:log] NOW does have key 'ua'") if io[:log].key?(:ua)
-    # end
 
     File.open(out_path, 'w') do |file|
       file.puts JSON::pretty_generate(io)
