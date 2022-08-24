@@ -26,7 +26,7 @@ begin
   # Try to load from the Topolys gem.
   require "topolys"
 
-  puts "... relying on Topolys gem"
+  puts "... relying on the Topolys gem"
 rescue LoadError
   require_relative "topolys/model"
   require_relative "topolys/geometry"
@@ -37,22 +37,57 @@ rescue LoadError
 end
 
 begin
-  # Try to load from the tbd gem.
+  # Try to load from the OSlg gem.
+  require "oslg"
+
+  puts "... relying on the OSlg gem"
+rescue LoadError
+  require_relative "oslg/oslog"
+  require_relative "osut/version"
+
+  puts "... fallback to local OSlg files"
+end
+
+begin
+  # Try to load from the OSut gem.
+  require "osut"
+
+  puts "... relying on the OSut gem"
+rescue LoadError
+  require_relative "osut/utils"
+  require_relative "osut/version"
+
+  puts "... fallback to local OSut files"
+end
+
+begin
+  # Try to load from the TBD gem.
   require "tbd/psi"
-  require "tbd/conditioned"
-  require "tbd/framedivider"
+  require "tbd/geo"
   require "tbd/ua"
-  require "tbd/log"
   require "tbd/version"
 
-  puts "... relying on TBD gem"
+  puts "... relying on the TBD gem"
 rescue LoadError
   require_relative "tbd/psi"
-  require_relative "tbd/conditioned"
-  require_relative "tbd/framedivider"
+  require_relative "tbd/geo"
   require_relative "tbd/ua"
-  require_relative "tbd/log"
   require_relative "tbd/version"
 
   puts "... fallback to local TBD files"
+end
+
+module TBD
+  extend OSut         #                                     OpenStudio utilities
+
+  TOL  = OSut::TOL
+  TOL2 = OSut::TOL2
+  DBG  = OSut::DEBUG  #   mainly to flag invalid arguments for devs (buggy code)
+  INF  = OSut::INFO   #           informs TBD user of measure success or failure
+  WRN  = OSut::WARN   # e.g. WARN users of 'iffy' .osm inputs (yet not critical)
+  ERR  = OSut::ERR    #                            e.g. flag invalid .osm inputs
+  FTL  = OSut::FATAL  #                     e.g. invalid TBD JSON format/entries
+  NS   = "nameString" #                   OpenStudio IdfObject nameString method
+
+  extend TBD
 end

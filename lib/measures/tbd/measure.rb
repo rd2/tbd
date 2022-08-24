@@ -20,36 +20,21 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require_relative "resources/version"
-require_relative "resources/geometry"
-require_relative "resources/transformation"
-require_relative "resources/model"
+require_relative "resources/tbd"
 
-require_relative "resources/psi"
-require_relative "resources/conditioned"
-require_relative "resources/framedivider"
-require_relative "resources/ua"
-require_relative "resources/log"
-
-# start the measure
 class TBDMeasure < OpenStudio::Measure::ModelMeasure
-  # human readable name
   def name
-    # Measure name should be the title case of the class name.
     return "Thermal Bridging and Derating - TBD"
   end
 
-  # human readable description
   def description
     return "Derates opaque constructions from major thermal bridges."
   end
 
-  # human readable description of modeling approach
   def modeler_description
-    return "Consult rd2.github.io/tbd"
+    return "Check out rd2.github.io/tbd"
   end
 
-  # define the arguments that the user will input
   def arguments(model = nil)
     args = OpenStudio::Measure::OSArgumentVector.new
 
@@ -73,7 +58,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args << load_tbd
 
     chs = OpenStudio::StringVector.new
-    psi = PSI.new
+    psi = TBD::PSI.new
     psi.set.keys.each { |k| chs << k.to_s }
 
     arg = "option"
@@ -235,70 +220,68 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     return args
   end
 
-  # Define what happens when the measure is run.
   def run(mdl, runner, args)
     super(mdl, runner, args)
 
-    # Assign the user inputs to variables.
-    argh = {}
-    argh[:alter] = runner.getBoolArgumentValue("alter_model", args)
-    argh[:load_tbd] = runner.getBoolArgumentValue("load_tbd_json", args)
-    argh[:option] = runner.getStringArgumentValue("option", args)
-    argh[:write_tbd] = runner.getBoolArgumentValue("write_tbd_json", args)
-    argh[:wall_ut] = runner.getDoubleArgumentValue("wall_ut", args)
-    argh[:roof_ut] = runner.getDoubleArgumentValue("roof_ut", args)
-    argh[:floor_ut] = runner.getDoubleArgumentValue("floor_ut", args)
-    argh[:wall_option] = runner.getStringArgumentValue("wall_option", args)
-    argh[:roof_option] = runner.getStringArgumentValue("roof_option", args)
-    argh[:floor_option] = runner.getStringArgumentValue("floor_option", args)
-    argh[:gen_ua] = runner.getBoolArgumentValue("gen_UA_report", args)
-    argh[:ua_ref] = runner.getStringArgumentValue("ua_reference", args)
-    argh[:gen_kiva] = runner.getBoolArgumentValue("gen_kiva", args)
-    argh[:kiva_force] = runner.getBoolArgumentValue("gen_kiva_force", args)
+    argh                 = {}
+    argh[:alter        ] = runner.getBoolArgumentValue("alter_model",      args)
+    argh[:load_tbd     ] = runner.getBoolArgumentValue("load_tbd_json",    args)
+    argh[:option       ] = runner.getStringArgumentValue("option",         args)
+    argh[:write_tbd    ] = runner.getBoolArgumentValue("write_tbd_json",   args)
+    argh[:wall_ut      ] = runner.getDoubleArgumentValue("wall_ut",        args)
+    argh[:roof_ut      ] = runner.getDoubleArgumentValue("roof_ut",        args)
+    argh[:floor_ut     ] = runner.getDoubleArgumentValue("floor_ut",       args)
+    argh[:wall_option  ] = runner.getStringArgumentValue("wall_option",    args)
+    argh[:roof_option  ] = runner.getStringArgumentValue("roof_option",    args)
+    argh[:floor_option ] = runner.getStringArgumentValue("floor_option",   args)
+    argh[:gen_ua       ] = runner.getBoolArgumentValue("gen_UA_report",    args)
+    argh[:ua_ref       ] = runner.getStringArgumentValue("ua_reference",   args)
+    argh[:gen_kiva     ] = runner.getBoolArgumentValue("gen_kiva",         args)
+    argh[:kiva_force   ] = runner.getBoolArgumentValue("gen_kiva_force",   args)
 
-    argh[:uprate_walls]  = argh[:wall_option]  != "NONE"
-    argh[:uprate_roofs]  = argh[:roof_option]  != "NONE"
+    argh[:uprate_walls ] = argh[:wall_option ] != "NONE"
+    argh[:uprate_roofs ] = argh[:roof_option ] != "NONE"
     argh[:uprate_floors] = argh[:floor_option] != "NONE"
 
-    # Use the built-in error checking.
     return false unless runner.validateUserArguments(arguments(mdl), args)
 
-    if argh[:wall_ut] < TOL
+    if argh[:wall_ut] < TBD::TOL
       runner.registerError("Wall Ut must be greater than 0 W/m2•K - Halting")
       return false
-    elsif argh[:wall_ut] > 5.678 - TOL
+    elsif argh[:wall_ut] > 5.678 - TBD::TOL
       runner.registerError("Wall Ut must be lower than 5.678 W/m2•K - Halting")
       return false
     end
 
-    if argh[:roof_ut] < TOL
+    if argh[:roof_ut] < TBD::TOL
       runner.registerError("Roof Ut must be greater than 0 W/m2•K - Halting")
       return false
-    elsif argh[:roof_ut] > 5.678 - TOL
+    elsif argh[:roof_ut] > 5.678 - TBD::TOL
       runner.registerError("Roof Ut must be lower than 5.678 W/m2•K - Halting")
       return false
     end
 
-    if argh[:floor_ut] < TOL
+    if argh[:floor_ut] < TBD::TOL
       runner.registerError("Floor Ut must be greater than 0 W/m2•K - Halting")
       return false
-    elsif argh[:floor_ut] > 5.678 - TOL
+    elsif argh[:floor_ut] > 5.678 - TBD::TOL
       runner.registerError("Floor Ut must be lower than 5.678 W/m2•K - Halting")
       return false
     end
 
     TBD.clean!
-
     argh[:schema_path] = nil
-    argh[:io_path] = nil
+    argh[:io_path    ] = nil
+
     if argh[:load_tbd]
       argh[:io_path] = runner.workflow.findFile('tbd.json')
+
       if argh[:io_path].empty?
-        TBD.log(TBD::FATAL, "Can't find 'tbd.json' - simulation halted")
-        return exitTBD(runner, argh)
+        TBD.log(TBD::FTL, "Can't find 'tbd.json' - simulation halted")
+        return TBD.exit(runner, argh)
       else
         argh[:io_path] = argh[:io_path].get.to_s
-        # TBD.log(TBD::INFO, "Using inputs from #{argh[:io_path]}")  # debugging
+        # TBD.log(TBD::INF, "Using inputs from #{argh[:io_path]}")  # debugging
         # runner.registerInfo("Using inputs from #{argh[:io_path]}") # debugging
       end
     end
@@ -306,6 +289,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     # Process all ground-facing surfaces as foundation-facing.
     if argh[:kiva_force]
       argh[:gen_kiva] = true
+
       mdl.getSurfaces.each do |s|
         next unless s.isGroundSurface
         construction = s.construction.get
@@ -327,12 +311,15 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
       model.addObjects(mdl.toIdfFile.objects)
     end
 
-    argh[:version] = model.getVersion.versionIdentifier
-    argh[:io], argh[:surfaces] = processTBD(model, argh)
-    argh[:setpoints] = heatingTemperatureSetpoints?(model)
-    argh[:setpoints] = coolingTemperatureSetpoints?(model) || argh[:setpoints]
+    argh[:version ]  = model.getVersion.versionIdentifier
+    tbd              = TBD.process(model, argh)
+    argh[:io      ]  = tbd[:io]
+    argh[:surfaces]  = tbd[:surfaces]
+    setpoints        = TBD.heatingTemperatureSetpoints?(model)
+    setpoints        = TBD.coolingTemperatureSetpoints?(model) || setpoints
+    argh[:setpoints] = setpoints
 
-    return exitTBD(runner, argh)
+    return TBD.exit(runner, argh)
   end
 end
 

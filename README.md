@@ -1,6 +1,6 @@
 # Thermal Bridging & Derating (TBD)  
 
-An [OpenStudio Measure](https://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/) that first autodetects _major_ thermal bridges (like balconies, parapets and corners) in an OpenStudio model (.osm), and then _derates_ outside-facing, opaque surface constructions (walls, roofs and exposed floors). It relies on both the [OpenStudio SDK](https://openstudio-sdk-documentation.s3.amazonaws.com/index.html) and the AutomaticMagic [Topolys](https://github.com/automaticmagic/topolys) gem.
+An [OpenStudio Measure](https://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/) that first autodetects _major_ thermal bridges (like balconies, parapets and corners) in an OpenStudio model (.osm), and then _derates_ outside-facing, opaque surface constructions (walls, roofs and exposed floors). It interacts with the [OpenStudio SDK](https://openstudio-sdk-documentation.s3.amazonaws.com/index.html) and relies on the AutomaticMagic [Topolys](https://github.com/automaticmagic/topolys) gem, as well as the [OSut](https://rubygems.org/gems/osut/versions/0.2.7) gem.
 
 ## Guide & Downloads
 
@@ -8,25 +8,27 @@ Building professionals and energy modellers are encouraged to first consult the 
 
 Questions can be posted on [UnmetHours](https://unmethours.com) - a very useful online resource for OpenStudio users.
 
-TBD can also be deployed as a Ruby gem, by adding one of the following lines to an application's _Gemfile_:
+TBD can also be deployed as a Ruby gem, by adding:  
+
 ```
 gem "tbd", git: "https://github.com/rd2/tbd", branch: "master"
-gem "tbd", git: "https://github.com/rd2/tbd", tag: "v2.4.5"
 ```  
-And then execute:
+
+... in a v2.1 [bundled](https://bundler.io) _Measure_ development environment "Gemfile" (or instead as a _gemspec_ dependency), and then run:  
+
 ```
-bundle update
+bundle install (or 'bundle update')
 ```
 
 ## New Features  
 
-Upcoming enhancements are in the works. Bugs and new feature requests for _TBD_ should be submitted [here](https://github.com/rd2/tbd/issues), while those more closely linked to _Topolys_ should be submitted [here](https://github.com/automaticmagic/topolys/issues).
+Upcoming enhancements are in the works. Bugs or new feature requests for _TBD_ should be submitted [here](https://github.com/rd2/tbd/issues), while those more closely linked to _Topolys_ or _OSut_ should be submitted [here](https://github.com/automaticmagic/topolys/issues) or [here](https://github.com/rd2/osut/issues), respectively.
 
 ## Development
 
 The installation and testing instructions in this section are for developers interested in exploring/tweaking a cloned/forked version of the source code.
 
-TBD is systematically tested against updated OpenStudio versions (since v2.9.1). The following instructions refer to OpenStudio v3.4.0 (requiring Ruby v2.7.2), strictly as an example. Adapt the instructions for more recent versions - see OpenStudio's [compatibility matrix](https://github.com/NREL/OpenStudio/wiki/OpenStudio-SDK-Version-Compatibility-Matrix).
+TBD is systematically tested against updated OpenStudio versions (since v3.0.0). The following instructions refer to OpenStudio v3.4.0 (requiring Ruby v2.7.2), strictly as an example. Adapt the instructions for more recent versions - see OpenStudio's [compatibility matrix](https://github.com/NREL/OpenStudio/wiki/OpenStudio-SDK-Version-Compatibility-Matrix).
 
 ### Windows Installation
 
@@ -55,12 +57,12 @@ Verify your OpenStudio and Ruby configuration:
 ruby -e "require 'openstudio'" -e "puts OpenStudio::Model::Model.new"
 ```
 
-Run basic tests to ensure the measure operates properly (see end of this README).
+`git clone` the TBD repo, then run basic tests to ensure the measure operates properly (see end of this README).
 
 
 ### MacOS Installation
 
-MacOS already comes with Ruby, but likely not the right Ruby version for the desired OpenStudio measure development [environment](https://github.com/NREL/OpenStudio/wiki/OpenStudio-SDK-Version-Compatibility-Matrix). Instructions here show how to install Ruby v2.7.2 alongside MacOS's own Ruby version. An OpenStudio v2.9.1 setup is described [here](https://github.com/rd2/tbd/blob/master/v291_MacOS.md).
+MacOS already comes with Ruby, but likely not the right Ruby version for the desired OpenStudio measure development [environment](https://github.com/NREL/OpenStudio/wiki/OpenStudio-SDK-Version-Compatibility-Matrix). Instructions here show how to install Ruby v2.7.2 alongside MacOS's own Ruby version. Although no longer officially supported, instructions for an OpenStudio v2.9.1 setup is described [here](https://github.com/rd2/tbd/blob/master/v291_MacOS.md).
 
 From a Terminal, install [Homebrew](https://brew.sh/index) - nice for package distribution and management. Using Homebrew, install _rbenv_ (which allows users to manage multiple Ruby versions) and finally Ruby:
 
@@ -115,9 +117,7 @@ cd ~/Documents/sandbox340
 ruby -e "require 'openstudio'" -e "puts OpenStudio::Model::Model.new"
 ```
 
-Install the latest version of _git_ (e.g. through Homebrew), and ```git clone``` the TBD measure e.g., under "sandbox340".
-
-Run the basic tests below to ensure the measure operates as expected.
+Install the latest version of _git_ (e.g. through Homebrew), then ```git clone``` the TBD repo, e.g. under "sandbox340". Run the basic tests below to ensure the measure operates as expected.
 
 
 ## Complete list of test commands
@@ -125,7 +125,7 @@ Run the basic tests below to ensure the measure operates as expected.
 Run the following (basic) tests in the root repository of the cloned TBD measure:
 ```
 bundle update
-bundle exec rake update_library_files
+bundle exec rake libraries
 bundle exec rake
 ```
 
@@ -159,7 +159,6 @@ In the root repository:
 ```
 docker run --name test --rm -d -t -v ${PWD}:/work -w /work nrel/openstudio:3.4.0
 docker exec -t test bundle update
-docker exec -t test bundle exec rake update_library_files
 docker exec -t test bundle exec rake
 docker kill test
 ```

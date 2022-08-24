@@ -70,15 +70,19 @@ class TBDTest < Minitest::Test
 
     # Create hash of argument values. If the argument has a default that you
     # want to use, you don't need it in the hash.
-    args_hash = {}
+    args_hash                   = {}
+    args_hash["option"        ] = "efficient (BETBG)"
+    args_hash["write_tbd_json"] = true
+    args_hash["gen_UA_report" ] = true
+    args_hash["wall_option"   ] = "ALL wall constructions"
+    args_hash["wall_ut"       ] = 0.5
     # using defaults values from measure.rb for other arguments
 
     # populate argument with specified hash value if specified
     arguments.each do |arg|
       temp_arg_var = arg.clone
-      if args_hash.key?(arg.name)
-        assert(temp_arg_var.setValue(args_hash[arg.name]))
-      end
+      gotit = args_hash.key?(arg.name)
+      assert(temp_arg_var.setValue(args_hash[arg.name])) if gotit
       argument_map[arg.name] = temp_arg_var
     end
 
@@ -104,9 +108,9 @@ class TBDTest < Minitest::Test
     measure = TBDMeasure.new
 
     # Output dirs
-    seed_dir = File.join(__dir__, 'output/load_tbd_json/')
+    seed_dir = File.join(__dir__, "output/load_tbd_json/")
     FileUtils.mkdir_p(seed_dir)
-    seed_path = File.join(seed_dir, 'in.osm')
+    seed_path = File.join(seed_dir, "in.osm")
 
     # create runner with empty OSW
     osw = OpenStudio::WorkflowJSON.new
@@ -118,8 +122,8 @@ class TBDTest < Minitest::Test
     model.save(seed_path, true)
 
     # copy tdb.json next to seed
-    origin_pth = File.join(__dir__, 'tbd_full_PSI.json')
-    target_pth = File.join(seed_dir, 'tbd.json')
+    origin_pth = File.join(__dir__, "tbd_full_PSI.json")
+    target_pth = File.join(seed_dir, "tbd.json")
     FileUtils.cp(origin_pth, target_pth)
 
     # get arguments
@@ -162,9 +166,9 @@ class TBDTest < Minitest::Test
     measure = TBDMeasure.new
 
     # Output dirs
-    seed_dir = File.join(__dir__, 'output/load_tbd_json_error/')
+    seed_dir = File.join(__dir__, "output/load_tbd_json_error/")
     FileUtils.mkdir_p(seed_dir)
-    seed_path = File.join(seed_dir, 'in.osm')
+    seed_path = File.join(seed_dir, "in.osm")
 
     # create runner with empty OSW
     osw = OpenStudio::WorkflowJSON.new

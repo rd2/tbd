@@ -1,41 +1,36 @@
+require "bundler/gem_tasks"
 require "rspec/core/rake_task"
+
 RSpec::Core::RakeTask.new(:spec) do |t|
     t.rspec_opts = '--exclude-pattern \'spec/**/*suite_spec.rb\''
 end
 
-require "rubocop/rake_task"
-RuboCop::RakeTask.new
-
 task default: :spec
 
-require 'yard'
-YARD::Rake::YardocTask.new do |t|
-  t.files = ["lib/tbd/psi.rb",
-             "lib/tbd/conditioned.rb",
-             "lib/tbd/framedivider.rb",
-             "lib/tbd/ua.rb",
-             "lib/tbd/log.rb"]
-end
-
 desc "Update Library Files"
-task :update_library_files do
+task :libraries do
   puts "Updating Library Files"
 
   require "fileutils"
 
-  libs = ["topolys", "tbd"]
+  libs = ["topolys", "osut", "oslg", "tbd"]
   lib_files = {}
 
   $LOAD_PATH.each do |load_path|
     libs.each do |l|
       if load_path.include?(l)
         lib_files[l] = Dir.glob(File.join(load_path, "#{l}/*.rb"))
-        lib_files.delete_if { |file| file.include?("version.rb") } if l == "tbd"
+
+        unless l == "topolys"
+          lib_files[l].delete_if { |f| f.include?("version.rb") }
+        end
+
+        puts "#{l} lib files:"
+        lib_files[l].each { |lf| puts "... #{lf}" }
+        puts
       end
     end
   end
-
-  lib_files.values.each { |file| puts file }
 
   dirs = Dir.glob(File.join(__dir__, "lib/measures/*"))
 
@@ -47,7 +42,7 @@ task :update_library_files do
 end
 
 desc "Update Measure"
-task :update_measure do
+task :measure do
   puts "Updating Measure"
 
   require "openstudio"
@@ -59,7 +54,7 @@ task :update_measure do
   out, err, ps = Open3.capture3({"BUNDLE_GEMFILE"=>nil}, command)
   raise "Failed to update measures\n\n#{out}\n\n#{err}" unless ps.success?
 end
-task :update_measure => [:update_library_files]
+task :measure => [:libraries]
 
 namespace "osm_suite" do
   desc "Clean OSM Test Suite"
@@ -73,7 +68,7 @@ namespace "osm_suite" do
   RSpec::Core::RakeTask.new(:run) do |t|
     t.rspec_opts = "--pattern \'spec/tbd_osm_suite_spec.rb\'"
   end
-  task :run => [:update_measure]
+  task :run => [:measure]
 end
 
 namespace "prototype_suite" do
@@ -88,7 +83,7 @@ namespace "prototype_suite" do
   RSpec::Core::RakeTask.new(:run) do |t|
     t.rspec_opts = "--pattern \'spec/tbd_prototype_suite_spec.rb\'"
   end
-  task :run => [:update_measure]
+  task :run => [:measure]
 end
 
 desc "Clean All Test Suites"
@@ -104,4 +99,4 @@ end
 task :suites_run => ["osm_suite:run", "prototype_suite:run"]
 
 # default spec test depends on updating measure and library files
-task :spec => [:update_measure]
+task :spec => [:measure]

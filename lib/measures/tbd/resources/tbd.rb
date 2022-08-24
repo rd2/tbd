@@ -20,6 +20,36 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+require "openstudio"
+
+# Topolys gem files.
+require_relative "model"
+require_relative "geometry"
+require_relative "transformation"
+require_relative "version"
+
+# OSlg gem file.
+require_relative "oslog"
+
+# OSut gem file.
+require_relative "utils"
+
+# TBD gem files.
+require_relative "psi"
+require_relative "geo"
+require_relative "ua"
+
 module TBD
-  VERSION = "3.0.0".freeze
+  extend OSut         #                                     OpenStudio utilities
+
+  TOL  = OSut::TOL
+  TOL2 = OSut::TOL2
+  DBG  = OSut::DEBUG  #   mainly to flag invalid arguments for devs (buggy code)
+  INF  = OSut::INFO   #           informs TBD user of measure success or failure
+  WRN  = OSut::WARN   # e.g. WARN users of 'iffy' .osm inputs (yet not critical)
+  ERR  = OSut::ERR    #                            e.g. flag invalid .osm inputs
+  FTL  = OSut::FATAL  #                     e.g. invalid TBD JSON format/entries
+  NS   = "nameString" #                   OpenStudio IdfObject nameString method
+
+  extend TBD
 end
