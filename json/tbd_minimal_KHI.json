@@ -1,8 +1,0 @@
-{
-  "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
-  "description": "TBD JSON example - bare bones KHI-only",
-  "khis": [{
-    "id": "Mediocre",
-    "point": 0.8
-  }]
-}
