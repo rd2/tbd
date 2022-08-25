@@ -1,8 +1,0 @@
-{
-  "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
-  "description": "TBD JSON example - bare bones PSI-only",
-  "psis": [{
-    "id": "OK",
-    "parapet": 0.8
-  }]
-}

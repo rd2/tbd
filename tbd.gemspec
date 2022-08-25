@@ -28,28 +28,16 @@ Gem::Specification.new do |s|
   s.required_ruby_version    = [">= 2.5.0", "< 2.7.3"]
   s.metadata                 = {}
 
-  s.add_dependency             "topolys",        "~> 0"
-  s.add_dependency             "osut",           "~> 0"
-  s.add_dependency             "json-schema",    "~> 2.7.0"
+  s.add_dependency             "topolys",     "~> 0"
+  s.add_dependency             "osut",        "~> 0"
+  s.add_dependency             "json-schema", "~> 2.7.0"
 
-  s.add_development_dependency "bundler",        "~> 2.1"
-  s.add_development_dependency "rake",           "~> 13.0"
-  s.add_development_dependency "rspec",          "~> 3.11"
-  s.add_development_dependency "parallel",       "~> 1.19.2"
+  s.add_development_dependency "bundler",     "~> 2.1"
+  s.add_development_dependency "rake",        "~> 13.0"
+  s.add_development_dependency "rspec",       "~> 3.11"
+  s.add_development_dependency "parallel",    "~> 1.19.2"
 
-  if /^2.5/.match(RUBY_VERSION)
-    s.required_ruby_version = "~> 2.5.0"
-
-    s.add_development_dependency "openstudio-common-measures",    "~> 0.2.1"
-    s.add_development_dependency "openstudio-model-articulation", "~> 0.2.1"
-  else
-    s.required_ruby_version = "~> 2.7.0"
-
-    s.add_development_dependency "openstudio-common-measures",    "~> 0.5.0"
-    s.add_development_dependency "openstudio-model-articulation", "~> 0.5.0"
-  end
-
-  s.metadata["homepage_uri"]    = s.homepage
+  s.metadata["homepage_uri"   ] =    s.homepage
   s.metadata["source_code_uri"] = "#{s.homepage}/tree/v#{s.version}"
   s.metadata["bug_tracker_uri"] = "#{s.homepage}/issues"
 end
