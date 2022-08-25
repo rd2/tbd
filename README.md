@@ -1,6 +1,6 @@
 # Thermal Bridging & Derating (TBD)  
 
-An [OpenStudio Measure](https://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/) that first autodetects _major_ thermal bridges (like balconies, parapets and corners) in an OpenStudio model (.osm), and then _derates_ outside-facing, opaque surface constructions (walls, roofs and exposed floors). It interacts with the [OpenStudio SDK](https://openstudio-sdk-documentation.s3.amazonaws.com/index.html) and relies on the AutomaticMagic [Topolys](https://github.com/automaticmagic/topolys) gem, as well as the [OSut](https://rubygems.org/gems/osut/versions/0.2.7) gem.
+An [OpenStudio Measure](https://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/) that first autodetects _major_ thermal bridges (like balconies, parapets and corners) in an OpenStudio model (.osm), and then _derates_ outside-facing, opaque surface constructions (walls, roofs and exposed floors). It interacts with the [OpenStudio SDK](https://openstudio-sdk-documentation.s3.amazonaws.com/index.html) and relies on AutomaticMagic's [Topolys](https://github.com/automaticmagic/topolys) gem, as well as rd2's [OSut](https://rubygems.org/gems/osut/versions/0.2.7) gem.
 
 ## Guide & Downloads
 
@@ -26,7 +26,7 @@ Upcoming enhancements are in the works. Bugs or new feature requests for _TBD_ s
 
 ## Development
 
-The installation and testing instructions in this section are for developers interested in exploring/tweaking a cloned/forked version of the source code.
+The installation and testing instructions in this section are for developers interested in exploring/tweaking a cloned/forked version of the source code. In an effort to _lighten_ TBD as a Ruby gem, only the most basic tests are deployed in this repository. More detailed tests are housed in a dedicated TBD [testing](https://github.com/rd2/tbd_tests) repo.
 
 TBD is systematically tested against updated OpenStudio versions (since v3.0.0). The following instructions refer to OpenStudio v3.4.0 (requiring Ruby v2.7.2), strictly as an example. Adapt the instructions for more recent versions - see OpenStudio's [compatibility matrix](https://github.com/NREL/OpenStudio/wiki/OpenStudio-SDK-Version-Compatibility-Matrix).
 
