@@ -174,7 +174,7 @@ Cantilevered beams, columns, rooftop support blocks, etc. that partially or enti
   ]
 }
 ```
-Here, the OpenStudio surface "exposed floor 1" will inherit 10x 0.7 W/K (= 7 W/K) + 4x 0.5 W/K (= 2 W/K): an extra 9 W/K, in addition to the total W/K per m from surrounding edges (i.e. linear thermal bridges) - automatically calculated by TBD.
+Here, the OpenStudio surface "exposed floor 1" will inherit 10x 0.7 W/K (= 7 W/K) + 4x 0.5 W/K (= 2 W/K): an extra 9 W/K, in addition to the total W/K per meter from surrounding edges (i.e. linear thermal bridges) - automatically calculated by TBD.
 
 ### Extended _shorthands_
 
@@ -257,4 +257,4 @@ PSIi = published PSI value (W/K per m)
 ```
 The _zone of influence_ usually ranges between 1.0 to 1.2 meters. But the key parameter here is really the resulting wall thickness, and whether the sign is positive or negative - depending if it's a _convex_ or _concave_ corner. In some cases, this may even produce negative _psi_ values - which TBD allows. The BETBG and ISO standards provide detailed discussions on the subject.
 
-[back](../index.html "Thermal Bridging & Derating")
+[BACK](../index.html "Thermal Bridging & Derating")

@@ -30,4 +30,4 @@ The _uprating_ calculations are similar to [UA'](./ua.html "UA' assessments")  a
 
 We strongly recommend to first investigate this feature relying on _Apply Measures Now_ feedback (ideally UNCHECKing the __Alter OpenStudio model__ option, as discussed at the end of [Basics](./basics.html "Basic TBD workflow")), to get a sense of how significant the _uprating_ calculations may end up altering your initial designs. In some cases, EnergyPlus' CTF convergence calculations may even fail with very thick (_uprated_) insulation layers !
 
-[back](../index.html "Thermal Bridging & Derating")  
+[BACK](../index.html "Thermal Bridging & Derating")  

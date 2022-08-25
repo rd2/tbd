@@ -12,13 +12,13 @@ UA = ∑Uo•A
 __Uo__ : _clear field_ transmittance  
 __A__ : opaque surface area  
 
-If the total _UA_ of a _proposed_ envelope design is equal or inferior to the corresponding total _UA_ of a _reference_ (complying to prescriptive requirements), then the proposed design complies. This simplified approach is considered suitable for cold climates, as long as one operates within a well-defined scope:  
+If the total _UA_ of a _proposed_ envelope design is equal or inferior to the corresponding total _UA_ of a _reference_ model (complying to prescriptive requirements), then the proposed design complies. This simplified approach is considered suitable for cold climates, as long as one operates within a well-defined scope:  
 
 - UA is power-based (W), instantaneous
 - time-delayed responses are not factored-in ...
-- so forget thermal mass, ground heat loss, solar, etc.
-- fenestration U-values and areas are factored-in ...
-- yet differences in fenestration areas are not
+- ... so forget thermal mass, ground heat loss, solar, etc.
+- fenestration U-values and areas may be factored-in ...
+- ... while differences in fenestration areas usually are not
 
 ### _Major_ thermal bridging
 
@@ -44,7 +44,7 @@ __UA' reference__: vs which prescriptive requirements?
 
 The __UA' reference__ pull-down options correspond to TBD's __Default thermal bridge sets__. If the "code (Quebec)" option is selected, then the reference prescriptive requirements include code-required _Uo_-values, in addition to code-required _psi_ & _khi_ values (see _Where does one get psi data?_ under [Basics](./basics.html "Basic TBD workflow")). For all other __UA' references__, only the _psi_ & _khi_ values differ between _proposed_ vs _reference_ cases. It's best to generate UA' assessments under the _Apply Measures Now_ mode, and UNCHECK the __Alter OpenStudio model__ option.
 
-Note that _UA'_ calculations will factor in [uprated](./ut.html "Uprating") assemblies, if selected.
+Note that _UA'_ calculations will factor [uprated](./ut.html "Uprating") assemblies, if selected.
 
 ### Assessments
 
@@ -52,12 +52,10 @@ In addition to standard TBD feedback (see [Reporting](./reports.html "What TBD r
 
 ![UA Assessment](../assets/images/UA.png "UA Assessment")
 
-The __Summary__ is the key output to scrutinize. For both _heated_ and _semi-heated_ sections (if applicable), _UA'_ totals (in W/K) give a sense of how close (or far) one is to reaching selected targets. Here (a hypothetical warehouse variant), the proposed design is considerably off the mark for both _heated_ (+83.3%) and _semi-heated_ (+113.7%) sections.
-
-Results are further broken down into individual envelope components, such as walls, roofs, doors, windows, etc., and applicable thermal bridges (e.g. "trim" for all fenestration perimeters). This allows one to assess the relative impact of each item, where to concentrate future efforts, etc. For instance, the proposed doors in both _heated_ and _semi-heated_ sections are considerably off code requirements, yet their relative weight is limited to 5% to 10% of _UA'_ totals.
+The __Summary__ is the key output to scrutinize. For both _heated_ and _semi-heated_ sections (if applicable), _UA'_ totals (in W/K) give a sense of how close (or far) one is to reaching selected targets. Here (a hypothetical warehouse variant), the proposed design is considerably off the mark for both _heated_ and _semi-heated_ sections. Results are further broken down into individual envelope components, such as walls, roofs, doors, windows, etc., and applicable thermal bridges (e.g. "trim" for all fenestration perimeters). This allows one to assess the relative impact of each item, where to concentrate future efforts, etc.
 
 TBD does not report on elements that are not part of the building envelope. In this warehouse example, the _heated_ section is limited to a ground floor office - its ceiling connected to a storage space above. As the office ceiling is not a roof _per se_ i.e., not part of the building envelope, TBD only reports on the _semi-heated_ roof surfaces. Similarly, only thermal bridges identified by TBD in the OpenStudio model are part of the assessment e.g., no balconies here.
 
 The _UA'_ assessments are [MD](https://en.wikipedia.org/wiki/Markdown)-formatted, which can be rendered as HTML or even PDF, depending on the text editor or web browser.
 
-[back](../index.html "Thermal Bridging & Derating")  
+[BACK](../index.html "Thermal Bridging & Derating")  

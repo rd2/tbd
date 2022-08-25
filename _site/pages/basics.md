@@ -12,7 +12,7 @@ In other cases, architects may simply wish to explore whether their designs comp
 
 ### Minimal model requirements
 
-__Fully enclosed geometry__: OpenStudio (and to a large extent EnergyPlus) work much better in general when a building model is _geometrically enclosed_ i.e., _air tight_ (no gaps between surfaces). This also means no unintentional surface overlaps or loosely intersecting edges, windows properly _fitting_ within the limits of their parent (or host) wall, etc. The example [warehouse](../index.html "Thermal Bridging & Derating") is a good visual of what this all means. It's worth mentioning, as some third-party design apps offer mixed results with _enclosed geometry_ when generating BIM-to-BEM models. TBD & Topolys do have some built-in tolerances (e.g. 25 mm), but they can only do their job if vertices, edges and surfaces are well connected. Note that _partial_ OpenStudio models are not required to hold ALL building surfaces - just those that comprise the _building envelope_, in addition to interior floor surfaces. If a building has cantilevered balconies for instance, it's also a good idea to include them as _shading surfaces_ (which must _align_ with floor surfaces).
+__Fully enclosed geometry__: OpenStudio (and to a large extent EnergyPlus) work much better in general when a building model is _geometrically enclosed_ i.e., _air tight_ (no gaps between surfaces). This also means no unintentional surface overlaps or loosely intersecting edges, windows properly _fitting_ within the limits of their parent (or host) wall, etc. The example [warehouse](../index.html "Thermal Bridging & Derating") is a good visual of what this all means. It's worth mentioning, as some third-party design apps offer mixed results with _enclosed geometry_ when generating BIM-to-BEM models. TBD & Topolys do have some built-in tolerances (e.g. 25 mm), but they can only do their job _well_ if vertices, edges and surfaces are well connected. Note that _partial_ OpenStudio models are not required to hold ALL building surfaces - just those that comprise the _building envelope_, in addition to interior floor surfaces. If a building has cantilevered balconies for instance, it's also a good idea to include those as _shading surfaces_ (which must _align_ with floor surfaces).
 
 __Materials & constructions__: Geometry is not enough. TBD must also be able to retrieve referenced materials and multilayered constructions for all _envelope_ surfaces. The easiest way is via _Default Construction Sets_.
 
@@ -21,13 +21,13 @@ __Boundary conditions__: It's important that the OpenStudio model reflects inten
 
 ### Optional model requirements
 
-TBD does require additional OpenStudio inputs in some circumstances. Unheated or uncooled spaces (like attics and crawlspaces) are considered _unconditioned_: their outdoor-facing surfaces aren't part of the _building envelope_, and therefore not targeted by TBD. On the other hand, outdoor-facing surfaces of _indirectly-conditioned_ spaces like plenums are considered part of the _envelope_, and therefore should be _derated_. Sections 2.3.2 to 2.3.4 [here](https://www.pnnl.gov/main/publications/external/technical_reports/PNNL-26917.pdf "90.1-2016 Performance Rating Method Reference Manual") provide a good overview of the question. Here's the underlying logic that guides TBD in such cases:
+TBD does require additional OpenStudio inputs _in some circumstances_. Unheated or uncooled spaces (like attics and crawlspaces) are considered _unconditioned_: their outdoor-facing surfaces aren't part of the _building envelope_, and therefore not targeted by TBD. On the other hand, outdoor-facing surfaces of _indirectly-conditioned_ spaces like plenums are considered part of the _envelope_, and therefore should be _derated_. Sections 2.3.2 to 2.3.4 [here](https://www.pnnl.gov/main/publications/external/technical_reports/PNNL-26917.pdf "90.1-2016 Performance Rating Method Reference Manual") provide a good overview of the question. Here's the underlying logic that guides TBD in such cases:
 
 With __partial__ OpenStudio models, TBD seeks to _derate_ ALL outside-facing surfaces by positing that ALL spaces are _conditioned_, with _assumed_ setpoints of ~21°C (heating) and ~24°C (cooling) à la BETBG. This is OK for most models (even those with plenums), yet not for those with attics or crawlspaces.
 
-If a __more complete__ OpenStudio model has at least one space linked to a _thermal zone_ having temperature setpoints, TBD instead seeks to only _derate_ outdoor-facing surfaces of such _conditioned_ spaces. TBD safely ignores outdoor-facing surfaces in _unconditioned_ spaces like attics and crawlspaces, yet unfortunately also those of plenums.
+If a __more complete__ OpenStudio model has one or more spaces linked to a _thermal zone_ having temperature setpoints, TBD instead seeks to only _derate_ outdoor-facing surfaces of such _conditioned_ spaces. TBD safely ignores outdoor-facing surfaces in _unconditioned_ spaces like attics and crawlspaces, yet unfortunately also those of plenums.
 
-With a __fairly complete__ OpenStudio model (_complete_ with _thermal zones_, setpoints, and HVAC _air loops_), spaces become tagged as _indirectly-conditioned_ plenums if their _thermal zones_ actually correspond to [supply](https://bigladdersoftware.com/epx/docs/22-1/input-output-reference/group-air-path.html#airloophvacsupplyplenum "EnergyPlus supply air plenums") or [return](https://bigladdersoftware.com/epx/docs/22-1/input-output-reference/group-air-path.html#airloophvacreturnplenum "EnergyPlus return air plenums") plenums - let's call this __case A__.
+With a __fairly complete__ OpenStudio model (_complete_ with _thermal zones_, setpoints, and HVAC _air loops_), spaces become tagged as _indirectly-conditioned_ plenums if their _thermal zones_ actually correspond to [supply](https://bigladdersoftware.com/epx/docs/22-1/input-output-reference/group-air-path.html#airloophvacsupplyplenum "EnergyPlus supply air plenums") or [return](https://bigladdersoftware.com/epx/docs/22-1/input-output-reference/group-air-path.html#airloophvacreturnplenum "EnergyPlus return air plenums") plenums. Let's call this __case A__.
 
 In absence of HVAC _air loops_, 2x other cases trigger a _plenum_ tag: __case B__ where the space is considered excluded from the building's _total floor area_ (an OpenStudio variable), while having its _thermal zone_ referencing an _inactive_ thermostat (i.e. can't extract valid setpoints); or finally __case C__ where the _spacetype_ name is simply set to "plenum" (case insensitive).
 
@@ -47,7 +47,7 @@ Whether TBD is accessed from the _OpenStudio Application_ Measures' tab or throu
 
 "JSON" input/output files, "Uprating" features, "UA'" reports and "KIVA" inputs are described in detail in the [Customization](./custom.html "TBD customization"), [Uprating](./ut.html "Uprating"), [UA'](./ua.html "UA' assessments") and [KIVA](./kiva.html "KIVA support") sections, respectively.
 
-The __Default thermal bridge set__ pull-down menu of prepackaged, compact _psi_ sets is key for newcomers, especially in the early design stages. Users simply need to switch between default sets (and rerun the measure) to get a sense of the degree of thermal _derating_ that would take place in their building, and how this affects energy simulation results. It's easy, yet coarse as the entire building is treated uniformly (check the [Customization](./custom.html "TBD customization") section on handling multiple _psi_ sets). Each default set holds a minimal shortlist of common thermal bridge _shorthands_ for each edge TBD identifies:
+The __Default thermal bridge set__ pull-down menu of prepackaged, compact _psi_ sets is key for newcomers, especially in the early design stages. Users simply need to switch between default sets (and rerun the measure) to get a sense of the degree of thermal _derating_ that would take place in their building, and how this affects energy simulation results. It's easy, yet coarse as the entire building is treated uniformly (check the [Customization](./custom.html "TBD customization") section on handling multiple _psi_ sets). Each default set holds a minimal list of common thermal bridge _shorthands_ for each edge TBD identifies:
 ```
     "rimjoist" | wall/floor or sloped-roof/floor edge
      "parapet" | wall/roof edge
@@ -59,7 +59,7 @@ The __Default thermal bridge set__ pull-down menu of prepackaged, compact _psi_ 
        "joint" | "flat" edge that derates (e.g. roof curb)
   "transition" | "flat" edge that isn't a "joint"
 ```
-A _flat_ edge shared between 2 parallel, aligned surfaces is tagged as a (mild) "__transition__". In every default _psi_ set, "transition" edges have a value of 0 W/K per meter, i.e. no _derating_ takes place. OpenStudio models can hold many such _flat_ edges, which usually do not constitute _major_ thermal bridges. For instance when they delineate plenum walls from those of the occupied space (above or below). In other cases, they're simply artifacts of third-party software e.g., tessellation. Whenever TBD can't easily label an edge, it relies on "transition" as a fallback.
+A _flat_ edge shared between 2 parallel, aligned surfaces is tagged as a (mild) "__transition__". In every default _psi_ set, "transition" edges have a value of 0 W/K per meter, i.e. no _derating_ takes place. OpenStudio models can hold many such _flat_ edges, which usually do not constitute _major_ thermal bridges. For instance when they delineate plenum walls from those of the occupied space (above or below). In other cases, they're simply artifacts of third-party software e.g., tessellation. Whenever TBD is unable to clearly label an edge, it relies on "transition" as a fallback.
 
 Some _flat_ edges aren't mild "transitions" at all, like expansion "__joints__" or roof curbs - definitely _major_ thermal bridges. Yet TBD is unable to distinguish between "transitions" and "joints" from OpenStudio geometry alone. The [Customization](./custom.html "TBD customization") section shows users how to reset "transition" edges into "joints" when needed.
 
@@ -163,7 +163,7 @@ Results should show an increase in heating loads for cold climates. For ASHRAE c
 
 ### Apply Measures Now
 
-The original intent of an _Apply Measures Now_ feature in OpenStudio is to irreversibly alter a building model without the need to run an EnergyPlus simulation. For instance, the [KIVA](./kiva.html "KIVA support") options in TBD work best in _Apply Measures Now_ mode: best leave the __Alter OpenStudio model__ option CHECKED, while ideally relying on the default "(non thermal bridging)" set.
+The original intent of an _Apply Measures Now_ feature in OpenStudio is to irreversibly alter a building model without the need to run an EnergyPlus simulation. For instance, the [KIVA](./kiva.html "KIVA support") options in TBD work best in _Apply Measures Now_ mode: best leave the __Alter OpenStudio model__ option CHECKED in such cases, while ideally relying on the default "(non thermal bridging)" set.
 
 However, there are _Apply Measures Now_ situations where permanent changes to an OpenStudio model aren't warranted or desirable, in which case it becomes critical to UNCHECK the __Alter OpenStudio model__ option:
 
@@ -173,4 +173,16 @@ However, there are _Apply Measures Now_ situations where permanent changes to an
 
 - __JSON output__: Users can generate a complete, detailed list of every _major_ thermal bridge in their OpenStudio model, which can be useful for automating cost estimation or simply for further [customization](./custom.html "TBD customization").
 
-[back](../index.html "Thermal Bridging & Derating")  
+An example of _Apply Measures Now_ interaction:
+
+![AMN Menu](../assets/images/AMN1.png "AMN Menu")
+
+Here, _Apply Measures Now_ will generate a __UA'__ report (MD-formatted), as well as a _full_ __JSON__ output file - complete with all the edges, UA' summaries, logs, etc. Note that this _snapshot_ will NOT __alter__ the OpenStudio model - the first menu option here remains UNCHECKED. Clicking on `Apply Measure` ...
+
+![AMN Results](../assets/images/AMN2.png "AMN Results")
+
+If unsatisfied with the results (e.g., too costly to comply to NECB2017 prescriptive roof requirements, wall detailing may need to be revised), then the user simply needs to `Back` out, and tweak inputs again, then re-`Apply Measure`, reassess, and so on ... Once satisfied with a _winning_ combination of variables, press `Accept Changes`, then `save` the OpenStudio model to retrieve the newly-generated __UA'__ and __JSON__ files (see [Reporting](./reports.html "What TBD reports back") to locate saved files). Take note of the _winning_ combination of inputs - you'll need to reapply these for EnergyPlus simulations.
+
+__A word of caution__. Currently, OpenStudio will NOT copy over such `.md` or `.json` files generated by _Apply Measures Now_ ... __if__ these files already exist in the model _files_ folder. This will likely be corrected in the near future. In the meantime, simply rename or delete the existing files before opening the OpenStudio model.
+
+[BACK](../index.html "Thermal Bridging & Derating")  

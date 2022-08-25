@@ -6,7 +6,7 @@ A specialized library that accurately - and very efficiently - handles foundatio
 - custom thermal breaks e.g., around slab edges
 - sloped terrain & walk-out basements
 
-Only a few _hard_ limitations prevent its systematic use by designers, notably KIVA's current inability to integrate [radiant slab heating](https://github.com/NREL/EnergyPlus/issues/6576). The _softer_ challenges of using KIVA have more to do with managing inputs (especially with highly-articulated building configurations) - this is where TBD comes into play.
+Only a few _hard_ limitations prevent its systematic use by designers, notably KIVA's current inability to integrate [radiant slab](https://github.com/NREL/EnergyPlus/issues/6576) heating or cooling. The _softer_ challenges of using KIVA have more to do with managing inputs (especially with highly-articulated building configurations) - this is where TBD comes into play.
 
 ### OpenStudio
 
@@ -35,4 +35,4 @@ One last (yet very important) point: when autogenerating KIVA inputs (to subsequ
 
 KIVA support offered by TBD is loosely adapted from a published NREL simulation [test](https://github.com/NREL/OpenStudio-resources/blob/develop/model/simulationtests/foundation_kiva.rb), yet is generalized here to accommodate arbitrary model geometries.
 
-[back](../index.html "Thermal Bridging & Derating")  
+[BACK](../index.html "Thermal Bridging & Derating")  
