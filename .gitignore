@@ -1,48 +1,23 @@
-/gems
-/coverage/
-/html/
-/pkg/
-/spec/*_suite_runs/
+/Gemfile.lock
+/.ruby-version
+.rspec_status
+/.bundle/
+/pkg
+
+.yardoc/
+_yardoc/
+doc/
+rdoc
+
 /spec/files/osms/out/*
 /spec/files/measures/*
 /spec/files/ua/*
 /json/*out.json
-/test/
-/tmp/
 
-# graphviz output
-shell.dot
-shell.pdf
-
-# rspec failure tracking
-.rspec_status
-
-## Documentation cache and generated files:
-/.yardoc/
-/_yardoc/
-/doc/
-
-## Environment normalization:
-/.bundle/
-
-# for a library or gem, you might want to ignore these files since the code is
-# intended to run in multiple environments; otherwise, check them in:
-/Gemfile.lock
-/.ruby-version
-
-# Ignore IDE files
-/.idea
-*.rubocop-http*
-
-# measures tests
-lib/measures/.rubocop.yml
-lib/measures/test_results/*
-lib/measures/*/tests/output
+/lib/measures/test_results/*
+/lib/measures/*/tests/output
 /lib/measures/test_results
-/lib/measures/.rubocop*
-/lib/measures/*/tests/tbd.json
 
 runner.conf
 
-# (Mac)
 *.DS_Store

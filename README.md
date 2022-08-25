@@ -46,7 +46,7 @@ gem install bundler -v 2.1
 
 Install the OpenStudio SDK [3.4.0](https://github.com/NREL/OpenStudio/releases/tag/v3.4.0), or the OpenStudio Application [1.4.0](https://github.com/openstudiocoalition/OpenStudioApplication/releases/tag/v1.4.0).
 
-Create a new file ```C:\Ruby27-x64\lib\ruby\site_ruby\openstudio.rb```  (path may be different depending on the environment), and edit it so it _points_ to your new OpenStudio installation:
+Create a new file ```C:\Ruby27-x64\lib\ruby\site_ruby\openstudio.rb``` (path may be different depending on the environment), and edit it so it _points_ to your new OpenStudio installation:
 
 ```
 require 'C:\openstudio-3.4.0\Ruby\openstudio.rb'
@@ -122,28 +122,11 @@ Install the latest version of _git_ (e.g. through Homebrew), then ```git clone``
 
 ## Complete list of test commands
 
-Run the following (basic) tests in the root repository of the cloned TBD measure:
+Run the following (basic) tests from TBD's root repository:
 ```
-bundle update
+bundle update (or 'bundle install')
 bundle exec rake libraries
 bundle exec rake
-```
-
-For more extensive testing, run the following test suites (also in the root repository of the cloned TBD measure):
-```
-bundle update
-bundle exec rake osm_suite:clean
-bundle exec rake osm_suite:run
-bundle exec rake prototype_suite:clean
-bundle exec rake prototype_suite:run
-```
-
-Or run all test suites:
-
-```
-bundle update
-bundle exec rake suites_clean
-bundle exec rake suites_run
 ```
 
 ## Run tests using Docker - _optional_
