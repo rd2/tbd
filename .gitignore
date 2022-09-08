@@ -9,9 +9,8 @@ _yardoc/
 doc/
 rdoc
 
-/spec/files/osms/out/*
-/spec/files/measures/*
-/spec/files/ua/*
+/spec/files/osms/out/*.osm
+/spec/files/ua/*.md
 /json/*out.json
 
 /lib/measures/test_results/*
