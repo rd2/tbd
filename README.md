@@ -148,7 +148,6 @@ docker kill test
 
 ## Support
 
-_Merci !_ to the following organizations
+Merci aux gouvernements du [Québec](https://transitionenergetique.gouv.qc.ca) et du Canada ([CNRC](https://nrc.canada.ca/en/research-development/research-collaboration/research-centres/construction-research-centre), [CanmetÉNERGIE](https://www.nrcan.gc.ca/energy/offices-labs/canmet/ottawa-research-centre/the-built-environment/23341)).
 
-[![](https://github.com/rd2/tbd/blob/master/sponsors/quebec.png)](https://transitionenergetique.gouv.qc.ca)
-[![](https://github.com/rd2/tbd/blob/master/sponsors/canada.png)](https://nrc.canada.ca/en/research-development/research-collaboration/research-centres/construction-research-centre)
+![Thanks to the Quebec and Canadian governments](./sponsors/qc_can.png "Thanks to the Quebec and Canadian governments")
