@@ -599,7 +599,7 @@ module TBD
         end
 
         edge[:surfaces].keys.each do |i|              # loop around current edge
-          next    if i == id
+          next     if i == id
           next unless walls.key?(i)
           next unless walls[i][:boundary].downcase == "outdoors"
           floors[id][:exposed] += edge[:length]
@@ -629,8 +629,8 @@ module TBD
           end
         end
 
-        floors[id][:foundation] = OpenStudio::Model::FoundationKiva.new(model)
-        floors[id][:foundation].setName("KIVA Foundation Floor '#{id}'")
+        foundation = OpenStudio::Model::FoundationKiva.new(model)
+        foundation.setName("KIVA Foundation Floor '#{id}'")
 
         floor = model.getSurfaceByName(id)
         kiva  = false if floor.empty?
@@ -640,21 +640,15 @@ module TBD
         kiva = false  if construction.empty?
         next          if construction.empty?
         construction   = construction.get
-        floor.setAdjacentFoundation(floors[id][:foundation])
+        floor.setAdjacentFoundation(foundation)
         floor.setConstruction(construction)
-        ep  = floors[id][:exposed]
-        per = floor.surfacePropertyExposedFoundationPerimeter
 
-        if per.empty?
-          per = floor.createSurfacePropertyExposedFoundationPerimeter(arg, ep)
-        else
-          per = per.get
-        end
-
-        kiva = false unless per.respond_to?(:totalExposedPerimeter)
-        next         unless per.respond_to?(:totalExposedPerimeter)
-
-        perimeter = per.totalExposedPerimeter
+        ep   = floors[id][:exposed]
+        per  = floor.createSurfacePropertyExposedFoundationPerimeter(arg, ep)
+        kiva = false if per.empty?
+        next         if per.empty?
+        per           = per.get
+        perimeter     = per.totalExposedPerimeter
         kiva = false if perimeter.empty?
         next         if perimeter.empty?
         perimeter     = perimeter.get
@@ -663,13 +657,7 @@ module TBD
           ok   = per.setTotalExposedPerimeter(0.000)
           ok   = per.setTotalExposedPerimeter(0.001) unless ok
           kiva = false unless ok
-          next         unless ok
-        elsif (perimeter - ep).abs > TOL
-          ok   = per.setTotalExposedPerimeter(ep)
-          kiva = false unless ok
-          next         unless ok
-
-          # Generic 1" XPS insulation for exposed perimeter.
+        elsif (perimeter - ep).abs < TOL
           xps25 = model.getStandardOpaqueMaterialByName("XPS 25mm")
 
           if xps25.empty?
@@ -686,9 +674,11 @@ module TBD
             xps25 = xps25.get
           end
 
-          floors[id][:foundation].setInteriorHorizontalInsulationMaterial(xps25)
-          floors[id][:foundation].setInteriorHorizontalInsulationWidth(0.6)
+          foundation.setInteriorHorizontalInsulationMaterial(xps25)
+          foundation.setInteriorHorizontalInsulationWidth(0.6)
         end
+
+        floors[id][:foundation] = foundation
       end
     end
 
