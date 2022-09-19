@@ -1126,6 +1126,63 @@ RSpec.describe TBD do
 
     file = File.join(__dir__, "files/osms/out/seb_KIVA2.osm")
     model.save(file, true)
+
+    # Re-open & test initial model.
+    TBD.clean!
+
+    file = File.join(__dir__, "files/osms/in/seb.osm")
+    path = OpenStudio::Path.new(file)
+    model = translator.loadModel(path)
+    expect(model.empty?).to be(false)
+    model = model.get
+
+    model.getSurfaces.each do |s|
+      next unless s.isGroundSurface
+      next unless s.surfaceType.downcase == "floor"
+      expect(s.setOutsideBoundaryCondition("Foundation")).to be(true)
+    end
+
+    argh            = {}
+    argh[:option  ] = "(non thermal bridging)"
+    argh[:gen_kiva] = true
+    json = TBD.process(model, argh)
+    expect(json.is_a?(Hash)).to be(true)
+    expect(json.key?(:io)).to be(true)
+    expect(json.key?(:surfaces)).to be(true)
+    io       = json[:io]
+    surfaces = json[:surfaces]
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
+    expect(surfaces.size).to eq(56)
+
+    surfaces.each do |id, s|
+      next unless s.key?(:kiva)
+      expect(s.key?(:exposed)).to be(true)
+
+      slab = model.getSurfaceByName(id)
+      expect(slab.empty?).to be(false)
+      slab = slab.get
+      expect(slab.adjacentFoundation.empty?).to be(false)
+      perimeter = slab.surfacePropertyExposedFoundationPerimeter
+      expect(perimeter.empty?).to be(false)
+      perimeter = perimeter.get
+      per = perimeter.totalExposedPerimeter
+      expect(per.empty?).to be(false)
+      per = per.get
+      expect((per - s[:exposed]).abs).to be_within(TOL).of(0)
+      expect(per).to be_within(TOL).of( 8.81) if id == "Small office 1 Floor"
+      expect(per).to be_within(TOL).of( 8.21) if id == "Utility 1 Floor"
+      expect(per).to be_within(TOL).of(12.59) if id == "Open area 1 Floor"
+      expect(per).to be_within(TOL).of( 6.95) if id == "Entry way  Floor"
+    end
+
+    file = File.join(__dir__, "files/osms/out/seb_KIVA3.osm")
+    model.save(file, true)
   end
 
   it "can test 5ZoneNoHVAC (failed) uprating" do
