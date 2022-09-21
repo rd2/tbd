@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=db0ae8df70fe27363bb5b9c375c5baba0bbaed21">
+    <link rel="stylesheet" href="/assets/css/style.css?v=1791973568daec6071c7d23c85a8c65da04b6b45">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -202,20 +202,6 @@ fenestration | 0.500
        grade | 0.850
        joint | 0.500
 </code></pre></div></div>
-
-<p>@set[“uncompliant (Quebec)”] = # NECB-QC (non-code-compliant) defaults:
-  {
-    rimjoist:      0.850, # *
-    parapet:       0.800, # *
-    fenestration:  0.500, # *
-    corner:        0.850, # ** … not stated
-    balcony:       1.000, # *
-    party:         0.850, # *
-    grade:         0.850, # *
-    joint:         0.500, # *
-    transition:    0.000
-  }.freeze
-  self.gen(“uncompliant (Quebec)”)</p>
 
 <p>The “poor”, “regular” and “efficient” sets mirror those of the BETBG (laid out at the beginning the document). They provide ballpark figures of <em>bottom-of-the-barrel</em> vs <em>high-performance</em> technologies. The (basic) vs high-performance (HP) “spandrel” sets offer a range of expected values for curtain/window wall technologies (also from the BETBG). TBD provides support for the Québec building energy “code” (which holds explicit requirements on <em>major</em> thermal bridging) - when Quebec professionals are unable to determine whether they comply to prescriptive requirements or unsure what <em>psi</em> values to use, they can fall back on the “uncompliant” set. Finally, there is also a “(non thermal bridging)” set where all <em>psi</em> values are fixed at 0 W/K per meter - mainly used for quality control and debugging, but also key when autogenerating KIVA inputs (see <em>Apply Measures Now</em> below).</p>
 

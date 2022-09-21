@@ -151,22 +151,6 @@ fenestration | 0.500
        joint | 0.500
 ```  
 
-
-@set["uncompliant (Quebec)"] = # NECB-QC (non-code-compliant) defaults:
-  {
-    rimjoist:      0.850, # *
-    parapet:       0.800, # *
-    fenestration:  0.500, # *
-    corner:        0.850, # ** ... not stated
-    balcony:       1.000, # *
-    party:         0.850, # *
-    grade:         0.850, # *
-    joint:         0.500, # *
-    transition:    0.000
-  }.freeze
-  self.gen("uncompliant (Quebec)")
-
-
 The "poor", "regular" and "efficient" sets mirror those of the BETBG (laid out at the beginning the document). They provide ballpark figures of _bottom-of-the-barrel_ vs _high-performance_ technologies. The (basic) vs high-performance (HP) "spandrel" sets offer a range of expected values for curtain/window wall technologies (also from the BETBG). TBD provides support for the Québec building energy "code" (which holds explicit requirements on _major_ thermal bridging) - when Quebec professionals are unable to determine whether they comply to prescriptive requirements or unsure what _psi_ values to use, they can fall back on the "uncompliant" set. Finally, there is also a "(non thermal bridging)" set where all _psi_ values are fixed at 0 W/K per meter - mainly used for quality control and debugging, but also key when autogenerating KIVA inputs (see _Apply Measures Now_ below).
 
 ### EnergyPlus simulations
