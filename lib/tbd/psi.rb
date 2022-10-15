@@ -1105,6 +1105,10 @@ module TBD
       horizontal = dz.abs < TOL
       vertical   = dx < TOL && dy < TOL
       edge_V     = terminal - origin
+
+      invalid("1x edge length < TOL", mth, 0, ERROR) if edge_V.magnitude < TOL
+      next                                           if edge_V.magnitude < TOL
+
       edge_plane = Topolys::Plane3D.new(origin, edge_V)
 
       if vertical
@@ -1120,71 +1124,74 @@ module TBD
         # Loop through each linked wire and determine farthest point from
         # edge while ensuring candidate point is not aligned with edge.
         t_model.wires.each do |wire|
-          if surface[:wire] == wire.id          # there should be a unique match
-            normal     = tbd[:surfaces][id][:n]   if tbd[:surfaces].key?(id)
-            normal     = holes[id].attributes[:n] if holes.key?(id)
-            normal     = shades[id][:n]           if shades.key?(id)
-            farthest   = Topolys::Point3D.new(origin.x, origin.y, origin.z)
-            farthest_V = farthest - origin           # zero magnitude, initially
-            inverted   = false
-            i_origin   = wire.points.index(origin)
-            i_terminal = wire.points.index(terminal)
-            i_last     = wire.points.size - 1
+          next unless surface[:wire] == wire.id       # should be a unique match
+          normal     = tbd[:surfaces][id][:n]   if tbd[:surfaces].key?(id)
+          normal     = holes[id].attributes[:n] if holes.key?(id)
+          normal     = shades[id][:n]           if shades.key?(id)
+          farthest   = Topolys::Point3D.new(origin.x, origin.y, origin.z)
+          farthest_V = farthest - origin             # zero magnitude, initially
+          inverted   = false
+          i_origin   = wire.points.index(origin)
+          i_terminal = wire.points.index(terminal)
+          i_last     = wire.points.size - 1
 
-            if i_terminal == 0
-              inverted = true unless i_origin == i_last
-            elsif i_origin == i_last
-              inverted = true unless i_terminal == 0
+          if i_terminal == 0
+            inverted = true unless i_origin == i_last
+          elsif i_origin == i_last
+            inverted = true unless i_terminal == 0
+          else
+            inverted = true unless i_terminal - i_origin == 1
+          end
+
+          wire.points.each do |point|
+            next if point == origin
+            next if point == terminal
+
+            point_on_plane    = edge_plane.project(point)
+            origin_point_V    = point_on_plane - origin
+            point_V_magnitude = origin_point_V.magnitude
+            next unless point_V_magnitude > TOL
+
+            # Generate a plane between origin, terminal & point. Only consider
+            # planes that share the same normal as wire.
+            if inverted
+              plane = Topolys::Plane3D.from_points(terminal, origin, point)
             else
-              inverted = true unless i_terminal - i_origin == 1
+              plane = Topolys::Plane3D.from_points(origin, terminal, point)
             end
 
-            wire.points.each do |point|
-              next if point == origin
-              next if point == terminal
-              point_on_plane = edge_plane.project(point)
-              origin_point_V = point_on_plane - origin
-              point_V_magnitude = origin_point_V.magnitude
-              next unless point_V_magnitude > TOL
+            next unless (normal.x - plane.normal.x).abs < TOL &&
+                        (normal.y - plane.normal.y).abs < TOL &&
+                        (normal.z - plane.normal.z).abs < TOL
 
-              # Generate a plane between origin, terminal & point. Only consider
-              # planes that share the same normal as wire.
-              if inverted
-                plane = Topolys::Plane3D.from_points(terminal, origin, point)
-              else
-                plane = Topolys::Plane3D.from_points(origin, terminal, point)
-              end
+            farther    = point_V_magnitude > farthest_V.magnitude
+            farthest   = point          if farther
+            farthest_V = origin_point_V if farther
+          end
 
-              next unless (normal.x - plane.normal.x).abs < TOL &&
-                          (normal.y - plane.normal.y).abs < TOL &&
-                          (normal.z - plane.normal.z).abs < TOL
+          angle = reference_V.angle(farthest_V)
+          invalid("#{id} polar angle", mth, 0, ERROR, 0) if angle.nil?
+          angle = 0                                      if angle.nil?
 
-              farther    = point_V_magnitude > farthest_V.magnitude
-              farthest   = point          if farther
-              farthest_V = origin_point_V if farther
-            end
+          adjust = false              # adjust angle [180°, 360°] if necessary
 
-            angle = reference_V.angle(farthest_V)
-            adjust = false              # adjust angle [180°, 360°] if necessary
-
-            if vertical
+          if vertical
+            adjust = true if east.dot(farthest_V) < -TOL
+          else
+            if north.dot(farthest_V).abs < TOL ||
+              (north.dot(farthest_V).abs - 1).abs < TOL
               adjust = true if east.dot(farthest_V) < -TOL
             else
-              if north.dot(farthest_V).abs < TOL ||
-                (north.dot(farthest_V).abs - 1).abs < TOL
-                adjust = true if east.dot(farthest_V) < -TOL
-              else
-                adjust = true if north.dot(farthest_V) < -TOL
-              end
+              adjust = true if north.dot(farthest_V) < -TOL
             end
-
-            angle = 2 * Math::PI - angle if adjust
-            angle -= 2 * Math::PI if (angle - 2 * Math::PI).abs < TOL
-            surface[:angle] = angle
-            farthest_V.normalize!
-            surface[:polar] = farthest_V
-            surface[:normal] = normal
           end
+
+          angle  = 2 * Math::PI - angle if adjust
+          angle -= 2 * Math::PI         if (angle - 2 * Math::PI).abs < TOL
+          surface[:angle ] = angle
+          farthest_V.normalize!
+          surface[:polar ] = farthest_V
+          surface[:normal] = normal
         end                           # end of edge-linked, surface-to-wire loop
       end                                      # end of edge-linked surface loop
 
