@@ -84,20 +84,21 @@ module TBD
   # vertices and wire.
   #
   # @param model [Topolys::Model] a model
-  # @param pts [Array] a 1D array of 3D Topolys points (min 2x)
+  # @param pts [Array] a 1D array of 3D Topolys points (min 3x)
   #
   # @return [Hash] vx: 3D Topolys vertices Array; w: corresponding Topolys::Wire
   # @return [Hash] vx: nil; w: nil (if invalid input)
   def objects(model = nil, pts = [])
-    mth = "OSut::#{__callee__}"
+    mth = "TBD::#{__callee__}"
     cl  = Topolys::Model
     obj = { vx: nil, w: nil }
 
     return mismatch("model", model, cl, mth, DBG, obj)   unless model.is_a?(cl)
     return mismatch("points", pts, Array, mth, DBG, obj) unless pts.is_a?(Array)
 
-    log(DBG, "#{pts.size}? need +2 Topolys points (#{mth})") unless pts.size > 2
+    log(DBG, "#{pts.size}? need +3 Topolys points (#{mth})") unless pts.size > 2
     return obj                                               unless pts.size > 2
+
     obj[:vx] = model.get_vertices(pts)
     obj[:w ] = model.get_wire(obj[:vx])
 
@@ -109,14 +110,14 @@ module TBD
   # As a side effect, it will - if successful - also populate a Topolys 'model'
   # with Topolys vertices, wires, holes. In rare cases such as domes of tubular
   # daylighting devices (TDDs), kids may be 'unhinged', i.e. not on same 3D
-  # plane as 'dad(s)' - TBD corrects auch cases elsewhere.
+  # plane as 'dad(s)' - TBD corrects such cases elsewhere.
   #
   # @param model [Topolys::Model] a model
   # @param boys [Hash] a collection of TBD subsurfaces
   #
   # @return [Array] 3D Topolys wires of 'holes' (made by kids)
   def kids(model = nil, boys = {})
-    mth = "OSut::#{__callee__}"
+    mth = "TBD::#{__callee__}"
     cl  = Topolys::Model
     holes = []
 
@@ -146,7 +147,7 @@ module TBD
   #
   # @return [Array] 3D Topolys wires of 'holes' (made by kids)
   def dads(model = nil, pops = {})
-    mth   = "OSut::#{__callee__}"
+    mth   = "TBD::#{__callee__}"
     cl    = Topolys::Model
     holes = {}
 
@@ -183,7 +184,7 @@ module TBD
   # @return [Bool] true if successful
   # @return [Bool] false if invalid input
   def faces(s = {}, e = {})
-    mth = "OSut::#{__callee__}"
+    mth = "TBD::#{__callee__}"
 
     return mismatch("surfaces", s, Hash, mth, DBG, false)   unless s.is_a?(Hash)
     return mismatch("edges", e, Hash, mth, DBG, false)      unless e.is_a?(Hash)
@@ -208,6 +209,39 @@ module TBD
       end
     end
 
+    true
+  end
+
+  ##
+  # Validate whether an OpenStudio planar surface is safe for TBD to process.
+  #
+  # @param s [OpenStudio::Model::PlanarSurface] a surface
+  #
+  # @return [Bool] true if valid surface
+  def validate(s = nil)
+    mth = "TBD::#{__callee__}"
+    cl = OpenStudio::Model::PlanarSurface
+
+    return mismatch("surface", s, cl, mth, DBG, false)        unless s.is_a?(cl)
+
+    id   = s.nameString
+    size = s.vertices.size
+    last = size - 1
+
+    log(ERR, "#{id} #{size} vertices? need +3 (#{mth})")         unless size > 2
+    return false                                                 unless size > 2
+
+    [0, last].each do |i|
+      v1 = s.vertices[i]
+      v2 = s.vertices[i + 1]                                    unless i == last
+      v2 = s.vertices.first                                         if i == last
+      vector = v2 - v1
+      bad = vector.length < TOL
+      log(ERR, "#{id}: < #{TOL}m (#{mth})")                               if bad
+      return false                                                        if bad
+    end
+
+    # Add as many extra tests as needed ...
     true
   end
 
@@ -249,6 +283,8 @@ module TBD
 
     return mismatch("model", model, cl1, mth)          unless model.is_a?(cl1)
     return mismatch("surface", surface, cl2, mth)      unless surface.is_a?(cl2)
+
+    return nil unless validate(surface)
 
     nom    = surface.nameString
     surf   = {}

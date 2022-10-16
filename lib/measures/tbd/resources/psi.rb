@@ -1169,6 +1169,9 @@ module TBD
             farthest_V = origin_point_V if farther
           end
 
+          puts "ADDITION!!"                      if id == "ADDITION"
+          puts "#{reference_V} vs #{farthest_V}" if id == "ADDITION"
+
           angle = reference_V.angle(farthest_V)
           invalid("#{id} polar angle", mth, 0, ERROR, 0) if angle.nil?
           angle = 0                                      if angle.nil?
