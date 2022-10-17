@@ -343,6 +343,8 @@ module TBD
     surf[:gross      ] = surface.grossArea
 
     surface.subSurfaces.sort_by { |s| s.nameString }.each do |s|
+      next unless validate(s)
+
       id       = s.nameString
       valid    = s.vertices.size == 3 || s.vertices.size == 4
       log(ERR, "Skipping '#{id}': vertex # 3 or 4 (#{mth})")        unless valid
