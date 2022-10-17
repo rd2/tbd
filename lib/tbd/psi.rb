@@ -2003,8 +2003,6 @@ module TBD
   #
   # @return [Bool] true if TBD Measure is successful
   def exit(runner = nil, argh = {})
-    mth  = "TBD::#{__callee__}"
-
     # Generated files target a design context ( >= WARN ) ... change TBD log
     # level for debugging purposes. By default, log status is set < DBG
     # while log level is set @INF.

@@ -174,7 +174,6 @@ module TBD
       area = 0
       film = 100000000000000
       lc   = nil
-      uo   = nil
       id   = ""
       all  = g[:op].downcase == "all wall constructions"  ||
              g[:op].downcase == "all roof constructions"  ||
