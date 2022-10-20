@@ -237,6 +237,9 @@ module TBD
       v2 = s.vertices.first                                         if i == last
       vector = v2 - v1
       bad = vector.length < TOL
+
+      # As is, this comparison also catches collinear vertices (< 10mm apart)
+      # along an edge. Should avoid red-flagging such cases. TO DO.
       log(ERR, "#{id}: < #{TOL}m (#{mth})")                               if bad
       return false                                                        if bad
     end
