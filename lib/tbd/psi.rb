@@ -844,7 +844,7 @@ module TBD
       up   = ""
       up   = "uprated "                     if m.nameString.include?(" uprated")
       m    = m.clone(model).to_MasslessOpaqueMaterial.get
-             m.setName("'#{id}' #{up}m tbd")
+             m.setName("#{id} #{up}m tbd")
       de_r = 0.001                                           unless de_r > 0.001
       loss = (de_u - 1 / de_r) * s[:net]                     unless de_r > 0.001
              m.setThermalResistance(de_r)
@@ -855,7 +855,7 @@ module TBD
       up   = ""
       up   = "uprated "                     if m.nameString.include?(" uprated")
       m    = m.clone(model).to_StandardOpaqueMaterial.get
-             m.setName("'#{id}' #{up}m tbd")
+             m.setName("#{id} #{up}m tbd")
       k    = m.thermalConductivity
 
       if de_r > 0.001

@@ -372,7 +372,7 @@ module TBD
       log(ERR, "Skipping '#{id}': missing construction (#{mth})")    if c.empty?
       next                                                           if c.empty?
       c = c.get.to_LayeredConstruction
-      log(ERR, "Skipping '#{id}': must be a #{cl3} (#{mth})")        if c.empty?
+      log(WRN, "Skipping '#{id}': subs limited to #{cl3} (#{mth})")  if c.empty?
       next                                                           if c.empty?
       c = c.get
 
@@ -668,7 +668,7 @@ module TBD
         end
 
         foundation = OpenStudio::Model::FoundationKiva.new(model)
-        foundation.setName("KIVA Foundation Floor '#{id}'")
+        foundation.setName("KIVA Foundation Floor #{id}")
 
         floor = model.getSurfaceByName(id)
         kiva  = false if floor.empty?

@@ -235,7 +235,7 @@ module TBD
       end
 
       if coll.empty?
-        log(ERR, "No construction to uprate - skipping (#{mth})")
+        log(ERR, "No #{label} construction to uprate - skipping (#{mth})")
         next
       elsif lc                    # valid layered construction - good to uprate!
         # Ensure lc is referenced by surface types == label.
