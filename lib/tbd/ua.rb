@@ -174,7 +174,6 @@ module TBD
       area = 0
       film = 100000000000000
       lc   = nil
-      uo   = nil
       id   = ""
       all  = g[:op].downcase == "all wall constructions"  ||
              g[:op].downcase == "all roof constructions"  ||
@@ -236,7 +235,7 @@ module TBD
       end
 
       if coll.empty?
-        log(ERR, "No construction to uprate - skipping (#{mth})")
+        log(ERR, "No #{label} construction to uprate - skipping (#{mth})")
         next
       elsif lc                    # valid layered construction - good to uprate!
         # Ensure lc is referenced by surface types == label.
@@ -948,7 +947,7 @@ module TBD
       model  = "* modèle : #{ua[:file]}"       if ua.key?(:file)  && lang == :fr
       model += " (v#{ua[:version]})"           if ua.key?(:version)
       report << model                      unless model.empty?
-      report << "* TBD : v3.0.2"
+      report << "* TBD : v3.0.3"
       report << "* date : #{ua[:date]}"
 
       if lang == :en
