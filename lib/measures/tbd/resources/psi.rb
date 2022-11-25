@@ -205,7 +205,7 @@ module TBD
         rimjoist:      0.300, # *
         parapet:       0.325, # *
         fenestration:  0.200, # *
-        corner:        0.300, # ** "regular (BETBG)", adj. for ext. dimensions
+        corner:        0.300, # ** not explicitely stated
         balcony:       0.500, # *
         party:         0.450, # *
         grade:         0.450, # *
@@ -219,7 +219,7 @@ module TBD
         rimjoist:      0.850, # *
         parapet:       0.800, # *
         fenestration:  0.500, # *
-        corner:        0.850, # ** ... not stated
+        corner:        0.850, # ** not explicitely stated
         balcony:       1.000, # *
         party:         0.850, # *
         grade:         0.850, # *
@@ -569,16 +569,21 @@ module TBD
     return mismatch("argh", s, Hash, mth, DBG, ipt)      unless argh.is_a?(Hash)
     return hashkey("argh", argh, opt, mth, DBG, ipt)     unless argh.key?(opt)
 
-    argh[:io_path]     = nil unless argh.key?(:io_path)
+    argh[:io_path    ] = nil unless argh.key?(:io_path)
     argh[:schema_path] = nil unless argh.key?(:schema_path)
-    pth = argh[:io_path]
+
+    pth = argh[:io_path    ]
     sch = argh[:schema_path]
 
-    if pth
-      return empty("JSON file", mth, FTL, ipt) unless File.size?(pth)
-      io = File.read(pth)
-      io = JSON.parse(io, symbolize_names: true)
-      return mismatch("io", io, Hash, mth, FTL, ipt) unless io.is_a?(Hash)
+    if pth && (pth.is_a?(String) || pth.is_a?(Hash))
+      if pth.is_a?(Hash)
+        io = pth
+      else
+        return empty("JSON file", mth, FTL, ipt) unless File.size?(pth)
+        io = File.read(pth)
+        io = JSON.parse(io, symbolize_names: true)
+        return mismatch("io", io, Hash, mth, FTL, ipt) unless io.is_a?(Hash)
+      end
 
       # Schema validation is not yet supported in the OpenStudio Application.
       # We nonetheless recommend that users rely on the json-schema gem, or an

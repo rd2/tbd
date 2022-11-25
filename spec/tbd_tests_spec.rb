@@ -1,4 +1,5 @@
 require "tbd"
+require "fileutils"
 
 RSpec.describe TBD do
   TOL  = TBD::TOL
@@ -1436,6 +1437,98 @@ RSpec.describe TBD do
       expect(TBD.logs.last[:message].include?("Unable to uprate")).to be(true)
       expect(argh.key?(:wall_uo)).to be(false)
       expect(argh.key?(:roof_uo)).to be(false)
+    end
+  end
+
+  it "can test Hash inputs" do
+    TBD.clean!
+    argh   = {}
+    input  = {}
+    schema = "https://github.com/rd2/tbd/blob/master/tbd.schema.json"
+    trns   = OpenStudio::OSVersion::VersionTranslator.new
+    file   = File.join(__dir__, "files/osms/in/seb.osm")
+    path   = OpenStudio::Path.new(file)
+    model  = trns.loadModel(path)
+    expect(model.empty?).to be(false)
+    model  = model.get
+
+    # Rather than reading a TBD JSON input file (e.g. "json/tbd_seb_n2.json"),
+    # read in the same content as a Hash. Better for scripted batch runs.
+    psis                = []
+    khis                = []
+    surfaces            = []
+
+    psi = {}
+    psi[:id           ] = "good"
+    psi[:parapet      ] = 0.500
+    psi[:party        ] = 0.900
+    psis << psi
+
+    psi = {}
+    psi[:id           ] = "compliant"
+    psi[:rimjoist     ] = 0.300
+    psi[:parapet      ] = 0.325
+    psi[:fenestration ] = 0.350
+    psi[:corner       ] = 0.450
+    psi[:balcony      ] = 0.500
+    psi[:party        ] = 0.500
+    psi[:grade        ] = 0.450
+    psis << psi
+
+    khi = {}
+    khi[:id           ] = "column"
+    khi[:point        ] = 0.500
+    khis << khi
+
+    khi = {}
+    khi[:id           ] = "support"
+    khi[:point        ] = 0.500
+    khis << khi
+
+    surface = {}
+    surface[:id       ] = "Entryway  Wall 5"
+    surface[:khis     ] = []
+    surface[:khis     ] << { id: "column",  count: 3 }
+    surface[:khis     ] << { id: "support", count: 4 }
+    surfaces << surface
+
+    input[:schema     ] = schema
+    input[:description] = "testing JSON surface KHI entries"
+    input[:psis       ] = psis
+    input[:khis       ] = khis
+    input[:surfaces   ] = surfaces
+
+    # Export to file. Both files should be the same.
+    out = JSON.pretty_generate(input)
+    pth = File.join(__dir__, "../json/tbd_seb_n2.out.json")
+    File.open(pth, "w") { |pth| pth.puts out }
+    initial = File.join(__dir__, "../json/tbd_seb_n2.json")
+    # cmd = "diff #{initial} #{pth}"
+    # expect(system( cmd )).to be(true)
+    # expect(FileUtils).to be_identical(initial, pth)
+    expect(FileUtils.identical?(initial, pth)).to be(true)
+
+    argh[:option     ] = "(non thermal bridging)"
+    argh[:io_path    ] = input
+    argh[:schema_path] = File.join(__dir__, "../tbd.schema.json")
+    json = TBD.process(model, argh)
+    expect(json.is_a?(Hash)).to be(true)
+    expect(json.key?(:io)).to be(true)
+    expect(json.key?(:surfaces)).to be(true)
+    io       = json[:io]
+    surfaces = json[:surfaces]
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
+    expect(surfaces.size).to eq(56)
+
+    surfaces.values.each do |surface|
+      next unless surface.key?(:ratio)
+      expect(surface[:heatloss]).to be_within(0.01).of(3.5)
     end
   end
 end
