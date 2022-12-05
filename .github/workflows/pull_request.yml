@@ -3,7 +3,7 @@ name: Pull Request CI
 on:
   pull_request:
     branches:
-      - master
+      - develop
 
 jobs:
   test_300x:
@@ -65,22 +65,6 @@ jobs:
         echo $(ls)
         docker pull nrel/openstudio:3.4.0
         docker run --name test --rm -d -t -v $(pwd):/work -w /work nrel/openstudio:3.4.0
-        docker exec -t test pwd
-        docker exec -t test ls
-        docker exec -t test bundle update
-        docker exec -t test bundle exec rake
-        docker kill test
-  test_350x:
-    runs-on: ubuntu-22.04
-    steps:
-    - name: Check out repository
-      uses: actions/checkout@v2
-    - name: Run Tests
-      run: |
-        echo $(pwd)
-        echo $(ls)
-        docker pull nrel/openstudio:3.5.0
-        docker run --name test --rm -d -t -v $(pwd):/work -w /work nrel/openstudio:3.5.0
         docker exec -t test pwd
         docker exec -t test ls
         docker exec -t test bundle update
