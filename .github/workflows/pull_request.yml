@@ -3,7 +3,7 @@ name: Pull Request CI
 on:
   pull_request:
     branches:
-      - develop
+      - master
 
 jobs:
   test_300x:
