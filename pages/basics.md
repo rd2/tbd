@@ -12,7 +12,7 @@ In other cases, architects may simply wish to explore whether their designs comp
 
 ### Minimal model requirements
 
-__Fully enclosed geometry__: OpenStudio (and to a large extent EnergyPlus) work much better in general when a building model is _geometrically enclosed_ i.e., _air tight_ (no gaps between surfaces). This also means no unintentional surface overlaps or loosely intersecting edges, windows properly _fitting_ within the limits of their parent (or host) wall, etc. The example [warehouse](../index.html "Thermal Bridging & Derating") is a good visual of what this all means. It's worth mentioning, as some third-party design apps offer mixed results with _enclosed geometry_ when generating BIM-to-BEM models. TBD & Topolys do have some built-in tolerances (e.g. 25 mm), but they can only do their job _well_ if vertices, edges and surfaces are well connected. Note that _partial_ OpenStudio models are not required to hold ALL building surfaces - just those that comprise the _building envelope_, in addition to interior floor surfaces. If a building has cantilevered balconies for instance, it's also a good idea to include those as _shading surfaces_ (which must _align_ with floor surfaces).
+__Fully enclosed geometry__: OpenStudio (and to a large extent EnergyPlus) work much better in general when a building model is _geometrically enclosed_ i.e., _air tight_ (no gaps between surfaces). This also means no unintentional surface overlaps or loosely intersecting edges, windows properly _fitting_ within the limits of their parent (or host) wall, etc. The example [warehouse](../index.html "Thermal Bridging & Derating") is a good visual of what this all means. It's worth mentioning, as some third-party design apps offer mixed results with _enclosed geometry_ when generating BIM-to-BEM models. TBD & Topolys do have some built-in tolerances (e.g. within 25 mm), but they can only do their job _well_ if vertices, edges and surfaces are well connected. Note that _partial_ OpenStudio models are not required to hold ALL building surfaces - just those that comprise the _building envelope_, in addition to interior floor surfaces. If a building has cantilevered balconies for instance, it's also a good idea to include those as _shading surfaces_ (which must _align_ with floor surfaces).
 
 __Materials & constructions__: Geometry is not enough. TBD must also be able to retrieve referenced materials and multilayered constructions for all _envelope_ surfaces. The easiest way is via _Default Construction Sets_.
 
@@ -41,7 +41,7 @@ This is a __lot__ to ask of most technically proficient architects, as most item
 
 ### TBD menu options
 
-Whether TBD is accessed from the _OpenStudio Application_ Measures' tab or through a [CLI](https://nrel.github.io/OpenStudio-user-documentation/reference/command_line_interface/ "OpenStudio CLI") _workflow_, users have access to the same __14__ menu options ("Inputs", shown here with their default values):
+Whether TBD is accessed from the _OpenStudio Application_ Measures' tab, through a [CLI](https://nrel.github.io/OpenStudio-user-documentation/reference/command_line_interface/ "OpenStudio CLI") _workflow_, or as a Ruby [gem](https://rubygems.org/gems/tbd), users have access to the same __14__ menu options ("Inputs", shown here with their default values):
 
 ![TBD Menu Options](../assets/images/TBD-inputs.png "TBD Menu Options")
 
@@ -67,11 +67,11 @@ When the angle between 2 _exposed_ surfaces exceeds 45° around an edge, TBD tag
 
 And when an _exposed_ surface holds an edge that isn't shared by another _exposed_ surface, it's either a sign of geometric inconsistency (it happens), or that the building shares a demising (or "__party__") partition with a neighbouring building. If the edge links an adiabatic surface, TBD tags it as a "party" thermal bridge - otherwise it falls back to "transition".
 
-What happens when an edge can be tagged with more than one label? For instance when an edge is shared between wall, door (sill), floor and balcony? TBD ultimately labels the edge according to the _psi_ value that represents the greatest heat loss. So if the "fenestration" and "rimjoist" _psi_ values are 0.5 W/K per meter, yet the "balcony" _psi_ value is 0.8 W/K per meter, then the edge is tagged as a "balcony" thermal bridge. Such TBD rules are described in finer detail in the source code itself, which is publicly accessible and well documented: check for Ruby (.rb) files under the /lib folder of the TBD GitHub repository.
+What happens when an edge can be tagged with more than one label? For instance when an edge is shared between wall, door (sill), floor and balcony? TBD ultimately labels the edge according to the _psi_ factor that represents the greatest heat loss. So if the "fenestration" and "rimjoist" _psi_ factors are 0.5 W/K per meter, yet the "balcony" _psi_ factor is 0.8 W/K per meter, then the edge is tagged as a "balcony" thermal bridge. Such TBD rules are described in finer detail in the source code itself, which is publicly accessible and well documented: check for Ruby (.rb) files under the /lib folder of the TBD GitHub repository.
 
 ### Where does one get _psi_ data?
 
-The [BETBG](https://www.bchydro.com/powersmart/business/programs/new-construction.html "Building Envelope Thermal Bridging Guide") & [thermalenvelope.ca](https://thermalenvelope.ca) collections are great resources to start with. They rely in part on past research initiatives, like ASHRAE's RP-1365 (which is also great), and are regularly updated. Building energy codes and ISO standards are also relevant resources. TBD relies on all of these for its default _psi_ sets (values in W/K per meter):
+The [BETBG](https://www.bchydro.com/powersmart/business/programs/new-construction.html "Building Envelope Thermal Bridging Guide") & [thermalenvelope.ca](https://thermalenvelope.ca) collections are great resources to start with. They rely in part on past research initiatives, like ASHRAE's RP-1365 (which is also great), and are regularly updated. Building energy codes and ISO standards are also relevant resources. TBD relies on all of these for its built-in _psi_ sets (values in W/K per meter):
 
 __poor (BETBG)__
 ```
@@ -151,7 +151,11 @@ fenestration | 0.500
        joint | 0.500
 ```  
 
-The "poor", "regular" and "efficient" sets mirror those of the BETBG (laid out at the beginning the document). They provide ballpark figures of _bottom-of-the-barrel_ vs _high-performance_ technologies. The (basic) vs high-performance (HP) "spandrel" sets offer a range of expected values for curtain/window wall technologies (also from the BETBG). TBD provides support for the Québec building energy "code" (which holds explicit requirements on _major_ thermal bridging) - when Quebec professionals are unable to determine whether they comply to prescriptive requirements or unsure what _psi_ values to use, they can fall back on the "uncompliant" set. Finally, there is also a "(non thermal bridging)" set where all _psi_ values are fixed at 0 W/K per meter - mainly used for quality control and debugging, but also key when autogenerating KIVA inputs (see _Apply Measures Now_ below).
+The "poor", "regular" and "efficient" sets mirror those of the BETBG (laid out at the beginning of the document). They provide ballpark figures of _bottom-of-the-barrel_ vs _high-performance_ technologies. The basic vs high-performance (HP) "spandrel" sets offer a range of expected values for curtain/window wall technologies (also from the BETBG).
+
+TBD provides support for the Québec building energy "code", which holds explicit requirements on _major_ thermal bridging (similar to ASHRAE 90.1 2019 [Addendum av](https://www.ashrae.org/file%20library/technical%20resources/standards%20and%20guidelines/standards%20addenda/90_1_2019_av_20220729.pdf)). When Québec professionals are unable to determine whether they comply to prescriptive requirements or are unsure what _psi_ factors to use, they can fall back (entirely or partly) on the "uncompliant" set. Note that the parapet and corner values here may need to be corrected for exterior dimensioning of energy models, as per code requirements (see "A side note on dimensioning" at the end of the [Customization](./custom.html "TBD customization") section).
+
+Finally, there is also a "(non thermal bridging)" set where all _psi_ factors are fixed at 0 W/K per meter - mainly used for quality control and debugging, but also key when autogenerating KIVA inputs (see _Apply Measures Now_ below).
 
 ### EnergyPlus simulations
 

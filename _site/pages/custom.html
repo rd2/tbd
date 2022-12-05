@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=1791973568daec6071c7d23c85a8c65da04b6b45">
+    <link rel="stylesheet" href="/assets/css/style.css?v=287bfdbedd1517f0f5dafc6c82875b69bdd4874b">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -111,7 +111,7 @@
 
 <p>… here, the Linter “Messages” inform us that everything is valid. Other times, they point to issues related to content, syntax and structure - which users can correct on the fly. Another option is to first generate a detailed <em>tbd.out.json</em> file (by CHECKING the <strong>Write ‘tbd.out.json’</strong> option), renaming it as <em>tbd.json</em>, and customizing it directly. A combination of both options also works well.</p>
 
-<p><strong>PSIs</strong>: In order to refer to a custom <em>psi</em> set, one must first define the custom set itself. TBD JSON “psis” each require a unique identifier (e.g. “not bad”), and the expected TBD <em>shorthands</em> (e.g. “parapet”) with their custom <em>psi</em> values (in W/K per meter). Note that the “joint” shorthand is optional: if one or more “transition” edges in a model are to become structural expansion “joints”, then the custom <em>psi</em> set should hold an additional “joint” entry.</p>
+<p><strong>PSIs</strong>: In order to refer to a custom <em>psi</em> set, one must first define the custom set itself. TBD JSON “psis” each require a unique identifier (e.g. “not bad”), and the expected TBD <em>shorthands</em> (e.g. “parapet”) with their custom <em>psi</em> factors (in W/K per meter). Note that the “joint” shorthand is optional: if one or more “transition” edges in a model are to become structural expansion “joints”, then the custom <em>psi</em> set should hold an additional “joint” entry.</p>
 
 <p><strong>BUILDING</strong>: TBD allows a single “building” JSON entry, where one simply refers to one of the previously defined <em>psi</em> sets. This overrides the pull-down <strong>Default thermal bridge set</strong> option.</p>
 
@@ -203,7 +203,7 @@
 </code></pre></div></div>
 <h3 id="khi-inputs"><em>khi</em> inputs</h3>
 
-<p>Cantilevered beams, columns, rooftop support blocks, etc. that partially or entirely traverse building envelope surfaces are best represented as point conductances, or <em>khi</em> values (in W/K per point). As there are no corresponding OpenStudio objects, TBD users must fall back onto custom surface attributes:</p>
+<p>Cantilevered beams, columns, rooftop support blocks, etc. that partially or entirely traverse building envelope surfaces are best represented as point conductances, or <em>khi</em> factors (in W/K per point). As there are no corresponding OpenStudio objects, TBD users must fall back onto custom surface attributes:</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>{
   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
   "description": "Adding khi items",
@@ -274,7 +274,7 @@
   "v1z": 8.53398380454007
 },
 </code></pre></div></div>
-<p>Here, “type” designates one of the possible (extended) TBD <em>shorthands</em>. Although one may have simply relied on a general “fenestration” <em>psi</em> value to start with, TBD will differentiate between fenestration “heads”, “jambs” and “sills”. In addition, TBD will add a “convex” or “concave” suffix to edges linking surfaces that aren’t on the same 3D plane. A simple, rectangular building would have a minimum of 4 “convex” parapet edges, but a one-story extension to a 2-story building would (also) have at least one “concave” parapet edge.</p>
+<p>Here, “type” designates one of the possible (extended) TBD <em>shorthands</em>. Although one may have simply relied on a general “fenestration” <em>psi</em> factor to start with, TBD will differentiate between fenestration “heads”, “jambs” and “sills”. In addition, TBD will add a “convex” or “concave” suffix to edges linking <em>envelope</em> surfaces that aren’t on the same 3D plane. A simple, rectangular building would have a minimum of 4 “convex” parapet edges, but a one-story extension to a 2-story building would (also) have at least one “concave” parapet edge.</p>
 
 <p>If one comes across published <em>psi</em> data that distinguishes between fenestration “heads”, “sills” and “jambs” (the BETBG does hold some examples), and/or differences between “convex” vs “concave” corners, then one could customize a <em>tbd.json</em> file as follows:</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>{
@@ -302,20 +302,20 @@
   }
 }
 </code></pre></div></div>
-<p>There are obviously many, many possible combinations. TBD’s GitHub repository contains several additional <a href="https://github.com/rd2/tbd/tree/master/json">examples</a>. Although this may at first seem complex and intimidating for the average designer or modeller, it remains similar to OpenStudio with regards to default construction sets: it can be very simple, and it only needs to be as complex as the actual design. With such freedom (with both OpenStudio and TBD inputs) comes responsibility - something users and modellers must carefully consider and plan out accordingly.</p>
+<p>There are obviously many, many possible combinations. TBD’s GitHub repository contains some additional <a href="https://github.com/rd2/tbd/tree/master/json">examples</a>, yet many more on TBD’s dedicated test <a href="https://github.com/rd2/tbd_tests/tree/develop/json">repo</a>. Although this may at first seem complex and intimidating for the average designer or modeller, it remains similar to OpenStudio with regards to default construction sets: it can be very simple, and it only needs to be as complex as the actual design. With such freedom (with both OpenStudio and TBD inputs) comes responsibility - something users and modellers must carefully consider and plan out accordingly.</p>
 
 <h3 id="a-side-note-on-dimensioning">A side note on dimensioning</h3>
 
-<p>Envelope surfaces are usually modelled in OpenStudio based on <em>outer</em> dimensions (i.e. following the exterior cladding, as in ASHRAE 90.1 and Québec’s energy code), or on <em>inner</em> dimensions (i.e. following the interior finishing, as in the Canadian NECB). For most <em>flat</em> edges, this isn’t critical. But for <em>concave</em> or <em>convex</em> edges, adjustments to <em>psi</em> values may be warranted if there is a mismatch in conventions between the OpenStudio model vs published <em>psi</em> data. For instance, BETBG data reflect an <em>inner</em> dimensioning convention, while ISO 14683 reports <em>psi</em> values for both conventions. The following equation may be used to adjust BETBG <em>psi</em> values for e.g., <em>convex</em> corners, when relying on <em>outer</em> dimensions in OpenStudio.</p>
+<p>Envelope surfaces are usually modelled in OpenStudio based on <em>outer</em> dimensions (i.e. following the exterior cladding, as in ASHRAE 90.1 and Québec’s energy code), or on <em>inner</em> dimensions (i.e. following the interior finishing, as in the Canadian NECB). For most <em>flat</em> edges, this isn’t critical. But for <em>concave</em> or <em>convex</em> edges, adjustments to <em>psi</em> factors may be warranted if there is a mismatch in conventions between the OpenStudio model vs published <em>psi</em> data. For instance, BETBG data reflect an <em>inner</em> dimensioning convention, while ISO 14683 reports <em>psi</em> factors for both conventions. The following equation may be used to adjust BETBG <em>psi</em> factors for e.g., <em>convex</em> corners, when relying on <em>outer</em> dimensions in OpenStudio.</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>PSIe = PSIi + Uo * 2(Li - Le), where:
 
 PSIe = adjusted PSI (W/K per m), as TBD input
-PSIi = published PSI value (W/K per m)
-  Uo = average clear field effective U-value (W/K per m2)
+PSIi = published PSI factor (W/K per m)
+  Uo = average clear field effective U-factor (W/K per m2)
   Li = from interior corner to "zone of influence" limits (m)
   Le = from exterior corner to "zone of influence" limits (m)
 </code></pre></div></div>
-<p>The <em>zone of influence</em> usually ranges between 1.0 to 1.2 meters. But the key parameter here is really the resulting wall thickness, and whether the sign is positive or negative - depending if it’s a <em>convex</em> or <em>concave</em> corner. In some cases, this may even produce negative <em>psi</em> values - which TBD allows. The BETBG and ISO standards provide detailed discussions on the subject.</p>
+<p>The <em>zone of influence</em> usually ranges between 1.0 to 1.2 meters. But the key parameter here is really the resulting wall thickness, and whether the sign is positive or negative - depending if it’s a <em>convex</em> or <em>concave</em> corner. In some cases, this may even produce negative <em>psi</em> factors - which TBD allows. The BETBG and ISO standards provide detailed discussions on the subject.</p>
 
 <p><a href="../index.html" title="Thermal Bridging &amp; Derating">BACK</a></p>
 

@@ -17,7 +17,7 @@ If the total _UA_ of a _proposed_ envelope design is equal or inferior to the co
 - UA is power-based (W), instantaneous
 - time-delayed responses are not factored-in ...
 - ... so forget thermal mass, ground heat loss, solar, etc.
-- fenestration U-values and areas may be factored-in ...
+- fenestration U-factors and areas may be factored-in ...
 - ... while differences in fenestration areas usually are not
 
 ### _Major_ thermal bridging
@@ -42,7 +42,7 @@ TBD automatically processes what's required (inputs) to carry out _UA'_ assessme
 __UA'__: checkbox enabling UA' assessments  
 __UA' reference__: vs which prescriptive requirements?
 
-The __UA' reference__ pull-down options correspond to TBD's __Default thermal bridge sets__. If the "code (Quebec)" option is selected, then the reference prescriptive requirements include code-required _Uo_-values, in addition to code-required _psi_ & _khi_ values (see _Where does one get psi data?_ under [Basics](./basics.html "Basic TBD workflow")). For all other __UA' references__, only the _psi_ & _khi_ values differ between _proposed_ vs _reference_ cases. It's best to generate UA' assessments under the _Apply Measures Now_ mode, and UNCHECK the __Alter OpenStudio model__ option.
+The __UA' reference__ pull-down options correspond to TBD's __Default thermal bridge sets__. If the "code (Quebec)" option is selected, then the reference prescriptive requirements include code-required _Uo_-factors, in addition to code-required _psi_ & _khi_ factors (see _Where does one get psi data?_ under [Basics](./basics.html "Basic TBD workflow")). For all other __UA' references__, only the _psi_ & _khi_ factors differ between _proposed_ vs _reference_ cases. It's best to generate UA' assessments under the _Apply Measures Now_ mode, and UNCHECK the __Alter OpenStudio model__ option.
 
 Note that _UA'_ calculations will factor [uprated](./ut.html "Uprating") assemblies, if selected.
 

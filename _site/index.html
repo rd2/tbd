@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=1791973568daec6071c7d23c85a8c65da04b6b45">
+    <link rel="stylesheet" href="/assets/css/style.css?v=287bfdbedd1517f0f5dafc6c82875b69bdd4874b">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -57,7 +57,7 @@
         </section>
         <hr>
         <section id="main_content">
-          <p>A guide to <a href="https://github.com/rd2/tbd" title="TBD source code repository on GitHub">TBD</a> - an <a href="https://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/" title="A guide to writing OpenStudio Measures">OpenStudio Measure</a> that auto-detects <strong>major</strong> thermal bridges (like balconies, parapets and corners) and then <strong>derates</strong> outside-facing opaque constructions (walls, roofs and exposed floors). The guide is mainly written for architects, technologists and envelope consultants who are new to energy simulation, and to OpenStudio in particular.</p>
+          <p>A guide to <a href="https://github.com/rd2/tbd" title="TBD source code repository on GitHub">TBD</a> - a Ruby <a href="https://rubygems.org/gems/tbd">gem</a> and <a href="https://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/" title="A guide to writing OpenStudio Measures">OpenStudio Measure</a> that auto-detects <strong>major</strong> thermal bridges (like balconies, parapets and corners) and then <strong>derates</strong> outside-facing opaque constructions (walls, roofs and exposed floors). The guide is mainly written for architects, technologists and envelope consultants who are new to energy simulation, and to OpenStudio in particular.</p>
 
 <h3 id="in-a-nutshell-">In a nutshell …</h3>
 
@@ -65,7 +65,7 @@
 
 <p><strong>Minor</strong> thermal bridges are regularly-spaced supports or framing elements (such as studs and Z-bars): the initial <em>derated</em> R-value stemming from <em>minor</em> thermal bridging, generally known as a construction’s <em>clear-field effective R-value</em>, is largely independent of a surface’s actual geometry or adjacencies to other surfaces. This means design changes to surface geometry (e.g. floor-to-ceiling height, number of windows) can be made without having to update surface <em>clear-field effective R-values</em> - very practical! For a few simple 2D framing configurations, the ASHRAE Fundamentals and ISO standards support established hand-calculations like the <em>parallel-path</em> method. Yet in most cases, designers are better off consulting published collections of common configurations (with unique <em>clear-field effective R-values</em>), such as <a href="https://www.bchydro.com/powersmart/business/programs/new-construction.html" title="Building Envelope Thermal Bridging Guide">BETBG</a> or <a href="https://thermalenvelope.ca">thermalenvelope.ca</a>.</p>
 
-<p><strong>Major</strong> thermal bridging instead relates to a surface’s geometry and its immediate adjacencies (e.g. thermal bridging along roof parapets, slab edges, corners, cantilevered balconies). While U-values (or interchangeably U-factors, in W/K per square meter) are suitable metrics for surface area heat loss (under <em>standard</em> winter rating conditions), linear thermal conductances from <em>major</em> thermal bridges are commonly annotated using the greek letter <strong>psi</strong> (units in W/K per meter) - <strong>khi</strong> for point conductances (e.g. a cantilevered beam or a column, in W/K per point). Both <em>BETBG</em> and <em>thermalenvelope.ca</em> links above provide useful <em>psi</em> and <em>khi</em> data for common cases.</p>
+<p><strong>Major</strong> thermal bridging instead relates to a surface’s geometry and its immediate adjacencies (e.g. thermal bridging along roof parapets, slab edges, corners, cantilevered balconies). While U-factors (or interchangeably U-values, in W/K per square meter) are suitable metrics for surface area heat loss (under <em>standard</em> winter rating conditions), linear thermal conductances from <em>major</em> thermal bridges are commonly annotated using the greek letter <strong>psi</strong> (units in W/K per meter) - <strong>khi</strong> for point conductances (e.g. a cantilevered beam or a column, in W/K per point). Both <em>BETBG</em> and <em>thermalenvelope.ca</em> links above provide useful <em>psi</em> and <em>khi</em> data for common cases.</p>
 
 <p>Contrary to <em>minor</em> thermal bridging, changing a room’s height or adding windows should trigger a revised calculation of <em>major</em> thermal bridging effects. This can be quite daunting, time-consuming and error-prone to do by hand (per design iteration), given the hundreds (if not thousands) of <em>major</em> thermal bridges in a building model. The simple <a href="https://www.energy.gov/eere/buildings/commercial-reference-buildings" title="US DOE Commercial References">US DOE Commercial Reference Warehouse Model</a> has over 300 of such <em>major</em> thermal bridges - mostly around fenestration.</p>
 
@@ -88,15 +88,15 @@
 <strong>n</strong> : number of similar columns<br />
 <strong>A</strong> : opaque surface area</p>
 
-<p>TBD users are required to initially select generic <strong>psi</strong> and <strong>khi</strong> values that best characterize the <em>major</em> thermal bridges in their project (see TBD <a href="./pages/basics.html" title="Basic TBD workflow">Basics</a>). TBD will apply these values against individual <em>edge</em> occurrences Topolys identifies in the OpenStudio model. Geometric variables like <strong>L</strong> and <strong>A</strong> are also automatically extracted from the model (… <strong>n</strong> requires special treatment, discussed in the <a href="./pages/custom.html" title="Customizing TBD inputs">Customization</a> section).</p>
+<p>TBD users are required to initially select generic <strong>psi</strong> and <strong>khi</strong> factors that best characterize the <em>major</em> thermal bridges in their project (see TBD <a href="./pages/basics.html" title="Basic TBD workflow">Basics</a>). TBD will apply these values against individual <em>edge</em> occurrences Topolys identifies in the OpenStudio model. Geometric variables like <strong>L</strong> and <strong>A</strong> are also automatically extracted from the model (… <strong>n</strong> requires special treatment, discussed in the <a href="./pages/custom.html" title="Customizing TBD inputs">Customization</a> section).</p>
 
-<p>Each OpenStudio construction is comprised of multiple material layers (typically 2 or 3 at a minimum), each of which has a thermal resistance. Users are expected to have already factored in <em>minor</em> thermal bridging effects by e.g. decreasing the nominal thickness of the <em>insulating</em> layer of each construction - a standard technique in energy simulation. <strong>Uo</strong> is simply the inverse of the sum of resulting layer resistances and surface air films. Behind the scenes, TBD automatically generates new <em>derated</em> materials and constructions - the latter having their own unique <strong>Ut</strong>.</p>
+<p>Each OpenStudio construction is comprised of multiple material layers (typically 2 or 3 at a minimum), each of which has a thermal resistance. Users are expected to have already factored in <em>minor</em> thermal bridging effects by e.g. decreasing the nominal thickness of the <em>insulating</em> layer of each construction - a standard technique in energy simulation. <strong>Uo</strong> is simply the inverse of the sum of resulting layer resistances and surface air films. Behind the scenes, TBD automatically generates new <em>derated</em> materials and surface-specific constructions - the latter now having their own unique <strong>Ut</strong>.</p>
 
 <p>In summary, users are required to have:</p>
 <ul>
   <li>a fully-enclosed OpenStudio model</li>
   <li>materials and layered constructions</li>
-  <li>a shortlist of <em>psi</em> and <em>khi</em> values</li>
+  <li>a shortlist of <em>psi</em> and <em>khi</em> factors</li>
 </ul>
 
 <p>… from there, TBD &amp; Topolys will do the heavy lifting!</p>

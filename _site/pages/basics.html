@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=1791973568daec6071c7d23c85a8c65da04b6b45">
+    <link rel="stylesheet" href="/assets/css/style.css?v=287bfdbedd1517f0f5dafc6c82875b69bdd4874b">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -71,7 +71,7 @@
 
 <h3 id="minimal-model-requirements">Minimal model requirements</h3>
 
-<p><strong>Fully enclosed geometry</strong>: OpenStudio (and to a large extent EnergyPlus) work much better in general when a building model is <em>geometrically enclosed</em> i.e., <em>air tight</em> (no gaps between surfaces). This also means no unintentional surface overlaps or loosely intersecting edges, windows properly <em>fitting</em> within the limits of their parent (or host) wall, etc. The example <a href="../index.html" title="Thermal Bridging &amp; Derating">warehouse</a> is a good visual of what this all means. It’s worth mentioning, as some third-party design apps offer mixed results with <em>enclosed geometry</em> when generating BIM-to-BEM models. TBD &amp; Topolys do have some built-in tolerances (e.g. 25 mm), but they can only do their job <em>well</em> if vertices, edges and surfaces are well connected. Note that <em>partial</em> OpenStudio models are not required to hold ALL building surfaces - just those that comprise the <em>building envelope</em>, in addition to interior floor surfaces. If a building has cantilevered balconies for instance, it’s also a good idea to include those as <em>shading surfaces</em> (which must <em>align</em> with floor surfaces).</p>
+<p><strong>Fully enclosed geometry</strong>: OpenStudio (and to a large extent EnergyPlus) work much better in general when a building model is <em>geometrically enclosed</em> i.e., <em>air tight</em> (no gaps between surfaces). This also means no unintentional surface overlaps or loosely intersecting edges, windows properly <em>fitting</em> within the limits of their parent (or host) wall, etc. The example <a href="../index.html" title="Thermal Bridging &amp; Derating">warehouse</a> is a good visual of what this all means. It’s worth mentioning, as some third-party design apps offer mixed results with <em>enclosed geometry</em> when generating BIM-to-BEM models. TBD &amp; Topolys do have some built-in tolerances (e.g. within 25 mm), but they can only do their job <em>well</em> if vertices, edges and surfaces are well connected. Note that <em>partial</em> OpenStudio models are not required to hold ALL building surfaces - just those that comprise the <em>building envelope</em>, in addition to interior floor surfaces. If a building has cantilevered balconies for instance, it’s also a good idea to include those as <em>shading surfaces</em> (which must <em>align</em> with floor surfaces).</p>
 
 <p><strong>Materials &amp; constructions</strong>: Geometry is not enough. TBD must also be able to retrieve referenced materials and multilayered constructions for all <em>envelope</em> surfaces. The easiest way is via <em>Default Construction Sets</em>.</p>
 
@@ -101,7 +101,7 @@
 
 <h3 id="tbd-menu-options">TBD menu options</h3>
 
-<p>Whether TBD is accessed from the <em>OpenStudio Application</em> Measures’ tab or through a <a href="https://nrel.github.io/OpenStudio-user-documentation/reference/command_line_interface/" title="OpenStudio CLI">CLI</a> <em>workflow</em>, users have access to the same <strong>14</strong> menu options (“Inputs”, shown here with their default values):</p>
+<p>Whether TBD is accessed from the <em>OpenStudio Application</em> Measures’ tab, through a <a href="https://nrel.github.io/OpenStudio-user-documentation/reference/command_line_interface/" title="OpenStudio CLI">CLI</a> <em>workflow</em>, or as a Ruby <a href="https://rubygems.org/gems/tbd">gem</a>, users have access to the same <strong>14</strong> menu options (“Inputs”, shown here with their default values):</p>
 
 <p><img src="../assets/images/TBD-inputs.png" alt="TBD Menu Options" title="TBD Menu Options" /></p>
 
@@ -126,11 +126,11 @@
 
 <p>And when an <em>exposed</em> surface holds an edge that isn’t shared by another <em>exposed</em> surface, it’s either a sign of geometric inconsistency (it happens), or that the building shares a demising (or “<strong>party</strong>”) partition with a neighbouring building. If the edge links an adiabatic surface, TBD tags it as a “party” thermal bridge - otherwise it falls back to “transition”.</p>
 
-<p>What happens when an edge can be tagged with more than one label? For instance when an edge is shared between wall, door (sill), floor and balcony? TBD ultimately labels the edge according to the <em>psi</em> value that represents the greatest heat loss. So if the “fenestration” and “rimjoist” <em>psi</em> values are 0.5 W/K per meter, yet the “balcony” <em>psi</em> value is 0.8 W/K per meter, then the edge is tagged as a “balcony” thermal bridge. Such TBD rules are described in finer detail in the source code itself, which is publicly accessible and well documented: check for Ruby (.rb) files under the /lib folder of the TBD GitHub repository.</p>
+<p>What happens when an edge can be tagged with more than one label? For instance when an edge is shared between wall, door (sill), floor and balcony? TBD ultimately labels the edge according to the <em>psi</em> factor that represents the greatest heat loss. So if the “fenestration” and “rimjoist” <em>psi</em> factors are 0.5 W/K per meter, yet the “balcony” <em>psi</em> factor is 0.8 W/K per meter, then the edge is tagged as a “balcony” thermal bridge. Such TBD rules are described in finer detail in the source code itself, which is publicly accessible and well documented: check for Ruby (.rb) files under the /lib folder of the TBD GitHub repository.</p>
 
 <h3 id="where-does-one-get-psi-data">Where does one get <em>psi</em> data?</h3>
 
-<p>The <a href="https://www.bchydro.com/powersmart/business/programs/new-construction.html" title="Building Envelope Thermal Bridging Guide">BETBG</a> &amp; <a href="https://thermalenvelope.ca">thermalenvelope.ca</a> collections are great resources to start with. They rely in part on past research initiatives, like ASHRAE’s RP-1365 (which is also great), and are regularly updated. Building energy codes and ISO standards are also relevant resources. TBD relies on all of these for its default <em>psi</em> sets (values in W/K per meter):</p>
+<p>The <a href="https://www.bchydro.com/powersmart/business/programs/new-construction.html" title="Building Envelope Thermal Bridging Guide">BETBG</a> &amp; <a href="https://thermalenvelope.ca">thermalenvelope.ca</a> collections are great resources to start with. They rely in part on past research initiatives, like ASHRAE’s RP-1365 (which is also great), and are regularly updated. Building energy codes and ISO standards are also relevant resources. TBD relies on all of these for its built-in <em>psi</em> sets (values in W/K per meter):</p>
 
 <p><strong>poor (BETBG)</strong></p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    rimjoist | 1.000
@@ -203,7 +203,11 @@ fenestration | 0.500
        joint | 0.500
 </code></pre></div></div>
 
-<p>The “poor”, “regular” and “efficient” sets mirror those of the BETBG (laid out at the beginning the document). They provide ballpark figures of <em>bottom-of-the-barrel</em> vs <em>high-performance</em> technologies. The (basic) vs high-performance (HP) “spandrel” sets offer a range of expected values for curtain/window wall technologies (also from the BETBG). TBD provides support for the Québec building energy “code” (which holds explicit requirements on <em>major</em> thermal bridging) - when Quebec professionals are unable to determine whether they comply to prescriptive requirements or unsure what <em>psi</em> values to use, they can fall back on the “uncompliant” set. Finally, there is also a “(non thermal bridging)” set where all <em>psi</em> values are fixed at 0 W/K per meter - mainly used for quality control and debugging, but also key when autogenerating KIVA inputs (see <em>Apply Measures Now</em> below).</p>
+<p>The “poor”, “regular” and “efficient” sets mirror those of the BETBG (laid out at the beginning of the document). They provide ballpark figures of <em>bottom-of-the-barrel</em> vs <em>high-performance</em> technologies. The basic vs high-performance (HP) “spandrel” sets offer a range of expected values for curtain/window wall technologies (also from the BETBG).</p>
+
+<p>TBD provides support for the Québec building energy “code”, which holds explicit requirements on <em>major</em> thermal bridging (similar to ASHRAE 90.1 2019 <a href="https://www.ashrae.org/file%20library/technical%20resources/standards%20and%20guidelines/standards%20addenda/90_1_2019_av_20220729.pdf">Addendum av</a>). When Québec professionals are unable to determine whether they comply to prescriptive requirements or are unsure what <em>psi</em> factors to use, they can fall back (entirely or partly) on the “uncompliant” set. Note that the parapet and corner values here may need to be corrected for exterior dimensioning of energy models, as per code requirements (see “A side note on dimensioning” at the end of the <a href="./custom.html" title="TBD customization">Customization</a> section).</p>
+
+<p>Finally, there is also a “(non thermal bridging)” set where all <em>psi</em> factors are fixed at 0 W/K per meter - mainly used for quality control and debugging, but also key when autogenerating KIVA inputs (see <em>Apply Measures Now</em> below).</p>
 
 <h3 id="energyplus-simulations">EnergyPlus simulations</h3>
 
