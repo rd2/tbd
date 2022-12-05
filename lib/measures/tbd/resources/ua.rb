@@ -62,30 +62,33 @@ module TBD
     return zero("'#{id}': net area (m2)", mth, ERR, res)      unless area > TOL
 
     # First, calculate initial layer RSi to initially meet Ut target.
-    rt    = 1 / ut                      #                 target construction Rt
-    ro    = rsi(lc, film)               #                current construction Ro
-    new_r = lyr[:r] + (rt - ro)         #              new, un-derated layer RSi
-    new_u = 1 / new_r
+    rt     = 1 / ut                      #                target construction Rt
+    ro     = rsi(lc, film)               #               current construction Ro
+    new_r  = lyr[:r] + (rt - ro)         #             new, un-derated layer RSi
+    new_u  = 1 / new_r
 
     # Then, uprate (if possible) to counter expected thermal bridging effects.
-    u_psi = hloss / area                #                         from psi & khi
-    new_u = new_u - u_psi               # uprated layer USi to counter psi & khi
-    new_r = 1 / new_u                   # uprated layer RSi to counter psi & khi
+    u_psi  = hloss / area               #                         from psi & khi
+    new_u -= u_psi                      # uprated layer USi to counter psi & khi
+    new_r  = 1 / new_u                  # uprated layer RSi to counter psi & khi
 
     return zero("'#{id}': new Rsi", mth, ERR, res)          unless new_r > 0.001
-    loss  = 0.0                         # residual heatloss (not assigned) [W/K]
+
+    loss   = 0.0                        # residual heatloss (not assigned) [W/K]
 
     if lyr[:type] == :massless
       m     = lc.getLayer(lyr[:index]).to_MasslessOpaqueMaterial
       return  invalid("'#{id}' massless layer?", mth, 0)             if m.empty?
+
       m     = m.get.clone(model).to_MasslessOpaqueMaterial.get
               m.setName("#{id} uprated")
       new_r = 0.001                                         unless new_r > 0.001
       loss  = (new_u - 1 / new_r) * area                    unless new_r > 0.001
               m.setThermalResistance(new_r)
     else                                                     # type == :standard
-      m       = lc.getLayer(lyr[:index]).to_StandardOpaqueMaterial
+      m     = lc.getLayer(lyr[:index]).to_StandardOpaqueMaterial
       return  invalid("'#{id}' standard layer?", mth, 0)             if m.empty?
+
       m     = m.get.clone(model).to_StandardOpaqueMaterial.get
               m.setName("#{id} uprated")
       k     = m.thermalConductivity
@@ -108,10 +111,12 @@ module TBD
 
       ok = m.setThickness(d)
       return invalid("Can't uprate '#{id}': > 3m", mth, 0, ERR, res)   unless ok
+
       m.setThermalConductivity(k)                                          if ok
     end
 
     return invalid("", mth, 0, ERR, res) unless m
+
     lc.setLayer(lyr[:index], m)
     uo = 1 / rsi(lc, film)
 
@@ -187,6 +192,7 @@ module TBD
           next unless sss.outsideBoundaryCondition.downcase == "outdoors"
           next     if sss.construction.empty?
           next     if sss.construction.get.to_LayeredConstruction.empty?
+
           c         = sss.construction.get.to_LayeredConstruction.get
           i         = c.nameString
 
@@ -947,7 +953,7 @@ module TBD
       model  = "* modèle : #{ua[:file]}"       if ua.key?(:file)  && lang == :fr
       model += " (v#{ua[:version]})"           if ua.key?(:version)
       report << model                      unless model.empty?
-      report << "* TBD : v3.0.3"
+      report << "* TBD : v3.1.0"
       report << "* date : #{ua[:date]}"
 
       if lang == :en
