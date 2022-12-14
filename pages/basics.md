@@ -58,14 +58,24 @@ The __Default thermal bridge set__ pull-down menu of prepackaged, compact _psi_ 
        "grade" | slab-on-grade/foundation wall edge
        "joint" | "flat" edge that derates (e.g. roof curb)
   "transition" | "flat" edge that isn't a "joint"
-```
-A _flat_ edge shared between 2 parallel, aligned surfaces is tagged as a (mild) "__transition__". In every default _psi_ set, "transition" edges have a value of 0 W/K per meter, i.e. no _derating_ takes place. OpenStudio models can hold many such _flat_ edges, which usually do not constitute _major_ thermal bridges. For instance when they delineate plenum walls from those of the occupied space (above or below). In other cases, they're simply artifacts of third-party software e.g., tessellation. Whenever TBD is unable to clearly label an edge, it relies on "transition" as a fallback.
+```  
 
-Some _flat_ edges aren't mild "transitions" at all, like expansion "__joints__" or roof curbs - definitely _major_ thermal bridges. Yet TBD is unable to distinguish between "transitions" and "joints" from OpenStudio geometry alone. The [Customization](./custom.html "TBD customization") section shows users how to reset "transition" edges into "joints" when needed.
+### Tagging rules  
 
 When the angle between 2 _exposed_ surfaces exceeds 45° around an edge, TBD tags it either as a "__corner__" or a "__parapet__" (depending on the situation).
 
-And when an _exposed_ surface holds an edge that isn't shared by another _exposed_ surface, it's either a sign of geometric inconsistency (it happens), or that the building shares a demising (or "__party__") partition with a neighbouring building. If the edge links an adiabatic surface, TBD tags it as a "party" thermal bridge - otherwise it falls back to "transition".
+Instead, a _flatter_ edge shared between 2 (somewhat) parallel _exposed_ surfaces is tagged as a (mild) "__transition__". In every default _psi_ set, "transition" edges have a value of 0 W/K per meter, i.e. no _derating_ takes place. OpenStudio models can hold many such _flat_ edges, which usually do not constitute _major_ thermal bridges. For instance when they delineate plenum walls from those of the occupied space (above or below). In other cases, they're simply artifacts of third-party software e.g., tessellation. Whenever TBD is unable to clearly label an edge, it relies on "transition" as a fallback.
+
+Some _flat_ edges aren't mild "transitions" at all, like expansion "__joints__" or roof curbs - definitely _major_ thermal bridges. Yet TBD is unable to distinguish between "transitions" and "joints" from OpenStudio geometry alone. The [Customization](./custom.html "TBD customization") section shows users how to reset "transition" edges into "joints" when needed.
+
+TBD considers an edge as delineating a demising (or "__party__") partition, when it links:  
+
+- a single _exposed_ surface
+- another surface referencing an [OtherSideCoefficients](https://bigladdersoftware.com/epx/docs/22-2/input-output-reference/group-advanced-surface-concepts.html#surfacepropertyothersidecoefficients) object  
+
+If this second surface instead faces adiabatic conditions or references itself (solutions more suitable for space or story multipliers), TBD maintains a "transition" tag (which can always be customized if needed).
+
+### Multiple tags?
 
 What happens when an edge can be tagged with more than one label? For instance when an edge is shared between wall, door (sill), floor and balcony? TBD ultimately labels the edge according to the _psi_ factor that represents the greatest heat loss. So if the "fenestration" and "rimjoist" _psi_ factors are 0.5 W/K per meter, yet the "balcony" _psi_ factor is 0.8 W/K per meter, then the edge is tagged as a "balcony" thermal bridge. Such TBD rules are described in finer detail in the source code itself, which is publicly accessible and well documented: check for Ruby (.rb) files under the /lib folder of the TBD GitHub repository.
 

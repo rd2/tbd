@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=e3fbf2ad6358cfe65974c4a7d848a03828d0cadf">
+    <link rel="stylesheet" href="/assets/css/style.css?v=53a0d15e1b9e66233ce3323bf852517f1dcbfc33">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -118,13 +118,25 @@
        "joint" | "flat" edge that derates (e.g. roof curb)
   "transition" | "flat" edge that isn't a "joint"
 </code></pre></div></div>
-<p>A <em>flat</em> edge shared between 2 parallel, aligned surfaces is tagged as a (mild) “<strong>transition</strong>”. In every default <em>psi</em> set, “transition” edges have a value of 0 W/K per meter, i.e. no <em>derating</em> takes place. OpenStudio models can hold many such <em>flat</em> edges, which usually do not constitute <em>major</em> thermal bridges. For instance when they delineate plenum walls from those of the occupied space (above or below). In other cases, they’re simply artifacts of third-party software e.g., tessellation. Whenever TBD is unable to clearly label an edge, it relies on “transition” as a fallback.</p>
 
-<p>Some <em>flat</em> edges aren’t mild “transitions” at all, like expansion “<strong>joints</strong>” or roof curbs - definitely <em>major</em> thermal bridges. Yet TBD is unable to distinguish between “transitions” and “joints” from OpenStudio geometry alone. The <a href="./custom.html" title="TBD customization">Customization</a> section shows users how to reset “transition” edges into “joints” when needed.</p>
+<h3 id="tagging-rules">Tagging rules</h3>
 
 <p>When the angle between 2 <em>exposed</em> surfaces exceeds 45° around an edge, TBD tags it either as a “<strong>corner</strong>” or a “<strong>parapet</strong>” (depending on the situation).</p>
 
-<p>And when an <em>exposed</em> surface holds an edge that isn’t shared by another <em>exposed</em> surface, it’s either a sign of geometric inconsistency (it happens), or that the building shares a demising (or “<strong>party</strong>”) partition with a neighbouring building. If the edge links an adiabatic surface, TBD tags it as a “party” thermal bridge - otherwise it falls back to “transition”.</p>
+<p>Instead, a <em>flatter</em> edge shared between 2 (somewhat) parallel <em>exposed</em> surfaces is tagged as a (mild) “<strong>transition</strong>”. In every default <em>psi</em> set, “transition” edges have a value of 0 W/K per meter, i.e. no <em>derating</em> takes place. OpenStudio models can hold many such <em>flat</em> edges, which usually do not constitute <em>major</em> thermal bridges. For instance when they delineate plenum walls from those of the occupied space (above or below). In other cases, they’re simply artifacts of third-party software e.g., tessellation. Whenever TBD is unable to clearly label an edge, it relies on “transition” as a fallback.</p>
+
+<p>Some <em>flat</em> edges aren’t mild “transitions” at all, like expansion “<strong>joints</strong>” or roof curbs - definitely <em>major</em> thermal bridges. Yet TBD is unable to distinguish between “transitions” and “joints” from OpenStudio geometry alone. The <a href="./custom.html" title="TBD customization">Customization</a> section shows users how to reset “transition” edges into “joints” when needed.</p>
+
+<p>TBD considers an edge as delineating a demising (or “<strong>party</strong>”) partition, when it links:</p>
+
+<ul>
+  <li>a single <em>exposed</em> surface</li>
+  <li>another surface referencing an <a href="https://bigladdersoftware.com/epx/docs/22-2/input-output-reference/group-advanced-surface-concepts.html#surfacepropertyothersidecoefficients">OtherSideCoefficients</a> object</li>
+</ul>
+
+<p>If this second surface instead faces adiabatic conditions or references itself (solutions more suitable for space or story multipliers), TBD maintains a “transition” tag (which can always be customized if needed).</p>
+
+<h3 id="multiple-tags">Multiple tags?</h3>
 
 <p>What happens when an edge can be tagged with more than one label? For instance when an edge is shared between wall, door (sill), floor and balcony? TBD ultimately labels the edge according to the <em>psi</em> factor that represents the greatest heat loss. So if the “fenestration” and “rimjoist” <em>psi</em> factors are 0.5 W/K per meter, yet the “balcony” <em>psi</em> factor is 0.8 W/K per meter, then the edge is tagged as a “balcony” thermal bridge. Such TBD rules are described in finer detail in the source code itself, which is publicly accessible and well documented: check for Ruby (.rb) files under the /lib folder of the TBD GitHub repository.</p>
 
