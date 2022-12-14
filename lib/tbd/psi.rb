@@ -211,7 +211,7 @@ module TBD
         grade:         0.450, # *
         joint:         0.200, # *
         transition:    0.000
-      }.freeze               # based on EXTERIOR dimensions (art. 3.1.1.6)
+      }.freeze
       self.gen("code (Quebec)")
 
       @set["uncompliant (Quebec)"] = # NECB-QC (non-code-compliant) defaults:
@@ -225,7 +225,7 @@ module TBD
         grade:         0.850, # *
         joint:         0.500, # *
         transition:    0.000
-      }.freeze               # based on EXTERIOR dimensions (art. 3.1.1.6)
+      }.freeze
       self.gen("uncompliant (Quebec)")
 
       @set["(non thermal bridging)"] = # ... would not derate surfaces:
@@ -1426,7 +1426,7 @@ module TBD
         end
 
         # Label edge as :party if linked to:
-        #   1x adiabatic surface
+        #   1x OtherSideCoefficients surface
         #   1x (only) deratable surface
         edge[:surfaces].keys.each do |i|
           break     if is[:party]
@@ -1435,7 +1435,9 @@ module TBD
           next  unless tbd[:surfaces].key?(i)
           next      if holes.key?(i)
           next      if shades.key?(i)
-          next  unless tbd[:surfaces][i][:boundary].downcase == "adiabatic"
+
+          facing = tbd[:surfaces][i][:boundary].downcase
+          next unless facing == "othersidecoefficients"
 
           s1      = edge[:surfaces][id]
           s2      = edge[:surfaces][i]
