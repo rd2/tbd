@@ -1334,4 +1334,96 @@ RSpec.describe TBD do
       expect(surface[:heatloss]).to be_within(0.01).of(3.5)
     end
   end # KEEP
+
+  it "checks for parellel edges in close proximity" do
+    TBD.clean!
+    argh  = {}
+    tr    = OpenStudio::OSVersion::VersionTranslator.new
+    file  = File.join(__dir__, "files/osms/in/seb.osm")
+    path  = OpenStudio::Path.new(file)
+    model = tr.loadModel(path)
+    expect(model.empty?).to be(false)
+    model = model.get
+
+    argh[:option     ] = "code (Quebec)"
+    argh[:schema_path] = File.join(__dir__, "../tbd.schema.json")
+    json = TBD.process(model, argh)
+    expect(json.is_a?(Hash)).to be(true)
+    expect(json.key?(:io)).to be(true)
+    expect(json.key?(:surfaces)).to be(true)
+    io       = json[:io      ]
+    surfaces = json[:surfaces]
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(io.key?(:edges)).to be(true)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
+    expect(surfaces.size).to eq(56)
+
+    subs = {}
+
+    io[:edges].each do |edge|
+      expect(edge.is_a?(Hash)).to be(true)
+      expect(edge.key?(:surfaces)).to be(true)
+      expect(edge.key?(:v0x)).to be(true)
+      expect(edge.key?(:v1x)).to be(true)
+      expect(edge.key?(:v0y)).to be(true)
+      expect(edge.key?(:v1y)).to be(true)
+      expect(edge.key?(:v0z)).to be(true)
+      expect(edge.key?(:v1z)).to be(true)
+
+      ok = false
+      nb = 0 # only process vertical edges (each linking 1x subsurface)
+      next if (edge[:v0z] - edge[:v1z]).abs < TOL
+
+      edge[:surfaces].each { |s| ok = true if s.include?("Sub Surface") }
+
+      next unless ok
+
+      edge[:surfaces].each do |s|
+        next unless s.include?("Sub Surface")
+        nb += 1
+        subs[s] = [] unless subs.key?(s)
+        subs[s] << { v0: Topolys::Point3D.new(edge[:v0x].to_f,
+                                              edge[:v0y].to_f,
+                                              edge[:v0z].to_f),
+                     v1: Topolys::Point3D.new(edge[:v1x].to_f,
+                                              edge[:v1y].to_f,
+                                              edge[:v1z].to_f) }
+      end
+
+      # None of the subsurfaces share a common edge in the seb.osm. A vertical
+      # subsurface edge is shared only with its base (parent) surface.
+      expect(nb).to eq(1)
+    end
+
+    nb = 0
+    expect(subs.size).to eq(8)
+
+    subs.values.each { |sub| expect(sub.size).to eq(2) }
+
+    subs.each do |id1, sub1|
+      subs.each do |id2, sub2|
+        next if id1 == id2
+
+        sub1.each do |sb1|
+          sub2.each do |sb2|
+            # With default tolerances, none of the subsurface edges "match" up.
+            expect(TBD.matches?(sb1, sb2)).to be(false)
+
+            # Greater tolerances trigger 5x matches, as follows:
+            # "Sub Surface 7" ~ "Sub Surface 8" ~ "Sub Surface 6"
+            # "Sub Surface 3" ~ "Sub Surface 5" ~ "Sub Surface 4"
+            # "Sub Surface 1" ~ "Sub Surface 2"
+            nb += 1 if TBD.matches?(sb1, sb2, 0.100)
+          end
+        end
+      end
+    end
+
+    expect(nb).to eq(10) # Twice 5x: each edge is either object or subject
+  end
 end

@@ -22,24 +22,27 @@
 
 module TBD
   ##
-  # Check for matching Topolys vertex pairs between edges (within TOL).
+  # Check for matching Topolys vertex pairs between edges.
   #
   # @param e1 [Hash] first edge
   # @param e2 [Hash] second edge
+  # @param tol [Float] user-set tolerance (> TOL) in m
   #
   # @return [Bool] true if edges share vertex pairs
   # @return [Bool] false if invalid input
-  def matches?(e1 = {}, e2 = {})
+  def matches?(e1 = {}, e2 = {}, tol = TOL)
     mth = "TBD::#{__callee__}"
     cl  = Topolys::Point3D
     a   = false
 
     return mismatch("e1", e1, Hash, mth, DBG, a)        unless e1.is_a?(Hash)
     return mismatch("e2", e2, Hash, mth, DBG, a)        unless e2.is_a?(Hash)
+
     return hashkey("e1", e1, :v0, mth, DBG, a)          unless e1.key?(:v0)
     return hashkey("e1", e1, :v1, mth, DBG, a)          unless e1.key?(:v1)
     return hashkey("e2", e2, :v0, mth, DBG, a)          unless e2.key?(:v0)
     return hashkey("e2", e2, :v1, mth, DBG, a)          unless e2.key?(:v1)
+
     return mismatch("e1 :v0", e1[:v0], cl, mth, DBG, a) unless e1[:v0].is_a?(cl)
     return mismatch("e1 :v1", e1[:v1], cl, mth, DBG, a) unless e1[:v1].is_a?(cl)
     return mismatch("e2 :v0", e2[:v0], cl, mth, DBG, a) unless e2[:v0].is_a?(cl)
@@ -51,30 +54,33 @@ module TBD
     return zero("e1", mth, DBG, a) if e1_vector.magnitude < TOL
     return zero("e2", mth, DBG, a) if e2_vector.magnitude < TOL
 
+    return mismatch("e1", e1, Hash, mth, DBG, a)       unless tol.is_a?(Numeric)
+    return zero("tol", mth, DBG, a)                        if tol < TOL
+
     return true if
     (
       (
-        ( (e1[:v0].x - e2[:v0].x).abs < TOL &&
-          (e1[:v0].y - e2[:v0].y).abs < TOL &&
-          (e1[:v0].z - e2[:v0].z).abs < TOL
+        ( (e1[:v0].x - e2[:v0].x).abs < tol &&
+          (e1[:v0].y - e2[:v0].y).abs < tol &&
+          (e1[:v0].z - e2[:v0].z).abs < tol
         ) ||
-        ( (e1[:v0].x - e2[:v1].x).abs < TOL &&
-          (e1[:v0].y - e2[:v1].y).abs < TOL &&
-          (e1[:v0].z - e2[:v1].z).abs < TOL
+        ( (e1[:v0].x - e2[:v1].x).abs < tol &&
+          (e1[:v0].y - e2[:v1].y).abs < tol &&
+          (e1[:v0].z - e2[:v1].z).abs < tol
         )
       ) &&
       (
-        ( (e1[:v1].x - e2[:v0].x).abs < TOL &&
-          (e1[:v1].y - e2[:v0].y).abs < TOL &&
-          (e1[:v1].z - e2[:v0].z).abs < TOL
+        ( (e1[:v1].x - e2[:v0].x).abs < tol &&
+          (e1[:v1].y - e2[:v0].y).abs < tol &&
+          (e1[:v1].z - e2[:v0].z).abs < tol
         ) ||
-        ( (e1[:v1].x - e2[:v1].x).abs < TOL &&
-          (e1[:v1].y - e2[:v1].y).abs < TOL &&
-          (e1[:v1].z - e2[:v1].z).abs < TOL
+        ( (e1[:v1].x - e2[:v1].x).abs < tol &&
+          (e1[:v1].y - e2[:v1].y).abs < tol &&
+          (e1[:v1].z - e2[:v1].z).abs < tol
         )
       )
     )
-
+    
     false
   end
 
