@@ -48,6 +48,15 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     alter.setDefaultValue(true)
     args << alter
 
+    arg = "sub_tol"
+    dsc = "Proximity tolerance (e.g. 0.100 m) between subsurface edges, e.g. " \
+          "between near-adjacent window jambs."
+    sub_tol = OpenStudio::Measure::OSArgument.makeDoubleArgument(arg, false)
+    sub_tol.setDisplayName("Proximity tolerance (m)")
+    sub_tol.setDescription(dsc)
+    sub_tol.setDefaultValue(TBD::TOL)
+    args << sub_tol
+
     arg = "load_tbd_json"
     dsc = "Loads existing 'tbd.json' file (under '/files'), may override "     \
           "'default thermal bridge' set."
@@ -225,6 +234,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
 
     argh                 = {}
     argh[:alter        ] = runner.getBoolArgumentValue("alter_model",      args)
+    argh[:sub_tol      ] = runner.getDoubleArgumentValue("sub_tol",        args)
     argh[:load_tbd     ] = runner.getBoolArgumentValue("load_tbd_json",    args)
     argh[:option       ] = runner.getStringArgumentValue("option",         args)
     argh[:write_tbd    ] = runner.getBoolArgumentValue("write_tbd_json",   args)
@@ -313,7 +323,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
 
     argh[:version ]  = model.getVersion.versionIdentifier
     tbd              = TBD.process(model, argh)
-    argh[:io      ]  = tbd[:io]
+    argh[:io      ]  = tbd[:io      ]
     argh[:surfaces]  = tbd[:surfaces]
     setpoints        = TBD.heatingTemperatureSetpoints?(model)
     setpoints        = TBD.coolingTemperatureSetpoints?(model) || setpoints

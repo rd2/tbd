@@ -913,6 +913,7 @@ module TBD
     return mismatch("argh", argh, Hash, mth, DBG, tbd) unless argh.is_a?(Hash)
 
     argh                 = {}                       if argh.empty?
+    argh[:sub_tol      ] = TBD::TOL             unless argh.key?(:sub_tol      )
     argh[:option       ] = ""                   unless argh.key?(:option       )
     argh[:io_path      ] = nil                  unless argh.key?(:io_path      )
     argh[:schema_path  ] = nil                  unless argh.key?(:schema_path  )
@@ -1173,9 +1174,6 @@ module TBD
             farthest   = point          if farther
             farthest_V = origin_point_V if farther
           end
-
-          puts "ADDITION!!"                      if id == "ADDITION"
-          puts "#{reference_V} vs #{farthest_V}" if id == "ADDITION"
 
           angle = reference_V.angle(farthest_V)
           invalid("#{id} polar angle", mth, 0, ERROR, 0) if angle.nil?
@@ -1768,6 +1766,73 @@ module TBD
         end
 
         edge[:psi][edge[:io_type]] = sh[:val][safer]
+      end
+    end
+
+    # Unless a user has set the thermal bridge type of an individual edge via
+    # JSON input, reset any subsurface's head, sill or jamb edges as (mild)
+    # transitions if in close proximity other similar subsurface edges. User-set
+    # tolerance must be greater than default TBD tolerance (0.01 m). Both edges'
+    # origin and terminal vertices must be in close proximity. Edges of unhinged
+    # subsurfaces are ignored.
+    if argh[:sub_tol] > TOL
+      edges.each do |id, edge|
+        nb    = 0                            # linked subsurfaces (i.e. "holes")
+        match = false
+        next if edge.key?(:io_type)          # skip if set in JSON
+        next unless edge.key?(:v0)
+        next unless edge.key?(:v1)
+        next unless edge.key?(:psi)
+        next unless edge.key?(:surfaces)
+
+        edge[:surfaces].keys.each do |identifier|
+          next unless holes.key?(identifier)
+
+          if holes[identifier].attributes.key?(:unhinged)
+            nb = 0 if holes[identifier].attributes[:unhinged]
+            break  if holes[identifier].attributes[:unhinged]
+          end
+
+          nb += 1
+        end
+
+        next unless nb == 1   # only process edge if linking a single subsurface
+
+        e1 = { v0: edge[:v0].point, v1: edge[:v1].point }
+
+        # Check for possible match.
+        edges.each do |nom, e|
+          nb = 0
+          next if nom == id
+          next if e.key?(:io_type)
+          next unless e.key?(:psi)
+          next unless e.key?(:surfaces)
+
+          e[:surfaces].keys.each do |identifier|
+            next unless holes.key?(identifier)
+
+            if holes[identifier].attributes.key?(:unhinged)
+              nb = 0 if holes[identifier].attributes[:unhinged]
+              break  if holes[identifier].attributes[:unhinged]
+            end
+
+            nb += 1
+          end
+
+          e2 = { v0: e[:v0].point, v1: e[:v1].point }
+          next unless nb == 1 # only process edge if linking a single subsurface
+          next unless matches?(e1, e2, argh[:sub_tol])
+
+          # Flag match & reset matching subsurface edge as a (mild) transition.
+          match   = true
+          e[:psi] = { transition: 0.000 }
+          e[:set] = json[:io][:building][:psi]
+        end
+
+        next unless match
+
+        edge[:psi] = { transition: 0.000 }
+        edge[:set] = json[:io][:building][:psi]
       end
     end
 

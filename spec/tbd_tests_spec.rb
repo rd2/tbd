@@ -1368,6 +1368,7 @@ RSpec.describe TBD do
     io[:edges].each do |edge|
       expect(edge.is_a?(Hash)).to be(true)
       expect(edge.key?(:surfaces)).to be(true)
+      expect(edge.key?(:type)).to be(true)
       expect(edge.key?(:v0x)).to be(true)
       expect(edge.key?(:v1x)).to be(true)
       expect(edge.key?(:v0y)).to be(true)
@@ -1379,20 +1380,26 @@ RSpec.describe TBD do
       nb = 0 # only process vertical edges (each linking 1x subsurface)
       next if (edge[:v0z] - edge[:v1z]).abs < TOL
 
-      edge[:surfaces].each { |s| ok = true if s.include?("Sub Surface") }
+      edge[:surfaces].each do |id|
+        ok = id.include?("Sub Surface")
+        break if ok
+      end
 
       next unless ok
 
-      edge[:surfaces].each do |s|
-        next unless s.include?("Sub Surface")
+      edge[:surfaces].each do |id|
+        next unless id.include?("Sub Surface")
+
+        type = edge[:type].to_s.downcase
+        expect(type.include?("jamb")).to be(true)
         nb += 1
-        subs[s] = [] unless subs.key?(s)
-        subs[s] << { v0: Topolys::Point3D.new(edge[:v0x].to_f,
-                                              edge[:v0y].to_f,
-                                              edge[:v0z].to_f),
-                     v1: Topolys::Point3D.new(edge[:v1x].to_f,
-                                              edge[:v1y].to_f,
-                                              edge[:v1z].to_f) }
+        subs[id] = [] unless subs.key?(id)
+        subs[id] << { v0: Topolys::Point3D.new(edge[:v0x].to_f,
+                                               edge[:v0y].to_f,
+                                               edge[:v0z].to_f),
+                      v1: Topolys::Point3D.new(edge[:v1x].to_f,
+                                               edge[:v1y].to_f,
+                                               edge[:v1z].to_f) }
       end
 
       # None of the subsurfaces share a common edge in the seb.osm. A vertical
@@ -1402,7 +1409,6 @@ RSpec.describe TBD do
 
     nb = 0
     expect(subs.size).to eq(8)
-
     subs.values.each { |sub| expect(sub.size).to eq(2) }
 
     subs.each do |id1, sub1|
@@ -1413,8 +1419,7 @@ RSpec.describe TBD do
           sub2.each do |sb2|
             # With default tolerances, none of the subsurface edges "match" up.
             expect(TBD.matches?(sb1, sb2)).to be(false)
-
-            # Greater tolerances trigger 5x matches, as follows:
+            # Greater tolerances however trigger 5x matches, as follows:
             # "Sub Surface 7" ~ "Sub Surface 8" ~ "Sub Surface 6"
             # "Sub Surface 3" ~ "Sub Surface 5" ~ "Sub Surface 4"
             # "Sub Surface 1" ~ "Sub Surface 2"
@@ -1424,6 +1429,159 @@ RSpec.describe TBD do
       end
     end
 
-    expect(nb).to eq(10) # Twice 5x: each edge is either object or subject
+    expect(nb).to eq(10) # Twice 5x: each edge is once object, once subject
+
+    dads = {}
+
+    subs.keys.each do |id|
+      kid = model.getSubSurfaceByName(id)
+      expect(kid.empty?).to be(false)
+      kid = kid.get
+      dad = kid.surface
+      expect(dad.empty?).to be(false)
+      dad = dad.get
+      nom = dad.nameString
+      expect(surfaces.key?(nom)).to be(true)
+      loss = surfaces[nom][:heatloss]
+      dads[nom] = loss
+
+      case nom
+      when "Entryway  Wall 4"     then expect(loss).to be_within(TOL).of(2.705)
+      when "Entryway  Wall 5"     then expect(loss).to be_within(TOL).of(4.820)
+      when "Entryway  Wall 6"     then expect(loss).to be_within(TOL).of(2.008)
+      when "Smalloffice 1 Wall 1" then expect(loss).to be_within(TOL).of(5.938)
+      when "Smalloffice 1 Wall 2" then expect(loss).to be_within(TOL).of(3.838)
+      when "Smalloffice 1 Wall 6" then expect(loss).to be_within(TOL).of(3.709)
+      when "Utility1 Wall 1"      then expect(loss).to be_within(TOL).of(5.472)
+      when "Utility1 Wall 5"      then expect(loss).to be_within(TOL).of(5.440)
+      end
+    end
+
+    # Repeat exercise, while resetting tolerance to 100mm.
+    TBD.clean!
+    argh  = {}
+    file  = File.join(__dir__, "files/osms/in/seb.osm")
+    path  = OpenStudio::Path.new(file)
+    model = tr.loadModel(path)
+    expect(model.empty?).to be(false)
+    model = model.get
+
+    argh[:option     ] = "code (Quebec)"
+    argh[:schema_path] = File.join(__dir__, "../tbd.schema.json")
+    argh[:sub_tol    ] = 0.100
+    json = TBD.process(model, argh)
+    expect(json.is_a?(Hash)).to be(true)
+    expect(json.key?(:io)).to be(true)
+    expect(json.key?(:surfaces)).to be(true)
+    io       = json[:io      ]
+    surfaces = json[:surfaces]
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(io.key?(:edges)).to be(true)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
+    expect(surfaces.size).to eq(56)
+
+    subs = {}
+
+    io[:edges].each do |edge|
+      expect(edge.is_a?(Hash)).to be(true)
+      expect(edge.key?(:surfaces)).to be(true)
+      expect(edge.key?(:type)).to be(true)
+      expect(edge.key?(:v0x)).to be(true)
+      expect(edge.key?(:v1x)).to be(true)
+      expect(edge.key?(:v0y)).to be(true)
+      expect(edge.key?(:v1y)).to be(true)
+      expect(edge.key?(:v0z)).to be(true)
+      expect(edge.key?(:v1z)).to be(true)
+
+      ok = false
+      next if (edge[:v0z] - edge[:v1z]).abs < TOL
+
+      edge[:surfaces].each do |id|
+        ok = id.include?("Sub Surface")
+        break if ok
+      end
+
+      next unless ok
+
+      edge[:surfaces].each do |id|
+        next unless id.include?("Sub Surface")
+
+        type = edge[:type].to_s.downcase
+        subs[id] = [] unless subs.key?(id)
+        subs[id] << type
+      end
+    end
+
+    # "Sub Surface 7" ~ "Sub Surface 8" ~ "Sub Surface 6"
+    # "Sub Surface 3" ~ "Sub Surface 5" ~ "Sub Surface 4"
+    # "Sub Surface 1" ~ "Sub Surface 2"
+    subs.each do |id, types|
+      expect(types.size).to eq(2)
+
+      kid = model.getSubSurfaceByName(id)
+      expect(kid.empty?).to be(false)
+      kid = kid.get
+      dad = kid.surface
+      expect(dad.empty?).to be(false)
+      dad = dad.get
+      nom = dad.nameString
+      expect(surfaces.key?(nom)).to be(true)
+      loss = surfaces[nom][:heatloss]
+      less = 0.200    # jamb PSI factor (in W/K per meter)
+      # Sub Surface 6 : 0.496           (height in meters)
+      # Sub Surface 8 : 0.488
+      # Sub Surface 7 : 0.497
+      # Sub Surface 5 : 1.153
+      # Sub Surface 3 : 1.162
+      # Sub Surface 4 : 1.163
+      # Sub Surface 1 : 0.618
+      # Sub Surface 2 : 0.618
+
+      case id
+      when "Sub Surface 5"
+        expect(types.include?("jamb")).to be(false)
+        expect(types.include?("transition")).to be(true)
+        less *= (2 * 1.153) # 2x transitions; no jambs
+      when "Sub Surface 8"
+        expect(types.include?("jamb")).to be(false)
+        expect(types.include?("transition")).to be(true)
+        less *= (2 * 0.488) # 2x transitions; no jambs
+      when "Sub Surface 6"
+        expect(types.include?("jamb")).to be(true)
+        expect(types.include?("transition")).to be(true)
+        less *= (1 * 0.496) # 1x transition; 1x jamb
+      when "Sub Surface 7"
+        expect(types.include?("jamb")).to be(true)
+        expect(types.include?("transition")).to be(true)
+        less *= (1 * 0.497) # 1x transition; 1x jamb
+      when "Sub Surface 3"
+        expect(types.include?("jamb")).to be(true)
+        expect(types.include?("transition")).to be(true)
+        less *= (1 * 1.162) # 1x transition; 1x jamb
+      when "Sub Surface 4"
+        expect(types.include?("jamb")).to be(true)
+        expect(types.include?("transition")).to be(true)
+        less *= (1 * 1.163) # 1x transition; 1x jamb
+      when "Sub Surface 1"
+        expect(types.include?("jamb")).to be(true)
+        expect(types.include?("transition")).to be(true)
+        less *= (1 * 0.618) # 1x transition; 1x jamb
+      when "Sub Surface 2"
+        expect(types.include?("jamb")).to be(true)
+        expect(types.include?("transition")).to be(true)
+        less *= (1 * 0.618) # 1x transition; 1x jamb
+      end
+
+      # 'dads[ (parent surface identifier) ]' holds TBD-estimated heat loss
+      # from major thermal bridging (in W/K per m) in the initial case. The
+      # substitution of 1x or 2x subsurface jamb edge types to (mild)
+      # transition(s) reduces the (revised) heat loss in the second case.
+      expect(loss + less).to be_within(TOL).of(dads[nom])
+    end
   end
 end
