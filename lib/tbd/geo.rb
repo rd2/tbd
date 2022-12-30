@@ -610,6 +610,36 @@ module TBD
     return mismatch("floors", floors, cl2, mth, DBG, a) unless floors.is_a?(cl2)
     return mismatch("edges", edges, cl2, mth, DBG, a)   unless edges.is_a?(cl2)
 
+    kva = true
+
+    # Pre-validate foundation-facing constructions.
+    model.getSurfaces.each do |s|
+      id = s.nameString
+      construction = s.construction
+      next unless s.outsideBoundaryCondition.downcase == "foundation"
+
+      if construction.empty?
+        log(ERR, "Invalid construction for KIVA (see #{id})")
+        kva = false if kva
+      else
+        construction = construction.get.to_LayeredConstruction
+
+        if construction.empty?
+          log(ERR, "KIVA requires layered constructions (see #{id})")
+          kva = false if kva
+        else
+          construction = construction.get
+
+          unless standardOpaqueLayers?(construction)
+            log(ERR, "KIVA requires standard materials (see #{id})")
+            kva = false if kva
+          end
+        end
+      end
+    end
+
+    return a unless kva
+
     # Strictly relying on Kiva's total exposed perimeter approach.
     arg = "TotalExposedPerimeter"
     kiva = true

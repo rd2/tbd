@@ -296,6 +296,41 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
       end
     end
 
+    # Pre-validate ground-facing constructions for KIVA.
+    if argh[:kiva_force] || argh[:gen_kiva]
+      kva = true
+
+      mdl.getSurfaces.each do |s|
+        id = s.nameString
+        construction = s.construction
+        next unless s.isGroundSurface
+
+        if construction.empty?
+          runner.registerError("Invalid construction for KIVA (#{id})")
+          kva = false if kva
+        else
+          construction = construction.get.to_LayeredConstruction
+
+          if construction.empty?
+            runner.registerError("KIVA requires layered constructions (#{id})")
+            kva = false if kva
+          else
+            construction = construction.get
+
+            unless TBD.standardOpaqueLayers?(construction)
+              runner.registerError("KIVA requires standard materials (#{id})")
+              kva = false if kva
+            end
+          end
+        end
+      end
+
+      unless kva
+        argh[:gen_kiva  ] = false if argh[:gen_kiva  ]
+        argh[:kiva_force] = false if argh[:kiva_force]
+      end
+    end
+
     # Process all ground-facing surfaces as foundation-facing.
     if argh[:kiva_force]
       argh[:gen_kiva] = true

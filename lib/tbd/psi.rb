@@ -1771,10 +1771,10 @@ module TBD
 
     # Unless a user has set the thermal bridge type of an individual edge via
     # JSON input, reset any subsurface's head, sill or jamb edges as (mild)
-    # transitions if in close proximity other similar subsurface edges. User-set
-    # tolerance must be greater than default TBD tolerance (0.01 m). Both edges'
-    # origin and terminal vertices must be in close proximity. Edges of unhinged
-    # subsurfaces are ignored.
+    # transitions in close proximity with other similar subsurface edges.
+    # User-set tolerance must be greater than default TBD tolerance (0.01 m).
+    # Both edges' origin and terminal vertices must be in close proximity. Edges
+    # of unhinged subsurfaces are ignored.
     if argh[:sub_tol] > TOL
       edges.each do |id, edge|
         nb    = 0                            # linked subsurfaces (i.e. "holes")

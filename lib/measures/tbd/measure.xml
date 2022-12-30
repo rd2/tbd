@@ -3,8 +3,8 @@
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>b95f2ef8-0b09-4a7b-a995-160e2c5f6e7c</version_id>
-  <version_modified>20221228T231912Z</version_modified>
+  <version_id>00ebd883-524a-451a-8213-c5217d1d5262</version_id>
+  <version_modified>20221230T133255Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -425,17 +425,6 @@
       <checksum>54F57409</checksum>
     </file>
     <file>
-      <version>
-        <software_program>OpenStudio</software_program>
-        <identifier>2.9.1</identifier>
-        <min_compatible>2.9.1</min_compatible>
-      </version>
-      <filename>measure.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>script</usage_type>
-      <checksum>E1D229F6</checksum>
-    </file>
-    <file>
       <filename>ua.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
@@ -454,16 +443,27 @@
       <checksum>A27145BE</checksum>
     </file>
     <file>
-      <filename>geo.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>2C62C866</checksum>
-    </file>
-    <file>
       <filename>psi.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>DC2F0EE5</checksum>
+      <checksum>266902AC</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.9.1</identifier>
+        <min_compatible>2.9.1</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>56AA9CDB</checksum>
+    </file>
+    <file>
+      <filename>geo.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>AEADFCFF</checksum>
     </file>
   </files>
 </measure>
