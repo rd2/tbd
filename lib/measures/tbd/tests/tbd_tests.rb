@@ -36,187 +36,217 @@ class TBDTest < Minitest::Test
   # end
 
   def test_number_of_arguments_and_argument_names
-    # create an instance of the measure
     measure = TBDMeasure.new
-    # make an empty model
     model = OpenStudio::Model::Model.new
-
-    # get arguments and test that they are what we are expecting
     arguments = measure.arguments(model)
     assert_equal(15, arguments.size)
   end
 
   def test_no_load_tbd_json
-    # create an instance of the measure
     measure = TBDMeasure.new
 
-    # Output dirs
-    seed_dir = File.join(__dir__, 'output/no_load_tbd_json/')
+    # Output directories.
+    seed_dir = File.join(__dir__, "output/no_load_tbd_json/")
     FileUtils.mkdir_p(seed_dir)
-    seed_path = File.join(seed_dir, 'in.osm')
+    seed_path = File.join(seed_dir, "in.osm")
 
-    # create runner with empty OSW
+    # Create runner with empty OSW, and example test model.
     osw = OpenStudio::WorkflowJSON.new
     osw.setSeedFile(seed_path)
     runner = OpenStudio::Measure::OSRunner.new(osw)
-
-    # create example test model
     model = OpenStudio::Model::exampleModel
     model.save(seed_path, true)
 
-    # get arguments
+    # Get measure arguments.
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
-    # Create hash of argument values. If the argument has a default that you
-    # want to use, you don't need it in the hash.
-    args_hash                   = {}
-    args_hash["option"        ] = "efficient (BETBG)"
-    args_hash["write_tbd_json"] = true
-    args_hash["gen_UA_report" ] = true
-    args_hash["wall_option"   ] = "ALL wall constructions"
-    args_hash["wall_ut"       ] = 0.5
-    # using defaults values from measure.rb for other arguments
+    # Hash of argument values (defaults from measure.rb for other arguments).
+    argh                   = {}
+    argh["option"        ] = "efficient (BETBG)"
+    argh["write_tbd_json"] = true
+    argh["gen_UA_report" ] = true
+    argh["wall_option"   ] = "ALL wall constructions"
+    argh["wall_ut"       ] = 0.5
 
-    # populate argument with specified hash value if specified
+    # Populate arguments with specified hash value if specified.
     arguments.each do |arg|
       temp_arg_var = arg.clone
-      gotit = args_hash.key?(arg.name)
-      assert(temp_arg_var.setValue(args_hash[arg.name])) if gotit
+      assert(temp_arg_var.setValue(argh[arg.name])) if argh.key?(arg.name)
       argument_map[arg.name] = temp_arg_var
     end
 
-    # run the measure
+    # Run the measure and assert that it ran correctly.
     Dir.chdir(seed_dir)
     measure.run(model, runner, argument_map)
     result = runner.result
-
-    # show the output
     show_output(result)
-
-    # assert that it ran correctly
-    assert_equal('Success', result.value.valueName)
+    assert_equal("Success", result.value.valueName)
     assert(result.warnings.empty?)
+    assert(result.errors.empty?)
 
-    # save the model to test output directory
-    #output_file_path = "#{File.dirname(__FILE__)}//output/test_output.osm"
-    #model.save(output_file_path, true)
+    # Save the model to test output directory.
+    output_path = File.join(seed_dir, "out.osm")
+    model.save(output_path, true)
   end
 
   def test_load_tbd_json
-    # create an instance of the measure
     measure = TBDMeasure.new
 
-    # Output dirs
+    # Output directories.
     seed_dir = File.join(__dir__, "output/load_tbd_json/")
     FileUtils.mkdir_p(seed_dir)
     seed_path = File.join(seed_dir, "in.osm")
 
-    # create runner with empty OSW
+    # Create runner with empty OSW, and example test model.
     osw = OpenStudio::WorkflowJSON.new
     osw.setSeedFile(seed_path)
     runner = OpenStudio::Measure::OSRunner.new(osw)
-
-    # create example test model
     model = OpenStudio::Model::exampleModel
     model.save(seed_path, true)
 
-    # copy tdb.json next to seed
+    # Copy tdb.json next to seed.
     origin_pth = File.join(__dir__, "tbd_full_PSI.json")
     target_pth = File.join(seed_dir, "tbd.json")
     FileUtils.cp(origin_pth, target_pth)
 
-    # get arguments
+    # Get measure arguments.
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
-    # Create hash of argument values. If the argument has a default that you
-    # want to use, you don't need it in the hash.
-    args_hash = {"load_tbd_json" => true}
-    # using defaults values from measure.rb for other arguments
+    # Hash of argument values (defaults from measure.rb for other arguments).
+    argh                   = {}
+    argh["load_tbd_json" ] = true
 
-    # populate argument with specified hash value if specified
+    # Populate arguments with specified hash value if specified.
     arguments.each do |arg|
       temp_arg_var = arg.clone
-      if args_hash.key?(arg.name)
-        assert(temp_arg_var.setValue(args_hash[arg.name]))
-      end
+      assert(temp_arg_var.setValue(argh[arg.name])) if argh.key?(arg.name)
       argument_map[arg.name] = temp_arg_var
     end
 
-    # run the measure
+    # Run the measure and assert that it ran correctly.
     Dir.chdir(seed_dir)
     measure.run(model, runner, argument_map)
     result = runner.result
-
-    # show the output
     show_output(result)
-
-    # assert that it ran correctly
-    assert_equal('Success', result.value.valueName)
+    assert_equal("Success", result.value.valueName)
     assert(result.warnings.empty?)
+    assert(result.errors.empty?)
 
-    # save the model to test output directory
-    #output_file_path = "#{File.dirname(__FILE__)}//output/test_output.osm"
-    #model.save(output_file_path, true)
+    # Save the model to test output directory.
+    output_path = File.join(seed_dir, "out.osm")
+    model.save(output_path, true)
   end
 
   def test_load_tbd_json_error
-    # create an instance of the measure
     measure = TBDMeasure.new
 
-    # Output dirs
+    # Output directories.
     seed_dir = File.join(__dir__, "output/load_tbd_json_error/")
     FileUtils.mkdir_p(seed_dir)
     seed_path = File.join(seed_dir, "in.osm")
 
-    # create runner with empty OSW
+    # Create runner with empty OSW, and example test model.
     osw = OpenStudio::WorkflowJSON.new
     osw.setSeedFile(seed_path)
     runner = OpenStudio::Measure::OSRunner.new(osw)
-
-    # create example test model
     model = OpenStudio::Model::exampleModel
     model.save(seed_path, true)
 
-    # do not copy tdb.json next to seed
+    # POSTULATED USER ERROR: Do not copy tdb.json next to seed.
 
-    # get arguments
+    # Get measure arguments.
     arguments = measure.arguments(model)
     argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
 
-    # Create hash of argument values. If the argument has a default that you
-    # want to use, you don't need it in the hash.
-    args_hash = {"load_tbd_json" => true}
-    # using defaults values from measure.rb for other arguments
+    # Hash of argument values (defaults from measure.rb for other arguments).
+    argh                   = {}
+    argh["load_tbd_json" ] = true
 
-    # populate argument with specified hash value if specified
+    # Populate argument with specified hash value if specified.
     arguments.each do |arg|
       temp_arg_var = arg.clone
-      if args_hash.key?(arg.name)
-        assert(temp_arg_var.setValue(args_hash[arg.name]))
-      end
+      assert(temp_arg_var.setValue(argh[arg.name])) if argh.key?(arg.name)
       argument_map[arg.name] = temp_arg_var
     end
 
-    # run the measure
+    # Run the measure, assert that it did not run correctly.
     Dir.chdir(seed_dir)
     measure.run(model, runner, argument_map)
     result = runner.result
-
-    # show the output
     show_output(result)
+    assert_equal("Fail", result.value.valueName)
 
-    # assert that it ran correctly
-    assert_equal('Fail', result.value.valueName)
-    assert(result.errors.size == 1)
     assert(result.warnings.size == 1)
-    puts result.warnings[0].logMessage
-    log_message = "Can't find 'tbd.json' - simulation halted"
-    assert(result.warnings[0].logMessage == log_message)
+    message = result.warnings[0].logMessage
+    puts message
+    assert(message.include?("Can't find 'tbd.json' - simulation halted"))
 
-    # save the model to test output directory
-    #output_file_path = "#{File.dirname(__FILE__)}//output/test_output.osm"
-    #model.save(output_file_path, true)
+    assert(result.errors.size == 1)
+    message = result.errors[0].logMessage
+    puts message
+    assert(message.include?("Halting all TBD processes, "))
+    assert(message.include?("and halting OpenStudio - see 'tbd.out.json'"))
+
+    # Save the model to test output directory.
+    output_path = File.join(seed_dir, "out.osm")
+    model.save(output_path, true)
+  end
+
+  def test_tbd_kiva_massless_error
+    measure = TBDMeasure.new
+
+    # Output directories.
+    seed_dir = File.join(__dir__, "output/tbd_kiva_massless_error/")
+    FileUtils.mkdir_p(seed_dir)
+    seed_path = File.join(seed_dir, "in.osm")
+
+    # Create runner with empty OSW, and example test model.
+    osw = OpenStudio::WorkflowJSON.new
+    osw.setSeedFile(seed_path)
+    runner = OpenStudio::Measure::OSRunner.new(osw)
+    model = OpenStudio::Model::exampleModel
+    model.save(seed_path, true)
+
+    # Copy tdb.json next to seed.
+    origin_pth = File.join(__dir__, "tbd_full_PSI.json")
+    target_pth = File.join(seed_dir, "tbd.json")
+    FileUtils.cp(origin_pth, target_pth)
+
+    # Get measure arguments.
+    arguments = measure.arguments(model)
+    argument_map = OpenStudio::Measure.convertOSArgumentVectorToMap(arguments)
+
+    # Hash of argument values (defaults from measure.rb for other arguments).
+    argh                   = {}
+    argh["gen_kiva_force"] = true
+
+    # POSTULATED USER ERROR : Slab on grade construction holds a massless layer.
+
+    # Populate argument with specified hash value if specified.
+    arguments.each do |arg|
+      temp_arg_var = arg.clone
+      assert(temp_arg_var.setValue(argh[arg.name])) if argh.key?(arg.name)
+      argument_map[arg.name] = temp_arg_var
+    end
+
+    # Run the measure, assert that it did not run correctly.
+    Dir.chdir(seed_dir)
+    measure.run(model, runner, argument_map)
+    result = runner.result
+    show_output(result)
+    assert_equal("Fail", result.value.valueName)
+    assert(result.warnings.empty?)
+    assert(result.errors.size == 4)
+
+    result.errors.each do |error|
+      assert(error.logMessage.include?("KIVA requires standard materials ("))
+    end
+
+    # Save the model to test output directory. There should be neither instance
+    # of KIVA objects nor TBD derated materials/constructions.
+    output_path = File.join(seed_dir, "out.osm")
+    model.save(output_path, true)
   end
 end

@@ -990,53 +990,6 @@ RSpec.describe TBD do
     model.save(file, true)
   end
 
-  it "can invalidate KIVA inputs (smalloffice)" do
-    TBD.clean!
-    argh = {}
-    translator = OpenStudio::OSVersion::VersionTranslator.new
-    file = File.join(__dir__, "files/osms/in/smalloffice.osm")
-    path = OpenStudio::Path.new(file)
-    model = translator.loadModel(path)
-    expect(model.empty?).to be(false)
-    model = model.get
-
-    # Reset all ground-facing floor surfaces as "foundations".
-    model.getSurfaces.each do |s|
-      next unless s.outsideBoundaryCondition.downcase == "ground"
-      expect(s.construction.empty?).to be(false)
-      construction = s.construction.get
-      expect(s.setOutsideBoundaryCondition("Foundation")).to be(true)
-      expect(s.setConstruction(construction)).to be(true)
-    end
-
-    argh[:option  ] = "poor (BETBG)"
-    argh[:gen_kiva] = true
-    json = TBD.process(model, argh)
-    expect(json.is_a?(Hash)).to be(true)
-    expect(json.key?(:io)).to be(true)
-    expect(json.key?(:surfaces)).to be(true)
-    io       = json[:io      ]
-    surfaces = json[:surfaces]
-    expect(TBD.status).to eq(ERR)
-    expect(TBD.logs.size).to eq(5)
-
-    TBD.logs.each do |log|
-      expect(log[:message].include?("KIVA requires standard mat")).to be(true)
-    end
-
-    expect(io.nil?).to be(false)
-    expect(io.is_a?(Hash)).to be(true)
-    expect(io.empty?).to be(false)
-    expect(surfaces.nil?).to be(false)
-    expect(surfaces.is_a?(Hash)).to be(true)
-    expect(surfaces.size).to eq(43)
-
-    surfaces.values.each { |s| expect(s.key?(:kiva)).to be(false) }
-
-    file = File.join(__dir__, "files/osms/out/smalloffice_kiva.osm")
-    model.save(file, true)
-  end
-
   it "can test 5ZoneNoHVAC (failed) uprating" do
     TBD.clean!
     argh = {}

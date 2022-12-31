@@ -325,10 +325,11 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
         end
       end
 
-      unless kva
-        argh[:gen_kiva  ] = false if argh[:gen_kiva  ]
-        argh[:kiva_force] = false if argh[:kiva_force]
-      end
+      return false unless kva
+        # argh[:gen_kiva  ] = false if argh[:gen_kiva  ]
+        # argh[:kiva_force] = false if argh[:kiva_force]
+        # return false
+      # end
     end
 
     # Process all ground-facing surfaces as foundation-facing.
