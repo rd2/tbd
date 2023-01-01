@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2020-2022 Denis Bourgeois & Dan Macumber
+# Copyright (c) 2020-2023 Denis Bourgeois & Dan Macumber
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -326,10 +326,6 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
       end
 
       return false unless kva
-        # argh[:gen_kiva  ] = false if argh[:gen_kiva  ]
-        # argh[:kiva_force] = false if argh[:kiva_force]
-        # return false
-      # end
     end
 
     # Process all ground-facing surfaces as foundation-facing.

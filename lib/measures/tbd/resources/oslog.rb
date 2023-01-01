@@ -1,6 +1,6 @@
 # BSD 3-Clause License
 #
-# Copyright (c) 2022, Denis Bourgeois
+# Copyright (c) 2022-2023, Denis Bourgeois
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -127,6 +127,7 @@ module OSlg
   # @return [String] "DEBUG", "INFO", "WARN", "ERROR" or "FATAL"
   def tag(level)
     return @@tag[level] if level >= DEBUG && level <= FATAL
+
     ""
   end
 
@@ -138,6 +139,7 @@ module OSlg
   # @return [String] preset OSlg message
   def msg(status)
     return @@msg[status] if status >= DEBUG && status <= FATAL
+
     ""
   end
 
@@ -163,6 +165,7 @@ module OSlg
       @@logs << {level: level, message: message}
       @@status = level if level > @@status
     end
+
     @@status
   end
 
@@ -194,10 +197,11 @@ module OSlg
     mth = mth[0...60] + " ..." if mth.length > 60
     return res if mth.empty?
 
-    msg  = "Invalid '#{id}' "
+    msg = "Invalid '#{id}' "
     msg += "arg ##{ord} " if ord > 0
     msg += "(#{mth})"
     log(lvl, msg) if lvl >= DEBUG && lvl <= FATAL
+
     res
   end
 
@@ -232,6 +236,7 @@ module OSlg
 
     msg = "'#{id}' #{obj.class}? expecting #{cl} (#{mth})"
     log(lvl, msg) if lvl >= DEBUG && lvl <= FATAL
+
     res
   end
 
@@ -264,8 +269,9 @@ module OSlg
     mth = mth[0...60] + " ..." if mth.length > 60
     return res if mth.empty?
 
-    msg  = "Missing '#{key}' key in '#{id}' Hash (#{mth})"
+    msg = "Missing '#{key}' key in '#{id}' Hash (#{mth})"
     log(lvl, msg) if lvl >= DEBUG && lvl <= FATAL
+
     res
   end
 
@@ -294,8 +300,9 @@ module OSlg
     mth = mth[0...60] + " ..." if mth.length > 60
     return res if mth.empty?
 
-    msg  = "Empty '#{id}' (#{mth})"
+    msg = "Empty '#{id}' (#{mth})"
     log(lvl, msg) if lvl >= DEBUG && lvl <= FATAL
+
     res
   end
 
@@ -325,8 +332,9 @@ module OSlg
     mth = mth[0...60] + " ..." if mth.length > 60
     return res if mth.empty?
 
-    msg  = "Zero '#{id}' (#{mth})"
+    msg = "Zero '#{id}' (#{mth})"
     log(lvl, msg) if lvl >= DEBUG && lvl <= FATAL
+
     res
   end
 
@@ -355,9 +363,10 @@ module OSlg
 
     mth = mth[0...60] + " ..." if mth.length > 60
     return res if mth.empty?
-    
-    msg  = "Negative '#{id}' (#{mth})"
+
+    msg = "Negative '#{id}' (#{mth})"
     log(lvl, msg) if lvl >= DEBUG && lvl <= FATAL
+
     res
   end
 
@@ -368,6 +377,7 @@ module OSlg
   def clean!
     @@status = 0
     @@logs   = []
+
     @@level
   end
 

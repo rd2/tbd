@@ -3,8 +3,8 @@
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>415c2814-d98c-4399-9bc3-8ee73c43e5cc</version_id>
-  <version_modified>20221231T153838Z</version_modified>
+  <version_id>8a669fcb-f3d5-45f0-bee2-85ba47714554</version_id>
+  <version_modified>20230101T145400Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -383,12 +383,6 @@
       <checksum>32D70693</checksum>
     </file>
     <file>
-      <filename>LICENSE.md</filename>
-      <filetype>md</filetype>
-      <usage_type>license</usage_type>
-      <checksum>CB393A2B</checksum>
-    </file>
-    <file>
       <filename>geometry.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
@@ -407,46 +401,52 @@
       <checksum>05CC939E</checksum>
     </file>
     <file>
-      <filename>oslog.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>6F3C0E99</checksum>
-    </file>
-    <file>
-      <filename>tbd.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>3776D81D</checksum>
-    </file>
-    <file>
-      <filename>utils.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>54F57409</checksum>
-    </file>
-    <file>
-      <filename>ua.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>70A3885D</checksum>
-    </file>
-    <file>
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
       <checksum>B836C43A</checksum>
     </file>
     <file>
+      <filename>LICENSE.md</filename>
+      <filetype>md</filetype>
+      <usage_type>license</usage_type>
+      <checksum>A91E64A0</checksum>
+    </file>
+    <file>
+      <filename>oslog.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>E97617E3</checksum>
+    </file>
+    <file>
+      <filename>tbd.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>A4E8433C</checksum>
+    </file>
+    <file>
+      <filename>utils.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>283C976C</checksum>
+    </file>
+    <file>
+      <filename>ua.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>AF211987</checksum>
+    </file>
+    <file>
       <filename>psi.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>266902AC</checksum>
+      <checksum>282316B2</checksum>
     </file>
     <file>
       <filename>geo.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>AEADFCFF</checksum>
+      <checksum>FE3D4EF4</checksum>
     </file>
     <file>
       <version>
@@ -457,13 +457,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>AD4A4958</checksum>
+      <checksum>44B11139</checksum>
     </file>
     <file>
       <filename>tbd_tests.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>EA55AD67</checksum>
+      <checksum>58ED6635</checksum>
     </file>
   </files>
 </measure>
