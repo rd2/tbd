@@ -90,7 +90,7 @@ RSpec.describe TBD do
       expect(surface[:heatloss]).to be_within(0.01).of(8.89)
     end
   end
-
+  
   it "can pre-process UA parameters" do
     TBD.clean!
     argh = {}
@@ -1590,5 +1590,262 @@ RSpec.describe TBD do
       # transition(s) reduces the (revised) heat loss in the second case.
       expect(loss + less).to be_within(TOL).of(dads[nom])
     end
+  end
+
+  it "checks for subsurface multipliers" do
+    TBD.clean!
+    argh  = {}
+    file  = File.join(__dir__, "files/osms/in/warehouse.osm")
+    path  = OpenStudio::Path.new(file)
+    trns  = OpenStudio::OSVersion::VersionTranslator.new
+    model = trns.loadModel(path)
+    expect(model.empty?).to be(false)
+    model = model.get
+
+    argh[:option] = "code (Quebec)"
+    json = TBD.process(model, argh)
+    expect(json.is_a?(Hash))
+    expect(json.key?(:io))
+    expect(json.key?(:surfaces))
+    io       = json[:io      ]
+    surfaces = json[:surfaces]
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?)
+
+    front = "Office Front Wall"
+    left  = "Office Left Wall"
+
+    [front, left].each do |side|
+      expect(surfaces.key?(side))
+      expect(surfaces[side].key?(:windows))
+      expect(surfaces[side][:windows].size).to eq(2)
+
+      surfaces[side][:windows].each do |sub|
+        expect(sub.include?(side))
+        expect(sub.include?(" Window"))
+      end
+
+      # Per office ouside-facing wall:
+      #   - nb: number of distinct edges, per MAJOR thermal bridge type
+      #   - lm: total edge lengths (m), per MAJOR thermal bridge type
+      jambs   = { nb: 0, lm: 0 }
+      sills   = { nb: 0, lm: 0 }
+      heads   = { nb: 0, lm: 0 }
+      grades  = { nb: 0, lm: 0 }
+      rims    = { nb: 0, lm: 0 }
+      corners = { nb: 0, lm: 0 }
+
+      io[:edges].each do |edge|
+        expect(edge.key?(:surfaces))
+        expect(edge[:surfaces].is_a?(Array))
+        expect(edge[:surfaces].empty?).to be(false)
+        next unless edge[:surfaces].include?(side)
+
+        expect(edge.key?(:length))
+        expect(edge.key?(:type  ))
+        next if edge[:type] == :transition
+
+        case edge[:type]
+        when :jamb
+          jambs[:nb] += 1
+          jambs[:lm] += edge[:length]
+        when :sill
+          sills[:nb] += 1
+          sills[:lm] += edge[:length]
+        when :head
+          heads[:nb] += 1
+          heads[:lm] += edge[:length]
+        when :gradeconvex
+          grades[:nb] += 1
+          grades[:lm] += edge[:length]
+        when :rimjoist
+          rims[:nb] += 1
+          rims[:lm] += edge[:length]
+        else
+          corners[:nb] += 1
+          corners[:lm] += edge[:length]
+        end
+      end
+
+      expect(  jambs[:nb]).to eq(6) # 2x windows + 1x door ... 2x
+      expect(  sills[:nb]).to eq(2) # 2x windows
+      expect(  heads[:nb]).to eq(3) # 2x windows + 1x door
+      expect( grades[:nb]).to eq(3) # split by door sill
+      expect(   rims[:nb]).to eq(1)
+      expect(corners[:nb]).to eq(1)
+
+      if side == front
+        expect(  jambs[:lm]).to be_within(0.01).of(10.37)
+        expect(  sills[:lm]).to be_within(0.01).of( 7.31)
+        expect(  heads[:lm]).to be_within(0.01).of( 9.14)
+        expect( grades[:lm]).to be_within(0.01).of(25.91)
+        expect(   rims[:lm]).to be_within(0.01).of(25.91) # same as grade
+        expect(corners[:lm]).to be_within(0.01).of( 4.27)
+      else # left
+        expect(  jambs[:lm]).to be_within(0.01).of(10.37) # same as front
+        expect(  sills[:lm]).to be_within(0.01).of( 4.27)
+        expect(  heads[:lm]).to be_within(0.01).of( 5.18)
+        expect( grades[:lm]).to be_within(0.01).of( 9.14)
+        expect(   rims[:lm]).to be_within(0.01).of( 9.14) # same as grade
+        expect(corners[:lm]).to be_within(0.01).of( 4.27) # same as front
+      end
+
+      expect(surfaces[side].key?(:heatloss))
+      hloss = surfaces[side][:heatloss]
+      expect(hloss).to be_within(0.01).of(21.55) if side == front
+      expect(hloss).to be_within(0.01).of(10.09) if side == left
+    end
+
+    # Re-open model and add multipliers to both front & left subsurfaces.
+    TBD.clean!
+    argh  = {}
+    mult  = 2
+    model = trns.loadModel(path)
+    expect(model.empty?).to be(false)
+    model = model.get
+
+    model.getSubSurfaces.each do |sub|
+      parent    = sub.surface
+      expect(parent.empty?).to be(false)
+      parent    = parent.get
+      front_sub = parent.nameString.include?(front)
+      left_sub  = parent.nameString.include?(left)
+      next unless front_sub || left_sub
+
+      expect(sub.setMultiplier(mult))
+      expect(sub.multiplier).to eq(mult)
+    end
+
+    # out = File.join(__dir__, "files/osms/out/mult_warehouse.osm")
+    # model.save(out, true)
+
+    argh[:option] = "code (Quebec)"
+    json = TBD.process(model, argh)
+    expect(json.is_a?(Hash))
+    expect(json.key?(:io))
+    expect(json.key?(:surfaces))
+    io       = json[:io      ]
+    surfaces = json[:surfaces]
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?)
+
+    [front, left].each do |side|
+      expect(surfaces.key?(side))
+      expect(surfaces[side].key?(:windows))
+      expect(surfaces[side][:windows].size).to eq(2)
+
+      surfaces[side][:windows].each do |sub|
+        expect(sub.include?(side))
+        expect(sub.include?(" Window"))
+      end
+
+      # 2nd tallies, per office ouside-facing wall:
+      #   - nb: number of distinct edges, per MAJOR thermal bridge type
+      #   - lm: total edge lengths (m), per MAJOR thermal bridge type
+      jambs2   = { nb: 0, lm: 0 }
+      sills2   = { nb: 0, lm: 0 }
+      heads2   = { nb: 0, lm: 0 }
+      grades2  = { nb: 0, lm: 0 }
+      rims2    = { nb: 0, lm: 0 }
+      corners2 = { nb: 0, lm: 0 }
+
+      io[:edges].each do |edge|
+        expect(edge.key?(:surfaces))
+        expect(edge[:surfaces].is_a?(Array))
+        expect(edge[:surfaces].empty?).to be(false)
+        next unless edge[:surfaces].include?(side)
+
+        expect(edge.key?(:length))
+        expect(edge.key?(:type  ))
+        next if edge[:type] == :transition
+
+        case edge[:type]
+        when :jamb
+          jambs2[:nb] += 1
+          jambs2[:lm] += edge[:length]
+        when :sill
+          sills2[:nb] += 1
+          sills2[:lm] += edge[:length]
+        when :head
+          heads2[:nb] += 1
+          heads2[:lm] += edge[:length]
+        when :gradeconvex
+          grades2[:nb] += 1
+          grades2[:lm] += edge[:length]
+        when :rimjoist
+          rims2[:nb] += 1
+          rims2[:lm] += edge[:length]
+        else
+          corners2[:nb] += 1
+          corners2[:lm] += edge[:length]
+        end
+      end
+
+      expect(  jambs2[:nb]).to eq(6) # no change vs initial, unaltered model
+      expect(  sills2[:nb]).to eq(2)
+      expect(  heads2[:nb]).to eq(3)
+      expect( grades2[:nb]).to eq(3)
+      expect(   rims2[:nb]).to eq(1)
+      expect(corners2[:nb]).to eq(1)
+
+      if side == front
+        expect(  jambs2[:lm]).to be_within(0.01).of(10.37 * mult)
+        expect(  sills2[:lm]).to be_within(0.01).of( 7.31 * mult)
+        expect(  heads2[:lm]).to be_within(0.01).of( 9.14 * mult)
+        expect(   rims2[:lm]).to be_within(0.01).of(25.91) # unchanged
+        expect(corners2[:lm]).to be_within(0.01).of( 4.27) # unchanged
+
+        # In the OpenStudio warehouse model, the front door (2x 915mm) "sill" is
+        # aligned along the slab-on-"grade" edge. It is the only such "shared"
+        # subsurface edge in this (front wall) example. In TBD, such common
+        # edges initially hold multiple thermal bridge types in memory, until a
+        # single, dominant type (based on PSI factor) is finally assigned
+        # (here, "grade" not "sill").
+        #
+        # By adding a 2x multiplier in OpenStudio, door area and perimeter have
+        # doubled while the initial subsurface vertices remain as before. This
+        # of course breaks model geometrical consistency (vs Topolys), which is
+        # expected with multipliers - they remain abstract modifiers that do not
+        # lend easily to 3D representation. It would be imprudent for
+        # TBD/Topolys to "stretch" subsurface vertex 3D position, based on
+        # OpenStudio subsurface multipliers. This would often generate
+        # unintended conflicts with parent and siblings (i.e. other subsurfaces
+        # sharing the same parent). As such, TBD would overestimate the total
+        # "grade" length by the added "sill" length.
+        expect( grades2[:lm]).to be_within(0.01).of(25.91 + 2 * 0.915)
+
+        # This (user-selected) discrepancy can easily be countered (by the very
+        # same user), by proportionally adjusting the selected "grade" PSI
+        # factor (using TBD JSON customization). For this reason, TBD will not
+        # raise this as an error. Nonetheless, the use of subsurface multipliers
+        # will require a clear set of recommendations in TBD's online Guide.
+        extra  = 0.200 * jambs2[:lm] / 2
+        extra += 0.200 * sills2[:lm] / 2
+        extra += 0.200 * heads2[:lm] / 2
+        extra += 0.450 * 2 * 0.915
+      else # left
+        expect(  jambs2[:lm]).to be_within(0.01).of(10.37 * mult)
+        expect(  sills2[:lm]).to be_within(0.01).of( 4.27 * mult)
+        expect(  heads2[:lm]).to be_within(0.01).of( 5.18 * mult)
+        expect(   rims2[:lm]).to be_within(0.01).of( 9.14) # unchanged
+        expect(corners2[:lm]).to be_within(0.01).of( 4.27) # unchanged
+
+        # See above comments for grade vs sill discrepancy.
+        expect( grades2[:lm]).to be_within(0.01).of( 9.14 + 0.915)
+
+        extra  = 0.200 * jambs2[:lm] / 2
+        extra += 0.200 * sills2[:lm] / 2
+        extra += 0.200 * heads2[:lm] / 2
+        extra += 0.450 * 0.915
+      end
+
+      expect(surfaces[side].key?(:heatloss))
+      hloss = surfaces[side][:heatloss]
+
+      expect(hloss).to be_within(0.01).of(21.55 + extra) if side == front
+      expect(hloss).to be_within(0.01).of(10.09 + extra) if side == left
+    end
+
+    # TODO : ensure uprating & UA' remain consistent, w/w/o multipliers.
   end
 end

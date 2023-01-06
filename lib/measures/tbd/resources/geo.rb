@@ -360,6 +360,7 @@ module TBD
       next                                                          unless valid
       vec      = s.vertices
       area     = s.grossArea
+      mult     = s.multiplier
       typ      = s.subSurfaceType.downcase
       type     = :skylight
       type     = :window       if typ.include?("window" )
@@ -448,6 +449,7 @@ module TBD
               n:        n,
               gross:    s.grossArea,
               area:     area,
+              mult:     mult,
               type:     type,
               u:        u,
               unhinged: unhinged }

@@ -47,6 +47,8 @@ module TBD
     return mismatch("film", film, cl3, mth, DBG, res)    unless film.is_a?(cl3)
     return mismatch("Ut", ut, cl3, mth, DBG, res)        unless ut.is_a?(cl3)
 
+    loss        = 0.0                   # residual heatloss (not assigned) [W/K]
+    area        = lc.getNetArea
     lyr         = insulatingLayer(lc)
     lyr[:index] = nil unless lyr[:index].is_a?(Numeric)
     lyr[:index] = nil unless lyr[:index] >= 0
@@ -57,8 +59,6 @@ module TBD
     return zero("'#{id}': films", mth, WRN, res)              unless film > TOL
     return zero("'#{id}': Ut", mth, WRN, res)                 unless ut > TOL
     return invalid("'#{id}': Ut", mth, 0, WRN, res)           unless ut < 5.678
-
-    area = lc.getNetArea
     return zero("'#{id}': net area (m2)", mth, ERR, res)      unless area > TOL
 
     # First, calculate initial layer RSi to initially meet Ut target.
@@ -74,8 +74,6 @@ module TBD
 
     return zero("'#{id}': new Rsi", mth, ERR, res)          unless new_r > 0.001
 
-    loss   = 0.0                        # residual heatloss (not assigned) [W/K]
-
     if lyr[:type] == :massless
       m     = lc.getLayer(lyr[:index]).to_MasslessOpaqueMaterial
       return  invalid("'#{id}' massless layer?", mth, 0)             if m.empty?
@@ -85,7 +83,7 @@ module TBD
       new_r = 0.001                                         unless new_r > 0.001
       loss  = (new_u - 1 / new_r) * area                    unless new_r > 0.001
               m.setThermalResistance(new_r)
-    else                                                     # type == :standard
+    else # type == :standard
       m     = lc.getLayer(lyr[:index]).to_StandardOpaqueMaterial
       return  invalid("'#{id}' standard layer?", mth, 0)             if m.empty?
 
