@@ -1657,6 +1657,9 @@ RSpec.describe TBD do
         expect(sub.include?(" Window"))
       end
 
+      expect(surfaces[side].key?(:heatloss))
+      hloss = surfaces[side][:heatloss]
+
       # Per office ouside-facing wall:
       #   - nb: number of distinct edges, per MAJOR thermal bridge type
       #   - lm: total edge lengths (m), per MAJOR thermal bridge type
@@ -1713,6 +1716,12 @@ RSpec.describe TBD do
         expect( grades[:lm]).to be_within(0.01).of(25.91)
         expect(   rims[:lm]).to be_within(0.01).of(25.91) # same as grade
         expect(corners[:lm]).to be_within(0.01).of( 4.27)
+
+        loss  = 0.200 * (jambs[:lm] + sills[:lm] + heads[:lm])
+        loss += 0.450 * grades[:lm]
+        loss += 0.300 * (rims[:lm] + corners[:lm]) / 2
+        expect(loss ).to be_within(0.01).of(21.55)
+        expect(hloss).to be_within(0.01).of(loss)
       else # left
         expect(  jambs[:lm]).to be_within(0.01).of(10.37) # same as front
         expect(  sills[:lm]).to be_within(0.01).of( 4.27)
@@ -1720,12 +1729,8 @@ RSpec.describe TBD do
         expect( grades[:lm]).to be_within(0.01).of( 9.14)
         expect(   rims[:lm]).to be_within(0.01).of( 9.14) # same as grade
         expect(corners[:lm]).to be_within(0.01).of( 4.27) # same as front
+        expect(hloss       ).to be_within(0.01).of(10.09)
       end
-
-      expect(surfaces[side].key?(:heatloss))
-      hloss = surfaces[side][:heatloss]
-      expect(hloss).to be_within(0.01).of(21.55) if side == front
-      expect(hloss).to be_within(0.01).of(10.09) if side == left
     end
 
     # Re-open model and add multipliers to both front & left subsurfaces.
@@ -1846,6 +1851,9 @@ RSpec.describe TBD do
         end
       end
 
+      expect(surfaces[side].key?(:heatloss))
+      hloss = surfaces[side][:heatloss]
+
       expect(  jambs2[:nb]).to eq(6) # no change vs initial, unaltered model
       expect(  sills2[:nb]).to eq(2)
       expect(  heads2[:nb]).to eq(3)
@@ -1888,6 +1896,8 @@ RSpec.describe TBD do
         extra += 0.200 * sills2[:lm] / 2
         extra += 0.200 * heads2[:lm] / 2
         extra += 0.450 * 2 * 0.915
+        expect(extra).to be_within(0.01).of(6.19)
+        expect(hloss).to be_within(0.01).of(21.55 + extra)
       else # left
         expect(  jambs2[:lm]).to be_within(0.01).of(10.37 * mult)
         expect(  sills2[:lm]).to be_within(0.01).of( 4.27 * mult)
@@ -1902,13 +1912,9 @@ RSpec.describe TBD do
         extra += 0.200 * sills2[:lm] / 2
         extra += 0.200 * heads2[:lm] / 2
         extra += 0.450 * 0.915
+        expect(extra).to be_within(0.01).of(4.37)
+        expect(hloss).to be_within(0.01).of(10.09 + extra)
       end
-
-      expect(surfaces[side].key?(:heatloss))
-      hloss = surfaces[side][:heatloss]
-
-      expect(hloss).to be_within(0.01).of(21.55 + extra) if side == front
-      expect(hloss).to be_within(0.01).of(10.09 + extra) if side == left
     end
 
     # TODO : ensure uprating & UA' remain consistent, w/w/o multipliers.
