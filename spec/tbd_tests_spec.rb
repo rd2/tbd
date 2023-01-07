@@ -90,7 +90,7 @@ RSpec.describe TBD do
       expect(surface[:heatloss]).to be_within(0.01).of(8.89)
     end
   end
-  
+
   it "can pre-process UA parameters" do
     TBD.clean!
     argh = {}
@@ -1602,7 +1602,13 @@ RSpec.describe TBD do
     expect(model.empty?).to be(false)
     model = model.get
 
-    argh[:option] = "code (Quebec)"
+    front = "Office Front Wall"
+    left  = "Office Left Wall"
+
+    argh[:option ] = "code (Quebec)"
+    argh[:gen_ua ] = true
+    argh[:ua_ref ] = "code (Quebec)"
+    argh[:version] = model.getVersion.versionIdentifier
     json = TBD.process(model, argh)
     expect(json.is_a?(Hash))
     expect(json.key?(:io))
@@ -1612,10 +1618,36 @@ RSpec.describe TBD do
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?)
 
-    front = "Office Front Wall"
-    left  = "Office Left Wall"
+    # Testing UA summaries.
+    argh[:io              ] = io
+    argh[:surfaces        ] = surfaces
+    argh[:io][:description] = "test UA vs multipliers"
+    ua = TBD.ua_summary(Time.now, argh)
+    expect(ua.nil?).to be(false)
+    expect(ua.empty?).to be(false)
+    expect(ua.is_a?(Hash)).to be(true)
+    expect(ua.key?(:model))
+    mult_ud_md = TBD.ua_md(ua, :en)
+    pth = File.join(__dir__, "files/ua/ua_mult.md")
+    File.open(pth, "w") { |file| file.puts mult_ud_md }
 
     [front, left].each do |side|
+      wall = model.getSurfaceByName(side)
+      expect(wall.empty?).to be(false)
+      wall = wall.get
+
+      if side == front
+        sub_area = (1 * 3.90) + (2 * 5.58) # 1x double-width door + 2x windows
+        expect(wall.grossArea).to be_within(0.01).of(110.54)
+        expect(wall.netArea  ).to be_within(0.01).of( 95.49)
+        expect(wall.netArea  ).to be_within(0.05).of(wall.grossArea - sub_area)
+      else # side == left
+        sub_area = (1 * 1.95) + (2 * 3.26) # 1x single-width door + 2x windows
+        expect(wall.grossArea).to be_within(0.01).of( 39.02)
+        expect(wall.netArea  ).to be_within(0.01).of( 30.56)
+        expect(wall.netArea  ).to be_within(0.05).of(wall.grossArea - sub_area)
+      end
+
       expect(surfaces.key?(side))
       expect(surfaces[side].key?(:windows))
       expect(surfaces[side][:windows].size).to eq(2)
@@ -1704,6 +1736,7 @@ RSpec.describe TBD do
     expect(model.empty?).to be(false)
     model = model.get
 
+    # Set subsurface multipliers.
     model.getSubSurfaces.each do |sub|
       parent    = sub.surface
       expect(parent.empty?).to be(false)
@@ -1719,7 +1752,10 @@ RSpec.describe TBD do
     # out = File.join(__dir__, "files/osms/out/mult_warehouse.osm")
     # model.save(out, true)
 
-    argh[:option] = "code (Quebec)"
+    argh[:option ] = "code (Quebec)"
+    argh[:gen_ua ] = true
+    argh[:ua_ref ] = "code (Quebec)"
+    argh[:version] = model.getVersion.versionIdentifier
     json = TBD.process(model, argh)
     expect(json.is_a?(Hash))
     expect(json.key?(:io))
@@ -1729,7 +1765,36 @@ RSpec.describe TBD do
     expect(TBD.status).to eq(0)
     expect(TBD.logs.empty?)
 
+    # Testing UA summaries.
+    argh[:io              ] = io
+    argh[:surfaces        ] = surfaces
+    argh[:io][:description] = "test UA vs multipliers"
+    ua2 = TBD.ua_summary(Time.now, argh)
+    expect(ua2.nil?).to be(false)
+    expect(ua2.empty?).to be(false)
+    expect(ua2.is_a?(Hash)).to be(true)
+    expect(ua2.key?(:model))
+    mult_ud_md2 = TBD.ua_md(ua2, :en)
+    pth = File.join(__dir__, "files/ua/ua_mult2.md")
+    File.open(pth, "w") { |file| file.puts mult_ud_md2 }
+
     [front, left].each do |side|
+      wall = model.getSurfaceByName(side)
+      expect(wall.empty?).to be(false)
+      wall = wall.get
+
+      if side == front
+        sub_area = (2 * 3.90) + (4 * 5.58) # 2x double-width door + 4x windows
+        expect(wall.grossArea).to be_within(0.01).of(110.54)
+        expect(wall.netArea  ).to be_within(0.01).of( 80.43)
+        expect(wall.netArea  ).to be_within(0.05).of(wall.grossArea - sub_area)
+      else # side == left
+        sub_area = (2 * 1.95) + (4 * 3.26) # 2x single-width door + 4x windows
+        expect(wall.grossArea).to be_within(0.01).of( 39.02)
+        expect(wall.netArea  ).to be_within(0.01).of( 22.10)
+        expect(wall.netArea  ).to be_within(0.05).of(wall.grossArea - sub_area)
+      end
+
       expect(surfaces.key?(side))
       expect(surfaces[side].key?(:windows))
       expect(surfaces[side][:windows].size).to eq(2)

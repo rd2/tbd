@@ -486,7 +486,9 @@ module TBD
     end
 
     subarea = 0
-    subs.values.each { |sub| subarea += sub[:area] }
+
+    subs.values.each { |sub| subarea += sub[:area] * sub[:mult] }
+
     surf[:net] = surf[:gross] - subarea
 
     # Tranform final Point 3D sets, and store.
