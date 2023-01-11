@@ -1815,40 +1815,39 @@ module TBD
 
     # Unless a user has set the thermal bridge type of an individual edge via
     # JSON input, reset any subsurface's head, sill or jamb edges as (mild)
-    # transitions in close proximity with other similar subsurface edges.
-    # User-set tolerance must be greater than default TBD tolerance (0.01 m).
-    # Both edges' origin and terminal vertices must be in close proximity. Edges
+    # transitions when in close proximity to another subsurface edge. Both
+    # edges' origin and terminal vertices must be in close proximity. Edges
     # of unhinged subsurfaces are ignored.
-    if argh[:sub_tol] > TOL
-      edges.each do |id, edge|
-        nb    = 0                            # linked subsurfaces (i.e. "holes")
-        match = false
-        next if edge.key?(:io_type)          # skip if set in JSON
-        next unless edge.key?(:v0)
-        next unless edge.key?(:v1)
-        next unless edge.key?(:psi)
-        next unless edge.key?(:surfaces)
+    edges.each do |id, edge|
+      nb    = 0                            # linked subsurfaces (i.e. "holes")
+      match = false
+      next if edge.key?(:io_type)          # skip if set in JSON
+      next unless edge.key?(:v0)
+      next unless edge.key?(:v1)
+      next unless edge.key?(:psi)
+      next unless edge.key?(:surfaces)
 
-        edge[:surfaces].keys.each do |identifier|
-          next unless holes.key?(identifier)
+      edge[:surfaces].keys.each do |identifier|
+        break    if match
+        next unless holes.key?(identifier)
 
-          if holes[identifier].attributes.key?(:unhinged)
-            nb = 0 if holes[identifier].attributes[:unhinged]
-            break  if holes[identifier].attributes[:unhinged]
-          end
-
-          nb += 1
+        if holes[identifier].attributes.key?(:unhinged)
+          nb = 0 if holes[identifier].attributes[:unhinged]
+          break  if holes[identifier].attributes[:unhinged]
         end
 
-        next unless nb == 1   # only process edge if linking a single subsurface
+        nb += 1
+        match = true if nb > 1
+      end
 
+      if nb == 1 # linking 1x subsurface, search for 1x other.
         e1 = { v0: edge[:v0].point, v1: edge[:v1].point }
 
-        # Check for possible match.
         edges.each do |nom, e|
           nb = 0
-          next if nom == id
-          next if e.key?(:io_type)
+          break    if match
+          next     if nom == id
+          next     if e.key?(:io_type)
           next unless e.key?(:psi)
           next unless e.key?(:surfaces)
 
@@ -1863,21 +1862,17 @@ module TBD
             nb += 1
           end
 
+          next unless nb == 1 # only process edge if linking 1x subsurface
+
           e2 = { v0: e[:v0].point, v1: e[:v1].point }
-          next unless nb == 1 # only process edge if linking a single subsurface
-          next unless matches?(e1, e2, argh[:sub_tol])
-
-          # Flag match & reset matching subsurface edge as a (mild) transition.
-          match   = true
-          e[:psi] = { transition: 0.000 }
-          e[:set] = json[:io][:building][:psi]
+          match = matches?(e1, e2, argh[:sub_tol])
         end
-
-        next unless match
-
-        edge[:psi] = { transition: 0.000 }
-        edge[:set] = json[:io][:building][:psi]
       end
+
+      next unless match
+
+      edge[:psi] = { transition: 0.000 }
+      edge[:set] = json[:io][:building][:psi]
     end
 
     # Loop through each edge and assign heat loss to linked surfaces.

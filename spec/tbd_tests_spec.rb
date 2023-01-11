@@ -1916,7 +1916,153 @@ RSpec.describe TBD do
         expect(hloss).to be_within(0.01).of(10.09 + extra)
       end
     end
+  end
 
-    # TODO : ensure uprating & UA' remain consistent, w/w/o multipliers.
+  it "checks for subsurface vertex inheritance" do
+    TBD.clean!
+    argh  = {}
+    file  = File.join(__dir__, "files/osms/in/warehouse.osm")
+    path  = OpenStudio::Path.new(file)
+    trns  = OpenStudio::OSVersion::VersionTranslator.new
+    model = trns.loadModel(path)
+    expect(model.empty?).to be(false)
+    model = model.get
+
+    minY     = 1000
+    maxZ     = 0
+    leftwall = "Fine Storage Left Wall"
+    leftdoor = "Fine Storage Left Door"
+    leftside = "Fine Storage Left Sidelight"
+    wall     = model.getSurfaceByName(leftwall)
+    door     = model.getSubSurfaceByName(leftdoor)
+    expect(wall.empty?).to be(false)
+    expect(door.empty?).to be(false)
+    wall     = wall.get
+    door     = door.get
+    parent   = door.surface
+    expect(parent.empty?).to eq(false)
+    parent   = parent.get
+    expect(parent).to eq(wall)
+
+    door.vertices.each { |vtx| minY = [minY,vtx.y].min }
+    door.vertices.each { |vtx| maxZ = [maxZ,vtx.z].max }
+
+    expect(minY).to be_within(0.01).of(19.35)
+    expect(maxZ).to be_within(0.01).of( 2.13)
+
+    # Adding a partial-height (sill +900mm above grade, width 500mm) sidelight,
+    # adjacent to the door (sharing an edge).
+    vertices = OpenStudio::Point3dVector.new
+    vertices << OpenStudio::Point3d.new(0.0, minY      , maxZ)
+    vertices << OpenStudio::Point3d.new(0.0, minY      ,  0.9)
+    vertices << OpenStudio::Point3d.new(0.0, minY - 0.5,  0.9)
+    vertices << OpenStudio::Point3d.new(0.0, minY - 0.5, maxZ)
+    sidelight = OpenStudio::Model::SubSurface.new(vertices, model)
+    sidelight.setName(leftside)
+    expect(sidelight.setSubSurfaceType("FixedWindow"))
+    expect(sidelight.setSurface(wall))
+
+    argh[:option] = "code (Quebec)"
+    json = TBD.process(model, argh)
+    expect(json.is_a?(Hash))
+    expect(json.key?(:io))
+    expect(json.key?(:surfaces))
+    io       = json[:io      ]
+    surfaces = json[:surfaces]
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?)
+    expect(io.key?(:edges))
+
+    # Counters of distinct Fine Storage Left Wall subsurface edges.
+    side_heads = 0
+    side_sills = 0
+    side_jambs = 0
+    side_trns  = 0
+    door_grade = 0
+    door_heads = 0
+    door_sills = 0
+    door_jambs = 0
+    door_trns  = 0
+
+    # Length tallies of Fine Storage Left Wall subsurface edges.
+    side_head_m  = 0
+    side_sill_m  = 0
+    side_jamb_m  = 0
+    side_trns_m  = 0
+    door_grade_m = 0
+    door_head_m  = 0
+    door_sill_m  = 0
+    door_jamb_m  = 0
+    door_trns_m  = 0
+
+    io[:edges].each do |edge|
+      expect(edge.key?(:surfaces))
+      expect(edge[:surfaces].is_a?(Array))
+      expect(edge[:surfaces].empty?).to be(false)
+      next unless edge[:surfaces].include?(leftside)
+
+      expect(edge.key?(:type  ))
+      expect(edge.key?(:length))
+
+      side_heads += 1 if edge[:type].to_s.include?("head"      )
+      side_sills += 1 if edge[:type].to_s.include?("sill"      )
+      side_jambs += 1 if edge[:type].to_s.include?("jamb"      )
+      side_trns  += 1 if edge[:type].to_s.include?("transition")
+
+      side_head_m += edge[:length] if edge[:type].to_s.include?("head"      )
+      side_sill_m += edge[:length] if edge[:type].to_s.include?("sill"      )
+      side_jamb_m += edge[:length] if edge[:type].to_s.include?("jamb"      )
+      side_trns_m += edge[:length] if edge[:type].to_s.include?("transition")
+
+      # puts "#{leftside} : #{edge[:length]} : #{edge[:type]}"
+      # puts "... #{edge[:v0x]}, #{edge[:v0y]}, #{edge[:v0z]}"
+      # puts "... #{edge[:v1x]}, #{edge[:v1y]}, #{edge[:v1z]}"
+      # puts
+    end
+
+    expect(side_heads).to eq(1)
+    expect(side_sills).to eq(1)
+    expect(side_jambs).to eq(1)
+    expect(side_trns ).to eq(1) # shared with initial left door
+
+    expect(side_head_m).to be_within(0.01).of(0.5)
+    expect(side_sill_m).to be_within(0.01).of(0.5)
+    expect(side_jamb_m).to be_within(0.01).of(maxZ - 0.9)
+    expect(side_trns_m).to be_within(0.01).of(maxZ - 0.9) # same as jamb
+
+    io[:edges].each do |edge|
+      expect(edge.key?(:surfaces))
+      expect(edge[:surfaces].is_a?(Array))
+      expect(edge[:surfaces].empty?).to be(false)
+      next unless edge[:surfaces].include?(leftdoor)
+
+      expect(edge.key?(:type))
+      door_grade += 1 if edge[:type].to_s.include?("grade"     )
+      door_heads += 1 if edge[:type].to_s.include?("head"      )
+      door_sills += 1 if edge[:type].to_s.include?("sill"      )
+      door_jambs += 1 if edge[:type].to_s.include?("jamb"      )
+      door_trns  += 1 if edge[:type].to_s.include?("transition") # shared
+
+      door_head_m += edge[:length] if edge[:type].to_s.include?("head"      )
+      door_sill_m += edge[:length] if edge[:type].to_s.include?("sill"      )
+      door_jamb_m += edge[:length] if edge[:type].to_s.include?("jamb"      )
+      door_trns_m += edge[:length] if edge[:type].to_s.include?("transition")
+
+      # puts "#{leftdoor} : #{edge[:length]} : #{edge[:type]}"
+      # puts "... #{edge[:v0x]}, #{edge[:v0y]}, #{edge[:v0z]}"
+      # puts "... #{edge[:v1x]}, #{edge[:v1y]}, #{edge[:v1z]}"
+      # puts
+    end
+
+    expect(door_grade).to eq(1)
+    expect(door_heads).to eq(1)
+    expect(door_sills).to eq(0)
+    expect(door_jambs).to eq(2)
+    expect(door_trns ).to eq(1) # 5x edges (instead of original 4x)
+
+    expect(door_jamb_m).to be_within(0.01).of(maxZ + 0.9)
+    expect(door_trns_m).to be_within(0.01).of(maxZ - 0.9) # same as sidelight
+
+    # TODO: repeat exercise with a transorm above door and sidelight.
   end
 end
