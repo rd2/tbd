@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=fd6619831d4050d6e35491def5d2b98484a8ce61">
+    <link rel="stylesheet" href="/assets/css/style.css?v=1276c293f318b1712f5072ab48ef6f1d3e5e8e53">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -50,8 +50,8 @@
         </header>
         <section id="downloads" class="clearfix">
           
-          <a href="https://github.com/rd2/tbd/releases/download/v3.1.1/tbd.zip" id="download-zip" class="button"><span>Download .zip</span></a>
-          <a href="https://github.com/rd2/tbd/releases/download/v3.1.1/tbd.tar.gz" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
+          <a href="https://github.com/rd2/tbd/releases/download/v3.2.0/tbd.zip" id="download-zip" class="button"><span>Download .zip</span></a>
+          <a href="https://github.com/rd2/tbd/releases/download/v3.2.0/tbd.tar.gz" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
           
 	
         </section>
@@ -63,7 +63,7 @@
 
 <p>Common trade-off solutions for building envelopes (at least in North America) are <em>UA</em> trade-offs, whereby one or more <em>non-compliant</em> envelope components (e.g. spandrel panels) can be compensated by one or more <em>improved</em> components (e.g. roof insulation). Traditionally, <em>UA</em> trade-offs are based on <em>total envelope heat loss</em> (in W/K), as supported by <a href="https://www.energycodes.gov/rescheck">REScheck</a>:</p>
 
-<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>UA = ∑Uo•A
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>UA = ∑ (Uo • A)
 </code></pre></div></div>
 <p>… where:</p>
 
@@ -76,14 +76,14 @@
   <li>UA is power-based (W), instantaneous</li>
   <li>time-delayed responses are not factored-in …</li>
   <li>… so forget thermal mass, ground heat loss, solar, etc.</li>
-  <li>fenestration U-factors and areas may be factored-in …</li>
-  <li>… while differences in fenestration areas usually are not</li>
+  <li>fenestration U-factors may be considered …</li>
+  <li>… while <em>proposed</em> vs <em>reference</em> fenestration areas remain equal/fixed</li>
 </ul>
 
 <h3 id="major-thermal-bridging"><em>Major</em> thermal bridging</h3>
 
 <p>Québec’s recent energy code (Section 3.3) expands on the concept by including <em>major</em> thermal bridges in the mix:</p>
-<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>UA' = ∑Uo•A + ∑psi•L + ∑khi•n
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>UA' = ∑ (Uo • A) + ∑ (psi • L) + ∑ (khi • n)
 </code></pre></div></div>
 <p>… where:</p>
 
@@ -96,12 +96,12 @@
 
 <h3 id="ua-menu-options">UA’ menu options</h3>
 
-<p>TBD automatically processes what’s required (inputs) to carry out <em>UA’</em> assessments, as well as what’s often needed to demonstrate compliance (outputs) for code authorities. See TBD’s menu options under <a href="./basics.html" title="Basic TBD workflow">Basics</a>:</p>
+<p>TBD automatically processes what’s required (inputs) to carry out <em>UA’</em> assessments, as well as what’s often needed to demonstrate compliance (outputs) for code authorities (see <a href="./settings.html" title="TBD settings">TBD menu options</a>):</p>
 
 <p><strong>UA’</strong>: checkbox enabling UA’ assessments<br />
 <strong>UA’ reference</strong>: vs which prescriptive requirements?</p>
 
-<p>The <strong>UA’ reference</strong> pull-down options correspond to TBD’s <strong>Default thermal bridge sets</strong>. If the “code (Quebec)” option is selected, then the reference prescriptive requirements include code-required <em>Uo</em>-factors, in addition to code-required <em>psi</em> &amp; <em>khi</em> factors (see <em>Where does one get psi data?</em> under <a href="./basics.html" title="Basic TBD workflow">Basics</a>). For all other <strong>UA’ references</strong>, only the <em>psi</em> &amp; <em>khi</em> factors differ between <em>proposed</em> vs <em>reference</em> cases. It’s best to generate UA’ assessments under the <em>Apply Measures Now</em> mode, and UNCHECK the <strong>Alter OpenStudio model</strong> option.</p>
+<p>The <strong>UA’ reference</strong> pull-down options correspond to TBD’s <strong>Default thermal bridge sets</strong>. If the “code (Quebec)” option is selected, then the reference prescriptive requirements include code-required <em>Uo</em> factors, in addition to code-required <em>psi</em> &amp; <em>khi</em> factors (see <a href="./settings.html" title="TBD settings">Where does one get psi data?</a>). For all other UA’ references, only the <em>psi</em> &amp; <em>khi</em> factors differ between <em>proposed</em> vs <em>reference</em> cases. It’s best to generate UA’ assessments under the <a href="./launch.html" title="Launching TBD as a process">Apply Measures Now</a> mode, while UNCHECKing the <strong>Alter OpenStudio model</strong> option.</p>
 
 <p>Note that <em>UA’</em> calculations will factor <a href="./ut.html" title="Uprating">uprated</a> assemblies, if selected.</p>
 
@@ -117,7 +117,7 @@
 
 <p>The <em>UA’</em> assessments are <a href="https://en.wikipedia.org/wiki/Markdown">MD</a>-formatted, which can be rendered as HTML or even PDF, depending on the text editor or web browser.</p>
 
-<p><a href="../index.html" title="Thermal Bridging &amp; Derating">BACK</a></p>
+<p><a href="../index.html" title="Thermal Bridging &amp; Derating">HOME</a></p>
 
         </section>
 

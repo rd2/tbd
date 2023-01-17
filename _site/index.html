@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=fd6619831d4050d6e35491def5d2b98484a8ce61">
+    <link rel="stylesheet" href="/assets/css/style.css?v=1276c293f318b1712f5072ab48ef6f1d3e5e8e53">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -50,8 +50,8 @@
         </header>
         <section id="downloads" class="clearfix">
           
-          <a href="https://github.com/rd2/tbd/releases/download/v3.1.1/tbd.zip" id="download-zip" class="button"><span>Download .zip</span></a>
-          <a href="https://github.com/rd2/tbd/releases/download/v3.1.1/tbd.tar.gz" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
+          <a href="https://github.com/rd2/tbd/releases/download/v3.2.0/tbd.zip" id="download-zip" class="button"><span>Download .zip</span></a>
+          <a href="https://github.com/rd2/tbd/releases/download/v3.2.0/tbd.tar.gz" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
           
 	
         </section>
@@ -71,11 +71,11 @@
 
 <p><img src="./assets/images/warehouse.png" alt="US DOE Commercial Reference Warehouse" title="US DOE Commercial Reference Warehouse" /></p>
 
-<p>Relying on the OpenStudio <a href="https://openstudio-sdk-documentation.s3.amazonaws.com/index.html" title="OpenStudio SDK">SDK</a> and the <a href="https://github.com/automaticmagic/topolys" title="Topolys source code repository on GitHub">Topolys</a> gem, TBD automatically - and pretty instantaneously - identifies and manages <em>major</em> thermal bridges behind the scenes for OpenStudio users.</p>
+<p>Relying on the OpenStudio <a href="https://openstudio-sdk-documentation.s3.amazonaws.com/index.html" title="OpenStudio SDK">SDK</a> and the <a href="https://github.com/automaticmagic/topolys" title="Topolys source code repository on GitHub">Topolys</a> gem, TBD automatically - and pretty instantaneously - identifies and manages <em>major</em> thermal bridges behind the scenes for OpenStudio users. For ASHRAE climate zone 7, enabling TBD should increase annual heating requirements between 5% to 15% (depending on building type) for “poor” to “regular” thermal bridging details in an otherwise well-insulated envelope.</p>
 
-<h3 id="energy-simulation">Energy simulation</h3>
+<h3 id="building-energy-modelling">Building energy modelling</h3>
 
-<p>While materials, constructions and envelope surfaces are well-defined variables in OpenStudio (and energy simulation engines like EnergyPlus), shared <em>edges</em> and <em>points</em> are simply not! TBD automatically factors in <em>psi</em> and <em>khi</em> losses from <em>major</em> thermal bridges it manages, by further <em>derating</em> a construction’s <em>clear-field effective R-value</em> - more specifically by further decreasing its insulating layer thickness. If the insulation layer becomes too thin, TBD then increases insulation conductivity. This approach, in line with published research and standards such as ASHRAE’s <a href="https://www.techstreet.com/standards/rp-1365-thermal-performance-of-building-envelope-details-for-mid-and-high-rise-buildings?product_id=1806751">RP-1365</a>, <em>BETBG</em> &amp; <em>thermalenvelope.ca</em>, as well as ISO <a href="https://www.iso.org/standard/65710.html">10211</a> and <a href="https://www.iso.org/standard/65706.html">14683</a> Standards, is best summarized as follows:</p>
+<p>While materials, constructions and envelope surfaces are well-defined variables in OpenStudio (and energy simulation engines like EnergyPlus), shared <em>edges</em> and <em>points</em> are simply not! TBD automatically factors <em>psi</em> and <em>khi</em> losses from <em>major</em> thermal bridges it manages, by further <em>derating</em> a construction’s <em>clear-field effective R-value</em> - more specifically by further decreasing its insulating layer thickness. If the insulation layer becomes too thin, TBD then increases insulation conductivity. This approach, in line with published research and standards such as ASHRAE’s <a href="https://www.techstreet.com/standards/rp-1365-thermal-performance-of-building-envelope-details-for-mid-and-high-rise-buildings?product_id=1806751">RP-1365</a>, <em>BETBG</em> &amp; <em>thermalenvelope.ca</em>, as well as ISO <a href="https://www.iso.org/standard/65710.html">10211</a> and <a href="https://www.iso.org/standard/65706.html">14683</a> Standards, is best summarized as follows:</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Ut = Uo + ( ∑psi • L )/A + ( ∑khi • n )/A
 </code></pre></div></div>
 <p>… where:</p>
@@ -88,11 +88,11 @@
 <strong>n</strong> : number of similar columns<br />
 <strong>A</strong> : opaque surface area</p>
 
-<p>TBD users are required to initially select generic <strong>psi</strong> and <strong>khi</strong> factors that best characterize the <em>major</em> thermal bridges in their project (see TBD <a href="./pages/basics.html" title="Basic TBD workflow">Basics</a>). TBD will apply these values against individual <em>edge</em> occurrences Topolys identifies in the OpenStudio model. Geometric variables like <strong>L</strong> and <strong>A</strong> are also automatically extracted from the model (… <strong>n</strong> requires special treatment, discussed in the <a href="./pages/custom.html" title="Customizing TBD inputs">Customization</a> section).</p>
+<p>TBD users are required to initially select generic <strong>psi</strong> and <strong>khi</strong> factors that best characterize the <em>major</em> thermal bridges in their project (see <a href="./pages/settings.html" title="TBD settings">Settings</a>). TBD will apply these values against individual <em>edge</em> occurrences Topolys identifies in the OpenStudio model. Geometric variables like <strong>L</strong> and <strong>A</strong> are also automatically extracted from the model (… <strong>n</strong> requires special treatment, discussed in the <a href="./pages/custom.html" title="Customizing TBD inputs">Customization</a> section).</p>
 
-<p>Each OpenStudio construction is comprised of multiple material layers (typically 2 or 3 at a minimum), each of which has a thermal resistance. Users are expected to have already factored in <em>minor</em> thermal bridging effects by e.g. decreasing the nominal thickness of the <em>insulating</em> layer of each construction - a standard technique in energy simulation. <strong>Uo</strong> is simply the inverse of the sum of resulting layer resistances and surface air films. Behind the scenes, TBD automatically generates new <em>derated</em> materials and surface-specific constructions - the latter now having their own unique <strong>Ut</strong>.</p>
+<p>Each OpenStudio construction (that TBD may alter) is comprised of multiple material layers (typically 2 or 3 at a minimum), each of which has a thermal resistance. Users are expected to have already factored in <em>minor</em> thermal bridging effects by e.g. decreasing the nominal thickness of the <em>insulating</em> layer of each construction - a common technique in building energy modelling. <strong>Uo</strong> is simply the inverse of the sum of resulting layer resistances and surface air films. Behind the scenes, TBD automatically generates new <em>derated</em> materials and surface-specific constructions - each surface now having its own unique <strong>Ut</strong>.</p>
 
-<p>In summary, users are required to have:</p>
+<p>As discussed in greater detail in <a href="./pages/settings.html" title="TBD settings">Settings</a>, users are required to have:</p>
 <ul>
   <li>a fully-enclosed OpenStudio model</li>
   <li>materials and layered constructions</li>
@@ -104,12 +104,14 @@
 <h3 id="next">Next?</h3>
 
 <ul>
-  <li><a href="./pages/basics.html" title="Basic TBD workflow">TBD basics</a></li>
-  <li><a href="./pages/custom.html" title="Customizing TBD inputs">TBD customization</a></li>
-  <li><a href="./pages/reports.html" title="What TBD reports back">TBD reporting</a></li>
-  <li><a href="./pages/ut.html" title="Uprating' assessments">Uprating</a></li>
-  <li><a href="./pages/ua.html" title="UA' assessments">UA’</a></li>
-  <li><a href="./pages/kiva.html" title="Kiva support">KIVA</a></li>
+  <li><a href="./pages/settings.html" title="TBD settings">Settings</a></li>
+  <li><a href="./pages/launch.html" title="Launching TBD as a process">Launching</a></li>
+  <li><a href="./pages/custom.html" title="Customizing TBD inputs">Customizing</a></li>
+  <li><a href="./pages/reports.html" title="What TBD reports back">Reporting</a></li>
+  <li><a href="./pages/ut.html" title="Uprating options in TBD">Uprating</a></li>
+  <li><a href="./pages/ua.html" title="TBD-generated UA' assessments">UA’</a></li>
+  <li><a href="./pages/subs.html" title="TBD fenestration options">Fenestration</a></li>
+  <li><a href="./pages/kiva.html" title="Kiva support in TBD">KIVA</a></li>
 </ul>
 
 <h3 id="support">Support</h3>
@@ -118,7 +120,7 @@
 
 <p><img src="./sponsors/qc_can.png" alt="Thanks to the Quebec and Canadian governments" title="Thanks to the Quebec and Canadian governments" /></p>
 
-<p><em>As with many <a href="https://bcl.nrel.gov/dashboard" title="OpenStudio's Building Component Library">publicly</a> available OpenStudio Measures, TBD is open source, <a href="https://github.com/rd2/tbd/blob/master/LICENSE" title="TBD's MIT license">MIT-licensed</a> and so provided “as is” (without warranty).</em></p>
+<p><em>As with many <a href="https://bcl.nrel.gov/dashboard" title="OpenStudio's Building Component Library">publicly</a> available OpenStudio Measures, TBD is open source, <a href="https://github.com/rd2/tbd/blob/master/LICENSE.md" title="TBD's MIT license">MIT-licensed</a> and so provided “as is” (without warranty).</em></p>
 
         </section>
 

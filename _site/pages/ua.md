@@ -5,7 +5,7 @@ Many building energy codes offer traditional _prescriptive_ paths, as well as si
 Common trade-off solutions for building envelopes (at least in North America) are _UA_ trade-offs, whereby one or more _non-compliant_ envelope components (e.g. spandrel panels) can be compensated by one or more _improved_ components (e.g. roof insulation). Traditionally, _UA_ trade-offs are based on _total envelope heat loss_ (in W/K), as supported by [REScheck](https://www.energycodes.gov/rescheck):
 
 ```
-UA = ∑Uo•A
+UA = ∑ (Uo • A)
 ```
 ... where:
 
@@ -17,14 +17,14 @@ If the total _UA_ of a _proposed_ envelope design is equal or inferior to the co
 - UA is power-based (W), instantaneous
 - time-delayed responses are not factored-in ...
 - ... so forget thermal mass, ground heat loss, solar, etc.
-- fenestration U-factors and areas may be factored-in ...
-- ... while differences in fenestration areas usually are not
+- fenestration U-factors may be considered ...
+- ... while _proposed_ vs _reference_ fenestration areas remain equal/fixed
 
 ### _Major_ thermal bridging
 
 Québec's recent energy code (Section 3.3) expands on the concept by including _major_ thermal bridges in the mix:
 ```
-UA' = ∑Uo•A + ∑psi•L + ∑khi•n
+UA' = ∑ (Uo • A) + ∑ (psi • L) + ∑ (khi • n)
 ```
 ... where:
 
@@ -37,12 +37,12 @@ If the proposed total _UA'_ is equal or inferior to the reference total _UA'_, t
 
 ### UA' menu options
 
-TBD automatically processes what's required (inputs) to carry out _UA'_ assessments, as well as what's often needed to demonstrate compliance (outputs) for code authorities. See TBD's menu options under [Basics](./basics.html "Basic TBD workflow"):
+TBD automatically processes what's required (inputs) to carry out _UA'_ assessments, as well as what's often needed to demonstrate compliance (outputs) for code authorities (see [TBD menu options](./settings.html "TBD settings")):
 
 __UA'__: checkbox enabling UA' assessments  
 __UA' reference__: vs which prescriptive requirements?
 
-The __UA' reference__ pull-down options correspond to TBD's __Default thermal bridge sets__. If the "code (Quebec)" option is selected, then the reference prescriptive requirements include code-required _Uo_-factors, in addition to code-required _psi_ & _khi_ factors (see _Where does one get psi data?_ under [Basics](./basics.html "Basic TBD workflow")). For all other __UA' references__, only the _psi_ & _khi_ factors differ between _proposed_ vs _reference_ cases. It's best to generate UA' assessments under the _Apply Measures Now_ mode, and UNCHECK the __Alter OpenStudio model__ option.
+The __UA' reference__ pull-down options correspond to TBD's __Default thermal bridge sets__. If the "code (Quebec)" option is selected, then the reference prescriptive requirements include code-required _Uo_ factors, in addition to code-required _psi_ & _khi_ factors (see [Where does one get psi data?](./settings.html "TBD settings")). For all other UA' references, only the _psi_ & _khi_ factors differ between _proposed_ vs _reference_ cases. It's best to generate UA' assessments under the [Apply Measures Now](./launch.html "Launching TBD as a process") mode, while UNCHECKing the __Alter OpenStudio model__ option.
 
 Note that _UA'_ calculations will factor [uprated](./ut.html "Uprating") assemblies, if selected.
 
@@ -58,4 +58,4 @@ TBD does not report on elements that are not part of the building envelope. In t
 
 The _UA'_ assessments are [MD](https://en.wikipedia.org/wiki/Markdown)-formatted, which can be rendered as HTML or even PDF, depending on the text editor or web browser.
 
-[BACK](../index.html "Thermal Bridging & Derating")  
+[HOME](../index.html "Thermal Bridging & Derating")  

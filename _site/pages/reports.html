@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=fd6619831d4050d6e35491def5d2b98484a8ce61">
+    <link rel="stylesheet" href="/assets/css/style.css?v=1276c293f318b1712f5072ab48ef6f1d3e5e8e53">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -50,8 +50,8 @@
         </header>
         <section id="downloads" class="clearfix">
           
-          <a href="https://github.com/rd2/tbd/releases/download/v3.1.1/tbd.zip" id="download-zip" class="button"><span>Download .zip</span></a>
-          <a href="https://github.com/rd2/tbd/releases/download/v3.1.1/tbd.tar.gz" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
+          <a href="https://github.com/rd2/tbd/releases/download/v3.2.0/tbd.zip" id="download-zip" class="button"><span>Download .zip</span></a>
+          <a href="https://github.com/rd2/tbd/releases/download/v3.2.0/tbd.tar.gz" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
           
 	
         </section>
@@ -74,7 +74,7 @@ Processing EnergyPlus Measures.
 Starting Simulation.
 EnergyPlus Starting.
 </code></pre></div></div>
-<p>If a surface has been <em>derated</em> by let’s say 20%, that means TBD has provided that EnergyPlus surface with a new, cloned construction having a <em>derated R-value</em> at 80% of its initial <em>clear-field effective R-value</em>. TBD will also print out this same feedback, as well as any errors or warnings, in a <em>tbd.out.json</em> file in the project’s <em>files</em> folder.</p>
+<p>If a surface has been <em>derated</em> by let’s say 20%, that means TBD has provided that OpenStudio surface with a new, cloned construction having a <em>derated R-value</em> at 80% of its initial <em>clear-field effective R-value</em>. TBD will also print out this same feedback, as well as any errors or warnings, in a <em>tbd.out.json</em> file in the project’s <em>files</em> folder.</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>warehouse.osm
 warehouse/
 |-- files/
@@ -86,17 +86,17 @@ warehouse/
 </code></pre></div></div>
 <h3 id="errors-and-warnings">Errors and warnings</h3>
 
-<p>Critical (and many non-critical) OpenStudio model anomalies are often caught by EnergyPlus at the start of a simulation (e.g. 5-sided windows). As TBD is also designed to run <em>standalone</em> under <em>Apply Measures Now</em>, TBD shouldn’t (or couldn’t) strictly rely on EnergyPlus to catch such errors (and somehow warn users of potentially invalid results). TBD is designed to minimally log warnings, as well as non-fatal &amp; fatal errors, that may put its internal processes at risk (e.g. red-flagging 5-sided windows in an OpenStudio model). The presence of FATAL, ERROR or WARNING log entries should be interpreted as <strong>bad</strong>, something to look into and/or remediate. In many cases, EnergyPlus will run with e.g., out-of-range material or fluid properties, which triggers a non-fatal ERROR - it’s up to users to decide what to do with simulation results. TBD attempts something similar:</p>
+<p>Critical (and many non-critical) OpenStudio model anomalies are often caught by EnergyPlus at the start of a simulation (e.g. 5-sided windows). As TBD is also designed to run <em>standalone</em> under <em>Apply Measures Now</em>, TBD shouldn’t (or couldn’t) strictly rely on EnergyPlus to catch such errors (and somehow warn users of potentially invalid results). TBD is designed to minimally log warnings, as well as non-fatal &amp; fatal errors, that may put its internal processes at risk (e.g. red-flagging 5-sided windows in an OpenStudio model). The presence of FATAL, ERROR or WARNING log entries should be interpreted as <strong>bad</strong>, something to look into and/or remediate. In many cases, EnergyPlus will run with e.g., out-of-range material or fluid properties, which trigger non-fatal ERRORs - it’s up to users to decide what to do with simulation results. TBD attempts something similar:</p>
 
 <p><strong>FATAL</strong> errors halt all TBD processes and prevents OpenStudio from launching an EnergyPlus simulation. TBD has but a few checks which could raise FATAL cases. These would be mainly linked to missing, incomplete or invalid OpenStudio (or TBD) files or key file entries e.g., badly structured JSON files, invalid OpenStudio vertex transformation parameters, a missing or incomplete TBD “building” <em>psi</em> set.</p>
 
-<p>The vast majority of TBD checks would log non-fatal <strong>ERROR</strong> messages when encountering invalid OpenStudio or TBD file entries (structurally sound, yet invalid <em>vis-à-vis</em> TBD or EnergyPlus limitations). In such cases, the object is simply ignored. TBD pursues its (otherwise valid) calculations, and OpenStudio ultimately launches an EnergyPlus simulation. If a simulation indeed runs (ultimately a <em>go/no-go</em> decision by the EnergyPlus simulation engine), it’s again up to users to decide if simulation results are valid (or minimally useful) given the context. An example would be TBD ignoring thermal bridging effects of 4x window edges, when the window has invalid (optional) <em>frame &amp; divider</em> inputs in the OpenStudio model. The insulation material of the host surface may nonetheless be <em>derated</em> from the edges of its other (valid) windows, but not from those of the poorly-defined one. In short, non-fatal ERROR logs point to bad input a user can readily fix.</p>
+<p>The vast majority of TBD checks would log non-fatal <strong>ERROR</strong> messages when encountering invalid OpenStudio or TBD file entries (structurally sound, yet invalid <em>vis-à-vis</em> TBD or EnergyPlus limitations). In such cases, the object is simply ignored. TBD pursues its (otherwise valid) calculations, and OpenStudio ultimately launches an EnergyPlus simulation. If a simulation indeed runs (ultimately a <em>go/no-go</em> decision by the EnergyPlus simulation engine), it’s again up to users to decide if simulation results are valid (or minimally useful) given the context. An example would be TBD ignoring thermal bridging effects of 4x window edges, when the window has invalid (optional) <a href="./subs.html" title="TBD fenestration options">frame &amp; divider</a> inputs in the OpenStudio model. The insulation material of the host surface may nonetheless be <em>derated</em> from the edges of its other (valid) windows, but not from those of the poorly-defined one. In short, non-fatal ERROR logs point to bad input a user can readily fix.</p>
 
 <p>TBD emits very few <strong>WARNING</strong> log messages, mainly triggered from inherit limitations of the underlying <em>derating</em> methodology (something the user has limited control over beforehand). For instance, a surface the size of a dinner plate has a very limited area to accommodate the additional heat loss from <em>major</em> thermal bridging (which may trigger a WARNING log message). It’s usually not a good idea to have such small surfaces in an OpenStudio model to start with, but neither OpenStudio nor EnergyPlus will necessarily warn users of such occurrences. It’s also up to users to decide on the suitable course of action.</p>
 
 <p>TBD - as with many other OpenStudio Measures - is written in Ruby. TBD integrates a number of sanity checks to ensure Ruby doesn’t crash (e.g. invalid access to uninitialized variables), especially for lower-level functions. When this occurs, there are safe fallbacks. But a <strong>DEBUG</strong> error is nonetheless logged by TBD. DEBUG errors are almost always signs of a bug (to be <a href="https://github.com/rd2/tbd/issues">reported</a>). This is strictly made available for development purposes - TBD does not offer a proper <em>production debugging</em> mode per se.</p>
 
-<p><a href="../index.html" title="Thermal Bridging &amp; Derating">BACK</a></p>
+<p><a href="../index.html" title="Thermal Bridging &amp; Derating">HOME</a></p>
 
         </section>
 

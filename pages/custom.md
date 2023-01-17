@@ -1,6 +1,6 @@
 ### Customization
 
-TBD offers a pull-down menu list of prepackaged _psi_ sets - key for newcomers, especially in the early design stages (see [Basics](./basics.html "Basic TBD workflow")). What happens when design choices aren't well represented by any of these prepackaged sets? TBD allows users to define multiple custom _psi_ sets, refine them beyond the basic 7 TBD _shorthands_, and attribute them to different parts of a building model.
+TBD offers a pull-down menu list of prepackaged _psi_ sets - key for newcomers, especially in the early design stages (see [Settings](./settings.html "TBD settings")). What happens when design choices aren't well represented by any of these prepackaged sets? TBD allows users to define multiple custom _psi_ sets, refine them beyond the basic 7 TBD _shorthands_, and attribute them to different parts of a building model.
 
 As detailed in the [Reporting](./reports.html "What TBD reports back") section, a unique _tbd.out.json_ output file is generated (or regenerated) for every TBD run, under an OpenStudio model's _files_ folder. If one drops a _tbd.json_ file in the same _files_ folder and CHECKS the __Load 'tbd.json'__ menu option, TBD will read in custom inputs defined in that file.
 
@@ -47,7 +47,7 @@ Currently, designers are yet to have access to online tools or BIM-integrated fe
 
 ![JSON Linter](../assets/images/schema.png "JSON Linter")
 
-... here, the Linter "Messages" inform us that everything is valid. Other times, they point to issues related to content, syntax and structure - which users can correct on the fly. Another option is to first generate a detailed _tbd.out.json_ file (by CHECKING the __Write 'tbd.out.json'__ option), renaming it as _tbd.json_, and customizing it directly. A combination of both options also works well.
+... here, the Linter "Messages" inform us that everything is valid. Other times, they point to issues related to content, syntax or structure - which users can correct on the fly. Another option is to first generate a detailed _tbd.out.json_ file (by CHECKING the __Write 'tbd.out.json'__ option), renaming it as _tbd.json_, and then customizing it directly. A combination of both options also works well.
 
 __PSIs__: In order to refer to a custom _psi_ set, one must first define the custom set itself. TBD JSON "psis" each require a unique identifier (e.g. "not bad"), and the expected TBD _shorthands_ (e.g. "parapet") with their custom _psi_ factors (in W/K per meter). Note that the "joint" shorthand is optional: if one or more "transition" edges in a model are to become structural expansion "joints", then the custom _psi_ set should hold an additional "joint" entry.
 
@@ -106,10 +106,10 @@ Successfully linking custom _psi_ sets and OpenStudio objects relies on their un
 A few additional notes:  
 
 - here, the "building" _psi_ set refers to a TBD pull-down option
-- therefore not necessary to define it as a custom _psi_ set
-- this nonetheless overrides the selected pull-down option
+- ... therefore not necessary to define it as a custom _psi_ set
+- ... this nonetheless overrides any selected pull-down option
 - except for "building", custom _psi_ sets can be _partial_
-- e.g. all "fenestration" edges inherit from the "building" set  
+- e.g. all "fenestration" edges here inherit from the "building" set  
 
 One can also customize individual edges (e.g. expansion "joints"), which do not have corresponding OpenStudio identified objects:
 ```
@@ -174,7 +174,7 @@ Cantilevered beams, columns, rooftop support blocks, etc. that partially or enti
   ]
 }
 ```
-Here, the OpenStudio surface "exposed floor 1" will inherit 10x 0.7 W/K (= 7 W/K) + 4x 0.5 W/K (= 2 W/K): an extra 9 W/K, in addition to the total W/K per meter from surrounding edges (i.e. linear thermal bridges) - automatically calculated by TBD.
+Here, the OpenStudio surface "exposed floor 1" will inherit __10x__ 0.7 W/K (= 7 W/K) + __4x__ 0.5 W/K (= 2 W/K): an extra 9 W/K, in addition to the total W/K per meter from surrounding edges (i.e. linear thermal bridges) - automatically calculated by TBD.
 
 ### Extended _shorthands_
 
@@ -257,4 +257,4 @@ PSIi = published PSI factor (W/K per m)
 ```
 The _zone of influence_ usually ranges between 1.0 to 1.2 meters. But the key parameter here is really the resulting wall thickness, and whether the sign is positive or negative - depending if it's a _convex_ or _concave_ corner. In some cases, this may even produce negative _psi_ factors - which TBD allows. The BETBG and ISO standards provide detailed discussions on the subject.
 
-[BACK](../index.html "Thermal Bridging & Derating")
+[HOME](../index.html "Thermal Bridging & Derating")
