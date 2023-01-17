@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2020-2022 Denis Bourgeois & Dan Macumber
+# Copyright (c) 2020-2023 Denis Bourgeois & Dan Macumber
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -47,6 +47,15 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     alter.setDescription(dsc)
     alter.setDefaultValue(true)
     args << alter
+
+    arg = "sub_tol"
+    dsc = "Proximity tolerance (e.g. 0.100 m) between subsurface edges, e.g. " \
+          "between near-adjacent window jambs."
+    sub_tol = OpenStudio::Measure::OSArgument.makeDoubleArgument(arg, false)
+    sub_tol.setDisplayName("Proximity tolerance (m)")
+    sub_tol.setDescription(dsc)
+    sub_tol.setDefaultValue(TBD::TOL)
+    args << sub_tol
 
     arg = "load_tbd_json"
     dsc = "Loads existing 'tbd.json' file (under '/files'), may override "     \
@@ -225,6 +234,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
 
     argh                 = {}
     argh[:alter        ] = runner.getBoolArgumentValue("alter_model",      args)
+    argh[:sub_tol      ] = runner.getDoubleArgumentValue("sub_tol",        args)
     argh[:load_tbd     ] = runner.getBoolArgumentValue("load_tbd_json",    args)
     argh[:option       ] = runner.getStringArgumentValue("option",         args)
     argh[:write_tbd    ] = runner.getBoolArgumentValue("write_tbd_json",   args)
@@ -286,6 +296,38 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
       end
     end
 
+    # Pre-validate ground-facing constructions for KIVA.
+    if argh[:kiva_force] || argh[:gen_kiva]
+      kva = true
+
+      mdl.getSurfaces.each do |s|
+        id = s.nameString
+        construction = s.construction
+        next unless s.isGroundSurface
+
+        if construction.empty?
+          runner.registerError("Invalid construction for KIVA (#{id})")
+          kva = false if kva
+        else
+          construction = construction.get.to_LayeredConstruction
+
+          if construction.empty?
+            runner.registerError("KIVA requires layered constructions (#{id})")
+            kva = false if kva
+          else
+            construction = construction.get
+
+            unless TBD.standardOpaqueLayers?(construction)
+              runner.registerError("KIVA requires standard materials (#{id})")
+              kva = false if kva
+            end
+          end
+        end
+      end
+
+      return false unless kva
+    end
+
     # Process all ground-facing surfaces as foundation-facing.
     if argh[:kiva_force]
       argh[:gen_kiva] = true
@@ -313,7 +355,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
 
     argh[:version ]  = model.getVersion.versionIdentifier
     tbd              = TBD.process(model, argh)
-    argh[:io      ]  = tbd[:io]
+    argh[:io      ]  = tbd[:io      ]
     argh[:surfaces]  = tbd[:surfaces]
     setpoints        = TBD.heatingTemperatureSetpoints?(model)
     setpoints        = TBD.coolingTemperatureSetpoints?(model) || setpoints

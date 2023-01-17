@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2020-2022 Denis Bourgeois & Dan Macumber
+# Copyright (c) 2020-2023 Denis Bourgeois & Dan Macumber
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -47,6 +47,8 @@ module TBD
     return mismatch("film", film, cl3, mth, DBG, res)    unless film.is_a?(cl3)
     return mismatch("Ut", ut, cl3, mth, DBG, res)        unless ut.is_a?(cl3)
 
+    loss        = 0.0                   # residual heatloss (not assigned) [W/K]
+    area        = lc.getNetArea
     lyr         = insulatingLayer(lc)
     lyr[:index] = nil unless lyr[:index].is_a?(Numeric)
     lyr[:index] = nil unless lyr[:index] >= 0
@@ -57,8 +59,6 @@ module TBD
     return zero("'#{id}': films", mth, WRN, res)              unless film > TOL
     return zero("'#{id}': Ut", mth, WRN, res)                 unless ut > TOL
     return invalid("'#{id}': Ut", mth, 0, WRN, res)           unless ut < 5.678
-
-    area = lc.getNetArea
     return zero("'#{id}': net area (m2)", mth, ERR, res)      unless area > TOL
 
     # First, calculate initial layer RSi to initially meet Ut target.
@@ -74,8 +74,6 @@ module TBD
 
     return zero("'#{id}': new Rsi", mth, ERR, res)          unless new_r > 0.001
 
-    loss   = 0.0                        # residual heatloss (not assigned) [W/K]
-
     if lyr[:type] == :massless
       m     = lc.getLayer(lyr[:index]).to_MasslessOpaqueMaterial
       return  invalid("'#{id}' massless layer?", mth, 0)             if m.empty?
@@ -85,7 +83,7 @@ module TBD
       new_r = 0.001                                         unless new_r > 0.001
       loss  = (new_u - 1 / new_r) * area                    unless new_r > 0.001
               m.setThermalResistance(new_r)
-    else                                                     # type == :standard
+    else # type == :standard
       m     = lc.getLayer(lyr[:index]).to_StandardOpaqueMaterial
       return  invalid("'#{id}' standard layer?", mth, 0)             if m.empty?
 
@@ -595,77 +593,46 @@ module TBD
       next unless surface[:net] > TOL
       next unless surface.key?(:u)
       next unless surface[:u] > TOL
-      heating = 21.0
-      heating = surface[:heating] if surface.key?(:heating)
-      bloc    = b1
-      bloc    = b2 if heating < 18
-
+      heating   = 21.0
+      heating   = surface[:heating] if surface.key?(:heating)
+      bloc      = b1
+      bloc      = b2 if heating < 18
       reference = surface.key?(:ref)
+
       if type == :wall
         areas[:walls][:net ] += surface[:net]
-         bloc[:pro][:walls ] += surface[:net] * surface[:u  ]
-         bloc[:ref][:walls ] += surface[:net] * surface[:ref]       if reference
-         bloc[:ref][:walls ] += surface[:net] * surface[:u  ]   unless reference
+        bloc[:pro][:walls  ] += surface[:net] * surface[:u  ]
+        bloc[:ref][:walls  ] += surface[:net] * surface[:ref]       if reference
+        bloc[:ref][:walls  ] += surface[:net] * surface[:u  ]   unless reference
       elsif type == :ceiling
         areas[:roofs][:net ] += surface[:net]
-         bloc[:pro][:roofs ] += surface[:net] * surface[:u  ]
-         bloc[:ref][:roofs ] += surface[:net] * surface[:ref]       if reference
-         bloc[:ref][:roofs ] += surface[:net] * surface[:u  ]   unless reference
+        bloc[:pro][:roofs  ] += surface[:net] * surface[:u  ]
+        bloc[:ref][:roofs  ] += surface[:net] * surface[:ref]       if reference
+        bloc[:ref][:roofs  ] += surface[:net] * surface[:u  ]   unless reference
       else
         areas[:floors][:net] += surface[:net]
-         bloc[:pro][:floors] += surface[:net] * surface[:u  ]
-         bloc[:ref][:floors] += surface[:net] * surface[:ref]       if reference
-         bloc[:ref][:floors] += surface[:net] * surface[:u  ]   unless reference
+        bloc[:pro][:floors ] += surface[:net] * surface[:u  ]
+        bloc[:ref][:floors ] += surface[:net] * surface[:ref]       if reference
+        bloc[:ref][:floors ] += surface[:net] * surface[:u  ]   unless reference
       end
 
-      if surface.key?(:doors)
-        surface[:doors].values.each do |door|
-          next unless door.key?(:gross)
-          next unless door[:gross] > TOL
-          next unless door.key?(:u)
-          next unless door[:u] > TOL
-          areas[:walls][:subs ] += door[:gross]              if type == :wall
-          areas[:roofs][:subs ] += door[:gross]              if type == :ceiling
-          areas[:floors][:subs] += door[:gross]              if type == :floor
-           bloc[:pro][:doors  ] += door[:gross] * door[:u]
+      [:doors, :windows, :skylights].each do |subs|
+        next unless surface.key?(subs)
 
-           ok = door.key?(:ref)
-           bloc[:ref][:doors  ] += door[:gross] * door[:ref]               if ok
-           bloc[:ref][:doors  ] += door[:gross] * door[:u ]            unless ok
-        end
-      end
+        surface[subs].values.each do |sub|
+          next unless sub.key?(:gross)
+          next unless sub.key?(:u    )
+          next unless sub[:gross] > TOL
+          next unless sub[:u    ] > TOL
 
-      if surface.key?(:windows)
-        surface[:windows].values.each do |window|
-          next unless window.key?(:gross)
-          next unless window[:gross] > TOL
-          next unless window.key?(:u)
-          next unless window[:u] > TOL
-          areas[:walls][:subs ]  += window[:gross]           if type == :wall
-          areas[:roofs][:subs ]  += window[:gross]           if type == :ceiling
-          areas[:floors][:subs]  += window[:gross]           if type == :floor
-           bloc[:pro][:windows]  += window[:gross] * window[:u]
-
-          ok = window.key?(:ref)
-          bloc[:ref][:windows ] += window[:gross] * window[:ref]           if ok
-          bloc[:ref][:windows ] += window[:gross] * window[:u  ]       unless ok
-        end
-      end
-
-      if surface.key?(:skylights)
-        surface[:skylights].values.each do |sky|
-          next unless sky.key?(:gross)
-          next unless sky[:gross] > TOL
-          next unless sky.key?(:u)
-          next unless sky[:u] > TOL
-          areas[:walls][:subs  ] += sky[:gross]              if type == :wall
-          areas[:roofs][:subs  ] += sky[:gross]              if type == :ceiling
-          areas[:floors][:subs ] += sky[:gross]              if type == :floor
-          bloc[:pro][:skylights] += sky[:gross] * sky[:u]
-
-          ok = sky.key?(:ref)
-          bloc[:ref][:skylights] += sky[:gross] * sky[:ref]                if ok
-          bloc[:ref][:skylights] += sky[:gross] * sky[:u  ]            unless ok
+          gross  = sub[:gross]
+          gross *= sub[:mult ]                               if sub.key?(:mult)
+          areas[:walls ][:subs] += gross                     if type == :wall
+          areas[:roofs ][:subs] += gross                     if type == :ceiling
+          areas[:floors][:subs] += gross                     if type == :floor
+          bloc[:pro    ][subs ] += gross * sub[:u  ]
+          bloc[:ref    ][subs ] += gross * sub[:ref]         if sub.key?(:ref)
+          bloc[:ref    ][subs ] += gross * sub[:u  ]     unless sub.key?(:ref)
         end
       end
 
@@ -953,7 +920,7 @@ module TBD
       model  = "* modèle : #{ua[:file]}"       if ua.key?(:file)  && lang == :fr
       model += " (v#{ua[:version]})"           if ua.key?(:version)
       report << model                      unless model.empty?
-      report << "* TBD : v3.1.1"
+      report << "* TBD : v3.2.0"
       report << "* date : #{ua[:date]}"
 
       if lang == :en

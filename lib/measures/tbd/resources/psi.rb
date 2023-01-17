@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2020-2022 Denis Bourgeois & Dan Macumber
+# Copyright (c) 2020-2023 Denis Bourgeois & Dan Macumber
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -913,6 +913,7 @@ module TBD
     return mismatch("argh", argh, Hash, mth, DBG, tbd) unless argh.is_a?(Hash)
 
     argh                 = {}                       if argh.empty?
+    argh[:sub_tol      ] = TBD::TOL             unless argh.key?(:sub_tol      )
     argh[:option       ] = ""                   unless argh.key?(:option       )
     argh[:io_path      ] = nil                  unless argh.key?(:io_path      )
     argh[:schema_path  ] = nil                  unless argh.key?(:schema_path  )
@@ -1173,9 +1174,6 @@ module TBD
             farthest   = point          if farther
             farthest_V = origin_point_V if farther
           end
-
-          puts "ADDITION!!"                      if id == "ADDITION"
-          puts "#{reference_V} vs #{farthest_V}" if id == "ADDITION"
 
           angle = reference_V.angle(farthest_V)
           invalid("#{id} polar angle", mth, 0, ERROR, 0) if angle.nil?
@@ -1771,13 +1769,120 @@ module TBD
       end
     end
 
+    # Fetch edge multipliers for subsurfaces, if applicable.
+    edges.values.each do |edge|
+      next     if edge.key?(:mult)                    # skip if already assigned
+      next unless edge.key?(:surfaces)
+      next unless edge.key?(:psi)
+      ok = false
+
+      edge[:psi].keys.each do |k|
+        break if ok
+
+        jamb = k.to_s.include?("jamb")
+        sill = k.to_s.include?("sill")
+        head = k.to_s.include?("head")
+        ok   = jamb || sill || head
+      end
+
+      next unless ok     # if OK, edge links subsurface(s) ... yet which one(s)?
+
+      edge[:surfaces].each do |id, surface|
+        next unless tbd[:surfaces].key?(id)    # look up parent (opaque) surface
+
+        [:windows, :doors, :skylights].each do |subtypes|
+          next unless tbd[:surfaces][id].key?(subtypes)
+
+          tbd[:surfaces][id][subtypes].each do |nom, sub|
+            next unless edge[:surfaces].key?(nom)
+            next unless sub[:mult] > 1
+
+            # An edge may be tagged with (potentially conflicting) multipliers.
+            # This is only possible if the edge links 2 subsurfaces, e.g. a
+            # shared jamb between window & door. By default, TBD tags common
+            # subsurface edges as (mild) "transitions" (i.e. PSI 0 W/K.m), so
+            # there would be no point in assigning an edge multiplier. Users
+            # can however reset an edge type via a TBD JSON input file (e.g.
+            # "joint" instead of "transition"). It would be a very odd choice,
+            # but TBD doesn't prohibit it. If linked subsurfaces have different
+            # multipliers (e.g. 2 vs 3), TBD tracks the highest value.
+            edge[:mult] = sub[:mult] unless edge.key?(:mult)
+            edge[:mult] = sub[:mult]     if sub[:mult] > edge[:mult]
+          end
+        end
+      end
+    end
+
+    # Unless a user has set the thermal bridge type of an individual edge via
+    # JSON input, reset any subsurface's head, sill or jamb edges as (mild)
+    # transitions when in close proximity to another subsurface edge. Both
+    # edges' origin and terminal vertices must be in close proximity. Edges
+    # of unhinged subsurfaces are ignored.
+    edges.each do |id, edge|
+      nb    = 0                            # linked subsurfaces (i.e. "holes")
+      match = false
+      next if edge.key?(:io_type)          # skip if set in JSON
+      next unless edge.key?(:v0)
+      next unless edge.key?(:v1)
+      next unless edge.key?(:psi)
+      next unless edge.key?(:surfaces)
+
+      edge[:surfaces].keys.each do |identifier|
+        break    if match
+        next unless holes.key?(identifier)
+
+        if holes[identifier].attributes.key?(:unhinged)
+          nb = 0 if holes[identifier].attributes[:unhinged]
+          break  if holes[identifier].attributes[:unhinged]
+        end
+
+        nb += 1
+        match = true if nb > 1
+      end
+
+      if nb == 1 # linking 1x subsurface, search for 1x other.
+        e1 = { v0: edge[:v0].point, v1: edge[:v1].point }
+
+        edges.each do |nom, e|
+          nb = 0
+          break    if match
+          next     if nom == id
+          next     if e.key?(:io_type)
+          next unless e.key?(:psi)
+          next unless e.key?(:surfaces)
+
+          e[:surfaces].keys.each do |identifier|
+            next unless holes.key?(identifier)
+
+            if holes[identifier].attributes.key?(:unhinged)
+              nb = 0 if holes[identifier].attributes[:unhinged]
+              break  if holes[identifier].attributes[:unhinged]
+            end
+
+            nb += 1
+          end
+
+          next unless nb == 1 # only process edge if linking 1x subsurface
+
+          e2 = { v0: e[:v0].point, v1: e[:v1].point }
+          match = matches?(e1, e2, argh[:sub_tol])
+        end
+      end
+
+      next unless match
+
+      edge[:psi] = { transition: 0.000 }
+      edge[:set] = json[:io][:building][:psi]
+    end
+
     # Loop through each edge and assign heat loss to linked surfaces.
     edges.each do |identifier, edge|
       next unless  edge.key?(:psi)
       rsi        = 0
-      max        = edge[:psi].values.max
-      type       = edge[:psi].key(max)
+      max        = edge[:psi   ].values.max
+      type       = edge[:psi   ].key(max)
       length     = edge[:length]
+      length    *= edge[:mult  ] if edge.key?(:mult)
       bridge     = { psi: max, type: type, length: length }
       deratables = {}
       apertures  = {}
@@ -1869,7 +1974,7 @@ module TBD
     # ... first 'uprate' targeted insulation layers (see ua.rb) before derating.
     # Check for new argh keys [:wall_uo], [:roof_uo] and/or [:floor_uo].
     up = argh[:uprate_walls] || argh[:uprate_roofs] || argh[:uprate_floors]
-    uprate(model, tbd[:surfaces], argh)                                    if up
+    uprate(model, tbd[:surfaces], argh) if up
 
     # Derated (cloned) constructions are unique to each deratable surface.
     # Unique construction names are prefixed with the surface name,
@@ -1975,6 +2080,7 @@ module TBD
       set        = e[:set]
       t          = e[:psi].key(v)
       l          = e[:length]
+      l         *= e[:mult] if e.key?(:mult)
       edge       = { psi: set, type: t, length: l, surfaces: e[:surfaces].keys }
       edge[:v0x] = e[:v0].point.x
       edge[:v0y] = e[:v0].point.y

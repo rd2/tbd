@@ -27,6 +27,14 @@ For EnergyPlus simulations, leave CHECKED. For iterative exploration with Apply 
 **Required:** false,
 **Model Dependent:** false
 
+### Proximity tolerance (m)
+Proximity tolerance (e.g. 0.100 m) between subsurface edges, e.g. between near-adjacent window jambs.
+**Name:** sub_tol,
+**Type:** Double,
+**Units:** ,
+**Required:** false,
+**Model Dependent:** false
+
 ### Load 'tbd.json'
 Loads existing 'tbd.json' file (under '/files'), may override 'default thermal bridge' set.
 **Name:** load_tbd_json,
