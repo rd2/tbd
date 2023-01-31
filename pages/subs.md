@@ -34,25 +34,25 @@ _Frame & divider_ properties also allow outside and inside __reveals__ (i.e. _su
 
 A shared edge between two _sub surfaces_ at a corner (e.g. the single vertical edge highlighted in blue in __Figure 2A__) is also tagged by TBD as a (mild) "transition". Again, any additional heat loss resulting from _corner mullions_ should preferably be factored in NFRC fenestration rating procedures, and thus shouldn't _derate_ host wall constructions.  
 
-In Figure 2A, Topolys _breaks_ its own copy of the original OpenStudio corner edge into 3x distinct vertical segments:  
+In Figure 2A, Topolys _breaks_ its own copy of the original, full wall-height OpenStudio corner edge into 3x distinct, vertically-aligned segments:  
 
-- 1x "corner" edge __above__ both windows
 - 1x "transition" edge, shared __between__ both windows (in blue)
+- 1x "corner" edge __above__ both windows
 - 1x "corner" edge __below__ both windows  
 
-By default, any _sub surface_ edge defined within 10 mm of another _sub surface_ edge (or a host surface edge, e.g. a corner) is _merged_ in Topolys as a single, shared edge. If gaps between the corner edge illustrated in __Figure 2B__ and both _nearby_ window jambs (on either side, highlighted in blue) are 10 mm wide, then all 3x _nearby_ edges (1x _broken_ corner segment + 2x jambs) would be modelled in Topolys as a single edge (as in Figure 2A). There is no difference between the application of Topolys' built-in tolerances and what's illustrated in Figure 2A, even if all 3x edges aren't perfectly aligned in the OpenStudio model (as in Figure 2B).
+By default, any _sub surface_ edge defined within 10 mm of another _sub surface_ edge (or a host surface edge, e.g. a corner) is _merged_ in Topolys as a single, shared edge. If gaps between the corner edge (highlighted in red in __Figure 2B__) and both _nearby_ window jambs (on either side, highlighted in blue) are 10 mm wide in OpenStudio, then all 3x _nearby_ edges (1x _broken_ corner segment + 2x jambs) would be modelled in Topolys as a single edge (as in Figure 2A). There is no difference between the application of Topolys' built-in tolerances and what's illustrated in Figure 2A, even if all 3x edges aren't perfectly aligned in the OpenStudio model (as in Figure 2B).
 
 ![Corner Windows](../assets/images/corner1.png "Corner Windows")
 
 When such gaps exceed Topolys' built-in tolerances (e.g. 25 mm in Figure 2B), TBD instead considers a nearby _sub surface_ edge (e.g. along a corner) as a fenestration "jamb" edge, even though a 25 mm gap between jamb and corner edges makes little sense from a construction perspective. Such gaps often occur as modelling artefacts (often inadvertently) in either legacy OpenStudio models or in those imported from 3rd-party applications. This automated switch, from (mild) "transition" to "jamb" edge types, necessarily means more heat loss from thermal bridging (vs Figure 2A). TBD provides users a _sub surface_ __proximity tolerance__ (see [menu options](./settings.html "TBD settings")) as an optional means to override this default behaviour. If, for instance, a user sets a _proximity tolerance_ of 50 mm (or rather 0.050 m), TBD ignores the aforementioned 25 mm gaps and sets the 2x _sub surface_ jamb edges near the corner as (mild) "transitions" (both edges highlighted in blue in Figure 2B).
 
-There is no difference when _derating_ host wall surfaces, from fenestration perimeters alone, in either figures 2A or 2B. However, the _proximity tolerance_ does not reset the corner edge in Figure 2B as a (mild) "transition". The corner edge continues uninterrupted, spanning the full wall height - one should expect additional heat loss from the "corner" edge in Figure 2B (vs Figure 2A). This can be corrected by adjusting the "corner" _psi_ factor in TBD - a practical tweak, yet somewhat finicky.
+There is no difference when _derating_ host wall surfaces, from fenestration perimeters alone, in either figures 2A or 2B. However, the _proximity tolerance_ does not reset the corner edge (in red in Figure 2B) as a (mild) "transition". The corner edge continues uninterrupted, spanning the full wall height - one should expect additional heat loss from the "corner" edge in Figure 2B (vs Figure 2A). This can be corrected by adjusting the "corner" _psi_ factor in TBD - a practical tweak, yet somewhat finicky.
 
 TBD matches edges this way by comparing _origin_ and _terminal_ vertices of any pair of _nearby_ edges. TBD does not apply a _proximity tolerance_ when _sub surface_ edges are mismatched as in __Figure 3A__.  
 
 ![Near corner windows](../assets/images/corner2.png "Near corner windows")  
 
-This can be corrected in OpenStudio by splitting for instance the larger window into two smaller (yet _aligned_) windows (which adds a new horizontal "transition" edge in blue, shown in __Figure 3B__). If the gaps between both _upper_ window jambs and corner edge are within the user-set _proximity tolerance_, then both nearby window jambs will also be reset as (mild) "transitions" (both vertical edges are highlighted in blue in Figure 3B). Note that the corner edge continues uninterrupted, spanning the full wall height in both figures 3A and 3B, just as in Figure 2B.
+This can be corrected in OpenStudio by splitting for instance the larger window into two smaller (yet _aligned_) windows (which adds a new horizontal "transition" edge in blue, shown in __Figure 3B__). If the gaps between both _upper_ window jambs and corner edge are within the user-set _proximity tolerance_, then both nearby window jambs will also be reset as (mild) "transitions" (both vertical edges are highlighted in blue in Figure 3B). Note that the corner edge continues uninterrupted, spanning the full wall height (in red in both figures 3A and 3B, just as in Figure 2B).
 
 ### Multipliers
 
