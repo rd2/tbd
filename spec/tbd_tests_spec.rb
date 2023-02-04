@@ -991,9 +991,7 @@ RSpec.describe TBD do
   end
 
   it "can test 5ZoneNoHVAC (failed) uprating" do
-    mdl = OpenStudio::Model::Model.new
-    version = mdl.getVersion.versionIdentifier.split('.').map(&:to_i)
-    v = version.join.to_i
+    v = OpenStudio.openStudioVersion.split(".").map(&:to_i).join.to_i
 
     if v < 350 # 5ZoneNoHVAC holds an Air Wall material (deprecated +v3.5).
       TBD.clean!
@@ -1214,9 +1212,10 @@ RSpec.describe TBD do
 
       # --- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- --- #
       # Final attempt, with PSI values of 0.09 W/K per linear metre (JSON file).
-      model   = OpenStudio::Model::Model.new
-      version = model.getVersion.versionIdentifier.split('.').map(&:to_i)
-      v = version.join.to_i
+      # model   = OpenStudio::Model::Model.new
+      # version = model.getVersion.versionIdentifier.split('.').map(&:to_i)
+      # v = version.join.to_i
+      v = OpenStudio.openStudioVersion.split(".").map(&:to_i).join.to_i
 
       unless v < 320
         file = File.join(__dir__, "files/osms/in/5ZoneNoHVAC_btap.osm")
@@ -2253,17 +2252,18 @@ RSpec.describe TBD do
   end
 
   it "can check for conditioned attics" do
-    TBD.clean!
-    argh  = {}
-    trns  = OpenStudio::OSVersion::VersionTranslator.new
-    file  = File.join(__dir__, "files/osms/in/resto1.osm")
-    path  = OpenStudio::Path.new(file)
-    model = trns.loadModel(path)
-    expect(model.empty?).to be(false)
-    model = model.get
-    v     = model.getVersion.versionIdentifier.split('.').map(&:to_i).join.to_i
+    v = OpenStudio.openStudioVersion.split(".").map(&:to_i).join.to_i
 
     if v > 300
+      TBD.clean!
+      argh  = {}
+      trns  = OpenStudio::OSVersion::VersionTranslator.new
+      file  = File.join(__dir__, "files/osms/in/resto1.osm")
+      path  = OpenStudio::Path.new(file)
+      model = trns.loadModel(path)
+      expect(model.empty?).to be(false)
+      model = model.get
+
       # Unaltered template v3.2.1 'FullServiceRestaurant' OpenStudio model.
       # ... no constructions, no setpoints), to be modified by BTAP.
       loops     = TBD.airLoopsHVAC?(model)
