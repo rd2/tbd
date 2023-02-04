@@ -2261,208 +2261,211 @@ RSpec.describe TBD do
     model = trns.loadModel(path)
     expect(model.empty?).to be(false)
     model = model.get
+    v     = model.getVersion.versionIdentifier.split('.').map(&:to_i).join.to_i
 
-    # Unaltered template 'FullServiceRestaurant' OpenStudio model (no
-    # constructions, no setpoints), to be modified by BTAP.
-    loops     = TBD.airLoopsHVAC?(model)
-    setpoints = TBD.heatingTemperatureSetpoints?(model)
-    setpoints = TBD.coolingTemperatureSetpoints?(model) || setpoints
-    expect(model.getConstructions.empty?).to be(true)
-    expect(setpoints).to be(false)
-    expect(loops).to be(false)
+    if v > 300
+      # Unaltered template v3.2.1 'FullServiceRestaurant' OpenStudio model.
+      # ... no constructions, no setpoints), to be modified by BTAP.
+      loops     = TBD.airLoopsHVAC?(model)
+      setpoints = TBD.heatingTemperatureSetpoints?(model)
+      setpoints = TBD.coolingTemperatureSetpoints?(model) || setpoints
+      expect(model.getConstructions.empty?).to be(true)
+      expect(setpoints).to be(false)
+      expect(loops).to be(false)
 
-    argh[:option] = "code (Quebec)"
-    json = TBD.process(model, argh)
-    expect(json.is_a?(Hash)).to be(true)
-    expect(json.key?(:io)).to be(true)
-    expect(json.key?(:surfaces)).to be(true)
-    io       = json[:io      ]
-    surfaces = json[:surfaces]
-    expect(TBD.error?).to be(true)
-    expect(TBD.logs.empty?).to be(false)
-    expect(io.nil?).to be(false)
-    expect(io.is_a?(Hash)).to be(true)
-    expect(io.empty?).to be(false)
-    expect(io.key?(:edges)).to be(false)
-    expect(surfaces.nil?).to be(false)
-    expect(surfaces.is_a?(Hash)).to be(true)
-    expect(surfaces.size).to eq(18)
+      argh[:option] = "code (Quebec)"
+      json = TBD.process(model, argh)
+      expect(json.is_a?(Hash)).to be(true)
+      expect(json.key?(:io)).to be(true)
+      expect(json.key?(:surfaces)).to be(true)
+      io       = json[:io      ]
+      surfaces = json[:surfaces]
+      expect(TBD.error?).to be(true)
+      expect(TBD.logs.empty?).to be(false)
+      expect(io.nil?).to be(false)
+      expect(io.is_a?(Hash)).to be(true)
+      expect(io.empty?).to be(false)
+      expect(io.key?(:edges)).to be(false)
+      expect(surfaces.nil?).to be(false)
+      expect(surfaces.is_a?(Hash)).to be(true)
+      expect(surfaces.size).to eq(18)
 
-    # No constructions to derate - 'surfaces' only holds pre-TBD attributes.
-    surfaces.values.each do |surface|
-      expect(surface.is_a?(Hash)).to be(true)
-      expect(surface.key?(:space)).to be(true)
-      expect(surface.key?(:stype)).to be(true) # spacetype
-      expect(surface.key?(:conditioned)).to be(true)
-      expect(surface.key?(:deratable)).to be(true)
-      expect(surface.key?(:construction)).to be(false)
-      expect(surface[:conditioned]).to be(true)
-      expect(surface[:deratable]).to be(false)
+      # No constructions to derate - 'surfaces' only holds pre-TBD attributes.
+      surfaces.values.each do |surface|
+        expect(surface.is_a?(Hash)).to be(true)
+        expect(surface.key?(:space)).to be(true)
+        expect(surface.key?(:stype)).to be(true) # spacetype
+        expect(surface.key?(:conditioned)).to be(true)
+        expect(surface.key?(:deratable)).to be(true)
+        expect(surface.key?(:construction)).to be(false)
+        expect(surface[:conditioned]).to be(true)
+        expect(surface[:deratable]).to be(false)
+      end
+
+      # Fetch conditioned attic floor.
+      id    = "attic-floor-dinning"
+      expect(surfaces.key?(id)).to be(true)
+      space = surfaces[id][:space]
+      expect(space.partofTotalFloorArea).to be(false)
+      expect(space.thermalZone.empty?).to be(false)
+      zone  = space.thermalZone.get
+      expect(zone.isPlenum).to be(false)
+
+      heat = TBD.maxHeatScheduledSetpoint(zone)
+      cool = TBD.minCoolScheduledSetpoint(zone)
+      expect(heat.nil?).to be(false)
+      expect(cool.nil?).to be(false)
+      expect(heat.is_a?(Hash)).to be(true)
+      expect(cool.is_a?(Hash)).to be(true)
+      expect(heat.key?(:spt)).to be(true)
+      expect(cool.key?(:spt)).to be(true)
+      expect(heat.key?(:dual)).to be(true)
+      expect(cool.key?(:dual)).to be(true)
+      expect(heat[:spt].nil?).to be(true)
+      expect(cool[:spt].nil?).to be(true)
+      expect(heat[:dual]).to be(false)
+      expect(cool[:dual]).to be(false)
+
+      expect(TBD.plenum?(space, loops, setpoints)).to be(false)
+
+      # Replace "attic" space type with "plenum", then try again.
+      attic  = model.getSpaceByName("attic")
+      expect(attic.empty?).to be(false)
+      attic  = attic.get
+      sptype = attic.spaceType
+      expect(sptype.empty?).to be(false)
+      sptype.get.setName("plenum")
+      expect(TBD.plenum?(attic, loops, setpoints)).to be(true) # works ...
+
+
+      # --- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- --- #
+      TBD.clean!
+      argh  = {}
+      file  = File.join(__dir__, "files/osms/in/resto2.osm")
+      path  = OpenStudio::Path.new(file)
+      model = trns.loadModel(path)
+      expect(model.empty?).to be(false)
+      model = model.get
+
+      # Partially altered 'FullServiceRestaurant' model, midway in BTAP processes
+      # (just before 'apply_envelope', under 'model_apply_standard').
+      loops     = TBD.airLoopsHVAC?(model)
+      setpoints = TBD.heatingTemperatureSetpoints?(model)
+      setpoints = TBD.coolingTemperatureSetpoints?(model) || setpoints
+      expect(model.getConstructions.empty?).to be(false)
+      expect(setpoints).to be(true)
+      expect(loops).to be(false)
+
+      # No point here in replacing attic space type with "plenum" - a last resort
+      # check, ignored here by TBD as there are valid setpoints set elsewhere in
+      # the model. Instead, temporarily add a heating dual setpoint schedule to
+      # the attic zone thermostat (yet without valid schedule temperatures).
+      attic = model.getSpaceByName("attic")
+      expect(attic.empty?).to be(false)
+      attic = attic.get
+      expect(attic.partofTotalFloorArea).to be(false)
+      expect(attic.thermalZone.empty?).to be(false)
+      zone  = attic.thermalZone.get
+      expect(zone.isPlenum).to be(false)
+      tstat = zone.thermostat
+      expect(tstat.empty?).to be(false)
+      tstat = tstat.get
+      expect(tstat.to_ThermostatSetpointDualSetpoint.empty?).to be(false)
+      tstat = tstat.to_ThermostatSetpointDualSetpoint.get
+
+      # Before the addition.
+      expect(tstat.getHeatingSchedule.empty?).to be(true)
+      expect(tstat.getCoolingSchedule.empty?).to be(true)
+      heat = TBD.maxHeatScheduledSetpoint(zone)
+      cool = TBD.minCoolScheduledSetpoint(zone)
+      expect(heat.nil?).to be(false)
+      expect(cool.nil?).to be(false)
+      expect(heat.is_a?(Hash)).to be(true)
+      expect(cool.is_a?(Hash)).to be(true)
+      expect(heat.key?(:spt)).to be(true)
+      expect(cool.key?(:spt)).to be(true)
+      expect(heat.key?(:dual)).to be(true)
+      expect(cool.key?(:dual)).to be(true)
+      expect(heat[:spt].nil?).to be(true)
+      expect(cool[:spt].nil?).to be(true)
+      expect(heat[:dual]).to be(false)
+      expect(cool[:dual]).to be(false)
+      expect(TBD.plenum?(attic, loops, setpoints)).to be(false)
+
+      # Add a dual setpoint temperature schedule.
+      identifier = "TEMPORARY attic setpoint schedule"
+      sched = OpenStudio::Model::ScheduleCompact.new(model)
+      sched.setName(identifier)
+      expect(sched.constantValue.empty?).to be(true)
+      expect(tstat.setHeatingSetpointTemperatureSchedule(sched)).to be(true)
+
+      # After the addition.
+      expect(tstat.getHeatingSchedule.empty?).to be(false)
+      expect(tstat.getCoolingSchedule.empty?).to be(true)
+      heat = TBD.maxHeatScheduledSetpoint(zone)
+      expect(heat.nil?).to be(false)
+      expect(heat.is_a?(Hash)).to be(true)
+      expect(heat.key?(:spt)).to be(true)
+      expect(heat.key?(:dual)).to be(true)
+      expect(heat[:spt].nil?).to be(true)
+      expect(heat[:dual]).to be(true)
+      expect(TBD.plenum?(attic, loops, setpoints)).to be(true) # works ...
+
+      argh[:option] = "code (Quebec)"
+      json = TBD.process(model, argh)
+      expect(json.is_a?(Hash)).to be(true)
+      expect(json.key?(:io)).to be(true)
+      expect(json.key?(:surfaces)).to be(true)
+      io       = json[:io      ]
+      surfaces = json[:surfaces]
+      expect(TBD.error?).to be(true)
+      expect(TBD.logs.empty?).to be(false)
+
+      # The incomplete (temporary) schedule triggers a non-FATAL TBD error.
+      TBD.logs.each do |log|
+        expect(log[:message].include?("Empty '"))
+        expect(log[:message].include?("values' (OSut::scheduleCompactMinMax)"))
+      end
+
+      expect(io.nil?).to be(false)
+      expect(io.is_a?(Hash)).to be(true)
+      expect(io.empty?).to be(false)
+      expect(io.key?(:edges)).to be(true)
+      expect(surfaces.nil?).to be(false)
+      expect(surfaces.is_a?(Hash)).to be(true)
+      expect(surfaces.size).to eq(18)
+
+      surfaces.values.each do |surface|
+        expect(surface.is_a?(Hash)).to be(true)
+        expect(surface.key?(:conditioned)).to be(true)
+        expect(surface.key?(:deratable)).to be(true)
+        expect(surface.key?(:construction)).to be(true)
+        expect(surface.key?(:ground)).to be(true)
+        next     if surface[:ground]
+        next unless surface[:deratable]
+
+        id = surface[:construction].nameString
+        ok = id.include?("BTAP-Ext-Roof") || id.include?("BTAP-Ext-Wall")
+        expect(ok).to be(true)
+      end
+
+      # Once done, ensure temporary schedule is dissociated from the thermostat
+      # and deleted from the model.
+      tstat.resetHeatingSetpointTemperatureSchedule
+      expect(tstat.getHeatingSchedule.empty?).to be(true)
+      sched2 = model.getScheduleByName(identifier)
+      expect(sched2.empty?).to be(false)
+      sched.remove
+      sched2 = model.getScheduleByName(identifier)
+      expect(sched2.empty?).to be(true)
+      heat = TBD.maxHeatScheduledSetpoint(zone)
+      expect(heat.nil?).to be(false)
+      expect(heat.is_a?(Hash)).to be(true)
+      expect(heat.key?(:spt)).to be(true)
+      expect(heat.key?(:dual)).to be(true)
+      expect(heat[:spt].nil?).to be(true)
+      expect(heat[:dual]).to be(false)
+      expect(TBD.plenum?(attic, loops, setpoints)).to be(false) # as before ...
     end
-
-    # Fetch conditioned attic floor.
-    id    = "attic-floor-dinning"
-    expect(surfaces.key?(id)).to be(true)
-    space = surfaces[id][:space]
-    expect(space.partofTotalFloorArea).to be(false)
-    expect(space.thermalZone.empty?).to be(false)
-    zone  = space.thermalZone.get
-    expect(zone.isPlenum).to be(false)
-
-    heat = TBD.maxHeatScheduledSetpoint(zone)
-    cool = TBD.minCoolScheduledSetpoint(zone)
-    expect(heat.nil?).to be(false)
-    expect(cool.nil?).to be(false)
-    expect(heat.is_a?(Hash)).to be(true)
-    expect(cool.is_a?(Hash)).to be(true)
-    expect(heat.key?(:spt)).to be(true)
-    expect(cool.key?(:spt)).to be(true)
-    expect(heat.key?(:dual)).to be(true)
-    expect(cool.key?(:dual)).to be(true)
-    expect(heat[:spt].nil?).to be(true)
-    expect(cool[:spt].nil?).to be(true)
-    expect(heat[:dual]).to be(false)
-    expect(cool[:dual]).to be(false)
-
-    expect(TBD.plenum?(space, loops, setpoints)).to be(false)
-
-    # Replace "attic" space type with "plenum", then try again.
-    attic  = model.getSpaceByName("attic")
-    expect(attic.empty?).to be(false)
-    attic  = attic.get
-    sptype = attic.spaceType
-    expect(sptype.empty?).to be(false)
-    sptype.get.setName("plenum")
-    expect(TBD.plenum?(attic, loops, setpoints)).to be(true) # works ...
-
-
-    # --- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- --- #
-    TBD.clean!
-    argh  = {}
-    file  = File.join(__dir__, "files/osms/in/resto2.osm")
-    path  = OpenStudio::Path.new(file)
-    model = trns.loadModel(path)
-    expect(model.empty?).to be(false)
-    model = model.get
-
-    # Partially altered 'FullServiceRestaurant' model, midway in BTAP processes
-    # (just before 'apply_envelope', under 'model_apply_standard').
-    loops     = TBD.airLoopsHVAC?(model)
-    setpoints = TBD.heatingTemperatureSetpoints?(model)
-    setpoints = TBD.coolingTemperatureSetpoints?(model) || setpoints
-    expect(model.getConstructions.empty?).to be(false)
-    expect(setpoints).to be(true)
-    expect(loops).to be(false)
-
-    # No point here in replacing attic space type with "plenum" - a last resort
-    # check, ignored here by TBD as there are valid setpoints set elsewhere in
-    # the model. Instead, temporarily add a heating dual setpoint schedule to
-    # the attic zone thermostat (yet without valid schedule temperatures).
-    attic = model.getSpaceByName("attic")
-    expect(attic.empty?).to be(false)
-    attic = attic.get
-    expect(attic.partofTotalFloorArea).to be(false)
-    expect(attic.thermalZone.empty?).to be(false)
-    zone  = attic.thermalZone.get
-    expect(zone.isPlenum).to be(false)
-    tstat = zone.thermostat
-    expect(tstat.empty?).to be(false)
-    tstat = tstat.get
-    expect(tstat.to_ThermostatSetpointDualSetpoint.empty?).to be(false)
-    tstat = tstat.to_ThermostatSetpointDualSetpoint.get
-
-    # Before the addition.
-    expect(tstat.getHeatingSchedule.empty?).to be(true)
-    expect(tstat.getCoolingSchedule.empty?).to be(true)
-    heat = TBD.maxHeatScheduledSetpoint(zone)
-    cool = TBD.minCoolScheduledSetpoint(zone)
-    expect(heat.nil?).to be(false)
-    expect(cool.nil?).to be(false)
-    expect(heat.is_a?(Hash)).to be(true)
-    expect(cool.is_a?(Hash)).to be(true)
-    expect(heat.key?(:spt)).to be(true)
-    expect(cool.key?(:spt)).to be(true)
-    expect(heat.key?(:dual)).to be(true)
-    expect(cool.key?(:dual)).to be(true)
-    expect(heat[:spt].nil?).to be(true)
-    expect(cool[:spt].nil?).to be(true)
-    expect(heat[:dual]).to be(false)
-    expect(cool[:dual]).to be(false)
-    expect(TBD.plenum?(attic, loops, setpoints)).to be(false)
-
-    # Add a dual setpoint temperature schedule.
-    identifier = "TEMPORARY attic setpoint schedule"
-    sched = OpenStudio::Model::ScheduleCompact.new(model)
-    sched.setName(identifier)
-    expect(sched.constantValue.empty?).to be(true)
-    expect(tstat.setHeatingSetpointTemperatureSchedule(sched)).to be(true)
-
-    # After the addition.
-    expect(tstat.getHeatingSchedule.empty?).to be(false)
-    expect(tstat.getCoolingSchedule.empty?).to be(true)
-    heat = TBD.maxHeatScheduledSetpoint(zone)
-    expect(heat.nil?).to be(false)
-    expect(heat.is_a?(Hash)).to be(true)
-    expect(heat.key?(:spt)).to be(true)
-    expect(heat.key?(:dual)).to be(true)
-    expect(heat[:spt].nil?).to be(true)
-    expect(heat[:dual]).to be(true)
-    expect(TBD.plenum?(attic, loops, setpoints)).to be(true) # works ...
-
-    argh[:option] = "code (Quebec)"
-    json = TBD.process(model, argh)
-    expect(json.is_a?(Hash)).to be(true)
-    expect(json.key?(:io)).to be(true)
-    expect(json.key?(:surfaces)).to be(true)
-    io       = json[:io      ]
-    surfaces = json[:surfaces]
-    expect(TBD.error?).to be(true)
-    expect(TBD.logs.empty?).to be(false)
-
-    # The incomplete (temporary) schedule triggers a non-FATAL TBD error.
-    TBD.logs.each do |log|
-      expect(log[:message].include?("Empty '"))
-      expect(log[:message].include?("values' (OSut::scheduleCompactMinMax)"))
-    end
-
-    expect(io.nil?).to be(false)
-    expect(io.is_a?(Hash)).to be(true)
-    expect(io.empty?).to be(false)
-    expect(io.key?(:edges)).to be(true)
-    expect(surfaces.nil?).to be(false)
-    expect(surfaces.is_a?(Hash)).to be(true)
-    expect(surfaces.size).to eq(18)
-
-    surfaces.values.each do |surface|
-      expect(surface.is_a?(Hash)).to be(true)
-      expect(surface.key?(:conditioned)).to be(true)
-      expect(surface.key?(:deratable)).to be(true)
-      expect(surface.key?(:construction)).to be(true)
-      expect(surface.key?(:ground)).to be(true)
-      next     if surface[:ground]
-      next unless surface[:deratable]
-
-      id = surface[:construction].nameString
-      ok = id.include?("BTAP-Ext-Roof") || id.include?("BTAP-Ext-Wall")
-      expect(ok).to be(true)
-    end
-
-    # Once done, ensure temporary schedule is dissociated from the thermostat
-    # and deleted from the model.
-    tstat.resetHeatingSetpointTemperatureSchedule
-    expect(tstat.getHeatingSchedule.empty?).to be(true)
-    sched2 = model.getScheduleByName(identifier)
-    expect(sched2.empty?).to be(false)
-    sched.remove
-    sched2 = model.getScheduleByName(identifier)
-    expect(sched2.empty?).to be(true)
-    heat = TBD.maxHeatScheduledSetpoint(zone)
-    expect(heat.nil?).to be(false)
-    expect(heat.is_a?(Hash)).to be(true)
-    expect(heat.key?(:spt)).to be(true)
-    expect(heat.key?(:dual)).to be(true)
-    expect(heat[:spt].nil?).to be(true)
-    expect(heat[:dual]).to be(false)
-    expect(TBD.plenum?(attic, loops, setpoints)).to be(false) # as before ...
   end
 end
