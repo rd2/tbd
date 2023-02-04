@@ -975,8 +975,9 @@ module TBD
         end
       end
 
-      surface[:heating] = heat[:spt] if heat[:spt]  # if valid heating setpoints
-      surface[:cooling] = cool[:spt] if cool[:spt]  # if valid cooling setpoints
+      # Recover if valid setpoints.
+      surface[:heating] = heat[:spt] if heat && heat[:spt]
+      surface[:cooling] = cool[:spt] if cool && cool[:spt]
 
       tbd[:surfaces][s.nameString] = surface
     end                                            # (opaque) surfaces populated
