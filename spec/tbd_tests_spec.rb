@@ -1851,7 +1851,7 @@ RSpec.describe TBD do
       expect(surfaces[side].key?(:windows)).to be(true)
       expect(surfaces[side][:windows].size).to eq(   2)
 
-      surfaces[side][:windows].each do |sub|
+      surfaces[side][:windows].keys do |sub|
         expect(sub.include?(side)     ).to be(true)
         expect(sub.include?(" Window")).to be(true)
       end
