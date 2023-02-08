@@ -788,8 +788,8 @@ RSpec.describe TBD do
     argh3[:io      ] = json[:io      ]
     argh3[:surfaces] = json[:surfaces]
 
-    expect(TBD.status.zero?).to be( true)
-    expect(TBD.logs.empty? ).to be( true)
+    expect(TBD.status.zero?).to be(true)
+    expect(TBD.logs.empty? ).to be(true)
 
     expect(argh3[:surfaces  ].nil?        ).to be(false)
     expect(argh3[:surfaces  ].is_a?(Hash) ).to be( true)
@@ -1458,6 +1458,7 @@ RSpec.describe TBD do
 
     nb = 0
     expect(subs.size).to eq(8)
+
     subs.values.each { |sub| expect(sub.size).to eq(2) }
 
     subs.each do |id1, sub1|
@@ -1984,8 +1985,9 @@ RSpec.describe TBD do
     leftside = "Fine Storage Left Sidelight"
     wall     = model.getSurfaceByName(leftwall)
     door     = model.getSubSurfaceByName(leftdoor)
-    expect(wall.empty?).to be(false)
-    expect(door.empty?).to be(false)
+
+    expect(wall.empty?  ).to be(false)
+    expect(door.empty?  ).to be(false)
     wall     = wall.get
     door     = door.get
     parent   = door.surface
@@ -2073,8 +2075,8 @@ RSpec.describe TBD do
     expect(side_jambs).to eq(1) # instead shared with door
     expect(side_trns ).to eq(1) # shared with initial left door
 
-    expect(side_head_m).to be_within(0.01).of(0.5)
-    expect(side_sill_m).to be_within(0.01).of(0.5)
+    expect(side_head_m).to be_within(0.01).of(       0.5)
+    expect(side_sill_m).to be_within(0.01).of(       0.5)
     expect(side_jamb_m).to be_within(0.01).of(maxZ - 0.9)
     expect(side_trns_m).to be_within(0.01).of(maxZ - 0.9) # same as jamb
 
@@ -2120,16 +2122,16 @@ RSpec.describe TBD do
     expect(model.empty?).to be(false)
     model = model.get
 
-    trnsom   = "Fine Storage Left Transom"
-    minY     = 1000
-    maxY     = 0
-    maxZ     = 0
-    wall     = model.getSurfaceByName(leftwall)
-    door     = model.getSubSurfaceByName(leftdoor)
+    trnsom = "Fine Storage Left Transom"
+    minY   = 1000
+    maxY   = 0
+    maxZ   = 0
+    wall   = model.getSurfaceByName(leftwall)
+    door   = model.getSubSurfaceByName(leftdoor)
     expect(wall.empty?).to be(false)
     expect(door.empty?).to be(false)
-    wall     = wall.get
-    door     = door.get
+    wall   = wall.get
+    door   = door.get
 
     door.vertices.each { |vtx| minY = [minY,vtx.y].min }
     door.vertices.each { |vtx| maxY = [maxY,vtx.y].max }
@@ -2208,7 +2210,7 @@ RSpec.describe TBD do
     trsm_trns_m  = 0
 
     io[:edges].each do |edge|
-      expect(edge.key?(:surfaces)        ).to be( true)
+      expect(edge.key?(:surfaces        )).to be( true)
       expect(edge[:surfaces].is_a?(Array)).to be( true)
       expect(edge[:surfaces].empty?      ).to be(false)
 
@@ -2239,7 +2241,7 @@ RSpec.describe TBD do
     expect(side_trns_m).to be_within(0.01).of(maxZ - 0.9 + 0.5)
 
     io[:edges].each do |edge|
-      expect(edge.key?(:surfaces)        ).to be( true)
+      expect(edge.key?(:surfaces        )).to be( true)
       expect(edge[:surfaces].is_a?(Array)).to be( true)
       expect(edge[:surfaces].empty?      ).to be(false)
 
@@ -2297,9 +2299,9 @@ RSpec.describe TBD do
     expect(trsm_jambs).to eq(2) # 1x full height + 1x partial height
     expect(trsm_trns ).to eq(2) # shared with sidelight + door
 
-    expect(trsm_jamb_m).to be_within(0.01).of(2 * 0.4)
+    expect(trsm_jamb_m).to be_within(0.01).of(2 * 0.4          )
     expect(trsm_trns_m).to be_within(0.01).of(maxY - minY + 0.5)
-    expect(trsm_head_m).to be_within(0.01).of(trsm_trns_m)
+    expect(trsm_head_m).to be_within(0.01).of(trsm_trns_m      )
   end
 
   it "can check for conditioned attics" do
@@ -2355,7 +2357,7 @@ RSpec.describe TBD do
 
       # Fetch conditioned attic floor.
       id    = "attic-floor-dinning"
-      expect(surfaces.key?(id)         ).to be(true)
+      expect(surfaces.key?(id)         ).to be( true)
       space = surfaces[id][:space]
       expect(space.partofTotalFloorArea).to be(false)
       expect(space.thermalZone.empty?  ).to be(false)
@@ -2491,7 +2493,7 @@ RSpec.describe TBD do
       expect(io.nil?             ).to be(false)
       expect(io.is_a?(Hash)      ).to be( true)
       expect(io.empty?           ).to be(false)
-      expect(io.key?(:edges)     ).to be( true)
+      expect(io.key?(:edges     )).to be( true)
 
       surfaces.values.each do |surface|
         expect(surface.is_a?(Hash)        ).to be(true)
