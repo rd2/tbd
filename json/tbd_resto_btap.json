@@ -1,0 +1,21 @@
+{
+  "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
+  "description": "testing TBD JSON for 5ZoneNoHVAC",
+  "psis": [
+    {
+      "id": "BTAP-ExteriorWall",
+      "rimjoist": 0.100,
+      "parapet": 0.230,
+      "fenestration": 0.078,
+      "corner": 0.090,
+      "balcony": 0.200,
+      "party": 0.200,
+      "grade": 0.090,
+      "joint": 0.100,
+      "transition": 0.000
+    }
+  ],
+  "building": {
+    "psi": "BTAP-ExteriorWall"
+  }
+}

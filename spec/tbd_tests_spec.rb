@@ -1183,7 +1183,7 @@ RSpec.describe TBD do
       expect(argh[:roof_uo].nil?).to be(false)
       expect(argh[:roof_uo]     ).to be_within(TOL).of(0.118)   # RSi 8.47 (R48)
 
-      # --- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- --- #
+      # -- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- -- #
       TBD.clean!
       argh                = {}
       argh[:io_path     ] = File.join(__dir__, "../json/tbd_5ZoneNoHVAC.json")
@@ -2530,5 +2530,50 @@ RSpec.describe TBD do
 
       expect(TBD.plenum?(attic, loops, setpoints)).to be(false) # as before ...
     end
+  end
+
+  it "validate (uprated) BTAP output" do
+    TBD.clean!
+
+    argh                = {}
+    argh[:schema_path ] = File.join(__dir__, "../tbd.schema.json")
+    argh[:io_path     ] = File.join(__dir__, "../json/tbd_resto_btap.json")
+    argh[:uprate_walls] = true
+    argh[:wall_option ] = "ALL wall constructions"
+    argh[:wall_ut     ] = 0.210               # NECB CZ7 2017 (RSi 4.76 / R27)
+
+    tr    = OpenStudio::OSVersion::VersionTranslator.new
+    file  = File.join(__dir__, "files/osms/in/resto.osm")
+    path  = OpenStudio::Path.new(file)
+    model = tr.loadModel(path)
+    expect(model.empty?).to be(false)
+    model = model.get
+    net   = 0
+    gross = 0
+
+    model.getSurfaces.each do |surface|
+      next unless surface.outsideBoundaryCondition.downcase == "outdoors"
+      next unless surface.surfaceType.downcase == "wall"
+
+      net   += surface.netArea
+      gross += surface.grossArea
+    end
+
+    expect(net  ).to be_within(TOL).of(193.00)
+    expect(gross).to be_within(TOL).of(275.72)
+    fwdr = ( gross - net ) * 100 / gross
+    expect(fwdr).to be_within(TOL).of(30.00)
+
+    json      = TBD.process(model, argh)
+    expect(json.is_a?(Hash    )).to be( true)
+    expect(json.key?(:io      )).to be( true)
+    expect(json.key?(:surfaces)).to be( true)
+    io        = json[:io      ]
+    surfaces  = json[:surfaces]
+    expect(TBD.error?          ).to be(false)
+    expect(TBD.logs.empty?     ).to be( true)
+
+    expect(argh.key?(:wall_uo)).to be(true)
+    expect(argh[:wall_uo]     ).to be_within(TOL).of(0.00236)  # RSi 423 (R2.4K)
   end
 end
