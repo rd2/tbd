@@ -1382,4 +1382,45 @@ RSpec.describe TBD do
       expect(surface[:heatloss]).to be_within(0.01).of(3.5)
     end
   end # KEEP
+
+  it "can process floorszone multipliers" do
+    TBD.clean!
+    argh           = {}
+    argh[:option ] = "code (Quebec)"
+
+    file  = File.join(__dir__, "files/osms/in/midrise_KIVA.osm")
+    path  = OpenStudio::Path.new(file)
+    tr    = OpenStudio::OSVersion::VersionTranslator.new
+    model = tr.loadModel(path)
+    expect(model.empty?).to be(false)
+    model = model.get
+
+    json      = TBD.process(model, argh)
+    expect(json.is_a?(Hash)    ).to be(true)
+    expect(json.key?(:io      )).to be(true)
+    expect(json.key?(:surfaces)).to be(true)
+    io        = json[:io      ]
+    surfaces  = json[:surfaces]
+    expect(TBD.status.zero?    ).to be(true)
+    expect(TBD.logs.empty?     ).to be(true)
+
+    model.getSurfaces.each do |surface|
+      id = surface.nameString
+      next unless surface.surfaceType.downcase == "floor"
+      next     if surface.isGroundSurface
+
+      facing = surface.outsideBoundaryCondition.downcase
+      floor  = id.downcase.include?("floor")
+      top    = id.downcase.include?("t ")
+      mid    = id.downcase.include?("m ")
+      expect(floor && (top || mid)).to be(true)
+      expect(facing).to eq("adiabatic")
+
+      io[:edges].each do |edge|
+        next unless edge[:surfaces].include?(id)
+
+        expect(edge[:type]).to eq(:rimjoist)
+      end
+    end
+  end
 end

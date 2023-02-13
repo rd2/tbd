@@ -1487,7 +1487,7 @@ module TBD
 
         edge[:surfaces].keys.each do |i|
           break     if is[:rimjoist] || is[:balcony]
-          break unless deratables.size == 2
+          break unless deratables.size > 0
           break     if floors.key?(id)
           next      if i == id
           next  unless floors.key?(i)
