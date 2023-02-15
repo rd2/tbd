@@ -3,8 +3,8 @@
   <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>e4a21a76-f727-498a-be0e-2a1ca0a6c4c1</version_id>
-  <version_modified>20230213T123411Z</version_modified>
+  <version_id>2fc42e1d-2010-44ae-9837-6390512c41d4</version_id>
+  <version_modified>20230214T105829Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -389,18 +389,6 @@
       <checksum>D80E9AE6</checksum>
     </file>
     <file>
-      <filename>model.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>57ED37BF</checksum>
-    </file>
-    <file>
-      <filename>version.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>05CC939E</checksum>
-    </file>
-    <file>
       <filename>LICENSE.md</filename>
       <filetype>md</filetype>
       <usage_type>license</usage_type>
@@ -464,6 +452,18 @@
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
       <checksum>1045EF38</checksum>
+    </file>
+    <file>
+      <filename>model.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>8E9A76C7</checksum>
+    </file>
+    <file>
+      <filename>version.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>A3BB982A</checksum>
     </file>
   </files>
 </measure>
