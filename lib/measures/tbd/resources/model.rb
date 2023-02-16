@@ -1,9 +1,3 @@
-begin
-  require "topolys/version"
-rescue LoadError
-  require File.join(File.dirname(__FILE__), 'version.rb')
-end
-
 require 'json'
 require 'securerandom'
 require 'set'

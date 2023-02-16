@@ -975,8 +975,9 @@ module TBD
         end
       end
 
-      surface[:heating] = heat[:spt] if heat[:spt]  # if valid heating setpoints
-      surface[:cooling] = cool[:spt] if cool[:spt]  # if valid cooling setpoints
+      # Recover if valid setpoints.
+      surface[:heating] = heat[:spt] if heat && heat[:spt]
+      surface[:cooling] = cool[:spt] if cool && cool[:spt]
 
       tbd[:surfaces][s.nameString] = surface
     end                                            # (opaque) surfaces populated
@@ -1486,7 +1487,7 @@ module TBD
 
         edge[:surfaces].keys.each do |i|
           break     if is[:rimjoist] || is[:balcony]
-          break unless deratables.size == 2
+          break unless deratables.size > 0
           break     if floors.key?(id)
           next      if i == id
           next  unless floors.key?(i)
