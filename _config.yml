@@ -41,5 +41,5 @@ plugins:
 # ...
 
 github:
-  zip_url: https://github.com/rd2/tbd/releases/download/v3.2.0/tbd.zip
-  tar_url: https://github.com/rd2/tbd/releases/download/v3.2.0/tbd.tar.gz
+  zip_url: https://github.com/rd2/tbd/releases/download/v3.2.1/tbd.zip
+  tar_url: https://github.com/rd2/tbd/releases/download/v3.2.1/tbd.tar.gz

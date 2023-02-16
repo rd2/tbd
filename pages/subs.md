@@ -52,7 +52,7 @@ TBD matches edges this way by comparing _origin_ and _terminal_ vertices of any 
 
 ![Near corner windows](../assets/images/corner2.png "Near corner windows")  
 
-This can be corrected in OpenStudio by splitting for instance the larger window into two smaller (yet _aligned_) windows (which adds a new horizontal "transition" edge in blue, shown in __Figure 3B__). If the gaps between both _upper_ window jambs and corner edge are within the user-set _proximity tolerance_, then both nearby window jambs will also be reset as (mild) "transitions" (both vertical edges are highlighted in blue in Figure 3B). Note that the corner edge continues uninterrupted, spanning the full wall height (in red in both figures 3A and 3B, just as in Figure 2B).
+This can be corrected in OpenStudio by splitting for instance the larger window into two smaller (yet _aligned_) windows (which adds a new horizontal "transition" edge in blue, shown in __Figure 3B__). If the gaps between both _upper_ window jambs and corner edge are within the user-set _proximity tolerance_, then both _nearby_ window jambs will also be reset as (mild) "transitions" (both vertical edges are highlighted in blue in Figure 3B). Note that the corner edge continues uninterrupted, spanning the full wall height (in red in both figures 3A and 3B, just as in Figure 2B).
 
 ### Multipliers
 
