@@ -32,9 +32,7 @@ TBD is systematically tested against updated OpenStudio versions (since v3.0.0).
 
 ### Windows Installation
 
-Install Ruby using the [RubyInstaller](https://rubyinstaller.org/downloads/archives/) for [Ruby 2.7.2 (x64)](https://github.com/oneclick/rubyinstaller2/releases/tag/RubyInstaller-2.7.2-1/rubyinstaller-2.7.2-1-x64.exe).
-
-From the command line, check that the ruby installation returns the correct Ruby version:
+Either install Ruby using the [RubyInstaller](https://rubyinstaller.org/downloads/archives/) for [Ruby 2.7.2 (x64)](https://github.com/oneclick/rubyinstaller2/releases/tag/RubyInstaller-2.7.2-1/rubyinstaller-2.7.2-1-x64.exe), or preferably under [WSL2](https://gist.github.com/brgix/0d968d8f32c41f13300dc6769414df79). Run the following steps if going down the _RubyInstaller_ route. From the command line, check that the ruby installation returns the correct Ruby version:
 ```
 ruby -v
 ```
@@ -56,9 +54,6 @@ Verify your OpenStudio and Ruby configuration:
 ```
 ruby -e "require 'openstudio'" -e "puts OpenStudio::Model::Model.new"
 ```
-
-`git clone` the TBD repo, then run basic tests to ensure the measure operates properly (see end of this README).
-
 
 ### MacOS Installation
 
@@ -117,8 +112,9 @@ cd ~/Documents/sandbox340
 ruby -e "require 'openstudio'" -e "puts OpenStudio::Model::Model.new"
 ```
 
-Install the latest version of _git_ (e.g. through Homebrew), then ```git clone``` the TBD repo, e.g. under "sandbox340". Run the basic tests below to ensure the measure operates as expected.
+## Clone TBD
 
+Once done with either the Windows or MacOS setup, install the latest version of _git_ (e.g. through Homebrew), then ```git clone``` the TBD repo, e.g. under "sandbox340". Run the basic tests below to ensure the measure operates as expected.
 
 ## Complete list of test commands
 
