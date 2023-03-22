@@ -286,7 +286,7 @@ module TBD
           ok = false unless coll[id][:s].key?(nom)
 
           unless ok
-            log(WRN, "Cloning '#{nom}' construction - not '#{lc}' (#{mth})")
+            log(WRN, "Cloning '#{nom}' construction - not '#{id}' (#{mth})")
             sss    = model.getSurfaceByName(nom)
             next if sss.empty?
 
