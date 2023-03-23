@@ -1018,7 +1018,7 @@ RSpec.describe TBD do
   end
 
   it "can test 5ZoneNoHVAC (failed) uprating" do
-    v = OpenStudio.openStudioVersion.split(".").map(&:to_i).join.to_i
+    v = OpenStudio.openStudioVersion.split(".").join.to_i
 
     if v < 350 # 5ZoneNoHVAC holds an Air Wall material (deprecated +v3.5).
       TBD.clean!
@@ -1255,7 +1255,7 @@ RSpec.describe TBD do
 
       # -- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- -- #
       # Final attempt, with PSI values of 0.09 W/K per linear metre (JSON file).
-      v = OpenStudio.openStudioVersion.split(".").map(&:to_i).join.to_i
+      v = OpenStudio.openStudioVersion.split(".").join.to_i
 
       unless v < 320
         TBD.clean!
@@ -1382,4 +1382,673 @@ RSpec.describe TBD do
       expect(surface[:heatloss]).to be_within(0.01).of(3.5)
     end
   end # KEEP
+
+  it "can check for attics vs plenums" do
+    # Determining whether an (unoccupied) space should be considered
+    # unconditioned (e.g. an attic), rather than indirectly conditioned
+    # (e.g. a plenum) can be tricky depending on the (incomplete) state of
+    # development of an OpenStudio model. The following variations of the
+    # 'FullServiceRestaurant' (v3.2.1) are snapshots of gradual development of
+    # the same model. For each variation, the tests illustrate how TBD ends up
+    # considering the unoccupied space (below roof) and sometimes show how
+    # simple variable changes allow users to switch from unconditioned to
+    # indirectly conditioned (or vice versa).
+    v = OpenStudio.openStudioVersion.split(".").join.to_i
+
+    if v > 300
+      TBD.clean!
+      argh  = { option: "code (Quebec)" }
+      tr    = OpenStudio::OSVersion::VersionTranslator.new
+      file  = File.join(__dir__, "files/osms/in/resto1.osm")
+      path  = OpenStudio::Path.new(file)
+      model = tr.loadModel(path)
+      expect(model.empty?).to be(false)
+      model = model.get
+
+      # Unaltered template OpenStudio model:
+      #   - constructions: NO
+      #   - setpoints    : NO
+      #   - HVAC         : NO
+      loops     = TBD.airLoopsHVAC?(model)
+      setpoints = TBD.heatingTemperatureSetpoints?(model)
+      setpoints = TBD.coolingTemperatureSetpoints?(model) || setpoints
+      expect(model.getConstructions.empty?).to be( true)
+      expect(setpoints                    ).to be(false)
+      expect(loops                        ).to be(false)
+
+      json      = TBD.process(model, argh)
+      expect(json.is_a?(Hash)    ).to be( true)
+      expect(json.key?(:io      )).to be( true)
+      expect(json.key?(:surfaces)).to be( true)
+      io        = json[:io      ]
+      surfaces  = json[:surfaces]
+      expect(surfaces.nil?       ).to be(false)
+      expect(surfaces.is_a?(Hash)).to be( true)
+      expect(surfaces.size       ).to eq(   18)
+      expect(TBD.error?          ).to be( true)
+      expect(TBD.logs.empty?     ).to be(false)
+
+      TBD.logs.each do |log|
+        msg     = log[:message]
+        invalid = msg.include?("missing") || msg.include?("layer?")
+        expect(invalid).to be(true)
+      end
+
+      expect(io.nil?             ).to be(false)
+      expect(io.is_a?(Hash)      ).to be( true)
+      expect(io.empty?           ).to be(false)
+      expect(io.key?(:edges     )).to be(false)
+
+      surfaces.values.each do |surface|
+        expect(surface.is_a?(Hash)        ).to be( true)
+        expect(surface.key?(:space       )).to be( true)
+        expect(surface.key?(:stype       )).to be( true) # spacetype
+        expect(surface.key?(:conditioned )).to be( true)
+        expect(surface.key?(:deratable   )).to be( true)
+        expect(surface.key?(:construction)).to be(false)
+
+        expect(surface[:conditioned      ]).to be( true)
+        expect(surface[:deratable        ]).to be(false)
+      end
+
+      # Fetch 1x attic floor.
+      id    = "attic-floor-dinning"
+      expect(surfaces.key?(id)         ).to be( true)
+      attic = surfaces[id][:space]
+      expect(attic.partofTotalFloorArea).to be(false)
+      expect(attic.thermalZone.empty?  ).to be(false)
+      zone  = attic.thermalZone.get
+      expect(zone.isPlenum             ).to be(false)
+
+      heat = TBD.maxHeatScheduledSetpoint(zone)
+      cool = TBD.minCoolScheduledSetpoint(zone)
+
+      expect(heat.nil?       ).to be(false)
+      expect(cool.nil?       ).to be(false)
+      expect(heat.is_a?(Hash)).to be( true)
+      expect(cool.is_a?(Hash)).to be( true)
+      expect(heat.key?(:spt )).to be( true)
+      expect(cool.key?(:spt )).to be( true)
+      expect(heat.key?(:dual)).to be( true)
+      expect(cool.key?(:dual)).to be( true)
+      expect(heat[:spt ].nil?).to be( true)
+      expect(cool[:spt ].nil?).to be( true)
+      expect(heat[:dual]     ).to be(false)
+      expect(cool[:dual]     ).to be(false)
+
+      # If the model were to have valid HVAC air loops, yet missing heating or
+      # cooling setpoint temperatures, TBD would recognize unoccupied spaces as
+      # plenums STRICTLY based on OpenStudio's isPlenum method. In absence of:
+      #   - valid heating or cooling setpoint temperatures
+      #   - valid HVAC air loops
+      # TBD instead recognizes ALL spaces in a model as conditioned - without
+      # making distiguishing plenums from occupied spaces.
+      expect(TBD.plenum?(attic, loops, setpoints)).to be(false)
+
+      # Check outdoor-facing roof surface of "conditioned" unoccupied space.
+      model.getSurfaces.each do |s|
+        next unless s.surfaceType == "RoofCeiling"
+        next unless s.outsideBoundaryCondition == "Outdoors"
+
+        nom = s.nameString
+        expect(surfaces.key?(nom)).to be(true)
+        expect(surfaces[nom].key?(:conditioned)).to be(true)
+        expect(surfaces[nom][:conditioned]).to be(true)
+      end
+
+      # One could also replace the "attic" space type with "plenum", but this
+      # would be somewhat benign (as ALL spaces are conditioned in this case).
+      attic  = model.getSpaceByName("attic")
+      expect(attic.empty?).to be(false)
+      attic  = attic.get
+      sptype = attic.spaceType
+      expect(sptype.empty?).to be(false)
+      sptype.get.setName("plenum")
+      expect(TBD.plenum?(attic, loops, setpoints)).to be(true) # now a plenum
+
+
+      # -- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- -- #
+      TBD.clean!
+      argh                = {}
+      argh[:option      ] = "efficient (BETBG)"
+      argh[:uprate_roofs] = true
+      argh[:roof_option ] = "ALL roof constructions"
+      argh[:roof_ut     ] = 0.138               # NECB CZ7 2017 (RSi 7.25 / R41)
+
+      # A more developed 'FullServiceRestaurant' model (midway BTAP generation):
+      #   - constructions: YES
+      #   - setpoints    : YES
+      #   - HVAC         : NO
+      file  = File.join(__dir__, "files/osms/in/resto2.osm")
+      path  = OpenStudio::Path.new(file)
+      model = tr.loadModel(path)
+      expect(model.empty?).to be(false)
+      model = model.get
+
+      # BTAP-set (interior) ceiling constructions (i.e. attic/plenum floors) are
+      # characteristic of occupied floors (e.g. carpet over 4" concrete slab).
+      # Clone/assign insulated roof construction to plenum/attic floors.
+      set = model.getBuilding.defaultConstructionSet
+      expect(set.empty?).to be(false)
+      set = set.get
+      interiors = set.defaultInteriorSurfaceConstructions
+      exteriors = set.defaultExteriorSurfaceConstructions
+      expect(interiors.empty?).to be(false)
+      expect(exteriors.empty?).to be(false)
+      interiors = interiors.get
+      exteriors = exteriors.get
+      roofs     = exteriors.roofCeilingConstruction
+      expect(roofs.empty?).to be(false)
+      roofs     = roofs.get
+      insulated = roofs.clone(model).to_LayeredConstruction
+      expect(insulated.empty?).to be(false)
+      insulated = insulated.get
+      insulated.setName("Insulated Attic Floors")
+      expect(interiors.setRoofCeilingConstruction(insulated)).to be(true)
+
+      # Validate re-assignment via individual attic floor surfaces.
+      construction = nil
+      ceilings     = []
+
+      model.getSurfaces.each do |s|
+        next unless s.surfaceType == "RoofCeiling"
+        next unless s.outsideBoundaryCondition == "Surface"
+
+        ceilings << s.nameString
+        c = s.construction
+        expect(c.empty?).to be(false)
+        c = c.get.to_LayeredConstruction
+        expect(c.empty?).to be(false)
+        c = c.get
+        expect(TBD.rsi(c, s.filmResistance)).to be_within(TOL).of(6.38)
+        construction = c if construction.nil?
+        expect(c).to eq(construction)
+      end
+
+      expect(construction            ).to eq(insulated)
+      expect(construction.getNetArea ).to be_within(TOL).of(511.15)
+      expect(ceilings.size           ).to eq(2)
+      expect(construction.layers.size).to eq(2)
+      expect(construction.nameString ).to eq("Insulated Attic Floors")
+
+      loops     = TBD.airLoopsHVAC?(model)
+      setpoints = TBD.heatingTemperatureSetpoints?(model)
+      setpoints = TBD.coolingTemperatureSetpoints?(model) || setpoints
+      expect(model.getConstructions.empty?).to be(false)
+
+      expect(setpoints).to be( true)
+      expect(loops    ).to be(false)
+
+      attic = model.getSpaceByName("attic")
+      expect(attic.empty?              ).to be(false)
+      attic = attic.get
+      expect(attic.partofTotalFloorArea).to be(false)
+      expect(attic.thermalZone.empty?  ).to be(false)
+      zone  = attic.thermalZone.get
+      expect(zone.isPlenum             ).to be(false)
+      tstat = zone.thermostat
+      expect(tstat.empty?              ).to be(false)
+      tstat = tstat.get
+      expect(tstat.to_ThermostatSetpointDualSetpoint.empty?).to be(false)
+      tstat = tstat.to_ThermostatSetpointDualSetpoint.get
+
+      expect(tstat.getHeatingSchedule.empty?).to be(true)
+      expect(tstat.getCoolingSchedule.empty?).to be(true)
+
+      heat = TBD.maxHeatScheduledSetpoint(zone)
+      cool = TBD.minCoolScheduledSetpoint(zone)
+
+      expect(heat.nil?       ).to be(false)
+      expect(cool.nil?       ).to be(false)
+      expect(heat.is_a?(Hash)).to be( true)
+      expect(cool.is_a?(Hash)).to be( true)
+      expect(heat.key?(:spt )).to be( true)
+      expect(cool.key?(:spt )).to be( true)
+      expect(heat.key?(:dual)).to be( true)
+      expect(cool.key?(:dual)).to be( true)
+      expect(heat[:spt ].nil?).to be( true)
+      expect(cool[:spt ].nil?).to be( true)
+      expect(heat[:dual]     ).to be(false)
+      expect(cool[:dual]     ).to be(false)
+      expect(TBD.plenum?(attic, loops, setpoints)).to be(false)
+      # The unoccupied space does not reference valid heating and/or cooling
+      # temperature setpoint objects, and is therefore considered unconditioned.
+      # Save for next iteration.
+      file = File.join(__dir__, "files/osms/out/resto2a.osm")
+      model.save(file, true)
+
+      json      = TBD.process(model, argh)
+      expect(json.is_a?(Hash)    ).to be( true)
+      expect(json.key?(:io      )).to be( true)
+      expect(json.key?(:surfaces)).to be( true)
+      io        = json[:io      ]
+      surfaces  = json[:surfaces]
+      expect(TBD.error?          ).to be(false)
+      expect(surfaces.nil?       ).to be(false)
+      expect(surfaces.is_a?(Hash)).to be( true)
+      expect(surfaces.size       ).to eq(   18)
+      expect(io.nil?             ).to be(false)
+      expect(io.is_a?(Hash)      ).to be( true)
+      expect(io.empty?           ).to be(false)
+      expect(io.key?(:edges     )).to be( true)
+
+      expect(argh.key?(:wall_uo)).to be(false)
+      expect(argh.key?(:roof_uo)).to be( true)
+      expect(argh[:roof_uo]     ).to be_within(TOL).of(0.119)
+
+      # Validate ceiling surfaces (both insulated & uninsulated).
+      ua = 0.0
+      a  = 0.0
+
+      surfaces.each do |nom, surface|
+        expect(surface.is_a?(Hash)        ).to be(true)
+        expect(surface.key?(:conditioned )).to be(true)
+        expect(surface.key?(:deratable   )).to be(true)
+        expect(surface.key?(:construction)).to be(true)
+        expect(surface.key?(:ground      )).to be(true)
+        expect(surface.key?(:type        )).to be(true)
+
+        next     if surface[:ground]
+        next unless surface[:type  ] == :ceiling
+
+        # Sloped attic roof surfaces ignored by TBD.
+        id = surface[:construction].nameString
+        expect(nom.include?("-roof")   ).to be( true) unless surface[:deratable]
+        expect(id.include?("BTAP-Ext-")).to be( true) unless surface[:deratable]
+        expect(surface[:conditioned]   ).to be(false) unless surface[:deratable]
+
+        next unless surface[:deratable]
+        next unless surface.key?(:heatloss)
+
+        # Leaves only insulated attic ceilings.
+        expect(id).to eq("Insulated Attic Floors") # original construction
+        s = model.getSurfaceByName(nom)
+        expect(s.empty?).to be(false)
+        s = s.get
+        c = s.construction
+        expect(c.empty?).to be(false)
+        c = c.get.to_LayeredConstruction
+        expect(c.empty?).to be(false)
+        c = c.get
+        expect(c.nameString.include?("c tbd")).to be(true) # TBD-derated
+        a  += surface[:net]
+        ua += 1 / TBD.rsi(c, s.filmResistance) * surface[:net]
+      end
+
+      expect(ua / a).to be_within(TOL).of(argh[:roof_ut])
+
+
+      # -- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- -- #
+      TBD.clean!
+      argh  = { option: "code (Quebec)" }
+
+      # Altered model from previous iteration, yet no uprating this round.
+      #   - constructions: YES
+      #   - setpoints    : YES
+      #   - HVAC         : NO
+      file  = File.join(__dir__, "files/osms/out/resto2a.osm")
+      path  = OpenStudio::Path.new(file)
+      model = tr.loadModel(path)
+      expect(model.empty?).to be(false)
+      model = model.get
+
+      loops     = TBD.airLoopsHVAC?(model)
+      setpoints = TBD.heatingTemperatureSetpoints?(model)
+      setpoints = TBD.coolingTemperatureSetpoints?(model) || setpoints
+      expect(model.getConstructions.empty?).to be(false)
+
+      expect(setpoints).to be( true)
+      expect(loops    ).to be(false)
+
+      # In this iteration, ensure the unoccupied space is considered as an
+      # attic, instead of a indirectly conditioned plenum, by temporarily adding
+      # a heating dual setpoint schedule object to the attic zone thermostat
+      # (yet without valid scheduled temperatures).
+      attic = model.getSpaceByName("attic")
+      expect(attic.empty?              ).to be(false)
+      attic = attic.get
+      expect(attic.partofTotalFloorArea).to be(false)
+      expect(attic.thermalZone.empty?  ).to be(false)
+      zone  = attic.thermalZone.get
+      expect(zone.isPlenum             ).to be(false)
+      tstat = zone.thermostat
+      expect(tstat.empty?              ).to be(false)
+      tstat = tstat.get
+
+      expect(tstat.to_ThermostatSetpointDualSetpoint.empty?).to be(false)
+      tstat = tstat.to_ThermostatSetpointDualSetpoint.get
+
+      # Before the addition.
+      expect(tstat.getHeatingSchedule.empty?).to be(true)
+      expect(tstat.getCoolingSchedule.empty?).to be(true)
+
+      heat = TBD.maxHeatScheduledSetpoint(zone)
+      cool = TBD.minCoolScheduledSetpoint(zone)
+
+      expect(heat.nil?       ).to be(false)
+      expect(cool.nil?       ).to be(false)
+      expect(heat.is_a?(Hash)).to be( true)
+      expect(cool.is_a?(Hash)).to be( true)
+      expect(heat.key?(:spt )).to be( true)
+      expect(cool.key?(:spt )).to be( true)
+      expect(heat.key?(:dual)).to be( true)
+      expect(cool.key?(:dual)).to be( true)
+      expect(heat[:spt ].nil?).to be( true)
+      expect(cool[:spt ].nil?).to be( true)
+      expect(heat[:dual]     ).to be(false)
+      expect(cool[:dual]     ).to be(false)
+
+      expect(TBD.plenum?(attic, loops, setpoints)).to be(false)
+
+      # Add a dual setpoint temperature schedule.
+      identifier = "TEMPORARY attic setpoint schedule"
+      sched = OpenStudio::Model::ScheduleCompact.new(model)
+      sched.setName(identifier)
+      expect(sched.constantValue.empty?                        ).to be(true)
+      expect(tstat.setHeatingSetpointTemperatureSchedule(sched)).to be(true)
+
+      # After the addition.
+      expect(tstat.getHeatingSchedule.empty?).to be(false)
+      expect(tstat.getCoolingSchedule.empty?).to be( true)
+      heat = TBD.maxHeatScheduledSetpoint(zone)
+
+      expect(heat.nil?       ).to be(false)
+      expect(heat.is_a?(Hash)).to be( true)
+      expect(heat.key?(:spt )).to be( true)
+      expect(heat.key?(:dual)).to be( true)
+      expect(heat[:spt ].nil?).to be( true)
+      expect(heat[:dual]     ).to be( true)
+
+      expect(TBD.plenum?(attic, loops, setpoints)).to be(true) # works ...
+
+      json      = TBD.process(model, argh)
+      expect(json.is_a?(Hash)    ).to be( true)
+      expect(json.key?(:io      )).to be( true)
+      expect(json.key?(:surfaces)).to be( true)
+      io        = json[:io      ]
+      surfaces  = json[:surfaces]
+      expect(TBD.error?          ).to be( true)
+      expect(TBD.logs.empty?     ).to be(false)
+
+      # The incomplete (temporary) schedule triggers a non-FATAL TBD error.
+      TBD.logs.each do |log|
+        expect(log[:message].include?("Empty '"                 )).to be(true)
+        expect(log[:message].include?("::scheduleCompactMinMax)")).to be(true)
+      end
+
+      expect(surfaces.nil?       ).to be(false)
+      expect(surfaces.is_a?(Hash)).to be( true)
+      expect(surfaces.size       ).to eq(   18)
+      expect(io.nil?             ).to be(false)
+      expect(io.is_a?(Hash)      ).to be( true)
+      expect(io.empty?           ).to be(false)
+      expect(io.key?(:edges     )).to be( true)
+
+      surfaces.each do |nom, surface|
+        expect(surface.is_a?(Hash)        ).to be(true)
+        expect(surface.key?(:conditioned )).to be(true)
+        expect(surface.key?(:deratable   )).to be(true)
+        expect(surface.key?(:construction)).to be(true)
+        expect(surface.key?(:ground      )).to be(true)
+        expect(surface.key?(:type        )).to be(true)
+
+        next     if surface[:ground]
+        next unless surface[:type  ] == :ceiling
+
+        # Sloped attic roof surfaces no longer ignored by TBD.
+        id = surface[:construction].nameString
+        expect(nom.include?("-roof")   ).to be( true)     if surface[:deratable]
+        expect(id.include?("BTAP-Ext-")).to be( true)     if surface[:deratable]
+        expect(surface[:conditioned]   ).to be( true)     if surface[:deratable]
+        expect(nom.include?("_Ceiling")).to be( true) unless surface[:deratable]
+        expect(surface[:conditioned]   ).to be( true) unless surface[:deratable]
+
+        next unless surface[:deratable]
+        next unless surface.key?(:heatloss)
+
+        # Leaves only insulated attic ceilings.
+        expect(id).to eq("BTAP-Ext-Roof-Metal:U-0.162") # original construction
+        s = model.getSurfaceByName(nom)
+        expect(s.empty?).to be(false)
+        s = s.get
+        c = s.construction
+        expect(c.empty?).to be(false)
+        c = c.get.to_LayeredConstruction
+        expect(c.empty?).to be(false)
+        c = c.get
+        expect(c.nameString.include?("c tbd")).to be(true) # TBD-derated
+      end
+
+      # Once done, ensure temporary schedule is dissociated from the thermostat
+      # and deleted from the model.
+      tstat.resetHeatingSetpointTemperatureSchedule
+      expect(tstat.getHeatingSchedule.empty?).to be(true)
+
+      sched2 = model.getScheduleByName(identifier)
+      expect(sched2.empty?   ).to be(false)
+      sched.remove
+      sched2 = model.getScheduleByName(identifier)
+      expect(sched2.empty?   ).to be( true)
+      heat   = TBD.maxHeatScheduledSetpoint(zone)
+      expect(heat.nil?       ).to be(false)
+      expect(heat.is_a?(Hash)).to be( true)
+      expect(heat.key?(:spt )).to be( true)
+      expect(heat.key?(:dual)).to be( true)
+      expect(heat[:spt ].nil?).to be( true)
+      expect(heat[:dual]     ).to be(false)
+
+      expect(TBD.plenum?(attic, loops, setpoints)).to be(false) # as before ...
+
+
+      # -- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- -- #
+      TBD.clean!
+      argh                = {}
+      argh[:option      ] = "efficient (BETBG)"
+      argh[:uprate_walls] = true
+      argh[:uprate_roofs] = true
+      argh[:wall_option ] = "ALL wall constructions"
+      argh[:roof_option ] = "ALL roof constructions"
+      argh[:wall_ut     ] = 0.210               # NECB CZ7 2017 (RSi 4.76 / R27)
+      argh[:roof_ut     ] = 0.138               # NECB CZ7 2017 (RSi 7.25 / R41)
+
+      # Same, altered model from previous iteration (yet to uprate):
+      #   - constructions: YES
+      #   - setpoints    : YES
+      #   - HVAC         : NO
+      file  = File.join(__dir__, "files/osms/out/resto2a.osm")
+      path  = OpenStudio::Path.new(file)
+      model = tr.loadModel(path)
+      expect(model.empty?).to be(false)
+      model = model.get
+
+      loops     = TBD.airLoopsHVAC?(model)
+      setpoints = TBD.heatingTemperatureSetpoints?(model)
+      setpoints = TBD.coolingTemperatureSetpoints?(model) || setpoints
+      expect(model.getConstructions.empty?).to be(false)
+
+      expect(setpoints).to be( true)
+      expect(loops    ).to be(false)
+
+      # Get geometry data for testing (4x exterior roofs, same construction).
+      id           = "BTAP-Ext-Roof-Metal:U-0.162"
+      construction = nil
+      roofs        = []
+
+      model.getSurfaces.each do |s|
+        next unless s.surfaceType == "RoofCeiling"
+        next unless s.outsideBoundaryCondition == "Outdoors"
+
+        roofs << s.nameString
+        c = s.construction
+        expect(c.empty?).to be(false)
+        c = c.get.to_LayeredConstruction
+        expect(c.empty?).to be(false)
+        c = c.get
+        construction = c if construction.nil?
+        expect(c).to eq(construction)
+      end
+
+      expect(construction.getNetArea ).to be_within(TOL).of(569.51)
+      expect(roofs.size              ).to eq( 4)
+      expect(construction.nameString ).to eq(id)
+      expect(construction.layers.size).to eq( 2)
+
+      insulation = construction.layers[1].to_MasslessOpaqueMaterial
+      expect(insulation.empty?).to be(false)
+      insulation = insulation.get
+      original_r = insulation.thermalResistance
+      expect(original_r).to be_within(TOL).of(6.17)
+
+      # No point here in replacing attic space type with "plenum" - last resort
+      # check, ignored here by TBD as there are valid setpoints set elsewhere in
+      # the model. Instead, temporarily add a heating dual setpoint schedule to
+      # the attic zone thermostat (yet without valid schedule temperatures).
+      attic = model.getSpaceByName("attic")
+      expect(attic.empty?              ).to be(false)
+      attic = attic.get
+      expect(attic.partofTotalFloorArea).to be(false)
+      expect(attic.thermalZone.empty?  ).to be(false)
+      zone  = attic.thermalZone.get
+      expect(zone.isPlenum             ).to be(false)
+      tstat = zone.thermostat
+      expect(tstat.empty?              ).to be(false)
+      tstat = tstat.get
+
+      expect(tstat.to_ThermostatSetpointDualSetpoint.empty?).to be(false)
+      tstat = tstat.to_ThermostatSetpointDualSetpoint.get
+
+      # Before the addition.
+      expect(tstat.getHeatingSchedule.empty?).to be(true)
+      expect(tstat.getCoolingSchedule.empty?).to be(true)
+
+      heat = TBD.maxHeatScheduledSetpoint(zone)
+      cool = TBD.minCoolScheduledSetpoint(zone)
+
+      expect(heat.nil?       ).to be(false)
+      expect(cool.nil?       ).to be(false)
+      expect(heat.is_a?(Hash)).to be( true)
+      expect(cool.is_a?(Hash)).to be( true)
+      expect(heat.key?(:spt )).to be( true)
+      expect(cool.key?(:spt )).to be( true)
+      expect(heat.key?(:dual)).to be( true)
+      expect(cool.key?(:dual)).to be( true)
+      expect(heat[:spt ].nil?).to be( true)
+      expect(cool[:spt ].nil?).to be( true)
+      expect(heat[:dual]     ).to be(false)
+      expect(cool[:dual]     ).to be(false)
+
+      expect(TBD.plenum?(attic, loops, setpoints)).to be(false)
+
+      # Add a dual setpoint temperature schedule.
+      identifier = "TEMPORARY attic setpoint schedule"
+      sched = OpenStudio::Model::ScheduleCompact.new(model)
+      sched.setName(identifier)
+      expect(sched.constantValue.empty?                        ).to be(true)
+      expect(tstat.setHeatingSetpointTemperatureSchedule(sched)).to be(true)
+
+      # After the addition.
+      expect(tstat.getHeatingSchedule.empty?).to be(false)
+      expect(tstat.getCoolingSchedule.empty?).to be( true)
+      heat = TBD.maxHeatScheduledSetpoint(zone)
+
+      expect(heat.nil?       ).to be(false)
+      expect(heat.is_a?(Hash)).to be( true)
+      expect(heat.key?(:spt )).to be( true)
+      expect(heat.key?(:dual)).to be( true)
+      expect(heat[:spt ].nil?).to be( true)
+      expect(heat[:dual]     ).to be( true)
+
+      expect(TBD.plenum?(attic, loops, setpoints)).to be(true) # works ...
+
+      json      = TBD.process(model, argh)
+      expect(json.is_a?(Hash)    ).to be( true)
+      expect(json.key?(:io      )).to be( true)
+      expect(json.key?(:surfaces)).to be( true)
+      io        = json[:io      ]
+      surfaces  = json[:surfaces]
+      expect(TBD.error?          ).to be( true)
+      expect(TBD.logs.empty?     ).to be(false)
+
+      # The incomplete (temporary) schedule triggers a non-FATAL TBD error.
+      TBD.logs.each do |log|
+        expect(log[:message].include?("Empty '"                 )).to be(true)
+        expect(log[:message].include?("::scheduleCompactMinMax)")).to be(true)
+      end
+
+      expect(argh.key?(:wall_uo)).to be(true)
+      expect(argh.key?(:roof_uo)).to be(true)
+      expect(argh[:roof_uo]).to be_within(TOL).of(0.120) # RSi  8.3 ( R47)
+      expect(argh[:wall_uo]).to be_within(TOL).of(0.012) # RSi 83.3 (R473)
+
+      # Validate ceiling surfaces (both insulated & uninsulated).
+      ua   = 0.0
+      a    = 0
+      area = 0
+
+      surfaces.each do |nom, surface|
+        expect(surface.is_a?(Hash)        ).to be(true)
+        expect(surface.key?(:conditioned )).to be(true)
+        expect(surface.key?(:deratable   )).to be(true)
+        expect(surface.key?(:construction)).to be(true)
+        expect(surface.key?(:ground      )).to be(true)
+        expect(surface.key?(:type        )).to be(true)
+
+        next     if surface[:ground]
+        next unless surface[:type  ] == :ceiling
+
+        # Sloped plenum roof surfaces no longer ignored by TBD.
+        id = surface[:construction].nameString
+        expect(nom.include?("-roof")   ).to be( true)     if surface[:deratable]
+        expect(id.include?("BTAP-Ext-")).to be( true)     if surface[:deratable]
+        expect(surface[:conditioned]   ).to be( true)     if surface[:deratable]
+        expect(nom.include?("_Ceiling")).to be( true) unless surface[:deratable]
+        expect(surface[:conditioned]   ).to be( true) unless surface[:deratable]
+
+        next unless surface[:deratable]
+        next unless surface.key?(:heatloss)
+
+        # Leaves only insulated plenum roof surfaces.
+        expect(id).to eq("BTAP-Ext-Roof-Metal:U-0.162") # original construction
+        s = model.getSurfaceByName(nom)
+        expect(s.empty?).to be(false)
+        s = s.get
+        c = s.construction
+        expect(c.empty?).to be(false)
+        c = c.get.to_LayeredConstruction
+        expect(c.empty?).to be(false)
+        c = c.get
+        expect(c.nameString.include?("c tbd")).to be(true) # TBD-derated
+        a  += surface[:net]
+        ua += 1 / TBD.rsi(c, s.filmResistance) * surface[:net]
+      end
+
+      expect(ua / a).to be_within(TOL).of(argh[:roof_ut])
+
+      roofs.each do |roof|
+        expect(surfaces.key?(roof)            ).to be(true)
+        expect(surfaces[roof].key?(:deratable)).to be(true)
+        expect(surfaces[roof].key?(:edges    )).to be(true)
+        expect(surfaces[roof][:deratable]     ).to be(true)
+
+        surfaces[roof][:edges].values.each do |edge|
+          expect(edge.key?(:psi   )).to be(true)
+          expect(edge.key?(:length)).to be(true)
+          expect(edge.key?(:ratio )).to be(true)
+          expect(edge.key?(:type  )).to be(true)
+          next if edge[:type] == :transition
+
+          expect(edge[:ratio]).to be_within(TOL).of(0.579)
+          expect(edge[:psi  ]).to be_within(TOL).of(0.200 * edge[:ratio])
+        end
+
+        loss = 22.61 * 0.200 * 0.579
+        expect(surfaces[roof].key?(:heatloss)).to be(true)
+        expect(surfaces[roof].key?(:net     )).to be(true)
+        expect(surfaces[roof][:heatloss]     ).to be_within(TOL).of(loss)
+        area += surfaces[roof][:net]
+      end
+
+      expect(area).to be_within(TOL).of(569.50)
+    end
+  end
 end

@@ -39,13 +39,14 @@ module TBD
     cl1 = OpenStudio::Model::Model
     cl2 = OpenStudio::Model::LayeredConstruction
     cl3 = Numeric
+    cl4 = String
 
-    return mismatch("model", model, cl1, mth, DBG, res)  unless model.is_a?(cl1)
-    return mismatch("id", id, String, mth, DBG, res)     unless id.is_a?(String)
-    return mismatch("lc", lc, cl2, mth, DBG, res)        unless lc.is_a?(cl2)
-    return mismatch("hloss", hloss, cl3, mth, DBG, res)  unless hloss.is_a?(cl3)
-    return mismatch("film", film, cl3, mth, DBG, res)    unless film.is_a?(cl3)
-    return mismatch("Ut", ut, cl3, mth, DBG, res)        unless ut.is_a?(cl3)
+    return mismatch("model", model, cl1, mth, DBG, res) unless model.is_a?(cl1)
+    return mismatch("id"   ,    id, cl4, mth, DBG, res) unless id.is_a?(cl4)
+    return mismatch("lc"   ,    lc, cl2, mth, DBG, res) unless lc.is_a?(cl2)
+    return mismatch("hloss", hloss, cl3, mth, DBG, res) unless hloss.is_a?(cl3)
+    return mismatch("film" ,  film, cl3, mth, DBG, res) unless film.is_a?(cl3)
+    return mismatch("Ut"   ,    ut, cl3, mth, DBG, res) unless ut.is_a?(cl3)
 
     loss        = 0.0                   # residual heatloss (not assigned) [W/K]
     area        = lc.getNetArea
@@ -54,12 +55,12 @@ module TBD
     lyr[:index] = nil unless lyr[:index] >= 0
     lyr[:index] = nil unless lyr[:index] < lc.layers.size
 
-    return invalid("'#{id}' layer index", mth, 0, ERR, res)   unless lyr[:index]
-    return zero("'#{id}': heatloss", mth, WRN, res)           unless hloss > TOL
-    return zero("'#{id}': films", mth, WRN, res)              unless film > TOL
-    return zero("'#{id}': Ut", mth, WRN, res)                 unless ut > TOL
-    return invalid("'#{id}': Ut", mth, 0, WRN, res)           unless ut < 5.678
-    return zero("'#{id}': net area (m2)", mth, ERR, res)      unless area > TOL
+    return invalid("'#{id}' layer index", mth, 0, ERR, res) unless lyr[:index]
+    return zero("'#{id}': heatloss"     , mth,    WRN, res) unless hloss > TOL
+    return zero("'#{id}': films"        , mth,    WRN, res) unless film  > TOL
+    return zero("'#{id}': Ut"           , mth,    WRN, res) unless ut    > TOL
+    return invalid("'#{id}': Ut"        , mth, 0, WRN, res) unless ut    < 5.678
+    return zero("'#{id}': net area (m2)", mth,    ERR, res) unless area  > TOL
 
     # First, calculate initial layer RSi to initially meet Ut target.
     rt     = 1 / ut                      #                target construction Rt
@@ -76,7 +77,7 @@ module TBD
 
     if lyr[:type] == :massless
       m     = lc.getLayer(lyr[:index]).to_MasslessOpaqueMaterial
-      return  invalid("'#{id}' massless layer?", mth, 0)             if m.empty?
+      return  invalid("'#{id}' massless layer?", mth, 0, DBG, res)   if m.empty?
 
       m     = m.get.clone(model).to_MasslessOpaqueMaterial.get
               m.setName("#{id} uprated")
@@ -85,7 +86,7 @@ module TBD
               m.setThermalResistance(new_r)
     else # type == :standard
       m     = lc.getLayer(lyr[:index]).to_StandardOpaqueMaterial
-      return  invalid("'#{id}' standard layer?", mth, 0)             if m.empty?
+      return  invalid("'#{id}' standard layer?", mth, 0, DBG, res)   if m.empty?
 
       m     = m.get.clone(model).to_StandardOpaqueMaterial.get
               m.setName("#{id} uprated")
@@ -141,11 +142,12 @@ module TBD
     mth = "TBD::#{__callee__}"
     cl1 = OpenStudio::Model::Model
     cl2 = Hash
+    cl3 = OpenStudio::Model::LayeredConstruction
     a   = false
 
-    return mismatch("model", model, cl1, mth, DBG, a)    unless model.is_a?(cl1)
-    return mismatch("surfaces", s, cl2, mth, DBG, a)     unless s.is_a?(cl2)
-    return mismatch("argh", model, cl1, mth, DBG, a)     unless argh.is_a?(cl2)
+    return mismatch("model"   , model, cl1, mth, DBG, a) unless model.is_a?(cl1)
+    return mismatch("surfaces",     s, cl2, mth, DBG, a) unless s.is_a?(cl2)
+    return mismatch("argh"    , model, cl1, mth, DBG, a) unless argh.is_a?(cl2)
 
     argh[:uprate_walls ] = false unless argh.key?(:uprate_walls )
     argh[:uprate_roofs ] = false unless argh.key?(:uprate_roofs )
@@ -168,11 +170,13 @@ module TBD
     groups[:roof ][:op] = argh[:roof_option  ]
     groups[:floor][:op] = argh[:floor_option ]
 
-    groups.each do |label, g|
+    groups.each do |type, g|
       next unless g[:up]
       next unless g[:ut].is_a?(Numeric)
       next unless g[:ut] < 5.678
 
+      typ  = type
+      typ  = :ceiling if typ == :roof # fix in future revision. TO-DO.
       coll = {}
       area = 0
       film = 100000000000000
@@ -183,86 +187,81 @@ module TBD
              g[:op].downcase == "all floor constructions"
 
       if g[:op].empty?
-        log(ERR, "Construction to uprate? (#{mth})")
+        log(ERR, "Construction (#{type}) to uprate? (#{mth})")
       elsif all
-        model.getSurfaces.each do |sss|
-          next unless sss.surfaceType.downcase.include?(label.to_s)
-          next unless sss.outsideBoundaryCondition.downcase == "outdoors"
-          next     if sss.construction.empty?
-          next     if sss.construction.get.to_LayeredConstruction.empty?
+        s.each do |nom, surface|
+          next unless surface.key?(:deratable   )
+          next unless surface.key?(:type        )
+          next unless surface.key?(:construction)
+          next unless surface.key?(:filmRSI     )
+          next unless surface.key?(:index       )
+          next unless surface.key?(:ltype       )
+          next unless surface.key?(:r           )
+          next unless surface[:deratable   ]
+          next unless surface[:type        ] == typ
+          next unless surface[:construction].is_a?(cl3)
+          next     if surface[:index       ].nil?
 
-          c         = sss.construction.get.to_LayeredConstruction.get
-          i         = c.nameString
+          # Retain lowest surface film resistance (e.g. tilted surfaces).
+          c    = surface[:construction]
+          i    = c.nameString
+          aire = c.getNetArea
+          film = surface[:filmRSI] if surface[:filmRSI] < film
 
-          # Reliable unless referenced by other surface types e.g. floor vs wall.
-          if c.getNetArea > area
-            area = c.getNetArea
+          # Retain construction covering largest area. The following conditional
+          # is reliable UNLESS linked to other deratable surface types e.g. both
+          # floors AND walls (see "elsif lc" corrections below).
+          if aire > area
             lc   = c
+            area = aire
             id   = i
           end
 
-          film    = sss.filmResistance if sss.filmResistance < film
-          nom     = sss.nameString
-          coll[i] = { area: c.getNetArea, lc: c, s: {} } unless coll.key?(i)
-          coll[i][:s][nom] = { a: sss.netArea } unless coll[i][:s].key?(nom)
+          coll[i]          = { area: aire, lc: c, s: {} } unless coll.key?(i)
+          coll[i][:s][nom] = { a: surface[:net] }  unless coll[i][:s].key?(nom)
         end
       else
         id = g[:op]
-        c  = model.getConstructionByName(id)
+        lc = model.getConstructionByName(id)
+        log(ERR, "Construction '#{id}'? (#{mth})")         if lc.empty?
+        next                                               if lc.empty?
 
-        if c.empty?
-          log(ERR, "Construction '#{id}'? (#{mth})")
-        else
-          c  = c.get.to_LayeredConstruction
+        lc = lc.get.to_LayeredConstruction
+        log(ERR, "'#{id}' layered construction? (#{mth})") if lc.empty?
+        next                                               if lc.empty?
 
-          if c.empty?
-            log(ERR, "'#{id}' layered construction? (#{mth})")
-          else
-            lc       = c.get
-            area     = lc.getNetArea
-            coll[id] = { area: area, lc: lc, s: {} }
+        lc       = lc.get
+        area     = lc.getNetArea
+        coll[id] = { area: area, lc: lc, s: {} }
 
-            model.getSurfaces.each do |sss|
-              next unless sss.surfaceType.downcase.include?(label.to_s)
-              next unless sss.outsideBoundaryCondition.downcase == "outdoors"
-              next     if sss.construction.empty?
-              next     if sss.construction.get.to_LayeredConstruction.empty?
-              lc   = sss.construction.get.to_LayeredConstruction.get
-              next unless id == lc.nameString
-              nom  = sss.nameString
-              film = sss.filmResistance if sss.filmResistance < film
-              ok   = coll[id][:s].key?(nom)
-              coll[id][:s][nom] = { a: sss.netArea } unless ok
-            end
-          end
+        s.each do |nom, surface|
+          next unless surface.key?(:deratable   )
+          next unless surface.key?(:type        )
+          next unless surface.key?(:construction)
+          next unless surface.key?(:filmRSI     )
+          next unless surface.key?(:index       )
+          next unless surface.key?(:ltype       )
+          next unless surface.key?(:r           )
+          next unless surface[:deratable   ]
+          next unless surface[:type        ] == typ
+          next unless surface[:construction].is_a?(cl3)
+          next     if surface[:index       ].nil?
+
+          i = surface[:construction].nameString
+          next unless i == id
+
+          # Retain lowest surface film resistance (e.g. tilted surfaces).
+          film = surface[:filmRSI] if surface[:filmRSI] < film
+
+          coll[i][:s][nom] = { a: surface[:net] } unless coll[i][:s].key?(nom)
         end
       end
 
       if coll.empty?
-        log(ERR, "No #{label} construction to uprate - skipping (#{mth})")
+        log(ERR, "No #{type} construction to uprate - skipping (#{mth})")
         next
-      elsif lc                    # valid layered construction - good to uprate!
-        # Ensure lc is referenced by surface types == label.
-        model.getSurfaces.each do |sss|
-          next if sss.construction.empty?
-          next if sss.construction.get.to_LayeredConstruction.empty?
-          c = sss.construction.get.to_LayeredConstruction.get
-          i = c.nameString
-          next unless coll.key?(i)
-
-          unless sss.surfaceType.downcase.include?(label.to_s)
-            log(ERR, "Uprating #{label.to_s}, not '#{sss.nameString}' (#{mth})")
-            cloned = c.clone(model).to_LayeredConstruction.get
-            cloned.setName("'#{i}' cloned")
-            sss.setConstruction(cloned)
-            ok = s.key?(sss.nameString)
-            s[sss.nameString][:construction] = cloned                      if ok
-            coll[i][:s].delete(sss.nameString)
-            coll[i][:area] = c.getNetArea
-            next
-          end
-        end
-
+      elsif lc
+        # Valid layered construction - good to uprate!
         lyr         = insulatingLayer(lc)
         lyr[:index] = nil unless lyr[:index].is_a?(Numeric)
         lyr[:index] = nil unless lyr[:index] >= 0
@@ -270,64 +269,81 @@ module TBD
 
         log(ERR, "Insulation index for '#{id}'? (#{mth})")    unless lyr[:index]
         next                                                  unless lyr[:index]
-        hloss = 0                    # sum of applicable psi & khi effects [W/K]
 
+        # Ensure lc is exclusively linked to deratable surfaces of right type.
+        # If not, assign new lc clone to non-targeted surfaces.
+        s.each do |nom, surface|
+          next unless surface.key?(:type        )
+          next unless surface.key?(:deratable   )
+          next unless surface.key?(:construction)
+          next unless surface[:construction].is_a?(cl3)
+          next unless surface[:construction] == lc
+
+          ok = true
+          ok = false unless surface[:type     ] == typ
+          ok = false unless surface[:deratable]
+          ok = false unless coll.key?(id)
+          ok = false unless coll[id][:s].key?(nom)
+
+          unless ok
+            log(WRN, "Cloning '#{nom}' construction - not '#{id}' (#{mth})")
+            sss    = model.getSurfaceByName(nom)
+            next if sss.empty?
+
+            sss    = sss.get
+            cloned = lc.clone(model).to_LayeredConstruction.get
+            cloned.setName("#{nom} - cloned")
+            sss.setConstruction(cloned)
+            surface[:construction] = cloned
+            coll[id][:s].delete(nom)
+          end
+        end
+
+        hloss           = 0          # sum of applicable psi & khi effects [W/K]
+
+        # Tally applicable psi + khi losses. Possible construction reassignment.
         coll.each do |i, col|
-          next unless col.key?(:s)
-          next unless col.is_a?(Hash)
-
           col[:s].keys.each do |nom|
             next unless s.key?(nom)
-            next unless s[nom].key?(:deratable   )
             next unless s[nom].key?(:construction)
             next unless s[nom].key?(:index       )
             next unless s[nom].key?(:ltype       )
             next unless s[nom].key?(:r           )
-            next unless s[nom].key?(:type        )
-
-            next unless s[nom][:deratable]
-            type = s[nom][:type].to_s.downcase
-            type = "roof" if type == "ceiling"
-            next unless type.include?(label.to_s)
 
             # Tally applicable psi + khi.
-            hloss += s[nom][:heatloss] if s[nom].key?(:heatloss)
+            hloss += s[nom][:heatloss    ] if s[nom].key?(:heatloss)
+            next  if s[nom][:construction] == lc
 
-            # Skip construction reassignment if already referencing right one.
-            unless s[nom][:construction] == lc
-              sss = model.getSurfaceByName(nom)
-              next if sss.empty?
-              sss = sss.get
+            # Reassign construction unless referencing lc.
+            sss = model.getSurfaceByName(nom)
+            next if sss.empty?
 
-              if sss.isConstructionDefaulted
-                set = defaultConstructionSet(model, sss)
-                constructions = set.defaultExteriorSurfaceConstructions.get
+            sss = sss.get
 
-                case sss.surfaceType.downcase
-                when "roofceiling"
-                  constructions.setRoofCeilingConstruction(lc)
-                when "floor"
-                  constructions.setFloorConstruction(lc)
-                else
-                  constructions.setWallConstruction(lc)
-                end
-              else
-                sss.setConstruction(lc)
+            if sss.isConstructionDefaulted
+              set = defaultConstructionSet(model, sss) # building? story?
+              constructions = set.defaultExteriorSurfaceConstructions
+
+              unless constructions.empty?
+                constructions = constructions.get
+                constructions.setWallConstruction(lc)        if typ == :wall
+                constructions.setFloorConstruction(lc)       if typ == :floor
+                constructions.setRoofCeilingConstruction(lc) if typ == :ceiling
               end
-
-              s[nom][:construction] = lc                 # reset TBD attributes
-              s[nom][:index       ] = lyr[:index]
-              s[nom][:ltype       ] = lyr[:type ]
-              s[nom][:r           ] = lyr[:r    ]        # temporary
+            else
+              sss.setConstruction(lc)
             end
+
+            s[nom][:construction] = lc                 # reset TBD attributes
+            s[nom][:index       ] = lyr[:index]
+            s[nom][:ltype       ] = lyr[:type ]
+            s[nom][:r           ] = lyr[:r    ]        # temporary
           end
         end
 
         # Merge to ensure a single entry for coll Hash.
         coll.each do |i, col|
           next if i == id
-          next unless coll.key?(id)
-          coll[id][:area] += col[:area]
 
           col[:s].each do |nom, sss|
             coll[id][:s][nom] = sss unless coll[id][:s].key?(nom)
@@ -338,6 +354,8 @@ module TBD
         log(DBG, "Collection == 1? for '#{id}' (#{mth})")  unless coll.size == 1
         next                                               unless coll.size == 1
 
+        area = lc.getNetArea
+        coll[id][:area] = area
         res = uo(model, lc, id, hloss, film, g[:ut])
         log(ERR, "Unable to uprate '#{id}' (#{mth})") unless res[:uo] && res[:m]
         next                                          unless res[:uo] && res[:m]
@@ -347,27 +365,18 @@ module TBD
         # Loop through coll :s, and reset :r - likely modified by uo().
         coll.values.first[:s].keys.each do |nom|
           next unless s.key?(nom)
-          next unless s[nom].key?(:deratable   )
-          next unless s[nom].key?(:construction)
-          next unless s[nom].key?(:index       )
-          next unless s[nom].key?(:ltype       )
-          next unless s[nom].key?(:type        )
+          next unless s[nom].key?(:index)
+          next unless s[nom].key?(:ltype)
+          next unless s[nom].key?(:r    )
+          next unless s[nom][:index] == lyr[:index]
+          next unless s[nom][:ltype] == lyr[:type ]
 
-          next unless s[nom][:deratable   ]
-          next unless s[nom][:construction] == lc
-          next unless s[nom][:index       ] == lyr[:index]
-          next unless s[nom][:ltype       ] == lyr[:type]
-
-          type = s[nom][:type].to_s.downcase
-          type = "roof" if type == "ceiling"
-          next unless type.include?(label.to_s)
-          next unless s[nom].key?(:r)
-          s[nom][:r] = lyr[:r]                                           # final
+          s[nom][:r] = lyr[:r]  # uprated insulating RSi factor, before derating
         end
 
-        argh[:wall_uo ] = res[:uo] if label == :wall
-        argh[:roof_uo ] = res[:uo] if label == :roof
-        argh[:floor_uo] = res[:uo] if label == :floor
+        argh[:wall_uo ] = res[:uo] if typ == :wall
+        argh[:roof_uo ] = res[:uo] if typ == :ceiling
+        argh[:floor_uo] = res[:uo] if typ == :floor
       else
         log(ERR, "Nilled construction to uprate - (#{mth})")
         return false
@@ -920,7 +929,7 @@ module TBD
       model  = "* modèle : #{ua[:file]}"       if ua.key?(:file)  && lang == :fr
       model += " (v#{ua[:version]})"           if ua.key?(:version)
       report << model                      unless model.empty?
-      report << "* TBD : v3.2.1"
+      report << "* TBD : v3.2.2"
       report << "* date : #{ua[:date]}"
 
       if lang == :en

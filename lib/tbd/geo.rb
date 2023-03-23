@@ -292,28 +292,31 @@ module TBD
 
     return mismatch("model", model, cl1, mth)          unless model.is_a?(cl1)
     return mismatch("surface", surface, cl2, mth)      unless surface.is_a?(cl2)
-
-    return nil unless validate(surface)
+    return nil                                         unless validate(surface)
 
     nom    = surface.nameString
     surf   = {}
     subs   = {}
     fd     = false
     return   empty("'#{nom}' space", mth, ERR)           if surface.space.empty?
+
     space  = surface.space.get
     stype  = space.spaceType
     story  = space.buildingStory
     tr     = transforms(model, space)
     return   invalid("'#{nom}' transform", mth, 0, FTL)  unless tr[:t] && tr[:r]
+
     t      = tr[:t]
     n      = trueNormal(surface, tr[:r])
     return   invalid("'#{nom}' normal", mth, 0, FTL)     unless n
+
     type   = surface.surfaceType.downcase
     facing = surface.outsideBoundaryCondition
 
     if facing.downcase == "surface"
       empty = surface.adjacentSurface.empty?
-      return invalid("'#{nom}': adjacent surface", mth, 0, ERR)         if empty
+      return invalid("'#{nom}': adjacent surface", mth, 0, ERR) if empty
+
       facing = surface.adjacentSurface.get.nameString
     end
 
@@ -350,6 +353,7 @@ module TBD
     surf[:story      ] = story.get               unless story.empty?
     surf[:n          ] = n
     surf[:gross      ] = surface.grossArea
+    surf[:filmRSI    ] = surface.filmResistance
 
     surface.subSurfaces.sort_by { |s| s.nameString }.each do |s|
       next unless validate(s)
