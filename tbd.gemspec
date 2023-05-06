@@ -32,6 +32,7 @@ Gem::Specification.new do |s|
   # s.add_dependency             "osut",        "~> 0"
   s.add_dependency             "json-schema", "~> 2.7.0"
 
+  s.add_development_dependency "osut",        "~> 0.3.0"
   s.add_development_dependency "bundler",     "~> 2.1"
   s.add_development_dependency "rake",        "~> 13.0"
   s.add_development_dependency "rspec",       "~> 3.11"
