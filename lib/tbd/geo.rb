@@ -224,35 +224,35 @@ module TBD
   # @param s [OpenStudio::Model::PlanarSurface] a surface
   #
   # @return [Bool] true if valid surface
-  def validate(s = nil)
-    mth = "TBD::#{__callee__}"
-    cl = OpenStudio::Model::PlanarSurface
-
-    return mismatch("surface", s, cl, mth, DBG, false)        unless s.is_a?(cl)
-
-    id   = s.nameString
-    size = s.vertices.size
-    last = size - 1
-
-    log(ERR, "#{id} #{size} vertices? need +3 (#{mth})")         unless size > 2
-    return false                                                 unless size > 2
-
-    [0, last].each do |i|
-      v1 = s.vertices[i]
-      v2 = s.vertices[i + 1]                                    unless i == last
-      v2 = s.vertices.first                                         if i == last
-      vector = v2 - v1
-      bad = vector.length < TOL
-
-      # As is, this comparison also catches collinear vertices (< 10mm apart)
-      # along an edge. Should avoid red-flagging such cases. TO DO.
-      log(ERR, "#{id}: < #{TOL}m (#{mth})")                               if bad
-      return false                                                        if bad
-    end
-
-    # Add as many extra tests as needed ...
-    true
-  end
+  # def validate(s = nil)
+  #   mth = "TBD::#{__callee__}"
+  #   cl = OpenStudio::Model::PlanarSurface
+  #
+  #   return mismatch("surface", s, cl, mth, DBG, false)        unless s.is_a?(cl)
+  #
+  #   id   = s.nameString
+  #   size = s.vertices.size
+  #   last = size - 1
+  #
+  #   log(ERR, "#{id} #{size} vertices? need +3 (#{mth})")         unless size > 2
+  #   return false                                                 unless size > 2
+  #
+  #   [0, last].each do |i|
+  #     v1 = s.vertices[i]
+  #     v2 = s.vertices[i + 1]                                    unless i == last
+  #     v2 = s.vertices.first                                         if i == last
+  #     vector = v2 - v1
+  #     bad = vector.length < TOL
+  #
+  #     # As is, this comparison also catches collinear vertices (< 10mm apart)
+  #     # along an edge. Should avoid red-flagging such cases. TO DO.
+  #     log(ERR, "#{id}: < #{TOL}m (#{mth})")                               if bad
+  #     return false                                                        if bad
+  #   end
+  #
+  #   # Add as many extra tests as needed ...
+  #   true
+  # end
 
   ##
   # Return site-specific (or true) Topolys normal vector of OpenStudio surface.
@@ -290,9 +290,9 @@ module TBD
     cl2 = OpenStudio::Model::Surface
     cl3 = OpenStudio::Model::LayeredConstruction
 
-    return mismatch("model", model, cl1, mth)          unless model.is_a?(cl1)
-    return mismatch("surface", surface, cl2, mth)      unless surface.is_a?(cl2)
-    return nil                                         unless validate(surface)
+    return mismatch("model", model, cl1, mth)     unless model.is_a?(cl1)
+    return mismatch("surface", surface, cl2, mth) unless surface.is_a?(cl2)
+    return nil                                    unless surface_valid?(surface)
 
     nom    = surface.nameString
     surf   = {}
@@ -356,7 +356,7 @@ module TBD
     surf[:filmRSI    ] = surface.filmResistance
 
     surface.subSurfaces.sort_by { |s| s.nameString }.each do |s|
-      next unless validate(s)
+      next unless surface_valid?(s)
 
       id       = s.nameString
       valid    = s.vertices.size == 3 || s.vertices.size == 4

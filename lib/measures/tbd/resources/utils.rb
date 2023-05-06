@@ -41,6 +41,8 @@ module OSut
   ERR  = OSut::ERROR     #     flag invalid .osm inputs (then exit via 'return')
   FTL  = OSut::FATAL     #                            not currently used in OSut
   NS   = "nameString"    #                OpenStudio IdfObject nameString method
+  HEAD = 2.032           # standard 80" door
+  SILL = 0.762           # standard 30" window sill
 
   # This first set of utilities (~750 lines) help distinguishing spaces that
   # are directly vs indirectly CONDITIONED, vs SEMI-HEATED. The solution here
@@ -1460,7 +1462,7 @@ module OSut
   # @return [OpenStudio::Point3dVector] offset points if successful
   # @return [OpenStudio::Point3dVector] original points if invalid input
   def offset(p1 = [], w = 0, v = 0)
-    mth   = "TBD::#{__callee__}"
+    mth   = "OSut::#{__callee__}"
     cl    = OpenStudio::Point3d
     vrsn  = OpenStudio.openStudioVersion.split(".").map(&:to_i).join.to_i
 
@@ -1499,7 +1501,7 @@ module OSut
 
       pz = OpenStudio::Point3dVector.new
       offset.each { |o| pz << OpenStudio::Point3d.new(o.x, o.y, o.z ) }
-      
+
       return pz
     else                                                  # brute force approach
       pz     = {}
@@ -1682,6 +1684,525 @@ module OSut
 
       return vec
     end
+  end
+
+  ##
+  # Validate whether an OpenStudio planar surface is safe to process.
+  #
+  # @param s [OpenStudio::Model::PlanarSurface] a surface
+  #
+  # @return [Bool] true if valid surface
+  def surface_valid?(s = nil)
+    mth = "OSut::#{__callee__}"
+    cl = OpenStudio::Model::PlanarSurface
+
+    return mismatch("surface", s, cl, mth, DBG, false) unless s.is_a?(cl)
+
+    id   = s.nameString
+    size = s.vertices.size
+    last = size - 1
+
+    log(ERR, "#{id} #{size} vertices? need +3 (#{mth})")        unless size > 2
+    return false                                                unless size > 2
+
+    [0, last].each do |i|
+      v1  = s.vertices[i]
+      v2  = s.vertices[i + 1]                                  unless i == last
+      v2  = s.vertices.first                                       if i == last
+      vec = v2 - v1
+      bad = vec.length < TOL
+
+      # As is, this comparison also catches collinear vertices (< 10mm apart)
+      # along an edge. Should avoid red-flagging such cases. TO DO.
+      log(ERR, "#{id}: < #{TOL}m (#{mth})")                              if bad
+      return false                                                       if bad
+    end
+
+    # Add as many extra tests as needed ...
+    true
+  end
+
+  ##
+  # Add sub surfaces (e.g. windows, doors, skylights) to surface.
+  #
+  # @param model [OpenStudio::Model::Model] a model
+  # @param s [OpenStudio::Model::Surface] a model surface
+  # @param subs [Array] requested sub surface attributes
+  # @param clear [Bool] remove current sub surfaces if true
+  #
+  # @return [Bool] true if successful (check for logged messages if failures)
+  def addSubs(model = nil, s = nil, subs = [], clear = false)
+    mth = "OSut::#{__callee__}"
+    v   = OpenStudio.openStudioVersion.split(".").join.to_i
+    cl1 = OpenStudio::Model::Model
+    cl2 = OpenStudio::Model::Surface
+    cl3 = Array
+    cl4 = Hash
+    cl5 = Numeric
+    bfr = 0.005 # safety buffer for sub edges (when ~aligned with host edges)
+    min = 0.050 # minimum ratio value ( 5%)
+    max = 0.950 # maximum ratio value (95%)
+    no  = false
+
+    # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
+    # Exit if mismatched or invalid argument classes.
+    return mismatch("model", model, cl1, mth, DBG, no) unless model.is_a?(cl1)
+    return mismatch("surface",   s, cl2, mth, DBG, no) unless s.is_a?(cl2)
+    return mismatch("subs",   subs, cl3, mth, DBG, no) unless subs.is_a?(cl3)
+    return no                                          unless surface_valid?(s)
+
+    # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
+    # Clear existing sub surfaces if requested.
+    nom = s.nameString
+
+    unless clear == true || clear == false
+      log(WRN, "#{nom}: Keeping existing sub surfaces (#{mth})")
+      clear = false
+    end
+
+    s.subSurfaces.map(&:remove) if clear
+
+    # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
+    # Allowable sub surface types ... & Frame&Divider enabled
+    #   - "FixedWindow"             | true
+    #   - "OperableWindow"          | true
+    #   - "Door"                    | false
+    #   - "GlassDoor"               | true
+    #   - "OverheadDoor"            | false
+    #   - "Skylight"                | false if v < 321
+    #   - "TubularDaylightDome"     | false
+    #   - "TubularDaylightDiffuser" | false
+    type  = "FixedWindow"
+    types = OpenStudio::Model::SubSurface.validSubSurfaceTypeValues
+    gross = s.grossArea
+    stype = s.surfaceType # Wall, RoofCeiling or Floor
+
+    # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
+    # Fetch transform, as if host surface vertices were to "align", i.e.:
+    #   - rotated/tilted ... then flattened along XY plane
+    #   - all Z-axis coordinates ~= 0
+    #   - vertices with the lowest X-axis values are "aligned" along X-axis (0)
+    #   - vertices with the lowest Z-axis values are "aligned" along Y-axis (0)
+    #   - Z-axis values are represented as Y-axis values
+    tr = OpenStudio::Transformation.alignFace(s.vertices)
+
+    # Aligned vertices of host surface, and fetch attributes.
+    aligned = tr.inverse * s.vertices
+    max_x   = aligned.max_by(&:x).x
+    max_y   = aligned.max_by(&:y).y
+    mid_x   = max_x / 2
+    mid_y   = max_y / 2
+
+    # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
+    # Assign default values to certain sub keys (if missing), +more validation.
+    subs.each_with_index do |sub, index|
+      return mismatch("sub", sub, cl4, mth, DBG, no) unless sub.is_a?(cl4)
+
+      # Required key:value pairs (either set by the user or defaulted).
+      sub[:id        ] = ""     unless sub.key?(:id        ) # "Window 007"
+      sub[:type      ] = type   unless sub.key?(:type      ) # "FixedWindow"
+      sub[:count     ] = 1      unless sub.key?(:count     ) # for an array
+      sub[:multiplier] = 1      unless sub.key?(:multiplier)
+      sub[:frame     ] = nil    unless sub.key?(:frame     ) # frame/divider
+      sub[:assembly  ] = nil    unless sub.key?(:assembly  ) # construction
+
+      # Optional key:value pairs.
+      # sub[:ratio     ] # e.g. %FWR
+      # sub[:head      ] # e.g. std 80" door + frame/buffers
+      # sub[:sill      ] # e.g. std 30" sill + frame/buffers
+      # sub[:height    ] # any sub surface height below "head"
+      # sub[:width     ] # e.g. 1.200 m
+      # sub[:offset    ] # if array
+      # sub[:centreline] # left or right of base surface centreline
+
+      sub[:id] = "#{nom}|#{index}" if sub[:id].empty?
+      id       = sub[:id]
+
+      # If sub surface type is invalid, log/reset. Additional corrections may
+      # be enabled once a sub surface is actually instantiated.
+      unless types.include?(sub[:type])
+        log(WRN, "Reset invalid '#{id}' type to '#{type}' (#{mth})")
+        sub[:type] = type
+      end
+
+      # Log/ignore (optional) frame & divider object.
+      unless sub[:frame].nil?
+        if sub[:frame].respond_to?(:frameWidth)
+          sub[:frame] = nil if sub[:type] == "Skylight" && v < 321
+          sub[:frame] = nil if sub[:type] == "Door"
+          sub[:frame] = nil if sub[:type] == "OverheadDoor"
+          sub[:frame] = nil if sub[:type] == "TubularDaylightDome"
+          sub[:frame] = nil if sub[:type] == "TubularDaylightDiffuser"
+          log(WRN, "Skip '#{id}' FrameDivider (#{mth})") if sub[:frame].nil?
+        else
+          sub[:frame] = nil
+          log(WRN, "Skip '#{id}' invalid FrameDivider object (#{mth})")
+        end
+      end
+
+      # The (optional) "assembly" must reference a valid OpenStudio
+      # construction base, to explicitly assign to each instantiated sub
+      # surface. If invalid, log/reset/ignore. Additional checks are later
+      # activated once a sub surface is actually instantiated.
+      unless sub[:assembly].nil?
+        unless sub[:assembly].respond_to?(:isFenestration)
+          log(WRN, "Skip invalid '#{id}' construction (#{mth})")
+          sub[:assembly] = nil
+        end
+      end
+
+      # Log/reset negative numerical values. Set ~0 values to 0.
+      sub.each do |key, value|
+        next if key == :id
+        next if key == :type
+        next if key == :frame
+        next if key == :assembly
+
+        return mismatch(key, value, cl5, mth, DBG, no) unless value.is_a?(cl5)
+        next if key == :centreline
+
+        negative(key, mth, WRN) if value < 0
+        value = 0.0             if value.abs < TOL
+      end
+    end
+
+    # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
+    # Log/reset (or abandon) conflicting user-set geometry key:value pairs:
+    #   - sub[:head      ] # e.g. std 80" door + frame/buffers
+    #   - sub[:sill      ] # e.g. std 30" sill + frame/buffers
+    #   - sub[:height    ] # any sub surface height below "head"
+    #   - sub[:width     ] # e.g. 1.200 m
+    #   - sub[:offset    ] # centreline-to-centreline between subs (if array)
+    #   - sub[:centreline] # left/right of base surface centreline, e.g. -0.2 m
+    #
+    # If successful, this will generate sub surfaces and add them to the model.
+    subs.each do |sub|
+      # Set-up unique sub parameters:
+      #   - Frame & Divider "width"
+      #   - minimum "clear glazing" limits
+      #   - buffers, etc.
+      id         = sub[:id]
+      frame      = 0
+      frame      = sub[:frame].frameWidth unless sub[:frame].nil?
+      frames     = 2 * frame
+      buffer     = frame + bfr
+      buffers    = 2 * buffer
+      dim        = 0.200 unless (3 * frame) > 0.200
+      dim        = 3 * frame if (3 * frame) > 0.200
+      glass      = dim - frames
+      min_sill   = buffer
+      min_head   = buffers + glass
+      max_head   = max_y - buffer
+      max_sill   = max_head - (buffers + glass)
+      min_ljamb  = buffer
+      max_ljamb  = max_x - (buffers + glass)
+      min_rjamb  = buffers + glass
+      max_rjamb  = max_x - buffer
+      max_height = max_y - buffers
+      max_width  = max_x - buffers
+
+      # Default sub surface "head" & "sill" height (unless user-specified).
+      typ_head = HEAD # standard 80" door
+      typ_sill = SILL # standard 30" window sill
+
+      if sub.key?(:ratio)
+        typ_head = mid_y * (1 + sub[:ratio])     if sub[:ratio] > 0.75
+        typ_head = mid_y * (1 + sub[:ratio]) unless stype.downcase == "wall"
+        typ_sill = mid_y * (1 - sub[:ratio])     if sub[:ratio] > 0.75
+        typ_sill = mid_y * (1 - sub[:ratio]) unless stype.downcase == "wall"
+      end
+
+      # Log/reset "height" if beyond min/max.
+      if sub.key?(:height)
+        unless sub[:height].between?(glass, max_height)
+          sub[:height] = glass      if sub[:height] < glass
+          sub[:height] = max_height if sub[:height] > max_height
+          log(WRN, "Reset '#{id}' height to #{sub[:height]} m (#{mth})")
+        end
+      end
+
+      # Log/reset "head" height if beyond min/max.
+      if sub.key?(:head)
+        unless sub[:head].between?(min_head, max_head)
+          sub[:head] = max_head if sub[:head] > max_head
+          sub[:head] = min_head if sub[:head] < min_head
+          log(WRN, "Reset '#{id}' head height to #{sub[:head]} m (#{mth})")
+        end
+      end
+
+      # Log/reset "sill" height if beyond min/max.
+      if sub.key?(:sill)
+        unless sub[:sill].between?(min_sill, max_sill)
+          sub[:sill] = max_sill if sub[:sill] > max_sill
+          sub[:sill] = min_sill if sub[:sill] < min_sill
+          log(WRN, "Reset '#{id}' sill height to #{sub[:sill]} m (#{mth})")
+        end
+      end
+
+      # At this point, "head", "sill" and/or "height" have been tentatively
+      # validated (and/or have been corrected) independently from one another.
+      # Log/reset "head" & "sill" heights if conflicting.
+      if sub.key?(:head) && sub.key?(:sill) && sub[:head] < sub[:sill] + glass
+        sill = sub[:head] - glass
+
+        if sill < min_sill
+          sub[:ratio     ] = 0 if sub.key?(:ratio)
+          sub[:count     ] = 0
+          sub[:multiplier] = 0
+          sub[:height    ] = 0 if sub.key?(:height)
+          sub[:width     ] = 0 if sub.key?(:width)
+          log(ERR, "Skip: invalid '#{id}' head/sill combo (#{mth})")
+          next
+        else
+          sub[:sill] = sill
+          log(WRN, "(Re)set '#{id}' sill height to #{sub[:sill]} m (#{mth})")
+        end
+      end
+
+      # Attempt to reconcile "head", "sill" and/or "height". If successful,
+      # all 3x parameters are set (if missing), or reset if invalid.
+      if sub.key?(:head) && sub.key?(:sill)
+        height = sub[:head] - sub[:sill]
+
+        if sub.key?(:height) && (sub[:height] - height).abs > TOL
+          log(WRN, "(Re)set '#{id}' height to #{height} m (#{mth})")
+        end
+
+        sub[:height] = height
+      elsif sub.key?(:head) # no "sill"
+        if sub.key?(:height)
+          sill = sub[:head] - sub[:height]
+
+          if sill < min_sill
+            sill   = min_sill
+            height = sub[:head] - sill
+
+            if height < glass
+              sub[:ratio     ] = 0 if sub.key?(:ratio)
+              sub[:count     ] = 0
+              sub[:multiplier] = 0
+              sub[:height    ] = 0 if sub.key?(:height)
+              sub[:width     ] = 0 if sub.key?(:width)
+              log(ERR, "Skip: invalid '#{id}' head/height combo (#{mth})")
+              next
+            else
+              sub[:sill  ] = sill
+              sub[:height] = height
+              log(WRN, "(Re)set '#{id}' height to #{sub[:height]} m (#{mth})")
+            end
+          else
+            sub[:sill] = sill
+          end
+        else
+          sub[:sill  ] = typ_sill
+          sub[:height] = sub[:head] - sub[:sill]
+        end
+      elsif sub.key?(:sill) # no "head"
+        if sub.key?(:height)
+          head = sub[:sill] + sub[:height]
+
+          if head > max_head
+            head   = max_head
+            height = head - sub[:sill]
+
+            if height < glass
+              sub[:ratio     ] = 0 if sub.key?(:ratio)
+              sub[:count     ] = 0
+              sub[:multiplier] = 0
+              sub[:height    ] = 0 if sub.key?(:height)
+              sub[:width     ] = 0 if sub.key?(:width)
+              log(ERR, "Skip: invalid '#{id}' sill/height combo (#{mth})")
+              next
+            else
+              sub[:head  ] = head
+              sub[:height] = height
+              log(WRN, "(Re)set '#{id}' height to #{sub[:height]} m (#{mth})")
+            end
+          else
+            sub[:head] = head
+          end
+        else
+          sub[:head  ] = typ_head
+          sub[:height] = sub[:head] - sub[:sill]
+        end
+      elsif sub.key?(:height) # neither "head" nor "sill"
+        head = typ_head
+        sill = head - sub[:height]
+
+        if sill < min_sill
+          sill = min_sill
+          head = sill + sub[:height]
+        end
+
+        sub[:head] = head
+        sub[:sill] = sill
+      else
+        sub[:head  ] = typ_head
+        sub[:sill  ] = typ_sill
+        sub[:height] = sub[:head] - sub[:sill]
+      end
+
+      # Log/reset "width" if beyond min/max.
+      if sub.key?(:width)
+        unless sub[:width].between?(glass, max_width)
+          sub[:width] = glass      if sub[:width] < glass
+          sub[:width] = max_width  if sub[:width] > max_width
+          log(WRN, "Reset '#{id}' width to #{sub[:width]} m (#{mth})")
+        end
+      end
+
+      # Log/reset "count" if < 1.
+      if sub.key?(:count)
+        if sub[:count] < 1
+          sub[:count] = 1
+          log(WRN, "Reset '#{id}' count to #{sub[:count]} (#{mth})")
+        end
+      end
+
+      sub[:count] = 1 unless sub.key?(:count)
+
+      n       = sub[:count]
+      even    = n.to_i.even?
+      centre  = mid_x
+      centre += sub[:centreline] if sub.key?(:centreline)
+      h       = sub[:height] + frames
+      w       = 0 # overall width of sub(s) bounding box (to calculate)
+      x0      = 0 # left-side X-axis coordinate of sub(s) bounding box
+      xf      = 0 # right-side X-axis coordinate of sub(s) bounding box
+
+      # Log/reset "offset", if conflicting vs "width".
+      if sub.key?(:ratio)
+        if sub[:ratio] < TOL
+          sub[:ratio     ] = 0
+          sub[:count     ] = 0
+          sub[:multiplier] = 0
+          sub[:height    ] = 0 if sub.key?(:height)
+          sub[:width     ] = 0 if sub.key?(:width)
+          log(ERR, "Skip: '#{id}' ratio ~0 (#{mth})")
+          next
+        end
+
+        # Log/reset if "ratio" beyond min/max?
+        unless sub[:ratio].between?(min, max)
+          sub[:ratio] = min if sub[:ratio] < min
+          sub[:ratio] = max if sub[:ratio] > max
+          log(WRN, "Reset ratio (min/max) to #{sub[:ratio]} (#{mth})")
+        end
+
+        # Log/reset "count" unless 1.
+        unless sub[:count] == 1
+          sub[:count] = 1
+          log(WRN, "Reset count (ratio) to 1 (#{mth})")
+        end
+
+        area  = gross * sub[:ratio] # sub m2, including (optional) frames
+        w     = area / h
+        width = w - frames
+        x0    = centre - w/2
+        xf    = centre + w/2
+
+        # Too wide?
+        if x0 < min_ljamb || xf > max_rjamb
+          sub[:ratio     ] = 0 if sub.key?(:ratio)
+          sub[:count     ] = 0
+          sub[:multiplier] = 0
+          sub[:height    ] = 0 if sub.key?(:height)
+          sub[:width     ] = 0 if sub.key?(:width)
+          log(ERR, "Skip: invalid (ratio) width/centreline (#{mth})")
+          next
+        end
+
+        if sub.key?(:width) && (sub[:width] - width).abs > TOL
+          sub[:width] = width
+          log(WRN, "Reset width (ratio) to #{sub[:width]} (#{mth})")
+        end
+
+        sub[:width] = width unless sub.key?(:width)
+      else
+        unless sub.key?(:width)
+          sub[:ratio     ] = 0 if sub.key?(:ratio)
+          sub[:count     ] = 0
+          sub[:multiplier] = 0
+          sub[:height    ] = 0 if sub.key?(:height)
+          sub[:width     ] = 0 if sub.key?(:width)
+          log(ERR, "Skip: missing '#{id}' width (#{mth})")
+          next
+        end
+
+        width  = sub[:width] + frames
+        gap    = (max_x - n * width) / (n + 1)
+        gap    = sub[:offset] - width if sub.key?(:offset)
+        gap    = 0                    if gap < bfr
+        offset = gap + width
+
+        if sub.key?(:offset) && (offset - sub[:offset]).abs > TOL
+          sub[:offset] = offset
+          log(WRN, "Reset sub offset to #{sub[:offset]} m (#{mth})")
+        end
+
+        sub[:offset] = offset unless sub.key?(:offset)
+
+        # Overall width of bounding box around array.
+        w  = n * width + (n - 1) * gap
+        x0 = centre - w/2
+        xf = centre + w/2
+
+        # Too wide?
+        if x0 < min_ljamb || xf > max_rjamb
+          sub[:ratio     ] = 0 if sub.key?(:ratio)
+          sub[:count     ] = 0
+          sub[:multiplier] = 0
+          sub[:height    ] = 0 if sub.key?(:height)
+          sub[:width     ] = 0 if sub.key?(:width)
+          log(ERR, "Skip: invalid array width/centreline (#{mth})")
+          next
+        end
+      end
+
+      # Initialize left-side X-axis coordinate of only/first sub.
+      pos = x0
+
+      # Generate sub(s).
+      sub[:count].times do |i|
+        name = "#{id}:#{i}"
+        vec  = OpenStudio::Point3dVector.new
+        vec << OpenStudio::Point3d.new(pos,               sub[:head], 0)
+        vec << OpenStudio::Point3d.new(pos,               sub[:sill], 0)
+        vec << OpenStudio::Point3d.new(pos + sub[:width], sub[:sill], 0)
+        vec << OpenStudio::Point3d.new(pos + sub[:width], sub[:head], 0)
+        vec = tr * vec
+
+        # Log/skip if conflict between individual sub and base surface.
+        ok = fits?(vec, s.vertices, name, nom)
+        log(ERR, "Skip '#{name}': won't fit in '#{nom}' (#{mth})") unless ok
+        break unless ok
+
+        # Log/skip if conflicts with existing subs (even if same array).
+        s.subSurfaces.each do |sb|
+          nome = sb.nameString
+          oops = overlaps?(vec, sb.vertices, name, nome)
+          log(ERR, "Skip '#{name}': overlaps '#{nome}' (#{mth})") if oops
+          ok = false                                              if oops
+          break                                                   if oops
+        end
+
+        break unless ok
+
+        sb = OpenStudio::Model::SubSurface.new(vec, model)
+        sb.setName(name)
+        sb.setSubSurfaceType(sub[:type])
+        sb.setConstruction(sub[:assembly])               if sub[:assembly]
+        ok = sb.allowWindowPropertyFrameAndDivider
+        sb.setWindowPropertyFrameAndDivider(sub[:frame]) if sub[:frame] && ok
+        sb.setMultiplier(sub[:multiplier])               if sub[:multiplier] > 1
+        sb.setSurface(s)
+
+        # Reset "pos" if array.
+        pos += sub[:offset] if sub.key?(:offset)
+      end
+    end
+
+    true
   end
 
   ##
