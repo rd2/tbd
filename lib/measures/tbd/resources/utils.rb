@@ -1449,6 +1449,9 @@ module OSut
     area = area.get
     return false                                                 if area < TOL
 
+    delta = (area - area1 - area2).abs
+    return false                                                 if delta < TOL
+
     true
   end
 
@@ -1729,9 +1732,10 @@ module OSut
   # @param s [OpenStudio::Model::Surface] a model surface
   # @param subs [Array] requested sub surface attributes
   # @param clear [Bool] remove current sub surfaces if true
+  # @param bfr [Double] safety buffer (m), when ~aligned along other edges
   #
   # @return [Bool] true if successful (check for logged messages if failures)
-  def addSubs(model = nil, s = nil, subs = [], clear = false)
+  def addSubs(model = nil, s = nil, subs = [], clear = false, bfr = 0.005)
     mth = "OSut::#{__callee__}"
     v   = OpenStudio.openStudioVersion.split(".").join.to_i
     cl1 = OpenStudio::Model::Model
@@ -1739,7 +1743,6 @@ module OSut
     cl3 = Array
     cl4 = Hash
     cl5 = Numeric
-    bfr = 0.005 # safety buffer for sub edges (when ~aligned with host edges)
     min = 0.050 # minimum ratio value ( 5%)
     max = 0.950 # maximum ratio value (95%)
     no  = false
@@ -2165,6 +2168,9 @@ module OSut
       # Generate sub(s).
       sub[:count].times do |i|
         name = "#{id}:#{i}"
+        fr   = 0
+        fr   = sub[:frame].frameWidth if sub[:frame]
+
         vec  = OpenStudio::Point3dVector.new
         vec << OpenStudio::Point3d.new(pos,               sub[:head], 0)
         vec << OpenStudio::Point3d.new(pos,               sub[:sill], 0)
@@ -2173,14 +2179,21 @@ module OSut
         vec = tr * vec
 
         # Log/skip if conflict between individual sub and base surface.
-        ok = fits?(vec, s.vertices, name, nom)
+        vc = vec
+        vc = offset(vc, fr, 300) if fr > 0
+        ok = fits?(vc, s.vertices, name, nom)
         log(ERR, "Skip '#{name}': won't fit in '#{nom}' (#{mth})") unless ok
-        break unless ok
+        break                                                      unless ok
 
         # Log/skip if conflicts with existing subs (even if same array).
         s.subSurfaces.each do |sb|
           nome = sb.nameString
-          oops = overlaps?(vec, sb.vertices, name, nome)
+          fd   = sb.windowPropertyFrameAndDivider
+          fr   = 0                     if fd.empty?
+          fr   = fd.get.frameWidth unless fd.empty?
+          vk   = sb.vertices
+          vk   = offset(vk, fr, 300) if fr > 0
+          oops = overlaps?(vc, vk, name, nome)
           log(ERR, "Skip '#{name}': overlaps '#{nome}' (#{mth})") if oops
           ok = false                                              if oops
           break                                                   if oops
