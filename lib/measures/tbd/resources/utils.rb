@@ -1777,7 +1777,6 @@ module OSut
     #   - "TubularDaylightDiffuser" | false
     type  = "FixedWindow"
     types = OpenStudio::Model::SubSurface.validSubSurfaceTypeValues
-    gross = s.grossArea
     stype = s.surfaceType # Wall, RoofCeiling or Floor
 
     # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
@@ -1811,12 +1810,14 @@ module OSut
 
       # Optional key:value pairs.
       # sub[:ratio     ] # e.g. %FWR
-      # sub[:head      ] # e.g. std 80" door + frame/buffers
-      # sub[:sill      ] # e.g. std 30" sill + frame/buffers
-      # sub[:height    ] # any sub surface height below "head"
+      # sub[:head      ] # e.g. std 80" door + frame/buffers (+ m)
+      # sub[:sill      ] # e.g. std 30" sill + frame/buffers (+ m)
+      # sub[:height    ] # any sub surface height, below "head" (+ m)
       # sub[:width     ] # e.g. 1.200 m
-      # sub[:offset    ] # if array
-      # sub[:centreline] # left or right of base surface centreline
+      # sub[:offset    ] # if array (+ m)
+      # sub[:centreline] # left or right of base surface centreline (+/- m)
+      # sub[:r_buffer  ] # buffer between sub/array and right-side corner (+ m)
+      # sub[:l_buffer  ] # buffer between sub/array and left-side corner (+ m)
 
       sub[:id] = "#{nom}|#{index}" if sub[:id].empty?
       id       = sub[:id]
@@ -1871,12 +1872,14 @@ module OSut
 
     # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
     # Log/reset (or abandon) conflicting user-set geometry key:value pairs:
-    #   - sub[:head      ] # e.g. std 80" door + frame/buffers
-    #   - sub[:sill      ] # e.g. std 30" sill + frame/buffers
-    #   - sub[:height    ] # any sub surface height below "head"
-    #   - sub[:width     ] # e.g. 1.200 m
-    #   - sub[:offset    ] # centreline-to-centreline between subs (if array)
-    #   - sub[:centreline] # left/right of base surface centreline, e.g. -0.2 m
+    #   :head       e.g. std 80" door + frame/buffers (+ m)
+    #   :sill       e.g. std 30" sill + frame/buffers (+ m)
+    #   :height     any sub surface height, below "head" (+ m)
+    #   :width      e.g. 1.200 m
+    #   :offset     if array (+ m)
+    #   :centreline left or right of base surface centreline (+/- m)
+    #   :r_buffer   buffer between sub/array and right-side corner (+ m)
+    #   :l_buffer   buffer between sub/array and left-side corner (+ m)
     #
     # If successful, this will generate sub surfaces and add them to the model.
     subs.each do |sub|
@@ -2064,11 +2067,26 @@ module OSut
 
       sub[:count] = 1 unless sub.key?(:count)
 
-      n       = sub[:count]
-      even    = n.to_i.even?
+      # Log/reset if left-sided buffer under min jamb position.
+      if sub.key?(:l_buffer)
+        if sub[:l_buffer] < min_ljamb
+          sub[:l_buffer] = min_ljamb
+          log(WRN, "Reset '#{id}' left buffer to #{sub[:l_buffer]} m (#{mth})")
+        end
+      end
+
+      # Log/reset if right-sided buffer beyond max jamb position.
+      if sub.key?(:r_buffer)
+        if sub[:r_buffer] > max_rjamb
+          sub[:r_buffer] = min_rjamb
+          log(WRN, "Reset '#{id}' right buffer to #{sub[:r_buffer]} m (#{mth})")
+        end
+      end
+
       centre  = mid_x
       centre += sub[:centreline] if sub.key?(:centreline)
-      h       = sub[:height] + frames
+      n       = sub[:count     ]
+      h       = sub[:height    ] + frames
       w       = 0 # overall width of sub(s) bounding box (to calculate)
       x0      = 0 # left-side X-axis coordinate of sub(s) bounding box
       xf      = 0 # right-side X-axis coordinate of sub(s) bounding box
@@ -2098,11 +2116,29 @@ module OSut
           log(WRN, "Reset count (ratio) to 1 (#{mth})")
         end
 
-        area  = gross * sub[:ratio] # sub m2, including (optional) frames
+        area  = s.grossArea * sub[:ratio] # sub m2, including (optional) frames
         w     = area / h
         width = w - frames
         x0    = centre - w/2
         xf    = centre + w/2
+
+        if sub.key?(:l_buffer)
+          if sub.key?(:centreline)
+            log(WRN, "Skip #{id} left buffer (vs centreline) (#{mth})")
+          else
+            x0     = sub[:l_buffer] - frame
+            xf     = x0 + w
+            centre = x0 + w/2
+          end
+        elsif sub.key?(:r_buffer)
+          if sub.key?(:centreline)
+            log(WRN, "Skip #{id} right buffer (vs centreline) (#{mth})")
+          else
+            xf     = max_x - sub[:r_buffer] + frame
+            x0     = xf - w
+            centre = x0 + w/2
+          end
+        end
 
         # Too wide?
         if x0 < min_ljamb || xf > max_rjamb
@@ -2145,13 +2181,31 @@ module OSut
 
         sub[:offset] = offset unless sub.key?(:offset)
 
-        # Overall width of bounding box around array.
+        # Overall width (including frames) of bounding box around array.
         w  = n * width + (n - 1) * gap
         x0 = centre - w/2
         xf = centre + w/2
 
+        if sub.key?(:l_buffer)
+          if sub.key?(:centreline)
+            log(WRN, "Skip #{id} left buffer (vs centreline) (#{mth})")
+          else
+            x0     = sub[:l_buffer] - frame
+            xf     = x0 + w
+            centre = x0 + w/2
+          end
+        elsif sub.key?(:r_buffer)
+          if sub.key?(:centreline)
+            log(WRN, "Skip #{id} right buffer (vs centreline) (#{mth})")
+          else
+            xf     = max_x - sub[:r_buffer] + frame
+            x0     = xf - w
+            centre = x0 + w/2
+          end
+        end
+
         # Too wide?
-        if x0 < min_ljamb || xf > max_rjamb
+        if x0 < bfr || xf > max_x - bfr
           sub[:ratio     ] = 0 if sub.key?(:ratio)
           sub[:count     ] = 0
           sub[:multiplier] = 0
@@ -2163,7 +2217,7 @@ module OSut
       end
 
       # Initialize left-side X-axis coordinate of only/first sub.
-      pos = x0
+      pos = x0 + frame
 
       # Generate sub(s).
       sub[:count].times do |i|
