@@ -29,7 +29,7 @@ Gem::Specification.new do |s|
   s.metadata                 = {}
 
   s.add_dependency             "topolys",     "~> 0"
-  s.add_dependency             "osut",        "~> 0"
+  s.add_dependency             "osut",        "~> 0.3.0"
   s.add_dependency             "json-schema", "~> 2.7.0"
 
   s.add_development_dependency "bundler",     "~> 2.1"
