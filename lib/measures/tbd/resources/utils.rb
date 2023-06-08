@@ -44,7 +44,672 @@ module OSut
   HEAD = 2.032           # standard 80" door
   SILL = 0.762           # standard 30" window sill
 
-  # This first set of utilities (~750 lines) help distinguishing spaces that
+  # Default (higher-level) construction parameters.
+  @@mass = [:none, :light, :medium, :heavy].freeze
+  @@film = {} # standard air films, m2.K/W
+  @@uo   = {} # default (~1980s) envelope Uo (W/m2.K), based on surface type
+  @@mats = {} # StandardOpaqueMaterials
+
+  @@film[:shading  ] = 0.000
+  @@film[:partition] = 0.000
+  @@film[:wall     ] = 0.150
+  @@film[:roof     ] = 0.140
+  @@film[:floor    ] = 0.190
+  @@film[:basement ] = 0.120
+  @@film[:slab     ] = 0.160
+  @@film[:door     ] = @@film[:wall]
+  @@film[:window   ] = @@film[:wall] # irrelevant if SimpleGlazingMaterial
+  @@film[:skylight ] = @@film[:roof] # irrelevant if SimpleGlazingMaterial
+
+  @@uo[:shading    ] = 0.000 # N/A
+  @@uo[:partition  ] = 0.000 # N/A
+  @@uo[:wall       ] = 0.384 # rated Ro ~14.8
+  @@uo[:roof       ] = 0.327 # rated Ro ~17.6
+  @@uo[:floor      ] = 0.317 # rated Ro ~17.9 (exposed floor)
+  @@uo[:basement   ] = 0.000 # uninsulated
+  @@uo[:slab       ] = 0.000 # uninsulated
+  @@uo[:door       ] = 1.800 # insulated, unglazed steel door (single layer)
+  @@uo[:window     ] = 2.800 # e.g. patio doors (simple glazing)
+  @@uo[:skylight   ] = 3.500 # all skylight technologies
+
+  # Default OpenStudio "StandardOpaqueMaterial" object parameters:
+  #   - roughness            (rgh) : "Smooth"
+  #   - thickness                  :    0.1 m
+  #   - thermal conductivity (k  ) :    0.1 W/m.K
+  #   - density              (rho) :    0.1 kg/m3
+  #   - specific heat        (cp ) : 1400.0 J/kg.K
+  #
+  #   https://s3.amazonaws.com/openstudio-sdk-documentation/cpp/
+  #   OpenStudio-3.6.1-doc/model/html/
+  #   classopenstudio_1_1model_1_1_standard_opaque_material.html
+  #
+  # Apart from surface roughness, rarely would these defaulted material
+  # properties be suitable - and are therefore explicitely set below. FYI:
+  #   - "Very Rough"    : stucco
+  #   - "Rough"	        : brick
+  #   - "Medium Rough"  : concrete
+  #   - "Medium Smooth" : clear pine
+  #   - "Smooth"        : smooth plaster
+  #   - "Very Smooth"   : glass
+  #
+  # Standard opaque materials, taken from a variety of sources (e.g. energy
+  # codes, NREL's BCL). Material identifiers are symbols, e.g.:
+  #   - :brick
+  #   - :sand
+  #   - :concrete
+  #
+  # Material properties remain largely constant between projects. What does
+  # tend to vary between projects are thicknesses. Actual OpenStudio opaque
+  # material objects can be (re)set in more than one way by class methods.
+  # OpenStudio object names are then suffixed with actual material thicknesses,
+  # in mm, e.g.:
+  #   - "concrete200" : 200mm concrete slab
+  #   - "drywall13"    : 1/2" gypsum board
+  #   - "drywall16"    : 5/8" gypsum board
+  #
+  # Surface absorptances are also defaulted in OpenStudio:
+  #   - thermal, long-wave   (thm) : 90%
+  #   - solar                (sol) : 70%
+  #   - visible              (vis) : 70%
+  #
+  # These can also be explicitly set, here (e.g. a redundant example):
+  @@mats[:sand     ]         = {}
+  @@mats[:sand     ][:rgh] = "Rough"
+  @@mats[:sand     ][:k  ] =    1.290
+  @@mats[:sand     ][:rho] = 2240.000
+  @@mats[:sand     ][:cp ] =  830.000
+  @@mats[:sand     ][:thm] =    0.900
+  @@mats[:sand     ][:sol] =    0.700
+  @@mats[:sand     ][:vis] =    0.700
+
+  @@mats[:concrete ]       = {}
+  @@mats[:concrete ][:rgh] = "MediumRough"
+  @@mats[:concrete ][:k  ] =    1.730
+  @@mats[:concrete ][:rho] = 2240.000
+  @@mats[:concrete ][:cp ] =  830.000
+
+  @@mats[:brick    ]       = {}
+  @@mats[:brick    ][:rgh] = "Rough"
+  @@mats[:brick    ][:k  ] =    0.675
+  @@mats[:brick    ][:rho] = 1600.000
+  @@mats[:brick    ][:cp ] =  790.000
+
+  @@mats[:cladding ]       = {} # e.g. lightweight cladding over furring
+  @@mats[:cladding ][:rgh] = "MediumSmooth"
+  @@mats[:cladding ][:k  ] =    0.115
+  @@mats[:cladding ][:rho] =  540.000
+  @@mats[:cladding ][:cp ] = 1200.000
+
+  @@mats[:sheathing]       = {} # e.g. plywood
+  @@mats[:sheathing][:k  ] =    0.160
+  @@mats[:sheathing][:rho] =  545.000
+  @@mats[:sheathing][:cp ] = 1210.000
+
+  @@mats[:polyiso  ]       = {}
+  @@mats[:polyiso  ][:k  ] =    0.025
+  @@mats[:polyiso  ][:rho] =   25.000
+  @@mats[:polyiso  ][:cp ] = 1590.000
+
+  @@mats[:cellulose]       = {}
+  @@mats[:cellulose][:rgh] = "VeryRough"
+  @@mats[:cellulose][:k  ] =    0.050
+  @@mats[:cellulose][:rho] =   80.000
+  @@mats[:cellulose][:cp ] =  835.000
+
+  @@mats[:mineral  ]       = {}
+  @@mats[:mineral  ][:k  ] =    0.050
+  @@mats[:mineral  ][:rho] =   19.000
+  @@mats[:mineral  ][:cp ] =  960.000
+
+  @@mats[:drywall  ]       = {}
+  @@mats[:drywall  ][:k  ] =    0.160
+  @@mats[:drywall  ][:rho] =  785.000
+  @@mats[:drywall  ][:cp ] = 1090.000
+
+  @@mats[:door     ]        = {}
+  @@mats[:door     ][:rgh] = "MediumSmooth"
+  @@mats[:door     ][:k  ] =    0.080 # = 1.8 * 0.045m
+  @@mats[:door     ][:rho] =  600.000
+  @@mats[:door     ][:cp ] = 1000.000
+
+  ##
+  # Generate a multilayered construction, based on specs. Also generates
+  # required OpenStudio materials as needed.
+  #
+  # @param model [OpenStudio::Model::Model] a model
+  # @param specs [Hash] a specification hash
+  #
+  # @return [OpenStudio::Model::Construction] a construction (nil if failure)
+  def genConstruction(model = nil, specs = {})
+    mth = "OSut::#{__callee__}"
+    cl1 = OpenStudio::Model::Model
+    cl2 = Hash
+
+    # Log/exit if invalid arguments.
+    return mismatch("model", model, cl1, mth)        unless model.is_a?(cl1)
+    return mismatch("specs", specs, cl2, mth)        unless specs.is_a?(cl2)
+
+    specs[:type]   = :wall                           unless specs.key?(:type)
+    ok             = @@uo.keys.include?(specs[:type])
+    return invalid("surface type", mth, 0)           unless ok
+
+    specs[:id  ]   = ""                              unless specs.key?(:id  )
+    id             = specs[:id]
+    ok             = id.respond_to?(:to_s)
+    id             = "Construction:#{specs[:type]}"  unless ok
+    id             = "Construction:#{specs[:type]}"      if id.empty?
+    specs[:uo  ]   = @@uo[ specs[:type] ]            unless specs.key?(:uo  )
+    u              = specs[:uo]
+    return mismatch("#{id} Uo", u, Numeric, mth)     unless u.is_a?(Numeric)
+    return invalid("#{id} Uo (> 5.678)", mth, 0)         if u > 5.678
+
+    # Optional specs. Log/reset if invalid.
+    specs[:clad  ] = :light             unless specs.key?(:clad  ) # exterior
+    specs[:frame ] = :light             unless specs.key?(:frame )
+    specs[:finish] = :light             unless specs.key?(:finish) # interior
+    specs[:clad  ] = :light             unless @@mass.include?(specs[:clad  ])
+    specs[:frame ] = :light             unless @@mass.include?(specs[:frame ])
+    specs[:finish] = :light             unless @@mass.include?(specs[:finish])
+    log(WRN, "Reset to light cladding") unless @@mass.include?(specs[:clad  ])
+    log(WRN, "Reset to light framing" ) unless @@mass.include?(specs[:frame ])
+    log(WRN, "Reset to light finish"  ) unless @@mass.include?(specs[:finish])
+    film           = @@film[ specs[:type] ]
+
+    # Layered assembly (max 4 layers):
+    #   - cladding
+    #   - intermediate sheathing
+    #   - composite insulating/framing
+    #   - interior finish
+    a = {clad: {}, sheath: {}, compo: {}, finish: {}, glazing: {}}
+
+    case specs[:type]
+    when :shading
+      mt = :sheathing
+      d  = 0.015
+      a[:compo][:mat] = @@mats[mt]
+      a[:compo][:d  ] = d
+      a[:compo][:id ] = "#{mt}#{format('%03d', d*1000)[-3..-1]}"
+    when :partition
+      d  = 0.015
+      mt = :drywall
+      a[:clad][:mat] = @@mats[mt]
+      a[:clad][:d  ] = d
+      a[:clad][:id ] = "#{mt}#{format('%03d', d*1000)[-3..-1]}"
+
+      mt = :sheathing
+      a[:compo][:mat] = @@mats[mt]
+      a[:compo][:d  ] = d
+      a[:compo][:id ] = "#{mt}#{format('%03d', d*1000)[-3..-1]}"
+
+      mt = :drywall
+      a[:finish][:mat] = @@mats[mt]
+      a[:finish][:d  ] = d
+      a[:finish][:id ] = "#{mt}#{format('%03d', d*1000)[-3..-1]}"
+    when :wall
+      unless specs[:clad] == :none
+        mt = :cladding
+        mt = :brick    if specs[:clad] == :medium
+        mt = :concrete if specs[:clad] == :heavy
+        d  = 0.100
+        d  = 0.015     if specs[:clad] == :light
+        a[:clad][:mat] = @@mats[mt]
+        a[:clad][:d  ] = d
+        a[:clad][:id ] = "#{mt}#{format('%03d', d*1000)[-3..-1]}"
+      end
+
+      mt = :drywall
+      mt = :polyiso   if specs[:frame] == :medium
+      mt = :mineral   if specs[:frame] == :heavy
+      d  = 0.100
+      d  = 0.015      if specs[:frame] == :light
+      a[:sheath][:mat] = @@mats[mt]
+      a[:sheath][:d  ] = d
+      a[:sheath][:id ] = "#{mt}#{format('%03d', d*1000)[-3..-1]}"
+
+      mt = :concrete
+      mt = :mineral   if specs[:frame] == :light
+      d  = 0.100
+      d  = 0.200      if specs[:frame] == :heavy
+      a[:compo][:mat] = @@mats[mt]
+      a[:compo][:d  ] = d
+      a[:compo][:id ] = "#{mt}#{format('%03d', d*1000)[-3..-1]}"
+
+      unless specs[:finish] == :none
+        mt = :concrete
+        mt = :drywall   if specs[:finish] == :light
+        d  = 0.015
+        d  = 0.100      if specs[:finish] == :medium
+        d  = 0.200      if specs[:finish] == :heavy
+        a[:finish][:mat] = @@mats[mt]
+        a[:finish][:d  ] = d
+        a[:finish][:id ] = "#{mt}#{format('%03d', d*1000)[-3..-1]}"
+      end
+    when :roof
+      unless specs[:clad] == :none
+        mt = :concrete
+        mt = :cladding if specs[:clad] == :light
+        d  = 0.015
+        d  = 0.100     if specs[:clad] == :medium # e.g. terrace
+        d  = 0.200     if specs[:clad] == :heavy  # e.g. parking garage
+        a[:clad][:mat] = @@mats[mt]
+        a[:clad][:d  ] = d
+        a[:clad][:id ] = "#{mt}#{format('%03d', d*1000)[-3..-1]}"
+
+        mt = :sheathing
+        d  = 0.015
+        a[:sheath][:mat] = @@mats[mt]
+        a[:sheath][:d  ] = d
+        a[:sheath][:id ] = "#{mt}#{format('%03d', d*1000)[-3..-1]}"
+      end
+
+      mt = :cellulose
+      mt = :polyiso   if specs[:frame] == :medium
+      mt = :mineral   if specs[:frame] == :heavy
+      d  = 0.100
+      a[:compo][:mat] = @@mats[mt]
+      a[:compo][:d  ] = d
+      a[:compo][:id ] = "#{mt}#{format('%03d', d*1000)[-3..-1]}"
+
+      unless specs[:finish] == :none
+        mt = :concrete
+        mt = :drywall   if specs[:finish] == :light
+        d  = 0.015
+        d  = 0.100      if specs[:finish] == :medium # proxy for steel decking
+        d  = 0.200      if specs[:finish] == :heavy
+        a[:finish][:mat] = @@mats[mt]
+        a[:finish][:d  ] = d
+        a[:finish][:id ] = "#{mt}#{format('%03d', d*1000)[-3..-1]}"
+      end
+    when :floor # exposed
+      unless specs[:clad] == :none
+        mt = :cladding
+        d  = 0.015
+        a[:clad][:mat] = @@mats[mt]
+        a[:clad][:d  ] = d
+        a[:clad][:id ] = "#{mt}#{format('%03d', d*1000)[-3..-1]}"
+
+        mt = :sheathing
+        d  = 0.015
+        a[:sheath][:mat] = @@mats[mt]
+        a[:sheath][:d  ] = d
+        a[:sheath][:id ] = "#{mt}#{format('%03d', d*1000)[-3..-1]}"
+      end
+
+      mt = :cellulose
+      mt = :polyiso   if specs[:frame] == :medium
+      mt = :mineral   if specs[:frame] == :heavy
+      d  = 0.100 # possibly an insulating layer to reset
+      a[:compo][:mat] = @@mats[mt]
+      a[:compo][:d  ] = d
+      a[:compo][:id ] = "#{mt}#{format('%03d', d*1000)[-3..-1]}"
+
+      unless specs[:finish] == :none
+        mt = :concrete
+        mt = :sheathing if specs[:finish] == :light
+        d  = 0.015
+        d  = 0.100      if specs[:finish] == :medium
+        d  = 0.200      if specs[:finish] == :heavy
+        a[:finish][:mat] = @@mats[mt]
+        a[:finish][:d  ] = d
+        a[:finish][:id ] = "#{mt}#{format('%03d', d*1000)[-3..-1]}"
+      end
+    when :slab # basement slab or slab-on-grade
+      mt = :sand
+      d  = 0.100
+      a[:clad][:mat] = @@mats[mt]
+      a[:clad][:d  ] = d
+      a[:clad][:id ] = "#{mt}#{format('%03d', d*1000)[-3..-1]}"
+
+      unless specs[:frame] == :none
+        mt = :polyiso
+        d  = 0.025
+        a[:sheath][:mat] = @@mats[mt]
+        a[:sheath][:d  ] = d
+        a[:sheath][:id ] = "#{mt}#{format('%03d', d*1000)[-3..-1]}"
+      end
+
+      mt = :concrete
+      d  = 0.100
+      d  = 0.200      if specs[:frame] == :heavy
+      a[:compo][:mat] = @@mats[mt]
+      a[:compo][:d  ] = d
+      a[:compo][:id ] = "#{mt}#{format('%03d', d*1000)[-3..-1]}"
+
+      unless specs[:finish] == :none
+        mt = :sheathing
+        d  = 0.015
+        a[:finish][:mat] = @@mats[mt]
+        a[:finish][:d  ] = d
+        a[:finish][:id ] = "#{mt}#{format('%03d', d*1000)[-3..-1]}"
+      end
+    when :basement # wall
+      unless specs[:clad] == :none
+        mt = :concrete
+        mt = :sheathing if specs[:clad] == :light
+        d  = 0.100
+        d  = 0.015      if specs[:clad] == :light
+        a[:clad][:mat] = @@mats[mt]
+        a[:clad][:d  ] = d
+        a[:clad][:id ] = "#{mt}#{format('%03d', d*1000)[-3..-1]}"
+
+        mt = :polyiso
+        d  = 0.025
+        a[:sheath][:mat] = @@mats[mt]
+        a[:sheath][:d  ] = d
+        a[:sheath][:id ] = "#{mt}#{format('%03d', d*1000)[-3..-1]}"
+
+        mt = :concrete
+        d  = 0.200
+        a[:compo][:mat] = @@mats[mt]
+        a[:compo][:d  ] = d
+        a[:compo][:id ] = "#{mt}#{format('%03d', d*1000)[-3..-1]}"
+      else
+        mt = :concrete
+        d  = 0.200
+        a[:sheath][:mat] = @@mats[mt]
+        a[:sheath][:d  ] = d
+        a[:sheath][:id ] = "#{mt}#{format('%03d', d*1000)[-3..-1]}"
+
+        unless specs[:finish] == :none
+          mt = :mineral
+          d  = 0.075
+          a[:compo][:mat] = @@mats[mt]
+          a[:compo][:d  ] = d
+          a[:compo][:id ] = "#{mt}#{format('%03d', d*1000)[-3..-1]}"
+
+          mt = :drywall
+          d  = 0.015
+          a[:finish][:mat] = @@mats[mt]
+          a[:finish][:d  ] = d
+          a[:finish][:id ] = "#{mt}#{format('%03d', d*1000)[-3..-1]}"
+        end
+      end
+    when :door # opaque
+      # 45mm insulated (composite) steel door.
+      mt = :door
+      d  = 0.045
+
+      a[:compo  ][:mat ] = @@mats[mt]
+      a[:compo  ][:d   ] = d
+      a[:compo  ][:id  ] = "#{mt}#{format('%03d', d*1000)[-3..-1]}"
+    when :window # e.g. patio doors (simple glazing)
+      # SimpleGlazingMaterial.
+      a[:glazing][:u   ]  = specs[:uo  ]
+      a[:glazing][:shgc]  = 0.450
+      a[:glazing][:shgc]  = specs[:shgc] if specs.key?(:shgc)
+      a[:glazing][:id  ]  = "window"
+      a[:glazing][:id  ] += ":U#{format('%.1f', a[:glazing][:u])}"
+      a[:glazing][:id  ] += ":SHGC#{format('%d', a[:glazing][:shgc]*100)}"
+    when :skylight
+      # SimpleGlazingMaterial.
+      a[:glazing][:u   ] = specs[:uo  ]
+      a[:glazing][:shgc] = 0.450
+      a[:glazing][:shgc] = specs[:shgc] if specs.key?(:shgc)
+      a[:glazing][:id  ]  = "skylight"
+      a[:glazing][:id  ] += ":U#{format('%.1f', a[:glazing][:u])}"
+      a[:glazing][:id  ] += ":SHGC#{format('%d', a[:glazing][:shgc]*100)}"
+    end
+
+    # Initiate layers.
+    glazed = true
+    glazed = false if a[:glazing].empty?
+    layers = OpenStudio::Model::OpaqueMaterialVector.new   unless glazed
+    layers = OpenStudio::Model::FenestrationMaterialVector.new if glazed
+
+    if glazed
+      u    = a[:glazing][:u   ]
+      shgc = a[:glazing][:shgc]
+      lyr  = model.getSimpleGlazingByName(a[:glazing][:id])
+
+      if lyr.empty?
+        lyr = OpenStudio::Model::SimpleGlazing.new(model, u, shgc)
+        lyr.setName(a[:glazing][:id])
+      else
+        lyr = lyr.get
+      end
+
+      layers << lyr
+    else
+      # Loop through each layer spec, and generate construction.
+      a.each do |i, l|
+        next if l.empty?
+
+        lyr = model.getStandardOpaqueMaterialByName(l[:id])
+
+        if lyr.empty?
+          lyr = OpenStudio::Model::StandardOpaqueMaterial.new(model)
+          lyr.setName(l[:id])
+          lyr.setThickness(l[:d])
+          lyr.setRoughness(         l[:mat][:rgh]) if l[:mat].key?(:rgh)
+          lyr.setConductivity(      l[:mat][:k  ]) if l[:mat].key?(:k  )
+          lyr.setDensity(           l[:mat][:rho]) if l[:mat].key?(:rho)
+          lyr.setSpecificHeat(      l[:mat][:cp ]) if l[:mat].key?(:cp )
+          lyr.setThermalAbsorptance(l[:mat][:thm]) if l[:mat].key?(:thm)
+          lyr.setSolarAbsorptance(  l[:mat][:sol]) if l[:mat].key?(:sol)
+          lyr.setVisibleAbsorptance(l[:mat][:vis]) if l[:mat].key?(:vis)
+        else
+          lyr = lyr.get
+        end
+
+        layers << lyr
+      end
+    end
+
+    c  = OpenStudio::Model::Construction.new(layers)
+    c.setName(id)
+
+    # Adjust insulating layer thickness or conductivity to match requested Uo.
+    unless glazed
+      ro = 0
+      ro = 1 / specs[:uo] - @@film[ specs[:type] ] if specs[:uo] > 0
+
+      if specs[:type] == :door # 1x layer, adjust conductivity
+        layer = c.getLayer(0).to_StandardOpaqueMaterial
+        return invalid("#{id} standard material?", mth, 0) if layer.empty?
+
+        layer = layer.get
+        k     = layer.thickness / ro
+        layer.setConductivity(k)
+      elsif ro > 0 # multiple layers, adjust insulating layer thickness
+        lyr = insulatingLayer(c)
+        return invalid("#{id} construction", mth, 0) if lyr[:index].nil?
+        return invalid("#{id} construction", mth, 0) if lyr[:type ].nil?
+        return invalid("#{id} construction", mth, 0) if lyr[:r    ].zero?
+
+        layer = c.getLayer(lyr[:index]).to_StandardOpaqueMaterial
+        return invalid("#{id} standard material", mth, 0) if layer.empty?
+
+        layer = layer.get
+        d     = layer.thickness
+        k     = layer.conductivity
+        d     = (ro - rsi(c) + lyr[:r]) * k
+        nom   = layer.nameString.gsub(/[^a-z]/i, "")
+        nom  += format("%03d", d*1000)[-3..-1]
+        layer.setName(nom)
+        layer.setThickness(d)
+      end
+    end
+
+    c
+  end
+
+  ##
+  # Generate a solar shade (e.g. roller, textile) for glazed sub surfaces,
+  # controlled to minimize overheating in cooling months (Northern Hemisphere,
+  # i.e. May to October), when outdoor dry bulb temperature is above 18°C and
+  # impinging solar radiation is above 100 W/m2). For SDK v3.2.1 and up.
+  #
+  # @param model [OpenStudio::Model::Model] a model
+  # @param subs [OpenStudio::Model::SubSurfaceVector] list of sub surfaces
+  #
+  # @return [Bool] true if successful
+  def genShade(model = nil, subs = OpenStudio::Model::SubSurfaceVector.new)
+    mth = "OSut::#{__callee__}"
+    v   = OpenStudio.openStudioVersion.split(".").join.to_i
+    cl1 = OpenStudio::Model::Model
+    cl2 = OpenStudio::Model::SubSurfaceVector
+    no  = false
+
+    # Log/exit if invalid arguments.
+    return mismatch("model", model, cl1, mth, ERR, no) unless model.is_a?(cl1)
+    return mismatch("subs ", subs,  cl2, mth, ERR, no) unless subs.is_a?(cl2)
+    return empty(   "subs",              mth, WRN, no)     if subs.empty?
+    return no if v < 321
+
+    # Shading availability period.
+    onoff = model.getScheduleTypeLimitsByName("onoff")
+
+    if onoff.empty?
+      onoff = OpenStudio::Model::ScheduleTypeLimits.new(model)
+      onoff.setName("onoff")
+      onoff.setLowerLimitValue(0)
+      onoff.setUpperLimitValue(1)
+      onoff.setNumericType("Discrete")
+      onoff.setUnitType("Availability")
+    else
+      onoff = onoff.get
+    end
+
+    # Shading schedule.
+    may     = OpenStudio::MonthOfYear.new("May")
+    october = OpenStudio::MonthOfYear.new("Oct")
+    start   = OpenStudio::Date.new(may, 1)
+    finish  = OpenStudio::Date.new(october, 31)
+
+    shade_sch = OpenStudio::Model::ScheduleRuleset.new(model, 0)
+    shade_sch.setName("shade_sch")
+    shade_sch.setScheduleTypeLimits(onoff)
+    shade_sch.defaultDaySchedule.setName("shade_sch_dft")
+
+    shade_cooling_rule = OpenStudio::Model::ScheduleRule.new(shade_sch)
+    shade_cooling_rule.setName("shade_cooling_rule")
+    shade_cooling_rule.setStartDate(start)
+    shade_cooling_rule.setEndDate(finish)
+    shade_cooling_rule.setApplyAllDays(true)
+    shade_cooling_rule.daySchedule.setName("shade_sch_cooling")
+    shade_cooling_rule.daySchedule.addValue(OpenStudio::Time.new(0,24,0,0), 1)
+
+    shd = OpenStudio::Model::Shade.new(model)
+    shd.setName("shade")
+
+    ctl = OpenStudio::Model::ShadingControl.new(shd)
+    ctl.setName("shade_control")
+    ctl.setSchedule(shade_sch)
+    ctl.setShadingControlType("OnIfHighOutdoorAirTempAndHighSolarOnWindow")
+    ctl.setSetpoint(18)   # °C
+    ctl.setSetpoint2(100) # W/m2
+    ctl.setMultipleSurfaceControlType("Group")
+
+    # Setting setpoint (#1) triggers the following (apparently benign) warning:
+    #
+    #   [openstudio.model.ShadingControl] <0> Object of type 'OS:ShadingControl'
+    #   and named 'shade_control' has a Shading Control Type
+    #   'OnIfHighOutdoorAirTempAndHighSolarOnWindow' which does require a
+    #   Setpoint, not resetting it
+    #
+    #   github.com/NREL/OpenStudio/blob/872300de73e3223f0d541269def844b6250a3ed0
+    #   /src/model/ShadingControl.cpp#L334
+    #
+    # This appears to be the calling point:
+    #
+    #   github.com/NREL/OpenStudio/blob/872300de73e3223f0d541269def844b6250a3ed0
+    #   /src/model/ShadingControl.cpp#L274
+    #
+    # Hopefully, SDK devs could comment out the stdout warning everytime
+    # resetSetpoint() is called.
+
+    ctl.setSubSurfaces(subs)
+  end
+
+  ##
+  # Generate an internal mass definition and internal mass instances for
+  # selected spaces.
+  #
+  # @param model [OpenStudio::Model::Model] a model
+  # @param spaces [Array] OpenStudio spaces
+  # @param ratio [Double] internal mass surface area / floor area
+  #
+  # @return [Bool] true if successful
+  def genMass(model = nil, spaces = [], ratio = 2.0)
+    # This is largely adapted from OpenStudio-Standards
+    #
+    # https://github.com/NREL/openstudio-standards/blob/
+    # d332605c2f7a35039bf658bf55cad40a7bcac317/lib/openstudio-standards/
+    # prototypes/common/objects/Prototype.Model.rb#L786
+
+    mth = "OSut::#{__callee__}"
+    cl1 = OpenStudio::Model::Model
+    cl2 = Array
+    cl3 = Numeric
+    cl4 = OpenStudio::Model::Space
+    no  = false
+
+    # Log/exit if invalid arguments.
+    return mismatch("model", model, cl1, mth, ERR, no) unless model.is_a?(cl1)
+    return mismatch("spaces", spaces, cl2, mth, ERR, no) unless spaces.is_a?(cl2)
+    return mismatch("ratio", ratio, cl3, mth, ERR, no) unless ratio.is_a?(cl3)
+    return empty(   "spaces", mth, WRN, no) if spaces.empty?
+    return negative("ratio", mth, ERR, no) if ratio < 0
+
+    spaces.each do |space|
+      return mismatch("space", space, cl4, mth, ERR, no) unless space.is_a?(cl4)
+    end
+
+    # A single material.
+    mat = "m:mass"
+    m_mass = model.getOpaqueMaterialByName(mat)
+
+    if m_mass.empty?
+      m_mass = OpenStudio::Model::StandardOpaqueMaterial.new(model)
+      m_mass.setName(mat)
+      m_mass.setRoughness("MediumRough")
+      m_mass.setThickness(0.15)
+      m_mass.setConductivity(1.12)
+      m_mass.setDensity(540)
+      m_mass.setSpecificHeat(1210)
+      m_mass.setThermalAbsorptance(0.9)
+      m_mass.setSolarAbsorptance(0.7)
+      m_mass.setVisibleAbsorptance(0.17)
+    else
+      m_mass = m_mass.get
+    end
+
+    # A single, 1x layered construction.
+    construction = "c:mass"
+    c_mass = model.getConstructionByName(construction)
+
+    if c_mass.empty?
+      c_mass = OpenStudio::Model::Construction.new(model)
+      c_mass.setName(construction)
+      layers = OpenStudio::Model::MaterialVector.new
+      layers << m_mass
+      c_mass.setLayers(layers)
+    else
+      c_mass = c_mass.get
+    end
+
+    id = "mass definition:" + (format "%.2f", ratio)
+    definition = model.getInternalMassDefinitionByName(id)
+
+    if definition.empty?
+      definition = OpenStudio::Model::InternalMassDefinition.new(model)
+      definition.setName(id)
+      definition.setConstruction(c_mass)
+      definition.setSurfaceAreaperSpaceFloorArea(ratio)
+    else
+      definition = definition.get
+    end
+
+    spaces.each do |space|
+      mass = OpenStudio::Model::InternalMass.new(definition)
+      mass.setName("mass:#{space.nameString}")
+      mass.setSpace(space)
+    end
+
+    true
+  end
+
+  # This next set of utilities (~750 lines) help distinguishing spaces that
   # are directly vs indirectly CONDITIONED, vs SEMI-HEATED. The solution here
   # relies as much as possible on space conditioning categories found in
   # standards like ASHRAE 90.1 and energy codes like the Canadian NECB editions.
@@ -1726,6 +2391,184 @@ module OSut
   end
 
   ##
+  # Return 'width' of a planar surface.
+  #
+  # @param s [OpenStudio::Model::PlanarSurface] a planar surface
+  #
+  # @return [Double] planar surface (left-to-right) width; 0 if invalid inputs
+  def width(s = nil)
+    mth = "OSut::#{__callee__}"
+    cl  = OpenStudio::Model::PlanarSurface
+
+    return mismatch("surface", s, cl, mth, DBG, 0) unless s.is_a?(cl)
+    return zero("surface area", mth, DBG, 0)           if s.grossArea < TOL
+
+    tr = OpenStudio::Transformation.alignFace(s.vertices)
+
+    (tr.inverse * s.vertices).max_by(&:x).x
+  end
+
+  ##
+  # Return 'height' of a planar surface, viewed perpendicularly (vs space or
+  # building XYZ coordinates).
+  #
+  # @param s [OpenStudio::Model::PlanarSurface] a planar surface
+  #
+  # @return [Double] planar surface (top-to-bottom) height; 0 if invalid inputs
+  def height(s = nil)
+    mth = "OSut::#{__callee__}"
+    cl  = OpenStudio::Model::PlanarSurface
+
+    return mismatch("surface", s, cl, mth, DBG, 0) unless s.is_a?(cl)
+    return zero("surface area", mth, DBG, 0)           if s.grossArea < TOL
+
+    tr = OpenStudio::Transformation.alignFace(s.vertices)
+
+    (tr.inverse * s.vertices).max_by(&:y).y
+  end
+
+  ##
+  # Return array of space-specific OpenStudio::Model::Surface's that match
+  # criteria (e.g. exterior, north-east facing walls in hotel "lobby"). Note
+  # 'sides' rely on space coordinates (not absolute model coordinates). And
+  # 'sides' are exclusive, not inclusive (e.g. walls that are strictly
+  # north-facing or strictly east-facing would not be returned if 'sides' holds
+  # [:north, :east]).
+  #
+  # @param spaces [Array] targeted OpenStudio::Model::Space's
+  # @param boundary [String] OpenStudio outside boundary condition
+  # @param type [String] OpenStudio surface type
+  # @param sides [Arrayl] surface direction keys, e.g. [:north, :top, :bottom]
+  #
+  # @return [Array] matching OpenStudio::Model::Surface's (empty if fail)
+  def facets(spaces = [], boundary = "Outdoors", type = "Wall", sides = [])
+    faces    = []
+    list     = [:bottom, :top, :north, :east, :south, :west].freeze
+    boundary = boundary.downcase
+    type     = type.downcase
+    return [] unless spaces.respond_to?(:&)
+    return [] unless boundary.respond_to?(:to_s)
+    return [] unless type.respond_to?(:to_s)
+    return [] unless sides.respond_to?(:&)
+
+    spaces.each { |s| return [] unless s.respond_to?(:setSpaceType) }
+
+    # Skip empty sides.
+    return [] if sides.empty?
+
+    # Keep valid sides.
+    orientations = sides.select {|o| list.include?(o)}
+    return [] if orientations.empty?
+
+    spaces.each do |space|
+      space.surfaces.each do |s|
+        next unless s.outsideBoundaryCondition.downcase == boundary
+        next unless s.surfaceType.downcase == type
+
+        sidez = []
+        sidez << :top    if s.outwardNormal.z >  TOL
+        sidez << :bottom if s.outwardNormal.z < -TOL
+        sidez << :north  if s.outwardNormal.y >  TOL
+        sidez << :east   if s.outwardNormal.x >  TOL
+        sidez << :south  if s.outwardNormal.y < -TOL
+        sidez << :west   if s.outwardNormal.x < -TOL
+        ok = true
+        orientations.each { |o| ok = false unless sidez.include?(o) }
+        faces << s if ok
+      end
+    end
+
+    faces
+  end
+
+  ##
+  # Generates an OpenStudio 3D point vector of a composite floor "slab", a
+  # 'union' of multiple rectangular, horizontal floor "plates". Each "plate" is
+  # a Hash holding 4x keys: :x & :y coordinates of the origin (i.e. bottom-left
+  # corner of each plate), and :dx & :dy (plate width and depth). Each plate
+  # must also either encompass or overlap (or share an adge with) any of the
+  # preceding plates in the array. The resulting vector (or "slab") is empty
+  # if input is invalid.
+  #
+  # @param pltz [Array] individual plate Hashes
+  # @param z [Double] Z-axis coordinate
+  #
+  # @return [OpenStudio::Point3dVector] new floor vertices; empty if fail
+  def genSlab(pltz = [], z = 0)
+    mth = "OSut::#{__callee__}"
+    slb = OpenStudio::Point3dVector.new
+    bkp = OpenStudio::Point3dVector.new
+    cl1 = Array
+    cl2 = Hash
+    cl3 = Numeric
+
+    # Input validation.
+    return mismatch("plates", pltz, cl1, mth, DBG, slb) unless pltz.is_a?(cl1)
+
+    pltz.each_with_index do |plt, i|
+      id = "plate # #{i+1} (index #{i})"
+
+      return mismatch(id, plt, cl1, mth, DBG, slb) unless plt.is_a?(cl2)
+      return hashkey( id, plt,  :x, mth, DBG, slb) unless plt.key?(:x )
+      return hashkey( id, plt,  :y, mth, DBG, slb) unless plt.key?(:y )
+      return hashkey( id, plt, :dx, mth, DBG, slb) unless plt.key?(:dx)
+      return hashkey( id, plt, :dy, mth, DBG, slb) unless plt.key?(:dy)
+
+      x  = plt[:x ]
+      y  = plt[:y ]
+      dx = plt[:dx]
+      dy = plt[:dy]
+
+      return mismatch("#{id} X",   x, cl3, mth, DBG, slb) unless  x.is_a?(cl3)
+      return mismatch("#{id} Y",   y, cl3, mth, DBG, slb) unless  y.is_a?(cl3)
+      return mismatch("#{id} dX", dx, cl3, mth, DBG, slb) unless dx.is_a?(cl3)
+      return mismatch("#{id} dY", dy, cl3, mth, DBG, slb) unless dy.is_a?(cl3)
+      return zero(    "#{id} dX",          mth, ERR, slb)     if dx.abs < TOL
+      return zero(    "#{id} dY",          mth, ERR, slb)     if dy.abs < TOL
+    end
+
+    # Join plates.
+    pltz.each_with_index do |plt, i|
+      id = "plate # #{i+1} (index #{i})"
+      x  = plt[:x ]
+      y  = plt[:y ]
+      dx = plt[:dx]
+      dy = plt[:dy]
+
+      # Adjust X if dX < 0.
+      x -= -dx if dx < 0
+      dx = -dx if dx < 0
+
+      # Adjust Y if dY < 0.
+      y -= -dy if dy < 0
+      dy = -dy if dy < 0
+
+      vtx  = []
+      vtx << OpenStudio::Point3d.new(x + dx, y + dy, 0)
+      vtx << OpenStudio::Point3d.new(x + dx, y,      0)
+      vtx << OpenStudio::Point3d.new(x,      y,      0)
+      vtx << OpenStudio::Point3d.new(x,      y + dy, 0)
+
+      if slb.empty?
+        slb = vtx
+      else
+        slab = OpenStudio.join(slb, vtx, TOL2)
+        slb  = slab.get                  unless slab.empty?
+        return invalid(id, mth, 0, ERR, bkp) if slab.empty?
+      end
+    end
+
+    # Once joined, re-adjust Z-axis coordinates.
+    unless z.zero?
+      vtx = OpenStudio::Point3dVector.new
+      slb.each { |pt| vtx << OpenStudio::Point3d.new(pt.x, pt.y, z) }
+      slb = vtx
+    end
+
+    slb
+  end
+
+  ##
   # Add sub surfaces (e.g. windows, doors, skylights) to surface.
   #
   # @param model [OpenStudio::Model::Model] a model
@@ -1790,8 +2633,8 @@ module OSut
 
     # Aligned vertices of host surface, and fetch attributes.
     aligned = tr.inverse * s.vertices
-    max_x   = aligned.max_by(&:x).x
-    max_y   = aligned.max_by(&:y).y
+    max_x   = aligned.max_by(&:x).x # same as OSut.width(s)
+    max_y   = aligned.max_by(&:y).y # same as OSut.height(s)
     mid_x   = max_x / 2
     mid_y   = max_y / 2
 
