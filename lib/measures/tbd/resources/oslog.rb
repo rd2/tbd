@@ -29,229 +29,285 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module OSlg
-  DEBUG        = 1
-  INFO         = 2
-  WARN         = 3
-  ERROR        = 4
-  FATAL        = 5
+  DEBUG = 1 # e.g. for debugging e.g. "argument String? expecting Integer"
+  INFO  = 2 # e.g. informative e.g. "success! no errors, no warnings"
+  WARN  = 3 # e.g. warnings e.g. "partial success, see non-fatal warnings"
+  ERROR = 4 # e.g. erros e.g. "partial success, see non-fatal errors"
+  FATAL = 5 # e.g. failures e.g. "stopping! encountered fatal errors"
 
-  @@logs       = []
-  @@level      = INFO
-  @@status     = 0
+  # each log is a Hash with keys :level (Integer) and :message (String)
+  @@logs = []
 
-  @@tag        = []
-  @@tag[0    ] = ""
-  @@tag[DEBUG] = "DEBUG"
-  @@tag[INFO ] = "INFO"
-  @@tag[WARN ] = "WARNING"
-  @@tag[ERROR] = "ERROR"
-  @@tag[FATAL] = "FATAL"
+  # preset strings matching log levels
+  @@tag = [
+           "", # (empty string)
+      "DEBUG", # DEBUG
+       "INFO", # INFO
+    "WARNING", # WARNING
+      "ERROR", # ERROR
+      "FATAL"  # FATAL
+  ].freeze
 
-  @@msg        = []
-  @@msg[0    ] = ""
-  @@msg[DEBUG] = "Debugging ..."
-  @@msg[INFO ] = "Success! No errors, no warnings"
-  @@msg[WARN ] = "Partial success, raised non-fatal warnings"
-  @@msg[ERROR] = "Partial success, encountered non-fatal errors"
-  @@msg[FATAL] = "Failure, triggered fatal errors"
+  # preset strings matching log status
+  @@msg = [
+                                                 "", # (empty string)
+                                    "Debugging ...", # DEBUG
+                  "Success! No errors, no warnings", # INFO
+       "Partial success, raised non-fatal warnings", # WARNING
+    "Partial success, encountered non-fatal errors", # ERROR
+                  "Failure, triggered fatal errors"  # FATAL
+  ].freeze
+
+  @@level  = INFO # initial log level
+  @@status = 0    # initial status
 
   ##
-  # Return log entries.
+  # Returns log entries.
   #
-  # @return [Array] current log entries
+  # @return [Array<Hash>] log entries (see @@logs)
   def logs
     @@logs
   end
 
   ##
-  # Return current log level.
+  # Returns current log level.
   #
-  # @return [Integer] DEBUG, INFO, WARN, ERROR or FATAL
+  # @return [DEBUG, INFO, WARN, ERROR, FATAL] log level
   def level
     @@level
   end
 
   ##
-  # Return current log status.
+  # Returns current log status.
   #
-  # @return [Integer] DEBUG, INFO, WARN, ERROR or FATAL
+  # @return [0, DEBUG, INFO, WARN, ERROR, FATAL] log status
   def status
     @@status
   end
 
   ##
-  # Return whether current status is DEBUG
+  # Returns whether current status is DEBUG.
   #
-  # @return [Bool] true if DEBUG
+  # @return [Bool] whether current log status is DEBUG
   def debug?
     @@status == DEBUG
   end
 
   ##
-  # Return whether current status is INFO
+  # Returns whether current status is INFO.
   #
-  # @return [Bool] true if INFO
+  # @return [Bool] whether current log status is INFO
   def info?
     @@status == INFO
   end
 
   ##
-  # Return whether current status is WARN
+  # Returns whether current status is WARN.
   #
-  # @return [Bool] true if WARN
+  # @return [Bool] whether current log status is WARN
   def warn?
     @@status == WARN
   end
 
   ##
-  # Return whether current status is ERROR
+  # Returns whether current status is ERROR.
   #
-  # @return [Bool] true if ERROR
+  # @return [Bool] whether current log status is ERROR
   def error?
     @@status == ERROR
   end
 
   ##
-  # Return whether current status is FATAL
+  # Returns whether current status is FATAL.
   #
-  # @return [Bool] true if FATAL
+  # @return [Bool] whether current log status is FATAL
   def fatal?
     @@status == FATAL
   end
 
   ##
-  # Return string equivalent of level
+  # Returns preset OSlg string that matches log level.
   #
-  # @param level [Integer] DEBUG, INFO, WARN, ERROR or FATAL
+  # @param lvl [#to_i] 0, DEBUG, INFO, WARN, ERROR or FATAL
   #
-  # @return [String] "DEBUG", "INFO", "WARN", "ERROR" or "FATAL"
-  def tag(level)
-    return @@tag[level] if level >= DEBUG && level <= FATAL
+  # @return [String] preset OSlg tag (see @@tag)
+  def tag(lvl)
+    return "" unless lvl.respond_to?(:to_i)
 
-    ""
+    lvl = lvl.to_i
+    return "" if lvl < DEBUG
+    return "" if lvl > FATAL
+
+    @@tag[lvl]
+
   end
 
   ##
-  # Return preset OSlg message linked to status.
+  # Returns preset OSlg message that matches log status.
   #
-  # @param status [Integer] DEBUG, INFO, WARN, ERROR or FATAL
+  # @param stat [Integer] 0, DEBUG, INFO, WARN, ERROR or FATAL
   #
-  # @return [String] preset OSlg message
-  def msg(status)
-    return @@msg[status] if status >= DEBUG && status <= FATAL
+  # @return [String] preset OSlg message (see @@msg)
+  def msg(stat)
+    return "" unless stat.respond_to?(:to_i)
 
-    ""
+    stat = stat.to_i
+    return "" if stat < DEBUG
+    return "" if stat > FATAL
+
+    @@msg[stat]
   end
 
   ##
-  # Set level.
+  # Converts object to String and trims if necessary.
   #
-  # @param level [Integer] DEBUG, INFO, WARN, ERROR or FATAL
+  # @param txt [#to_s] a stringable object
+  # @param length [#to_i] maximum return string length
   #
-  # @return [Integer] current level
-  def reset(level)
-    @@level = level if level >= DEBUG && level <= FATAL
+  # @return [String] a trimmed message string (empty unless stringable)
+  def trim(txt = "", length = 60)
+    length = 60 unless length.respond_to?(:to_i)
+    length = length.to_i if length.respond_to?(:to_i)
+    return "" unless txt.respond_to?(:to_s)
+
+    txt = txt.to_s.strip
+    txt = txt[0...length] + " ..." if txt.length > length
+
+    txt
   end
 
   ##
-  # Log new entry.
+  # Resets level, if lvl (input) is within accepted range.
   #
-  # @param level [Integer] DEBUG, INFO, WARN, ERROR or FATAL
-  # @param message [String] user-provided message
+  # @param lvl [#to_i] DEBUG, INFO, WARN, ERROR or FATAL
   #
-  # @return [Integer] current status
-  def log(level = DEBUG, message = "")
-    if level >= DEBUG && level <= FATAL && level >= @@level
-      @@logs << {level: level, message: message}
-      @@status = level if level > @@status
-    end
+  # @return [DEBUG, INFO, WARN, ERROR, FATAL] updated/current level
+  def reset(lvl = DEBUG)
+    return @@level unless lvl.respond_to?(:to_i)
 
-    @@status
+    lvl = lvl.to_i
+    return @@level if lvl < DEBUG
+    return @@level if lvl > FATAL
+
+    @@level = lvl
   end
 
   ##
-  # Log template 'invalid object' message and return user-set object.
+  # Logs a new entry, if provided arguments are valid.
   #
-  # @param id [String] invalid object identifier
-  # @param mth [String] calling method identifier
-  # @param ord [Integer] calling method argument order number of obj (optional)
-  # @param lvl [Integer] DEBUG, INFO, WARN, ERROR or FATAL (optional)
-  # @param res [Object] what to return (optional)
+  # @param lvl [#to_i] DEBUG, INFO, WARN, ERROR or FATAL
+  # @param message [#to_s] user-provided log message
   #
-  # @return [Object] return object if specified by user
-  # @return [Nil] nil if return object undefined
+  # @example A user warning
+  #   log(WARN, "Surface area < 100cm2")
+  #
+  # @return [DEBUG, INFO, WARN, ERROR, FATAL] updated/current status
+  def log(lvl = DEBUG, message = "")
+    return @@status unless lvl.respond_to?(:to_i)
+    return @@status unless message.respond_to?(:to_s)
+
+    lvl = lvl.to_i
+    message = message.to_s
+    return @@status if lvl < DEBUG
+    return @@status if lvl > FATAL
+    return @@status if lvl < @@level
+
+    @@logs << {level: lvl, message: message}
+    return @@status unless lvl > @@status
+
+    @@status = lvl
+  end
+
+  ##
+  # Logs template 'invalid object' message, if provided arguments are valid.
+  #
+  # @param id [#to_s] 'invalid object' identifier
+  # @param mth [#to_s] calling method identifier
+  # @param ord [#to_i] calling method argument order number of obj (optional)
+  # @param lvl [#to_i] DEBUG, INFO, WARN, ERROR or FATAL (optional)
+  # @param res what to return (optional)
+  #
+  # @example An invalid argument, logging a FATAL error, returning FALSE
+  #   return invalid("area", "sum", 0, FATAL, false) if area > 1000000
+  #
+  # @return user-provided object
+  # @return [nil] if user hasn't provided an object to return
   def invalid(id = "", mth = "", ord = 0, lvl = DEBUG, res = nil)
     return res unless id.respond_to?(:to_s)
     return res unless mth.respond_to?(:to_s)
     return res unless ord.respond_to?(:to_i)
     return res unless lvl.respond_to?(:to_i)
 
-    id  = id.to_s.strip
-    mth = mth.to_s.strip
     ord = ord.to_i
     lvl = lvl.to_i
-
-    id = id[0...60] + " ..." if id.length > 60
+    id  = trim(id)
+    mth = trim(mth)
     return res if id.empty?
-
-    mth = mth[0...60] + " ..." if mth.length > 60
     return res if mth.empty?
+    return res if lvl < DEBUG
+    return res if lvl > FATAL
 
     msg = "Invalid '#{id}' "
     msg += "arg ##{ord} " if ord > 0
     msg += "(#{mth})"
-    log(lvl, msg) if lvl >= DEBUG && lvl <= FATAL
+    log(lvl, msg)
 
     res
   end
 
   ##
-  # Log template 'instance/class mismatch' message and return user-set object.
+  # Logs template 'instance/class mismatch' message, if provided arguments are
+  # valid. The message is not logged if the provided object to evaluate is an
+  # actual instance of the target class.
   #
-  # @param id [String] mismatched object identifier
-  # @param obj [Object] object to validate
+  # @param id [#to_s] mismatched object identifier
+  # @param obj the object to validate
   # @param cl [Class] target class
-  # @param mth [String] calling method identifier
-  # @param lvl [Integer] DEBUG, INFO, WARN, ERROR or FATAL (optional)
-  # @param res [Object] what to return (optional)
+  # @param mth [#to_s] calling method identifier (optional)
+  # @param lvl [#to_i] DEBUG, INFO, WARN, ERROR or FATAL (optional)
+  # @param res what to return (optional)
   #
-  # @return [Object] return object if specified by user
-  # @return [Nil] nil if return object undefined
+  # @example A mismatched argument instance/class
+  #   mismatch("area", area, Float, "sum") unless area.is_a?(Numeric)
+  #
+  # @return user-provided object
+  # @return [nil] if user hasn't provided an object to return
   def mismatch(id = "", obj = nil, cl = nil, mth = "", lvl = DEBUG, res = nil)
     return res unless id.respond_to?(:to_s)
+    return res unless mth.respond_to?(:to_s)
     return res unless cl.is_a?(Class)
     return res if obj.is_a?(cl)
-    return res unless mth.respond_to?(:to_s)
     return res unless lvl.respond_to?(:to_i)
 
-    mth = mth.to_s.strip
-    id  = id.to_s.strip
     lvl = lvl.to_i
-
-    id = id[0...60] + " ..." if id.length > 60
+    id  = trim(id)
+    mth = trim(mth)
     return res if id.empty?
-
-    mth = mth[0...60] + " ..." if mth.length > 60
     return res if mth.empty?
+    return res if lvl < DEBUG
+    return res if lvl > FATAL
 
-    msg = "'#{id}' #{obj.class}? expecting #{cl} (#{mth})"
-    log(lvl, msg) if lvl >= DEBUG && lvl <= FATAL
+    log(lvl, "'#{id}' #{obj.class}? expecting #{cl} (#{mth})")
 
     res
   end
 
   ##
-  # Log template 'missing hash key' message and return user-set object.
+  # Logs template 'missing hash key' message, if provided arguments are valid.
+  # The message is not logged if the provided key exists.
   #
-  # @param id [String] Hash identifier
+  # @param id [#to_s] Hash identifier
   # @param hsh [Hash] hash to validate
-  # @param key [Object] missing key
-  # @param mth [String] calling method identifier
-  # @param lvl [Integer] DEBUG, INFO, WARN, ERROR or FATAL (optional)
-  # @param res [Object] what to return (optional)
+  # @param key missing key
+  # @param mth [#to_s] calling method identifier
+  # @param lvl [#to_i] DEBUG, INFO, WARN, ERROR or FATAL (optional)
+  # @param res what to return (optional)
   #
-  # @return [Object] return object if specified by user
-  # @return [Nil] nil if return object undefined
+  # @example A missing Hash key
+  #   hashkey("floor area", floor, :area, "sum") unless floor.key?(:area)
+  #
+  # @return user-provided object
+  # @return [nil] if user hasn't provided an object to return
   def hashkey(id = "", hsh = {}, key = "", mth = "", lvl = DEBUG, res = nil)
     return res unless id.respond_to?(:to_s)
     return res unless hsh.is_a?(Hash)
@@ -259,121 +315,117 @@ module OSlg
     return res unless mth.respond_to?(:to_s)
     return res unless lvl.respond_to?(:to_i)
 
-    id  = id.to_s.strip
-    mth = mth.to_s.strip
     lvl = lvl.to_i
-
-    id = id[0...60] + " ..." if id.length > 60
+    id  = trim(id)
+    mth = trim(mth)
     return res if id.empty?
-
-    mth = mth[0...60] + " ..." if mth.length > 60
     return res if mth.empty?
+    return res if lvl < DEBUG
+    return res if lvl > FATAL
 
-    msg = "Missing '#{key}' key in '#{id}' Hash (#{mth})"
-    log(lvl, msg) if lvl >= DEBUG && lvl <= FATAL
+    log(lvl, "Missing '#{key}' key in '#{id}' Hash (#{mth})")
 
     res
   end
 
   ##
-  # Log template 'empty (uninitialized)' message and return user-set object.
+  # Logs template 'empty' message, if provided arguments are valid.
   #
-  # @param id [String] empty object identifier
-  # @param mth [String] calling method identifier
-  # @param lvl [Integer] DEBUG, INFO, WARN, ERROR or FATAL (optional)
-  # @param res [Object] what to return (optional)
+  # @param id [#to_s] empty object identifier
+  # @param mth [#to_s] calling method identifier
+  # @param lvl [#to_i] DEBUG, INFO, WARN, ERROR or FATAL (optional)
+  # @param res what to return (optional)
   #
-  # @return [Object] return object if specified by user
-  # @return [Nil] nil if return object undefined
+  # @example An uninitialized variable, logging an ERROR, returning FALSE
+  #   empty("zone", "conditioned?", FATAL, false) if space.thermalZone.empty?
+  #
+  # @return user-provided object
+  # @return [nil] if user hasn't provided an object to return
   def empty(id = "", mth = "", lvl = DEBUG, res = nil)
     return res unless id.respond_to?(:to_s)
     return res unless mth.respond_to?(:to_s)
     return res unless lvl.respond_to?(:to_i)
 
-    id  = id.to_s.strip
-    mth = mth.to_s.strip
     lvl = lvl.to_i
-
-    id = id[0...60] + " ..." if id.length > 60
+    id  = trim(id)
+    mth = trim(mth)
     return res if id.empty?
-
-    mth = mth[0...60] + " ..." if mth.length > 60
     return res if mth.empty?
+    return res if lvl < DEBUG
+    return res if lvl > FATAL
 
-    msg = "Empty '#{id}' (#{mth})"
-    log(lvl, msg) if lvl >= DEBUG && lvl <= FATAL
+    log(lvl, "Empty '#{id}' (#{mth})")
 
     res
   end
 
   ##
-  # Log template 'near zero' message and return user-set object.
+  # Logs template 'zero' value message, if provided arguments are valid.
   #
-  # @param id [String] zero object identifier
-  # @param mth [String] calling method identifier
-  # @param lvl [Integer] DEBUG, INFO, WARN, ERROR or FATAL (optional)
-  # @param res [Object] what to return (optional)
+  # @param id [#to_s] zero object identifier
+  # @param mth [#to_s] calling method identifier
+  # @param lvl [#to_i] DEBUG, INFO, WARN, ERROR or FATAL (optional)
+  # @param res what to return (optional)
   #
-  # @return [Object] return object if specified by user
-  # @return [Nil] nil if return object undefined
+  # @example A near-zero variable
+  #   zero("floor area", "sum") if floor[:area].abs < TOL
+  #
+  # @return user-provided object
+  # @return [nil] if user hasn't provided an object to return
   def zero(id = "", mth = "", lvl = DEBUG, res = nil)
     return res unless id.respond_to?(:to_s)
     return res unless mth.respond_to?(:to_s)
     return res unless lvl.respond_to?(:to_i)
 
-    id  = id.to_s.strip
-    mth = mth.to_s.strip
     ord = ord.to_i
     lvl = lvl.to_i
-
-    id = id[0...60] + " ..." if id.length > 60
+    id  = trim(id)
+    mth = trim(mth)
     return res if id.empty?
-
-    mth = mth[0...60] + " ..." if mth.length > 60
     return res if mth.empty?
+    return res if lvl < DEBUG
+    return res if lvl > FATAL
 
-    msg = "Zero '#{id}' (#{mth})"
-    log(lvl, msg) if lvl >= DEBUG && lvl <= FATAL
+    log(lvl, "Zero '#{id}' (#{mth})")
 
     res
   end
 
   ##
-  # Log template 'negative' message and return user-set object.
+  # Logs template 'negative' message, if provided arguments are valid.
   #
-  # @param id [String] negative object identifier
+  # @param id [#to_s] negative object identifier
   # @param mth [String] calling method identifier
   # @param lvl [Integer] DEBUG, INFO, WARN, ERROR or FATAL (optional)
   # @param res [Object] what to return (optional)
   #
-  # @return [Object] return object if specified by user
-  # @return [Nil] nil if return object undefined
+  # @example A negative variable
+  #   negative("floor area", "sum") if floor[:area] < 0
+  #
+  # @return user-provided object
+  # @return [nil] if user hasn't provided an object to return
   def negative(id = "", mth = "", lvl = DEBUG, res = nil)
     return res unless id.respond_to?(:to_s)
     return res unless mth.respond_to?(:to_s)
     return res unless lvl.respond_to?(:to_i)
 
-    id  = id.to_s.strip
-    mth = mth.to_s.strip
-    ord = ord.to_i
     lvl = lvl.to_i
-
-    id = id[0...60] + " ..." if id.length > 60
+    id  = trim(id)
+    mth = trim(mth)
     return res if id.empty?
-
-    mth = mth[0...60] + " ..." if mth.length > 60
     return res if mth.empty?
+    return res if lvl < DEBUG
+    return res if lvl > FATAL
 
-    msg = "Negative '#{id}' (#{mth})"
-    log(lvl, msg) if lvl >= DEBUG && lvl <= FATAL
+    log(lvl, "Negative '#{id}' (#{mth})")
 
     res
   end
 
   ##
-  # Reset log status and entries.
+  # Resets log status and entries.
   #
-  # @return [Integer] current level
+  # @return [Integer] current log level
   def clean!
     @@status = 0
     @@logs   = []

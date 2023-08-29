@@ -26,13 +26,13 @@ module TBD
   #
   # @param model [OpenStudio::Model::Model] a model
   # @param lc [OpenStudio::Model::LayeredConstruction] a layered construction
-  # @param id [String] layered construction identifier
-  # @param heatloss [Double] heat loss from major thermal bridging [W/K]
-  # @param film [Double] target surface film resistance [m2.K/W]
-  # @param ut [Double] target overall Ut for lc [W/m2.K]
+  # @param id [#to_s] layered construction identifier
+  # @param hloss [Numeric] heat loss from major thermal bridging, in W/K
+  # @param film [Numeric] target surface film resistance, in m2•K/W
+  # @param ut [Numeric] target overall Ut for lc, in W/m2•K
   #
-  # @return [Hash] uo: lc Uo [W/m2.K] to meet Ut, m: uprated lc layer
-  # @return [Hash] uo: NilClass, m: NilClass (if invalid input)
+  # @return [Hash] uo: lc Uo [W/m2•K] to meet Ut, m: uprated lc layer
+  # @return [Hash] uo: (nil), m: (nil) if invalid input (see logs)
   def uo(model = nil, lc = nil, id = "", hloss = 0.0, film = 0.0, ut = 0.0)
     mth = "TBD::#{__callee__}"
     res = { uo: nil, m: nil }
@@ -40,53 +40,51 @@ module TBD
     cl2 = OpenStudio::Model::LayeredConstruction
     cl3 = Numeric
     cl4 = String
-
+    id  = trim(id)
     return mismatch("model", model, cl1, mth, DBG, res) unless model.is_a?(cl1)
-    return mismatch("id"   ,    id, cl4, mth, DBG, res) unless id.is_a?(cl4)
+    return mismatch("id"   ,    id, cl4, mth, DBG, res)     if id.empty?
     return mismatch("lc"   ,    lc, cl2, mth, DBG, res) unless lc.is_a?(cl2)
     return mismatch("hloss", hloss, cl3, mth, DBG, res) unless hloss.is_a?(cl3)
     return mismatch("film" ,  film, cl3, mth, DBG, res) unless film.is_a?(cl3)
     return mismatch("Ut"   ,    ut, cl3, mth, DBG, res) unless ut.is_a?(cl3)
 
-    loss        = 0.0                   # residual heatloss (not assigned) [W/K]
+    loss        = 0.0 # residual heatloss (not assigned) [W/K]
     area        = lc.getNetArea
     lyr         = insulatingLayer(lc)
     lyr[:index] = nil unless lyr[:index].is_a?(Numeric)
     lyr[:index] = nil unless lyr[:index] >= 0
     lyr[:index] = nil unless lyr[:index] < lc.layers.size
-
-    return invalid("'#{id}' layer index", mth, 0, ERR, res) unless lyr[:index]
-    return zero("'#{id}': heatloss"     , mth,    WRN, res) unless hloss > TOL
-    return zero("'#{id}': films"        , mth,    WRN, res) unless film  > TOL
-    return zero("'#{id}': Ut"           , mth,    WRN, res) unless ut    > TOL
-    return invalid("'#{id}': Ut"        , mth, 0, WRN, res) unless ut    < 5.678
-    return zero("'#{id}': net area (m2)", mth,    ERR, res) unless area  > TOL
+    return invalid("#{id} layer index", mth, 3, ERR, res) unless lyr[:index]
+    return zero("#{id}: heatloss"     , mth,    WRN, res) unless hloss > TOL
+    return zero("#{id}: films"        , mth,    WRN, res) unless film  > TOL
+    return zero("#{id}: Ut"           , mth,    WRN, res) unless ut    > TOL
+    return invalid("#{id}: Ut"        , mth, 6, WRN, res) unless ut    < 5.678
+    return zero("#{id}: net area (m2)", mth,    ERR, res) unless area  > TOL
 
     # First, calculate initial layer RSi to initially meet Ut target.
-    rt     = 1 / ut                      #                target construction Rt
-    ro     = rsi(lc, film)               #               current construction Ro
-    new_r  = lyr[:r] + (rt - ro)         #             new, un-derated layer RSi
+    rt     = 1 / ut              # target construction Rt
+    ro     = rsi(lc, film)       # current construction Ro
+    new_r  = lyr[:r] + (rt - ro) # new, un-derated layer RSi
     new_u  = 1 / new_r
 
     # Then, uprate (if possible) to counter expected thermal bridging effects.
-    u_psi  = hloss / area               #                         from psi & khi
-    new_u -= u_psi                      # uprated layer USi to counter psi & khi
-    new_r  = 1 / new_u                  # uprated layer RSi to counter psi & khi
-
-    return zero("'#{id}': new Rsi", mth, ERR, res)          unless new_r > 0.001
+    u_psi  = hloss / area        # from psi+khi
+    new_u -= u_psi               # uprated layer USi to counter psi+khi
+    new_r  = 1 / new_u           # uprated layer RSi to counter psi+khi
+    return zero("#{id}: new Rsi", mth, ERR, res) unless new_r > 0.001
 
     if lyr[:type] == :massless
       m     = lc.getLayer(lyr[:index]).to_MasslessOpaqueMaterial
-      return  invalid("'#{id}' massless layer?", mth, 0, DBG, res)   if m.empty?
+      return  invalid("#{id} massless layer?", mth, 0, DBG, res) if m.empty?
 
       m     = m.get.clone(model).to_MasslessOpaqueMaterial.get
               m.setName("#{id} uprated")
-      new_r = 0.001                                         unless new_r > 0.001
-      loss  = (new_u - 1 / new_r) * area                    unless new_r > 0.001
+      new_r = 0.001                      unless new_r > 0.001
+      loss  = (new_u - 1 / new_r) * area unless new_r > 0.001
               m.setThermalResistance(new_r)
     else # type == :standard
       m     = lc.getLayer(lyr[:index]).to_StandardOpaqueMaterial
-      return  invalid("'#{id}' standard layer?", mth, 0, DBG, res)   if m.empty?
+      return  invalid("#{id} standard layer?", mth, 0, DBG, res) if m.empty?
 
       m     = m.get.clone(model).to_StandardOpaqueMaterial.get
               m.setName("#{id} uprated")
@@ -98,30 +96,30 @@ module TBD
         unless d > 0.003
           d    = 0.003
           k    = d / new_r
-          k    = 3.0                                            unless k < 3.0
-          loss = (new_u - k / d) * area                         unless k < 3.0
+          k    = 3.0                    unless k < 3.0
+          loss = (new_u - k / d) * area unless k < 3.0
         end
-      else                                                # new_r < 0.001 m2.K/W
+      else # new_r < 0.001 m2•K/W
         d    = 0.001 * k
-        d    = 0.003                                            unless d > 0.003
-        k    = d / 0.001                                        unless d > 0.003
+        d    = 0.003     unless d > 0.003
+        k    = d / 0.001 unless d > 0.003
         loss = (new_u - k / d) * area
       end
 
       ok = m.setThickness(d)
-      return invalid("Can't uprate '#{id}': > 3m", mth, 0, ERR, res)   unless ok
+      return invalid("Can't uprate #{id}: > 3m", mth, 0, ERR, res) unless ok
 
-      m.setThermalConductivity(k)                                          if ok
+      m.setThermalConductivity(k) if ok
     end
 
-    return invalid("", mth, 0, ERR, res) unless m
+    return invalid("Can't ID insulating layer", mth, 0, ERR, res) unless m
 
     lc.setLayer(lyr[:index], m)
     uo = 1 / rsi(lc, film)
 
     if loss > TOL
       h_loss = format "%.3f", loss
-      return invalid("Can't assign #{h_loss} W/K to '#{id}'", mth, 0, ERR, res)
+      return invalid("Can't assign #{h_loss} W/K to #{id}", mth, 0, ERR, res)
     end
 
     res[:uo] = uo
@@ -131,20 +129,41 @@ module TBD
   end
 
   ##
-  # Uprate insulation layer of construction, based on user-selected Ut (argh).
+  # Uprates insulation layer of construction, based on user-selected Ut (argh).
   #
   # @param model [OpenStudio::Model::Model] a model
-  # @param s [Hash] preprocessed collection of TBD surfaces
-  # @param argh [Hash] TBD arguments
+  # @param [Hash] s preprocessed collection of TBD surfaces
+  # @option s [:wall, :ceiling, :floor] :type surface type
+  # @option s [Bool] :deratable whether surface can be thermally bridged
+  # @option s [OpenStudio::LayeredConstruction] :construction construction
+  # @option s [#to_i] :index deratable construction layer index
+  # @option s [:massless, :standard] :ltype indexed layer type
+  # @option s [#to_f] :filmRSI air film resistances (optional)
+  # @option s [#to_f] :r thermal resistance (RSI) of indexed layer
+  # @param [Hash] argh TBD arguments
+  # @option argh [Bool] :uprate_walls (false) whether to uprate walls
+  # @option argh [Bool] :uprate_roofs (false) whether to uprate roofs
+  # @option argh [Bool] :uprate_floors (false) whether to uprate floors
+  # @option argh [#to_f] :wall_ut (5.678) uprated wall Usi-factor target
+  # @option argh [#to_f] :roof_ut (5.678) uprated roof Usi-factor target
+  # @option argh [#to_f] :floor_ut (5.678) uprated floor Usi-factor target
+  # @option argh [#to_s] :wall_option ("") construction to uprate (or "all")
+  # @option argh [#to_s] :roof_option ("") construction to uprate (or "all")
+  # @option argh [#to_s] :floor_option ("") construction to uprate (or "all")
   #
-  # @return [Bool] true if successfully uprated
+  # @return [Bool] whether successfully uprated
+  # @return [false] if invalid input (see logs)
   def uprate(model = nil, s = {}, argh = {})
-    mth = "TBD::#{__callee__}"
-    cl1 = OpenStudio::Model::Model
-    cl2 = Hash
-    cl3 = OpenStudio::Model::LayeredConstruction
-    a   = false
-
+    mth    = "TBD::#{__callee__}"
+    cl1    = OpenStudio::Model::Model
+    cl2    = Hash
+    cl3    = OpenStudio::Model::LayeredConstruction
+    tout   = []
+    tout  << "all wall constructions"
+    tout  << "all roof constructions"
+    tout  << "all floor constructions"
+    a      = false
+    groups = { wall: {}, roof: {}, floor: {} }
     return mismatch("model"   , model, cl1, mth, DBG, a) unless model.is_a?(cl1)
     return mismatch("surfaces",     s, cl2, mth, DBG, a) unless s.is_a?(cl2)
     return mismatch("argh"    , model, cl1, mth, DBG, a) unless argh.is_a?(cl2)
@@ -159,32 +178,33 @@ module TBD
     argh[:roof_option  ] = ""    unless argh.key?(:roof_option  )
     argh[:floor_option ] = ""    unless argh.key?(:floor_option )
 
-    groups              = { wall: {}, roof: {}, floor: {} }
+    argh[:wall_option  ] = trim(argh[:wall_option ])
+    argh[:roof_option  ] = trim(argh[:roof_option ])
+    argh[:floor_option ] = trim(argh[:floor_option])
     groups[:wall ][:up] = argh[:uprate_walls ]
     groups[:roof ][:up] = argh[:uprate_roofs ]
     groups[:floor][:up] = argh[:uprate_floors]
     groups[:wall ][:ut] = argh[:wall_ut      ]
     groups[:roof ][:ut] = argh[:roof_ut      ]
     groups[:floor][:ut] = argh[:floor_ut     ]
-    groups[:wall ][:op] = argh[:wall_option  ]
-    groups[:roof ][:op] = argh[:roof_option  ]
-    groups[:floor][:op] = argh[:floor_option ]
+    groups[:wall ][:op] = trim(argh[:wall_option  ])
+    groups[:roof ][:op] = trim(argh[:roof_option  ])
+    groups[:floor][:op] = trim(argh[:floor_option ])
 
     groups.each do |type, g|
       next unless g[:up]
       next unless g[:ut].is_a?(Numeric)
       next unless g[:ut] < 5.678
-
+      next     if g[:ut] < 0
       typ  = type
-      typ  = :ceiling if typ == :roof # fix in future revision. TO-DO.
+      typ  = :ceiling if typ == :roof
       coll = {}
       area = 0
       film = 100000000000000
       lc   = nil
       id   = ""
-      all  = g[:op].downcase == "all wall constructions"  ||
-             g[:op].downcase == "all roof constructions"  ||
-             g[:op].downcase == "all floor constructions"
+      op   = g[:op].downcase
+      all  = tout.include?(op)
 
       if g[:op].empty?
         log(ERR, "Construction (#{type}) to uprate? (#{mth})")
@@ -217,8 +237,8 @@ module TBD
             id   = i
           end
 
-          coll[i]          = { area: aire, lc: c, s: {} } unless coll.key?(i)
-          coll[i][:s][nom] = { a: surface[:net] }  unless coll[i][:s].key?(nom)
+          coll[i] = { area: aire, lc: c, s: {} }  unless coll.key?(i)
+          coll[i][:s][nom] = { a: surface[:net] } unless coll[i][:s].key?(nom)
         end
       else
         id = g[:op]
@@ -266,9 +286,8 @@ module TBD
         lyr[:index] = nil unless lyr[:index].is_a?(Numeric)
         lyr[:index] = nil unless lyr[:index] >= 0
         lyr[:index] = nil unless lyr[:index] < lc.layers.size
-
-        log(ERR, "Insulation index for '#{id}'? (#{mth})")    unless lyr[:index]
-        next                                                  unless lyr[:index]
+        log(ERR, "Insulation index for '#{id}'? (#{mth})") unless lyr[:index]
+        next                                               unless lyr[:index]
 
         # Ensure lc is exclusively linked to deratable surfaces of right type.
         # If not, assign new lc clone to non-targeted surfaces.
@@ -287,7 +306,7 @@ module TBD
 
           unless ok
             log(WRN, "Cloning '#{nom}' construction - not '#{id}' (#{mth})")
-            sss    = model.getSurfaceByName(nom)
+            sss = model.getSurfaceByName(nom)
             next if sss.empty?
 
             sss    = sss.get
@@ -299,9 +318,9 @@ module TBD
           end
         end
 
-        hloss           = 0          # sum of applicable psi & khi effects [W/K]
+        hloss = 0 # sum of applicable psi+khi effects [W/K]
 
-        # Tally applicable psi + khi losses. Possible construction reassignment.
+        # Tally applicable psi+khi losses. Possible construction reassignment.
         coll.each do |i, col|
           col[:s].keys.each do |nom|
             next unless s.key?(nom)
@@ -310,7 +329,7 @@ module TBD
             next unless s[nom].key?(:ltype       )
             next unless s[nom].key?(:r           )
 
-            # Tally applicable psi + khi.
+            # Tally applicable psi+khi.
             hloss += s[nom][:heatloss    ] if s[nom].key?(:heatloss)
             next  if s[nom][:construction] == lc
 
@@ -334,10 +353,10 @@ module TBD
               sss.setConstruction(lc)
             end
 
-            s[nom][:construction] = lc                 # reset TBD attributes
+            s[nom][:construction] = lc          # reset TBD attributes
             s[nom][:index       ] = lyr[:index]
             s[nom][:ltype       ] = lyr[:type ]
-            s[nom][:r           ] = lyr[:r    ]        # temporary
+            s[nom][:r           ] = lyr[:r    ] # temporary
           end
         end
 
@@ -351,14 +370,16 @@ module TBD
         end
 
         coll.delete_if { |i, _| i != id }
-        log(DBG, "Collection == 1? for '#{id}' (#{mth})")  unless coll.size == 1
-        next                                               unless coll.size == 1
+        msg = "Collection == 1? for '#{id}' (#{mth})"
+        log(DBG, msg) unless coll.size == 1
+        next          unless coll.size == 1
 
         area = lc.getNetArea
         coll[id][:area] = area
         res = uo(model, lc, id, hloss, film, g[:ut])
-        log(ERR, "Unable to uprate '#{id}' (#{mth})") unless res[:uo] && res[:m]
-        next                                          unless res[:uo] && res[:m]
+        msg = "Unable to uprate '#{id}' (#{mth})"
+        log(ERR, msg) unless res[:uo] && res[:m]
+        next          unless res[:uo] && res[:m]
 
         lyr = insulatingLayer(lc)
 
@@ -387,40 +408,49 @@ module TBD
   end
 
   ##
-  # Set reference values for points, edges & surfaces (& subsurfaces) to
+  # Sets reference values for points, edges & surfaces (& subsurfaces) to
   # compute Quebec energy code (Section 3.3) UA' comparison (2021).
   #
-  # @param s [Hash] preprocessed collection of TBD surfaces
+  # @param [Hash] s TBD surfaces (keys: Openstudio surface names)
+  # @option s [Bool] :deratable whether surface is deratable, s[][:deratable]
+  # @option s [:wall, :ceiling, :floor] :type TBD surface type
+  # @option s [#to_f] :heating applicable heating setpoint temperature in °C
+  # @option s [#to_f] :cooling applicable cooling setpoint temperature in °C
+  # @option s [Hash] :windows TBD surface-specific windows e.g. s[][:windows]
+  # @option s [Hash] :doors TBD surface-specific doors
+  # @option s [Hash] :skylights TBD surface-specific skylights
+  # @option s [Hash] :pts point thermal bridges, e.g. s[][:pts] see KHI class
+  # @option s [Hash] :edges TBD edges (keys: Topolys edge identifiers)
   # @param sets [TBD::PSI] a TBD model's PSI sets
-  # @param spts [Bool] true if OpenStudio model has valid setpoints
+  # @param spts [Bool] whether OpenStudio model holds heating/cooling setpoints
   #
-  # @return [Bool] true if successful in generating UA' reference values
+  # @return [Bool] whether successful in generating UA' reference values
+  # @return [false] if invalid inputs (see logs)
   def qc33(s = {}, sets = nil, spts = true)
     mth = "TBD::#{__callee__}"
     cl1 = Hash
     cl2 = TBD::PSI
-
-    return mismatch("surfaces", s, cl1, mth, DBG, false)  unless s.is_a?(cl1)
-    return mismatch("sets", sets, cl1, mth, DBG, false)   unless sets.is_a?(cl2)
+    return mismatch("surfaces", s, cl1, mth, DBG, false) unless s.is_a?(cl1)
+    return mismatch("sets",  sets, cl1, mth, DBG, false) unless sets.is_a?(cl2)
 
     shorts = sets.shorthands("code (Quebec)")
-    empty = shorts[:has].empty? || shorts[:val].empty?
-    log(DBG, "Missing QC PSI set for 3.3 UA' tradeoff (#{mth})")        if empty
-    return false                                                        if empty
+    empty  = shorts[:has].empty? || shorts[:val].empty?
+    log(DBG, "Missing QC PSI set for 3.3 UA' tradeoff (#{mth})") if empty
+    return false                                                 if empty
 
-    ok = spts == true || spts == false
-    log(DBG, "'setpoints' must be true/false for 3.3 UA' tradeoff")    unless ok
-    return false                                                       unless ok
+    ok = [true, false].include?(spts)
+    log(DBG, "setpoints must be true or false for 3.3 UA' tradeoff") unless ok
+    return false                                                     unless ok
 
     s.each do |id, surface|
       next unless surface.key?(:deratable)
       next unless surface[:deratable]
       next unless surface.key?(:type)
 
-      heating = -50               if spts
-      cooling =  50               if spts
-      heating =  21           unless spts
-      cooling =  24           unless spts
+      heating = -50     if spts
+      cooling =  50     if spts
+      heating =  21 unless spts
+      cooling =  24 unless spts
       heating = surface[:heating] if surface.key?(:heating)
       cooling = surface[:cooling] if surface.key?(:cooling)
 
@@ -429,18 +459,21 @@ module TBD
       ref = 1 / 3.60 if surface[:type] == :wall
 
       # Adjust for lower heating setpoint (assumes -25°C design conditions).
-      ref *= 43 / (heating + 25)                 if heating < 18 && cooling > 40
-      surface[:ref] = ref                                        # ... and store
+      ref *= 43 / (heating + 25) if heating < 18 && cooling > 40
 
-      if surface.key?(:skylights)                     # loop through subsurfaces
+      surface[:ref] = ref
+
+      if surface.key?(:skylights) # loop through subsurfaces
         ref = 2.85
-        ref *= 43 / (heating + 25)               if heating < 18 && cooling > 40
+        ref *= 43 / (heating + 25) if heating < 18 && cooling > 40
+
         surface[:skylights].values.map { |skylight| skylight[:ref] = ref }
       end
 
       if surface.key?(:windows)
         ref = 2.0
-        ref *= 43 / (heating + 25)               if heating < 18 && cooling > 40
+        ref *= 43 / (heating + 25) if heating < 18 && cooling > 40
+
         surface[:windows].values.map { |window| window[:ref] = ref }
       end
 
@@ -448,21 +481,22 @@ module TBD
         surface[:doors].each do |i, door|
           ref = 0.9
           ref = 2.0 if door.key?(:glazed) && door[:glazed]
-          ref *= 43 / (heating + 25)             if heating < 18 && cooling > 40
+          ref *= 43 / (heating + 25) if heating < 18 && cooling > 40
           door[:ref] = ref
         end
       end
 
       # Loop through point thermal bridges.
-      surface[:pts].map { |i, pt| pt[:ref] = 0.5 }         if surface.key?(:pts)
+      surface[:pts].map { |i, pt| pt[:ref] = 0.5 } if surface.key?(:pts)
 
       # Loop through linear thermal bridges.
       if surface.key?(:edges)
         surface[:edges].values.each do |edge|
           next unless edge.key?(:type)
           next unless edge.key?(:ratio)
+
           safe = sets.safe("code (Quebec)", edge[:type])
-          edge[:ref] = shorts[:val][safe] * edge[:ratio]                 if safe
+          edge[:ref] = shorts[:val][safe] * edge[:ratio] if safe
         end
       end
     end
@@ -471,52 +505,67 @@ module TBD
   end
 
   ##
-  # Generate UA' summary.
+  # Generates multilingual UA' summary.
   #
   # @param date [Time] Time stamp
-  # @param argh [Hash] TBD arguments
+  # @param [Hash] argh TBD arguments
+  # @option argh [#to_s] :seed OpenStudio file, e.g. "school23.osm"
+  # @option argh [#to_s] :ua_ref reference ruleset e.g. "code (Quebec)"
+  # @option argh [Hash] :surfaces set of TBD surfaces (see )
+  # @option argh [#to_s] :version OpenStudio SDK, e.g. "3.6.1"
+  # @option argh [Hash] :io (see )
   #
-  # @return [Hash] multilingual binned values for UA' summary
+  # @return [Hash] binned values for UA' (see logs if empty)
   def ua_summary(date = Time.now, argh = {})
     mth = "TBD::#{__callee__}"
+    cl1 = Time
+    cl2 = String
+    cl3 = Hash
+    ua  = {}
+    return mismatch("date", date, cl1, mth, DBG, ua) unless date.is_a?(cl1)
+    return mismatch("argh", argh, cl3, mth, DBG, ua) unless argh.is_a?(cl3)
 
-    ua                      = {}
-    argh                    = {}  unless argh.is_a?(Hash            )
-    argh[:seed            ] = ""  unless argh.key?(:seed            )
-    argh[:ua_ref          ] = ""  unless argh.key?(:ua_ref          )
-    argh[:surfaces        ] = nil unless argh.key?(:surfaces        )
-    argh[:version         ] = ""  unless argh.key?(:version         )
-    argh[:io              ] = {}  unless argh.key?(:io              )
+    argh[:seed    ] = ""  unless argh.key?(:seed    )
+    argh[:ua_ref  ] = ""  unless argh.key?(:ua_ref  )
+    argh[:surfaces] = nil unless argh.key?(:surfaces)
+    argh[:version ] = ""  unless argh.key?(:version )
+    argh[:io      ] = {}  unless argh.key?(:io      )
+
+    file = argh[:seed    ]
+    ref  = argh[:ua_ref  ]
+    s    = argh[:surfaces]
+    v    = argh[:version ]
+    io   = argh[:io      ]
+    return mismatch(    "seed", file, cl2, mth, DBG, ua) unless file.is_a?(cl2)
+    return mismatch( "UA' ref",  ref, cl2, mth, DBG, ua) unless ref.is_a?(cl2)
+    return mismatch( "version",    v, cl2, mth, DBG, ua) unless v.is_a?(cl2)
+    return mismatch("surfaces",    s, cl3, mth, DBG, ua) unless s.is_a?(cl3)
+    return mismatch(      "io",   io, cl3, mth, DBG, ua) unless io.is_a?(cl3)
+    return empty(   "surfaces",            mth, WRN, ua)     if s.empty?
+
     argh[:io][:description] = ""  unless argh[:io].key?(:description)
-
-    descr     = argh[:io][:description]
-    file      = argh[:seed            ]
-    version   = argh[:version         ]
-    s         = argh[:surfaces        ]
-
-    return mismatch("TBD surfaces", s, Hash, mth, DBG, ua)  unless s.is_a?(Hash)
-    return empty("TBD Surfaces", mth, WRN, ua)                  if s.empty?
+    descr = argh[:io][:description]
 
     ua[:descr  ] = ""
     ua[:file   ] = ""
     ua[:version] = ""
     ua[:model  ] = "∑U•A + ∑PSI•L + ∑KHI•n"
     ua[:date   ] = date
-    ua[:descr  ] = descr                   unless descr.nil?   || descr.empty?
-    ua[:file   ] = file                    unless file.nil?    || file.empty?
-    ua[:version] = version                 unless version.nil? || version.empty?
+    ua[:descr  ] = descr unless descr.nil? || descr.empty?
+    ua[:file   ] = file  unless file.nil?  || file.empty?
+    ua[:version] = v     unless v.nil?     || v.empty?
 
     [:en, :fr].each { |lang| ua[lang] = {} }
 
-    ua[:en][:notes] = "Automated assessment from the OpenStudio Measure, "     \
-      "Thermal Bridging and Derating (TBD). Open source and MIT-licensed, "    \
-      "TBD is provided as is (without warranty). Procedures are documented "   \
+    ua[:en][:notes] = "Automated assessment from the OpenStudio Measure, "\
+      "Thermal Bridging and Derating (TBD). Open source and MIT-licensed, "\
+      "TBD is provided as is (without warranty). Procedures are documented "\
       "in the source code: https://github.com/rd2/tbd. "
 
-    ua[:fr][:notes] = "Analyse automatisée à partir de la measure OpenStudio, "\
-      "'Thermal Bridging and Derating' (ou TBD). Distribuée librement "        \
-      "(licence MIT), TBD est offerte telle quelle (sans garantie). "          \
-      "L'approche est documentée au sein du code source : "                    \
+    ua[:fr][:notes] = "Analyse automatisée à partir de la measure "\
+      "OpenStudio, 'Thermal Bridging and Derating' (ou TBD). Distribuée "\
+      "librement (licence MIT), TBD est offerte telle quelle (sans "\
+      "garantie). L'approche est documentée au sein du code source : "\
       "https://github.com/rd2/tbd."
 
     walls  = { net: 0, gross: 0, subs: 0 }
@@ -527,17 +576,17 @@ module TBD
     val    = {}
     psi    = PSI.new
 
-    unless argh[:ua_ref].empty?
-      shorts = psi.shorthands(argh[:ua_ref])
+    unless ref.empty?
+      shorts = psi.shorthands(ref)
       empty  = shorts[:has].empty? && shorts[:val].empty?
-      has    = shorts[:has]                                         unless empty
-      val    = shorts[:val]                                         unless empty
-      log(ERR, "Invalid UA' reference set (#{mth})")                    if empty
+      has    = shorts[:has]                      unless empty
+      val    = shorts[:val]                      unless empty
+      log(ERR, "Invalid UA' reference set (#{mth})") if empty
 
       unless empty
-        ua[:model] += " : Design vs '#{argh[:ua_ref]}'"
+        ua[:model] += " : Design vs '#{ref}'"
 
-        case argh[:ua_ref]
+        case ref
         when "code (Quebec)"
           ua[:en][:objective] = "COMPLIANCE ASSESSMENT"
           ua[:en][:details  ] = []
@@ -546,9 +595,9 @@ module TBD
           ua[:en][:details  ] << "Division B, Section 3.3"
           ua[:en][:details  ] << "Building Envelope Trade-off Path"
 
-          ua[:en][:notes] << " Calculations comply with Section 3.3 "          \
-            "requirements. Results are based on user input not subject to "    \
-            "prior validation (see DESCRIPTION), and as such the assessment "  \
+          ua[:en][:notes] << " Calculations comply with Section 3.3 "\
+            "requirements. Results are based on user input not subject to "\
+            "prior validation (see DESCRIPTION), and as such the assessment "\
             "shall not be considered as a certification of compliance."
 
           ua[:fr][:objective] = "ANALYSE DE CONFORMITÉ"
@@ -558,10 +607,10 @@ module TBD
           ua[:fr][:details  ] << "Division B, Section 3.3"
           ua[:fr][:details  ] << "Méthode des solutions de remplacement"
 
-          ua[:fr][:notes] << " Les calculs sont conformes aux dispositions de "\
-            "la Section 3.3. Les résultats sont tributaires d'intrants "       \
-            "fournis par l'utilisateur, sans validation préalable (voir "      \
-            "DESCRIPTION). Ce document ne peut constituer une attestation de " \
+          ua[:fr][:notes] << " Les calculs sont conformes aux dispositions "\
+            "de la Section 3.3. Les résultats sont tributaires d'intrants "\
+            "fournis par l'utilisateur, sans validation préalable (voir "\
+            "DESCRIPTION). Ce document ne peut constituer une attestation de "\
             "conformité."
         else
           ua[:en][:objective] = "UA'"
@@ -586,22 +635,24 @@ module TBD
 
     b1       = {}
     b2       = {}
-    b1[:pro] = blc                                            #  proposed design
-    b1[:ref] = blc.clone                                      #        reference
-    b2[:pro] = blc.clone                                      #  proposed design
-    b2[:ref] = blc.clone                                      #        reference
+    b1[:pro] = blc       #  proposed design
+    b1[:ref] = blc.clone #        reference
+    b2[:pro] = blc.clone #  proposed design
+    b2[:ref] = blc.clone #        reference
 
     # Loop through surfaces, subsurfaces and edges and populate bloc1 & bloc2.
-    argh[:surfaces].each do |id, surface|
+    s.each do |id, surface|
       next unless surface.key?(:deratable)
       next unless surface[:deratable]
       next unless surface.key?(:type)
+
       type = surface[:type]
-      next unless type == :wall || type == :ceiling || type == :floor
+      next unless [:wall, :ceiling, :floor].include?(type)
       next unless surface.key?(:net)
       next unless surface[:net] > TOL
       next unless surface.key?(:u)
       next unless surface[:u] > TOL
+
       heating   = 21.0
       heating   = surface[:heating] if surface.key?(:heating)
       bloc      = b1
@@ -611,18 +662,18 @@ module TBD
       if type == :wall
         areas[:walls][:net ] += surface[:net]
         bloc[:pro][:walls  ] += surface[:net] * surface[:u  ]
-        bloc[:ref][:walls  ] += surface[:net] * surface[:ref]       if reference
-        bloc[:ref][:walls  ] += surface[:net] * surface[:u  ]   unless reference
+        bloc[:ref][:walls  ] += surface[:net] * surface[:ref]     if reference
+        bloc[:ref][:walls  ] += surface[:net] * surface[:u  ] unless reference
       elsif type == :ceiling
         areas[:roofs][:net ] += surface[:net]
         bloc[:pro][:roofs  ] += surface[:net] * surface[:u  ]
-        bloc[:ref][:roofs  ] += surface[:net] * surface[:ref]       if reference
-        bloc[:ref][:roofs  ] += surface[:net] * surface[:u  ]   unless reference
+        bloc[:ref][:roofs  ] += surface[:net] * surface[:ref]     if reference
+        bloc[:ref][:roofs  ] += surface[:net] * surface[:u  ] unless reference
       else
         areas[:floors][:net] += surface[:net]
         bloc[:pro][:floors ] += surface[:net] * surface[:u  ]
-        bloc[:ref][:floors ] += surface[:net] * surface[:ref]       if reference
-        bloc[:ref][:floors ] += surface[:net] * surface[:u  ]   unless reference
+        bloc[:ref][:floors ] += surface[:net] * surface[:ref]     if reference
+        bloc[:ref][:floors ] += surface[:net] * surface[:u  ] unless reference
       end
 
       [:doors, :windows, :skylights].each do |subs|
@@ -635,13 +686,13 @@ module TBD
           next unless sub[:u    ] > TOL
 
           gross  = sub[:gross]
-          gross *= sub[:mult ]                               if sub.key?(:mult)
-          areas[:walls ][:subs] += gross                     if type == :wall
-          areas[:roofs ][:subs] += gross                     if type == :ceiling
-          areas[:floors][:subs] += gross                     if type == :floor
+          gross *= sub[:mult ]                           if sub.key?(:mult)
+          areas[:walls ][:subs] += gross                 if type == :wall
+          areas[:roofs ][:subs] += gross                 if type == :ceiling
+          areas[:floors][:subs] += gross                 if type == :floor
           bloc[:pro    ][subs ] += gross * sub[:u  ]
-          bloc[:ref    ][subs ] += gross * sub[:ref]         if sub.key?(:ref)
-          bloc[:ref    ][subs ] += gross * sub[:u  ]     unless sub.key?(:ref)
+          bloc[:ref    ][subs ] += gross * sub[:ref]     if sub.key?(:ref)
+          bloc[:ref    ][subs ] += gross * sub[:u  ] unless sub.key?(:ref)
         end
       end
 
@@ -656,52 +707,35 @@ module TBD
           type = edge[:type].to_s
 
           case type
-          when /rimjoist/i
-            bloc[:pro][:rimjoists] += loss
-          when /parapet/i
-            bloc[:pro][:parapets ] += loss
-          when /fenestration/i
-            bloc[:pro][:trim     ] += loss
-          when /head/i
-            bloc[:pro][:trim     ] += loss
-          when /sill/i
-            bloc[:pro][:trim     ] += loss
-          when /jamb/i
-            bloc[:pro][:trim     ] += loss
-          when /corner/i
-            bloc[:pro][:corners  ] += loss
-          when /grade/i
-            bloc[:pro][:grade    ] += loss
-          else
-            bloc[:pro][:other    ] += loss
+          when /rimjoist/i     then bloc[:pro][:rimjoists] += loss
+          when /parapet/i      then bloc[:pro][:parapets ] += loss
+          when /fenestration/i then bloc[:pro][:trim     ] += loss
+          when /head/i         then bloc[:pro][:trim     ] += loss
+          when /sill/i         then bloc[:pro][:trim     ] += loss
+          when /jamb/i         then bloc[:pro][:trim     ] += loss
+          when /corner/i       then bloc[:pro][:corners  ] += loss
+          when /grade/i        then bloc[:pro][:grade    ] += loss
+          else                      bloc[:pro][:other    ] += loss
           end
 
           next if val.empty?
-          next if argh[:ua_ref].empty?
-          safer = psi.safe(argh[:ua_ref], edge[:type])
+          next if ref.empty?
+
+          safer = psi.safe(ref, edge[:type])
           ok    = edge.key?(:ref)
-          loss  = edge[:length] * edge[:ref]                               if ok
-          loss  = edge[:length] * val[safer] * edge[:ratio]            unless ok
+          loss  = edge[:length] * edge[:ref]                    if ok
+          loss  = edge[:length] * val[safer] * edge[:ratio] unless ok
 
           case safer.to_s
-          when /rimjoist/i
-            bloc[:ref][:rimjoists] += loss
-          when /parapet/i
-            bloc[:ref][:parapets ] += loss
-          when /fenestration/i
-            bloc[:ref][:trim     ] += loss
-          when /head/i
-            bloc[:ref][:trim     ] += loss
-          when /sill/i
-            bloc[:ref][:trim     ] += loss
-          when /jamb/i
-            bloc[:ref][:trim     ] += loss
-          when /corner/i
-            bloc[:ref][:corners  ] += loss
-          when /grade/i
-            bloc[:ref][:grade    ] += loss
-          else
-            bloc[:ref][:other    ] += loss
+          when /rimjoist/i     then bloc[:ref][:rimjoists] += loss
+          when /parapet/i      then bloc[:ref][:parapets ] += loss
+          when /fenestration/i then bloc[:ref][:trim     ] += loss
+          when /head/i         then bloc[:ref][:trim     ] += loss
+          when /sill/i         then bloc[:ref][:trim     ] += loss
+          when /jamb/i         then bloc[:ref][:trim     ] += loss
+          when /corner/i       then bloc[:ref][:corners  ] += loss
+          when /grade/i        then bloc[:ref][:grade    ] += loss
+          else                      bloc[:ref][:other    ] += loss
           end
         end
       end
@@ -710,8 +744,10 @@ module TBD
         surface[:pts].values.each do |pts|
           next unless pts.key?(:val)
           next unless pts.key?(:n)
+
           bloc[:pro][:other] += pts[:val] * pts[:n]
           next unless pts.key?(:ref)
+
           bloc[:ref][:other] += pts[:ref] * pts[:n]
         end
       end
@@ -735,97 +771,93 @@ module TBD
           ua[lang][b] = {}
 
           if b == :b1
-            ua[:en][b][:summary] = "heated : #{str}"              if lang == :en
-            ua[:fr][b][:summary] = "chauffé : #{str}"             if lang == :fr
+            ua[:en][b][:summary] = "heated : #{str}"       if lang == :en
+            ua[:fr][b][:summary] = "chauffé : #{str}"      if lang == :fr
           else
-            ua[:en][b][:summary] = "semi-heated : #{str}"         if lang == :en
-            ua[:fr][b][:summary] = "semi-chauffé : #{str}"        if lang == :fr
+            ua[:en][b][:summary] = "semi-heated : #{str}"  if lang == :en
+            ua[:fr][b][:summary] = "semi-chauffé : #{str}" if lang == :fr
           end
-
-          # ** https://bugs.ruby-lang.org/issues/13761 (Ruby > 2.2.5)
-          # str += format(" +%.1f%", ratio) if ratio && pro_sum > ref_sum ... now:
-          # str += format(" +%.1f%%", ratio) if ratio && pro_sum > ref_sum
 
           bloc[:pro].each do |k, v|
             rf = bloc[:ref][k]
             next if v < TOL && rf < TOL
             ratio = nil
-            ratio = (100.0 * (v - rf) / rf).abs               if rf > TOL
+            ratio = (100.0 * (v - rf) / rf).abs            if rf > TOL
             str   = format("%.1f W/K (vs %.1f W/K)", v, rf)
-            str  += format(" +%.1f%%", ratio)                 if ratio && v > rf
-            str  += format(" -%.1f%%", ratio)                 if ratio && v < rf
+            str  += format(" +%.1f%%", ratio)              if ratio && v > rf
+            str  += format(" -%.1f%%", ratio)              if ratio && v < rf
 
             case k
             when :walls
-              ua[:en][b][k] = "walls : #{str}"                if lang == :en
-              ua[:fr][b][k] = "murs : #{str}"                 if lang == :fr
+              ua[:en][b][k] = "walls : #{str}"             if lang == :en
+              ua[:fr][b][k] = "murs : #{str}"              if lang == :fr
             when :roofs
-              ua[:en][b][k] = "roofs : #{str}"                if lang == :en
-              ua[:fr][b][k] = "toits : #{str}"                if lang == :fr
+              ua[:en][b][k] = "roofs : #{str}"             if lang == :en
+              ua[:fr][b][k] = "toits : #{str}"             if lang == :fr
             when :floors
-              ua[:en][b][k] = "floors : #{str}"               if lang == :en
-              ua[:fr][b][k] = "planchers : #{str}"            if lang == :fr
+              ua[:en][b][k] = "floors : #{str}"            if lang == :en
+              ua[:fr][b][k] = "planchers : #{str}"         if lang == :fr
             when :doors
-              ua[:en][b][k] = "doors : #{str}"                if lang == :en
-              ua[:fr][b][k] = "portes : #{str}"               if lang == :fr
+              ua[:en][b][k] = "doors : #{str}"             if lang == :en
+              ua[:fr][b][k] = "portes : #{str}"            if lang == :fr
             when :windows
-              ua[:en][b][k] = "windows : #{str}"              if lang == :en
-              ua[:fr][b][k] = "fenêtres : #{str}"             if lang == :fr
+              ua[:en][b][k] = "windows : #{str}"           if lang == :en
+              ua[:fr][b][k] = "fenêtres : #{str}"          if lang == :fr
             when :skylights
-              ua[:en][b][k] = "skylights : #{str}"            if lang == :en
-              ua[:fr][b][k] = "lanterneaux : #{str}"          if lang == :fr
+              ua[:en][b][k] = "skylights : #{str}"         if lang == :en
+              ua[:fr][b][k] = "lanterneaux : #{str}"       if lang == :fr
             when :rimjoists
-              ua[:en][b][k] = "rimjoists : #{str}"            if lang == :en
-              ua[:fr][b][k] = "rives : #{str}"                if lang == :fr
+              ua[:en][b][k] = "rimjoists : #{str}"         if lang == :en
+              ua[:fr][b][k] = "rives : #{str}"             if lang == :fr
             when :parapets
-              ua[:en][b][k] = "parapets : #{str}"             if lang == :en
-              ua[:fr][b][k] = "parapets : #{str}"             if lang == :fr
+              ua[:en][b][k] = "parapets : #{str}"          if lang == :en
+              ua[:fr][b][k] = "parapets : #{str}"          if lang == :fr
             when :trim
-              ua[:en][b][k] = "trim : #{str}"                 if lang == :en
-              ua[:fr][b][k] = "chassis : #{str}"              if lang == :fr
+              ua[:en][b][k] = "trim : #{str}"              if lang == :en
+              ua[:fr][b][k] = "chassis : #{str}"           if lang == :fr
             when :corners
-              ua[:en][b][k] = "corners : #{str}"              if lang == :en
-              ua[:fr][b][k] = "coins : #{str}"                if lang == :fr
+              ua[:en][b][k] = "corners : #{str}"           if lang == :en
+              ua[:fr][b][k] = "coins : #{str}"             if lang == :fr
             when :balconies
-              ua[:en][b][k] = "balconies : #{str}"            if lang == :en
-              ua[:fr][b][k] = "balcons : #{str}"              if lang == :fr
+              ua[:en][b][k] = "balconies : #{str}"         if lang == :en
+              ua[:fr][b][k] = "balcons : #{str}"           if lang == :fr
             when :grade
-              ua[:en][b][k] = "grade : #{str}"                if lang == :en
-              ua[:fr][b][k] = "tracé : #{str}"                if lang == :fr
+              ua[:en][b][k] = "grade : #{str}"             if lang == :en
+              ua[:fr][b][k] = "tracé : #{str}"             if lang == :fr
             else
-              ua[:en][b][k] = "other : #{str}"                if lang == :en
-              ua[:fr][b][k] = "autres : #{str}"               if lang == :fr
+              ua[:en][b][k] = "other : #{str}"             if lang == :en
+              ua[:fr][b][k] = "autres : #{str}"            if lang == :fr
             end
           end
 
           # Deterministic sorting
           ua[lang][b][:summary] = ua[lang][b].delete(:summary)
           ok = ua[lang][b].key?(:walls)
-          ua[lang][b][:walls] = ua[lang][b].delete(:walls)                 if ok
+          ua[lang][b][:walls] = ua[lang][b].delete(:walls)         if ok
           ok = ua[lang][b].key?(:roofs)
-          ua[lang][b][:roofs] = ua[lang][b].delete(:roofs)                 if ok
+          ua[lang][b][:roofs] = ua[lang][b].delete(:roofs)         if ok
           ok = ua[lang][b].key?(:floors)
-          ua[lang][b][:floors] = ua[lang][b].delete(:floors)               if ok
+          ua[lang][b][:floors] = ua[lang][b].delete(:floors)       if ok
           ok = ua[lang][b].key?(:doors)
-          ua[lang][b][:doors] = ua[lang][b].delete(:doors)                 if ok
+          ua[lang][b][:doors] = ua[lang][b].delete(:doors)         if ok
           ok = ua[lang][b].key?(:windows)
-          ua[lang][b][:windows] = ua[lang][b].delete(:windows)             if ok
+          ua[lang][b][:windows] = ua[lang][b].delete(:windows)     if ok
           ok = ua[lang][b].key?(:skylights)
-          ua[lang][b][:skylights] = ua[lang][b].delete(:skylights)         if ok
+          ua[lang][b][:skylights] = ua[lang][b].delete(:skylights) if ok
           ok = ua[lang][b].key?(:rimjoists)
-          ua[lang][b][:rimjoists] = ua[lang][b].delete(:rimjoists)         if ok
+          ua[lang][b][:rimjoists] = ua[lang][b].delete(:rimjoists) if ok
           ok = ua[lang][b].key?(:parapets)
-          ua[lang][b][:parapets] = ua[lang][b].delete(:parapets)           if ok
+          ua[lang][b][:parapets] = ua[lang][b].delete(:parapets)   if ok
           ok = ua[lang][b].key?(:trim)
-          ua[lang][b][:trim] = ua[lang][b].delete(:trim)                   if ok
+          ua[lang][b][:trim] = ua[lang][b].delete(:trim)           if ok
           ok = ua[lang][b].key?(:corners)
-          ua[lang][b][:corners] = ua[lang][b].delete(:corners)             if ok
+          ua[lang][b][:corners] = ua[lang][b].delete(:corners)     if ok
           ok = ua[lang][b].key?(:balconies)
-          ua[lang][b][:balconies] = ua[lang][b].delete(:balconies)         if ok
+          ua[lang][b][:balconies] = ua[lang][b].delete(:balconies) if ok
           ok = ua[lang][b].key?(:grade)
-          ua[lang][b][:grade] = ua[lang][b].delete(:grade)                 if ok
+          ua[lang][b][:grade] = ua[lang][b].delete(:grade)         if ok
           ok = ua[lang][b].key?(:other)
-          ua[lang][b][:other] = ua[lang][b].delete(:other)                 if ok
+          ua[lang][b][:other] = ua[lang][b].delete(:other)         if ok
         end
       end
     end
@@ -834,50 +866,72 @@ module TBD
     areas[:walls ][:gross] = areas[:walls ][:net] + areas[:walls ][:subs]
     areas[:roofs ][:gross] = areas[:roofs ][:net] + areas[:roofs ][:subs]
     areas[:floors][:gross] = areas[:floors][:net] + areas[:floors][:subs]
+
     ua[:en][:areas] = {}
     ua[:fr][:areas] = {}
 
     str  = format("walls : %.1f m2 (net)", areas[:walls][:net])
     str += format(", %.1f m2 (gross)", areas[:walls][:gross])
-    ua[:en][:areas][:walls] = str             unless areas[:walls][:gross] < TOL
+    ua[:en][:areas][:walls] = str unless areas[:walls][:gross] < TOL
     str  = format("roofs : %.1f m2 (net)", areas[:roofs][:net])
     str += format(", %.1f m2 (gross)", areas[:roofs][:gross])
-    ua[:en][:areas][:roofs] = str             unless areas[:roofs][:gross] < TOL
+    ua[:en][:areas][:roofs] = str unless areas[:roofs][:gross] < TOL
     str  = format("floors : %.1f m2 (net)", areas[:floors][:net])
     str += format(", %.1f m2 (gross)", areas[:floors][:gross])
-    ua[:en][:areas][:floors] = str           unless areas[:floors][:gross] < TOL
-
+    ua[:en][:areas][:floors] = str unless areas[:floors][:gross] < TOL
     str  = format("murs : %.1f m2 (net)", areas[:walls][:net])
     str += format(", %.1f m2 (brut)", areas[:walls][:gross])
-    ua[:fr][:areas][:walls] = str             unless areas[:walls][:gross] < TOL
+    ua[:fr][:areas][:walls] = str unless areas[:walls][:gross] < TOL
     str  = format("toits : %.1f m2 (net)", areas[:roofs][:net])
     str += format(", %.1f m2 (brut)", areas[:roofs][:gross])
-    ua[:fr][:areas][:roofs] = str             unless areas[:roofs][:gross] < TOL
+    ua[:fr][:areas][:roofs] = str unless areas[:roofs][:gross] < TOL
     str  = format("planchers : %.1f m2 (net)", areas[:floors][:net])
     str += format(", %.1f m2 (brut)", areas[:floors][:gross])
-    ua[:fr][:areas][:floors] = str           unless areas[:floors][:gross] < TOL
+    ua[:fr][:areas][:floors] = str unless areas[:floors][:gross] < TOL
 
     ua
   end
 
   ##
-  # Generate MD-formatted file.
+  # Generates MD-formatted, UA' summary file.
   #
-  # @param ua [Hash] preprocessed collection of UA-related strings
-  # @param lang [String] preferred language ("en" vs "fr")
+  # @param [#key?] ua preprocessed collection of UA-related strings
+  # option ua [#to_s] :objective ua[lang][:objective] = "COMPLIANCE [...]"
+  # option ua [#&] :details ua[lang][:details] = "QC Energy Code [...]"
+  # option ua [#to_s] :model "∑U•A + ∑PSI•L + ∑KHI•n [...]"
+  # option ua [#key?] :b1 TB block of CONDITIONED spaces, ua[lang][:b1]
+  # option ua [#key?] :b2 TB block of SEMIHEATED spaces, ua[lang][:b2]
+  # option ua [#to_s] :descr user-provided project/summary description
+  # option ua [#to_s] :file OpenStudio file, e.g. "school23.osm"
+  # option ua [#to_s] :version OpenStudio SDK, e.g. "3.6.1"
+  # option ua [Time] :date time signature
+  # option ua [#to_s] :notes advisory info, ua[lang][:notes]
+  # option ua [#key?] :areas binned areas (String), ua[lang][:areas][:walls]
+  # @param lang [#to_sym] selected language, :en or :fr
   #
-  # @return [Array] MD-formatted strings (empty if invalid inputs)
+  # @return [Array<String>] MD-formatted strings (see logs if empty)
   def ua_md(ua = {}, lang = :en)
     mth    = "TBD::#{__callee__}"
     report = []
+    ck1    = ua.respond_to?(:key?)
+    ck2    = lang.respond_to?(:to_sym)
+    return mismatch(  "ua",   ua,   Hash, mth, DBG, report) unless ck1
+    return mismatch("lang", lang, Symbol, mth, DBG, report) unless ck2
 
-    return mismatch("ua", ua, Hash, mth, DBG, report)      unless ua.is_a?(Hash)
-    return empty("ua", mth, DBG, report)                       if ua.empty?
-    return hashkey("", ua, lang, mth, DBG, report)         unless ua.key?(lang)
+    lang = lang.to_sym
+    return hashkey("language", ua, lang, mth, DBG, report) unless ua.key?(lang)
+    return empty("ua"                  , mth, DBG, report)     if ua.empty?
 
-    if ua[lang].key?(:objective)
-      report << "# #{ua[lang][:objective]}   "
+    if ua[lang].key?(:objective) && ua[lang][:objective].respond_to?(:to_s)
+      report << "# #{ua[lang][:objective].to_s}   "
       report << "   "
+    end
+
+    if ua[lang].key?(:details) && ua[lang][:details].respond_to?(:&)
+      ua[lang][:details].each do |d|
+        report << "#{d.to_s}   " if d.respond_to?(:to_s)
+        report << "   "
+      end
     end
 
     if ua[lang].key?(:details)
@@ -885,11 +939,11 @@ module TBD
       report << "   "
     end
 
-    if ua.key?(:model)
-      report << "##### SUMMARY   "                                if lang == :en
-      report << "##### SOMMAIRE   "                               if lang == :fr
+    if ua.key?(:model) && ua[:model].respond_to?(:to_s)
+      report << "##### SUMMARY   "   if lang == :en
+      report << "##### SOMMAIRE   "  if lang == :fr
       report << "   "
-      report << "#{ua[:model]}   "
+      report << "#{ua[:model].to_s}   "
       report << "   "
     end
 
@@ -898,10 +952,10 @@ module TBD
       report << "* #{ua[lang][:b1][:summary]}"
 
       ua[lang][:b1].each do |k, v|
-        next                                                    if k == :summary
-        report << "  * #{v}"                                unless k == last
-        report << "  * #{v}   "                                 if k == last
-        report << "   "                                         if k == last
+        next                     if k == :summary
+        report << "  * #{v}" unless k == last
+        report << "  * #{v}   "  if k == last
+        report << "   "          if k == last
       end
       report << "   "
     end
@@ -911,10 +965,10 @@ module TBD
       report << "* #{ua[lang][:b2][:summary]}"
 
       ua[lang][:b2].each do |k, v|
-        next                                                    if k == :summary
-        report << "  * #{v}"                                unless k == last
-        report << "  * #{v}   "                                 if k == last
-        report << "   "                                         if k == last
+        next                      if k == :summary
+        report << "  * #{v}"  unless k == last
+        report << "  * #{v}   "   if k == last
+        report << "   "           if k == last
       end
       report << "   "
     end
@@ -922,36 +976,36 @@ module TBD
     if ua.key?(:date)
       report << "##### DESCRIPTION   "
       report << "   "
-      report << "* project : #{ua[:descr]}"    if ua.key?(:descr) && lang == :en
-      report << "* projet : #{ua[:descr]}"     if ua.key?(:descr) && lang == :fr
+      report << "* project : #{ua[:descr]}" if ua.key?(:descr) && lang == :en
+      report << "* projet : #{ua[:descr]}"  if ua.key?(:descr) && lang == :fr
       model  = ""
-      model  = "* model : #{ua[:file]}"        if ua.key?(:file)  && lang == :en
-      model  = "* modèle : #{ua[:file]}"       if ua.key?(:file)  && lang == :fr
-      model += " (v#{ua[:version]})"           if ua.key?(:version)
-      report << model                      unless model.empty?
-      report << "* TBD : v3.2.3"
+      model  = "* model : #{ua[:file]}"     if ua.key?(:file)  && lang == :en
+      model  = "* modèle : #{ua[:file]}"    if ua.key?(:file)  && lang == :fr
+      model += " (v#{ua[:version]})"        if ua.key?(:version)
+      report << model                   unless model.empty?
+      report << "* TBD : v3.3.0"
       report << "* date : #{ua[:date]}"
 
       if lang == :en
-        report << "* status : #{msg(status)}"                unless status.zero?
-        report << "* status : success !"                         if status.zero?
+        report << "* status : #{msg(status)}" unless status.zero?
+        report << "* status : success !"          if status.zero?
       elsif lang == :fr
-        report << "* statut : #{msg(status)}"                unless status.zero?
-        report << "* statut : succès !"                          if status.zero?
+        report << "* statut : #{msg(status)}" unless status.zero?
+        report << "* statut : succès !"           if status.zero?
       end
       report << "   "
     end
 
     if ua[lang].key?(:areas)
-      report << "##### AREAS   "                                if lang == :en
-      report << "##### AIRES   "                                if lang == :fr
+      report << "##### AREAS   " if lang == :en
+      report << "##### AIRES   " if lang == :fr
       report << "   "
       ok = ua[lang][:areas].key?(:walls)
-      report << "* #{ua[lang][:areas][:walls]}"                 if ok
+      report << "* #{ua[lang][:areas][:walls]}"  if ok
       ok = ua[lang][:areas].key?(:roofs)
-      report << "* #{ua[lang][:areas][:roofs]}"                 if ok
+      report << "* #{ua[lang][:areas][:roofs]}"  if ok
       ok = ua[lang][:areas].key?(:floors)
-      report << "* #{ua[lang][:areas][:floors]}"                if ok
+      report << "* #{ua[lang][:areas][:floors]}" if ok
       report << "   "
     end
 

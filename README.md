@@ -4,17 +4,13 @@ An [OpenStudio Measure](https://nrel.github.io/OpenStudio-user-documentation/ref
 
 ## Guide & Downloads
 
-Building professionals and energy modellers are encouraged to first consult the online [Guide](https://rd2.github.io/tbd/) - it provides an overview of the underlying theory, references, suggested OpenStudio workflows, etc. Users can download the latest _TBD_ version directly from the Guide itself, or under [releases](https://github.com/rd2/tbd/releases), or via NREL's [BCL](https://bcl.nrel.gov) (search for "bridging" or "rd2").
-
-Questions can be posted on [UnmetHours](https://unmethours.com) - a very useful online resource for OpenStudio users.
-
-TBD can also be deployed as a Ruby gem, by adding:  
+Building professionals and energy modellers are encouraged to first consult the online [Guide](https://rd2.github.io/tbd/) - it provides an overview of the underlying theory, references, suggested OpenStudio workflows, etc. Users can download the latest _TBD_ version directly from the Guide itself, or under [releases](https://github.com/rd2/tbd/releases), or via NREL's [BCL](https://bcl.nrel.gov) (search for "bridging" or "rd2"). Questions can be posted on [UnmetHours](https://unmethours.com) - a very useful online resource for OpenStudio users. TBD is also available as a Ruby gem - add:  
 
 ```
 gem "tbd", git: "https://github.com/rd2/tbd", branch: "master"
 ```  
 
-... in a v2.1 [bundled](https://bundler.io) _Measure_ development environment "Gemfile" (or instead as a _gemspec_ dependency), and then run:  
+... in a v2.1 [bundled](https://bundler.io) _Measure_ development environment "Gemfile" (or preferably as a _gemspec_ dependency), and then run:  
 
 ```
 bundle install (or 'bundle update')
@@ -22,13 +18,13 @@ bundle install (or 'bundle update')
 
 ## New Features  
 
-Upcoming enhancements are in the works. Bugs or new feature requests for _TBD_ should be submitted [here](https://github.com/rd2/tbd/issues), while those more closely linked to _Topolys_ or _OSut_ should be submitted [here](https://github.com/automaticmagic/topolys/issues) or [here](https://github.com/rd2/osut/issues), respectively.
+Bugs or new feature requests for _TBD_ should be submitted [here](https://github.com/rd2/tbd/issues), while those more closely linked to _Topolys_ or _OSut_ should be submitted [here](https://github.com/automaticmagic/topolys/issues) or [here](https://github.com/rd2/osut/issues), respectively.
 
 ## Development
 
 The installation and testing instructions in this section are for developers interested in exploring/tweaking a cloned/forked version of the source code. In an effort to _lighten_ TBD as a Ruby gem, only the most basic tests are deployed in this repository. More detailed tests are housed in a dedicated TBD [testing](https://github.com/rd2/tbd_tests) repo.
 
-TBD is systematically tested against updated OpenStudio versions (since v3.0.0). The following instructions refer to OpenStudio v3.4.0 (requiring Ruby v2.7.2), strictly as an example. Adapt the instructions for more recent versions - see OpenStudio's [compatibility matrix](https://github.com/NREL/OpenStudio/wiki/OpenStudio-SDK-Version-Compatibility-Matrix).
+TBD is systematically tested against updated OpenStudio versions (since v3.0.0). The following instructions refer to OpenStudio v3.6.1 (requiring Ruby v2.7.2), strictly as an example. Adapt the instructions for more recent versions - see OpenStudio's [compatibility matrix](https://github.com/NREL/OpenStudio/wiki/OpenStudio-SDK-Version-Compatibility-Matrix).
 
 ### Windows Installation
 
@@ -37,17 +33,18 @@ Either install Ruby using the [RubyInstaller](https://rubyinstaller.org/download
 ruby -v
 ```
 
-Install bundler:
+Install bundler, if not already installed:
 ```
+bundler -v
 gem install bundler -v 2.1
 ```
 
-Install the OpenStudio SDK [3.4.0](https://github.com/NREL/OpenStudio/releases/tag/v3.4.0), or the OpenStudio Application [1.4.0](https://github.com/openstudiocoalition/OpenStudioApplication/releases/tag/v1.4.0).
+Install the OpenStudio SDK [3.6.1](https://github.com/NREL/OpenStudio/releases/tag/v3.6.1), or the OpenStudio Application [1.6.0](https://github.com/openstudiocoalition/OpenStudioApplication/releases/tag/v1.6.0).
 
 Create a new file ```C:\Ruby27-x64\lib\ruby\site_ruby\openstudio.rb``` (path may be different depending on the environment), and edit it so it _points_ to your new OpenStudio installation:
 
 ```
-require 'C:\openstudio-3.4.0\Ruby\openstudio.rb'
+require 'C:\openstudio-3.6.1\Ruby\openstudio.rb'
 ```
 
 Verify your OpenStudio and Ruby configuration:
@@ -66,9 +63,10 @@ brew install rbenv
 rbenv init
 rbenv install 2.7.2
 ```
-Install [bundler](https://bundler.io), great for managing Ruby gems and dependencies:
+Install [bundler](https://bundler.io) (if not already installed), great for managing Ruby gems and dependencies:
 
 ```
+bundler -v
 gem install bundler -v 2.1
 ```
 
@@ -78,43 +76,43 @@ In the Terminal, check the Ruby version:
 ruby -v
 ```
 
-... should still report the current Ruby version used by MacOS. To ensure the right version is used for developing OpenStudio Measures, instruct _rbenv_ to switch Ruby version _locally_ within a user’s chosen directory (e.g. "sandbox340"):
+... should still report the current Ruby version used by MacOS. To ensure the right version is used for developing OpenStudio Measures, instruct _rbenv_ to switch Ruby version _locally_ within a user’s chosen directory (e.g. "sandbox361"):
 
 ```
-mkdir ~/Documents/sandbox340
-cd ~/Documents/sandbox340
+mkdir ~/Documents/sandbox361
+cd ~/Documents/sandbox361
 rbenv local 2.7.2
 ruby -v
 ```
-… should report the desired _local_ Ruby version, to be used by default for anything under the "sandbox340" directory tree. To ensure both Ruby versions are operational and safe, run the following checkup twice - once from a user’s home (or ~/), then from within e.g., "sandbox340":
+… should report the desired _local_ Ruby version, to be used by default for anything under the "sandbox361" directory tree. To ensure both Ruby versions are operational and safe, run the following checkup twice - once from a user’s home (or ~/), then from within e.g. "sandbox361":
 
 ```
 cd ~/
 ruby -ropen-uri -e 'eval URI.open("https://git.io/vQhWq").read'
-cd ~/Documents/sandbox340
+cd ~/Documents/sandbox361
 ruby -ropen-uri -e 'eval URI.open("https://git.io/vQhWq").read'
 ```
 
 If successful, one should get a ```Hooray!``` from both Ruby versions confirming valid communication with [Rubygems](https://rubygems.org/).
 
-Install the OpenStudio SDK [3.4.0](https://github.com/NREL/OpenStudio/releases/tag/v3.4.0), or the OpenStudio Application [1.4.0](https://github.com/openstudiocoalition/OpenStudioApplication/releases/tag/v1.4.0).
+Install the OpenStudio SDK [3.6.1](https://github.com/NREL/OpenStudio/releases/tag/v3.6.1), or the OpenStudio Application [1.6.0](https://github.com/openstudiocoalition/OpenStudioApplication/releases/tag/v1.6.0).
 
 Create a new file ```~/.rbenv/versions/2.7.2/lib/ruby/site_ruby/openstudio.rb```  (path may be different depending on the environment), and edit it so it _points_ to your new OpenStudio installation:
 
 ```
-require '/Applications/OpenStudio-3.4.0/Ruby/openstudio.rb'
+require '/Applications/OpenStudio-3.6.1/Ruby/openstudio.rb'
 ```
 
 Verify your local OpenStudio and Ruby configuration:
 
 ```
-cd ~/Documents/sandbox340
+cd ~/Documents/sandbox361
 ruby -e "require 'openstudio'" -e "puts OpenStudio::Model::Model.new"
 ```
 
 ## Clone TBD
 
-Once done with either the Windows or MacOS setup, install the latest version of _git_ (e.g. through Homebrew), then ```git clone``` the TBD repo, e.g. under "sandbox340". Run the basic tests below to ensure the measure operates as expected.
+Once done with either the Windows or MacOS setup, install the latest version of _git_ (e.g. through Homebrew), then ```git clone``` the TBD repo, e.g. under "sandbox361". Run the basic tests below to ensure the measure operates as expected.
 
 ## Complete list of test commands
 
@@ -129,14 +127,14 @@ bundle exec rake
 
 Install [Docker](https://docs.docker.com/desktop/#download-and-install).
 
-Pull the OpenStudio v3.4.0 Docker image:
+Pull the OpenStudio v3.6.1 Docker image:
 ```
-docker pull nrel/openstudio:3.4.0
+docker pull nrel/openstudio:3.6.1
 ```
 
 In the root repository:
 ```
-docker run --name test --rm -d -t -v ${PWD}:/work -w /work nrel/openstudio:3.4.0
+docker run --name test --rm -d -t -v ${PWD}:/work -w /work nrel/openstudio:3.6.1
 docker exec -t test bundle update
 docker exec -t test bundle exec rake
 docker kill test

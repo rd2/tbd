@@ -76,7 +76,7 @@ Target 1x (or 'ALL') roof construction(s) to 'uprate', to achieve roof Ut target
 **Model Dependent:** false
 
 ### Floor construction(s) to 'uprate'
-Target 1x (or 'ALL') floor construction(s) to 'uprate', to achieve floor Ut target below.
+Target 1x (or 'ALL') floor construction(s) to 'uprate', toachieve floor Ut target below.
 **Name:** floor_option,
 **Type:** Choice,
 **Units:** ,

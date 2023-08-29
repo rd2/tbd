@@ -22,72 +22,52 @@
 
 require "openstudio"
 
-begin
-  # Try to load from the Topolys gem.
+begin # try to load from the Topolys gem
   require "topolys"
-
-  # puts "... relying on the Topolys gem"
 rescue LoadError
   require_relative "topolys/model"
   require_relative "topolys/geometry"
   require_relative "topolys/transformation"
   require_relative "topolys/version"
-
-  # puts "... fallback to local Topolys files"
 end
 
-begin
-  # Try to load from the OSlg gem.
+begin # try to load from the Topolys gem
   require "oslg"
-
-  # puts "... relying on the OSlg gem"
 rescue LoadError
   require_relative "oslg/oslog"
   require_relative "osut/version"
-
-  # puts "... fallback to local OSlg files"
 end
 
-begin
-  # Try to load from the OSut gem.
+begin # try to load from the Topolys gem
   require "osut"
-
-  # puts "... relying on the OSut gem"
 rescue LoadError
   require_relative "osut/utils"
   require_relative "osut/version"
-
-  # puts "... fallback to local OSut files"
 end
 
-begin
-  # Try to load from the TBD gem.
+begin # try to load from the Topolys gem
   require "tbd/psi"
   require "tbd/geo"
   require "tbd/ua"
   require "tbd/version"
-
-  # puts "... relying on the TBD gem"
 rescue LoadError
   require_relative "tbd/psi"
   require_relative "tbd/geo"
   require_relative "tbd/ua"
   require_relative "tbd/version"
-
-  # puts "... fallback to local TBD files"
 end
 
 module TBD
-  extend OSut         #                                     OpenStudio utilities
+  extend OSut         # OpenStudio utilities
 
-  TOL  = OSut::TOL
-  TOL2 = OSut::TOL2
-  DBG  = OSut::DEBUG  #   mainly to flag invalid arguments for devs (buggy code)
-  INF  = OSut::INFO   #           informs TBD user of measure success or failure
-  WRN  = OSut::WARN   # e.g. WARN users of 'iffy' .osm inputs (yet not critical)
-  ERR  = OSut::ERR    #                            e.g. flag invalid .osm inputs
-  FTL  = OSut::FATAL  #                     e.g. invalid TBD JSON format/entries
-  NS   = "nameString" #                   OpenStudio IdfObject nameString method
+  TOL  = OSut::TOL    # default distance tolerance (m)
+  TOL2 = OSut::TOL2   # default area tolerance (m2)
+  DBG  = OSut::DEBUG  # github.com/rd2/oslg
+  INF  = OSut::INFO   # github.com/rd2/oslg
+  WRN  = OSut::WARN   # github.com/rd2/oslg
+  ERR  = OSut::ERR    # github.com/rd2/oslg
+  FTL  = OSut::FATAL  # github.com/rd2/oslg
+  NS   = "nameString" # OpenStudio IdfObject nameString method
 
   extend TBD
 end
