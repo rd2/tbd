@@ -1378,8 +1378,6 @@ RSpec.describe TBD do
       # Final attempt, with PSI values of 0.09 W/K per linear metre (JSON file).
       v = OpenStudio.openStudioVersion.split(".").join.to_i
 
-      puts "REVISE THIS ... OTHER WAYS TO ILLUSTRATE WITHOUT BTAP VARIANT"
-
       unless v < 320
         TBD.clean!
         argh  = {}

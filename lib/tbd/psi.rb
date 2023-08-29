@@ -2397,14 +2397,14 @@ module TBD
     file_paths = runner.workflow.absoluteFilePaths
 
     # 'Apply Measure Now' won't cp files from 1st path back to generated_files.
-    match1 = /WorkingFiles/.match(file_paths[1].to_s.slice)
-    match2 = /files/.match(file_paths[1].to_s.slice)
+    match1 = /WorkingFiles/.match(file_paths[1].to_s.strip)
+    match2 = /files/.match(file_paths[1].to_s.strip)
     match  = match1 || match2
 
-    if file_paths.size >= 2 && File.exists?(file_paths[1].to_s.slice) && match
-      out_dir = file_paths[1].to_s.slice
-    elsif !file_paths.empty? && File.exists?(file_paths.first.to_s.slice)
-      out_dir = file_paths.first.to_s.slice
+    if file_paths.size >= 2 && File.exists?(file_paths[1].to_s.strip) && match
+      out_dir = file_paths[1].to_s.strip
+    elsif !file_paths.empty? && File.exists?(file_paths.first.to_s.strip)
+      out_dir = file_paths.first.to_s.strip
     end
 
     out_path = File.join(out_dir, "tbd.out.json")
