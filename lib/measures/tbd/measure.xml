@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <measure>
-  <schema_version>3.0</schema_version>
+  <schema_version>3.1</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>a5649b4e-ad04-49af-89a4-939d87cc2a6c</version_id>
-  <version_modified>20230907T115305Z</version_modified>
+  <version_id>fe5869ca-7519-4ed4-8a89-832bd9406c6c</version_id>
+  <version_modified>2023-09-07T13:33:23Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -365,6 +365,12 @@
       <checksum>A91E64A0</checksum>
     </file>
     <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>685D521B</checksum>
+    </file>
+    <file>
       <filename>README.md.erb</filename>
       <filetype>erb</filetype>
       <usage_type>readmeerb</usage_type>
@@ -386,6 +392,12 @@
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
       <checksum>E85CF840</checksum>
+    </file>
+    <file>
+      <filename>geo.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>638C3EEC</checksum>
     </file>
     <file>
       <filename>geometry.rb</filename>
@@ -427,7 +439,7 @@
       <filename>ua.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>B6B1B553</checksum>
+      <checksum>6108076A</checksum>
     </file>
     <file>
       <filename>utils.rb</filename>
@@ -452,18 +464,6 @@
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
       <checksum>58ED6635</checksum>
-    </file>
-    <file>
-      <filename>README.md</filename>
-      <filetype>md</filetype>
-      <usage_type>readme</usage_type>
-      <checksum>685D521B</checksum>
-    </file>
-    <file>
-      <filename>geo.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>638C3EEC</checksum>
     </file>
   </files>
 </measure>

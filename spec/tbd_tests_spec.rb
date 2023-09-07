@@ -1212,8 +1212,8 @@ RSpec.describe TBD do
     expect(json.key?(:io      )).to be(true)
     expect(json.key?(:surfaces)).to be(true)
 
-    io        = json[:io      ]
-    surfaces  = json[:surfaces]
+    io       = json[:io      ]
+    surfaces = json[:surfaces]
     expect(TBD.status.zero?).to be(true)
     expect(TBD.logs.empty? ).to be(true)
 
@@ -1316,8 +1316,8 @@ RSpec.describe TBD do
     expect(json.key?(:io      )).to be( true)
     expect(json.key?(:surfaces)).to be( true)
 
-    io        = json[:io      ]
-    surfaces  = json[:surfaces]
+    io       = json[:io      ]
+    surfaces = json[:surfaces]
     expect(TBD.error?     ).to be( true)
     expect(TBD.logs.empty?).to be(false)
     expect(TBD.logs.size  ).to eq(    2)
@@ -1403,77 +1403,88 @@ RSpec.describe TBD do
 
     # -- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- -- #
     # Realistic, BTAP-costed PSI factors.
-    unless OpenStudio.openStudioVersion.split(".").join.to_i < 320
-      TBD.clean!
-      jpath = "../json/tbd_5ZoneNoHVAC_btap.json"
+    TBD.clean!
+    jpath = "../json/tbd_5ZoneNoHVAC_btap.json"
 
-      argh                = {}
-      argh[:io_path     ] = File.join(__dir__, jpath)
-      argh[:schema_path ] = File.join(__dir__, "../tbd.schema.json")
-      argh[:uprate_walls] = true
-      argh[:wall_option ] = "ALL wall constructions"
-      argh[:wall_ut     ] = 0.210 # NECB CZ7 2017 (RSi 4.76 / R41)
+    argh                = {}
+    argh[:io_path     ] = File.join(__dir__, jpath)
+    argh[:schema_path ] = File.join(__dir__, "../tbd.schema.json")
+    argh[:uprate_walls] = true
+    argh[:wall_option ] = "ALL wall constructions"
+    argh[:wall_ut     ] = 0.210 # NECB CZ7 2017 (RSi 4.76 / R41)
 
-      file  = File.join(__dir__, "files/osms/in/5ZoneNoHVAC.osm")
-      path  = OpenStudio::Path.new(file)
-      model = translator.loadModel(path)
-      expect(model.empty?).to be(false)
-      model = model.get
+    file  = File.join(__dir__, "files/osms/in/5ZoneNoHVAC.osm")
+    path  = OpenStudio::Path.new(file)
+    model = translator.loadModel(path)
+    expect(model.empty?).to be(false)
+    model = model.get
 
-      # Assign (missing) space types.
-      north = model.getSpaceByName("Story 1 North Perimeter Space")
-      east  = model.getSpaceByName("Story 1 East Perimeter Space" )
-      south = model.getSpaceByName("Story 1 South Perimeter Space")
-      west  = model.getSpaceByName("Story 1 West Perimeter Space" )
-      core  = model.getSpaceByName("Story 1 Core Space"           )
+    # Assign (missing) space types.
+    north = model.getSpaceByName("Story 1 North Perimeter Space")
+    east  = model.getSpaceByName("Story 1 East Perimeter Space" )
+    south = model.getSpaceByName("Story 1 South Perimeter Space")
+    west  = model.getSpaceByName("Story 1 West Perimeter Space" )
+    core  = model.getSpaceByName("Story 1 Core Space"           )
 
-      expect(north.empty?).to be(false)
-      expect(east.empty? ).to be(false)
-      expect(south.empty?).to be(false)
-      expect(west.empty? ).to be(false)
-      expect(core.empty? ).to be(false)
+    expect(north.empty?).to be(false)
+    expect(east.empty? ).to be(false)
+    expect(south.empty?).to be(false)
+    expect(west.empty? ).to be(false)
+    expect(core.empty? ).to be(false)
 
-      north = north.get
-      east  = east.get
-      south = south.get
-      west  = west.get
-      core  = core.get
+    north = north.get
+    east  = east.get
+    south = south.get
+    west  = west.get
+    core  = core.get
 
-      audience  = OpenStudio::Model::SpaceType.new(model)
-      warehouse = OpenStudio::Model::SpaceType.new(model)
-      offices   = OpenStudio::Model::SpaceType.new(model)
-      sales     = OpenStudio::Model::SpaceType.new(model)
-      workshop  = OpenStudio::Model::SpaceType.new(model)
+    audience  = OpenStudio::Model::SpaceType.new(model)
+    warehouse = OpenStudio::Model::SpaceType.new(model)
+    offices   = OpenStudio::Model::SpaceType.new(model)
+    sales     = OpenStudio::Model::SpaceType.new(model)
+    workshop  = OpenStudio::Model::SpaceType.new(model)
 
-      audience.setName("Audience - auditorium" )
-      warehouse.setName("Warehouse - fine"     )
-      offices.setName("Office - enclosed"      )
-      sales.setName("Sales area"               )
-      workshop.setName("Workshop space"        )
+    audience.setName("Audience - auditorium" )
+    warehouse.setName("Warehouse - fine"     )
+    offices.setName("Office - enclosed"      )
+    sales.setName("Sales area"               )
+    workshop.setName("Workshop space"        )
 
-      expect(north.setSpaceType(audience )).to be(true)
-      expect( east.setSpaceType(warehouse)).to be(true)
-      expect(south.setSpaceType(offices  )).to be(true)
-      expect( west.setSpaceType(sales    )).to be(true)
-      expect( core.setSpaceType(workshop )).to be(true)
+    expect(north.setSpaceType(audience )).to be(true)
+    expect( east.setSpaceType(warehouse)).to be(true)
+    expect(south.setSpaceType(offices  )).to be(true)
+    expect( west.setSpaceType(sales    )).to be(true)
+    expect( core.setSpaceType(workshop )).to be(true)
 
-      json = TBD.process(model, argh)
-      expect(json.is_a?(Hash)    ).to be(true)
-      expect(json.key?(:io      )).to be(true)
-      expect(json.key?(:surfaces)).to be(true)
+    json = TBD.process(model, argh)
+    expect(json.is_a?(Hash)    ).to be(true)
+    expect(json.key?(:io      )).to be(true)
+    expect(json.key?(:surfaces)).to be(true)
 
-      io        = json[:io      ]
-      surfaces  = json[:surfaces]
+    io       = json[:io      ]
+    surfaces = json[:surfaces]
+    expect(argh.key?(:roof_uo)).to be(false)
+
+    # OpenStudio prior to v3.5.X had a 3m maximum layer thickness, reflecting a
+    # previous v8.8 EnergyPlus constraint. TBD caught such cases when uprating
+    # (as per NECB requirements). From v3.5.0+, OpenStudio dropped the maximum
+    # layer thickness limit, harmonizing with EnergyPlus:
+    #
+    #   https://github.com/NREL/OpenStudio/pull/4622
+    if OpenStudio.openStudioVersion.split(".").join.to_i < 350
       expect(TBD.error?     ).to be( true)
       expect(TBD.logs.empty?).to be(false)
       expect(TBD.logs.size  ).to eq(    2)
-
+      
       expect(TBD.logs.first[:message].include?("Invalid"        )).to be(true)
       expect(TBD.logs.first[:message].include?("Can't uprate "  )).to be(true)
       expect(TBD.logs.last[:message].include?("Unable to uprate")).to be(true)
 
       expect(argh.key?(:wall_uo)).to be(false)
-      expect(argh.key?(:roof_uo)).to be(false)
+    else
+      expect(TBD.status.zero?).to be(true)
+      expect(argh.key?(:wall_uo)).to be(true)
+      expect(argh[:wall_uo]).to be_within(0.0001).of(0.0089) # RSi 112 (R638)
     end
   end
 
@@ -1585,7 +1596,6 @@ RSpec.describe TBD do
     #   - 'coolingTemperatureSetpoints?': ANY space holds cooling setpoints?
     #
     # Users can consult the online OSut API documentation to know more.
-    v = OpenStudio.openStudioVersion.split(".").join.to_i
 
     # Small office test case (UNCONDITIONED attic).
     argh  = { option: "code (Quebec)" }
@@ -1711,7 +1721,7 @@ RSpec.describe TBD do
     # the tests illustrate how TBD ends up considering the unoccupied space
     # (below roof) and sometimes show how simple variable changes allow users
     # to switch from UNCONDITIONED to INDIRECTLYCONDITIONED (or vice versa).
-    unless v < 321
+    unless OpenStudio.openStudioVersion.split(".").join.to_i < 321
       TBD.clean!
 
       # Unaltered template OpenStudio model:

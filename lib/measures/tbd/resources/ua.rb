@@ -106,10 +106,11 @@ module TBD
         loss = (new_u - k / d) * area
       end
 
-      ok = m.setThickness(d)
-      return invalid("Can't uprate #{id}: > 3m", mth, 0, ERR, res) unless ok
-
-      m.setThermalConductivity(k) if ok
+      if m.setThickness(d)
+        m.setThermalConductivity(k)
+      else
+        return invalid("Can't uprate #{id}: #{d} > 3m", mth, 0, ERR, res)
+      end
     end
 
     return invalid("Can't ID insulating layer", mth, 0, ERR, res) unless m
