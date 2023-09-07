@@ -1036,7 +1036,7 @@ module TBD
 
       unless surface[:boundary].downcase == "outdoors"
         next unless tbd[:surfaces].key?(surface[:boundary])
-        next if tbd[:surfaces][surface[:boundary]][:conditioned]
+        next     if tbd[:surfaces][surface[:boundary]][:conditioned]
       end
 
       ok  = surface.key?(:index)
@@ -1175,7 +1175,7 @@ module TBD
         reference_V = north.dup
       elsif horizontal
         reference_V = zenith.dup
-      else                               # project zenith vector unto edge plane
+      else # project zenith vector unto edge plane
         reference = edge_plane.project(origin + zenith)
         reference_V = reference - origin
       end
@@ -1254,7 +1254,7 @@ module TBD
           surface[:polar ] = farthest_V
           surface[:normal] = normal
         end                           # end of edge-linked, surface-to-wire loop
-      end                                      # end of edge-linked surface loop
+      end # end of edge-linked surface loop
 
       edge[:horizontal] = horizontal
       edge[:vertical  ] = vertical
@@ -1364,15 +1364,15 @@ module TBD
           next unless holes.key?(i)
 
           gardian = ""
-          gardian = id if deratables.size == 1                      #   just dad
+          gardian = id if deratables.size == 1 # just dad
 
-          if gardian.empty?                                         # seek uncle
-            pops   = {}                                             #      kids?
-            uncles = {}                                             #    nieces?
-            boys   = []                                             #       kids
-            nieces = []                                             #     nieces
-            uncle  = deratables.first unless deratables.first == id # uncle 1st?
-            uncle  = deratables.last  unless deratables.last  == id # uncle 2nd?
+          if gardian.empty? # seek uncle
+            pops   = {}                                             # kids?
+            uncles = {}                                             # nieces?
+            boys   = []                                             # kids
+            nieces = []                                             # nieces
+            uncle  = deratables.first unless deratables.first == id # uncle #1?
+            uncle  = deratables.last  unless deratables.last  == id # uncle #2?
 
             pops[:w  ] = tbd[:surfaces][id   ].key?(:windows  )
             pops[:d  ] = tbd[:surfaces][id   ].key?(:doors    )
@@ -1393,6 +1393,7 @@ module TBD
           end
 
           next if gardian.empty?
+
           s1      = edge[:surfaces][gardian]
           s2      = edge[:surfaces][i]
           concave = concave?(s1, s2)
@@ -1572,7 +1573,7 @@ module TBD
              is[:rimjoist       ] = true
           end
         end
-      end                                                 # edge's surfaces loop
+      end # edge's surfaces loop
 
       edge[:psi] = set unless set.empty?
       edge[:set] = psi unless set.empty?

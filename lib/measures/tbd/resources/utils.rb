@@ -1251,27 +1251,12 @@ module OSut
     id = sched.nameString
     return mismatch(id, sched, cl, mth, DBG, res) unless sched.is_a?(cl)
 
-    profiles = []
-    profiles << sched.defaultDaySchedule
-    sched.scheduleRules.each { |rule| profiles << rule.daySchedule }
+    values = sched.defaultDaySchedule.values.to_a
 
-    profiles.each do |profile|
-      id = profile.nameString
+    sched.scheduleRules.each { |rule| values += rule.daySchedule.values }
 
-      profile.values.each do |val|
-        ok = val.is_a?(Numeric)
-        m1 = "Skipping non-numeric value in '#{id}' (#{mth})"
-        log(WRN, m1)    unless ok
-        next            unless ok
-
-        res[:min] = val unless res[:min]
-        res[:min] = val     if res[:min] > val
-        res[:max] = val unless res[:max]
-        res[:max] = val     if res[:max] < val
-      end
-    end
-
-    log(ERR, "Invalid '#{id}' MIN/MAX (#{mth})") unless res[:min] && res[:max]
+    res[:min] = values.min.is_a?(Numeric) ? values.min : nil
+    res[:max] = values.max.is_a?(Numeric) ? values.max : nil
 
     res
   end
@@ -1341,13 +1326,8 @@ module OSut
 
     return empty("#{id} values", mth, ERR, res) if vals.empty?
 
-    ok = vals.min.is_a?(Numeric) && vals.max.is_a?(Numeric)
-    m1 = "Non-numeric values in '#{id}' (#{mth})"
-    log(ERR, m1) unless ok
-    return res   unless ok
-
-    res[:min] = vals.min
-    res[:max] = vals.max
+    res[:min] = vals.min.is_a?(Numeric) ? vals.min : nil
+    res[:max] = vals.min.is_a?(Numeric) ? vals.max : nil
 
     res
   end
@@ -1370,13 +1350,9 @@ module OSut
     return mismatch(id, sched, cl, mth, DBG, res) unless sched.is_a?(cl)
 
     vals = sched.timeSeries.values
-    ok   = vals.min.is_a?(Numeric) && vals.max.is_a?(Numeric)
-    m1   = "Non-numeric values in '#{id}' (#{mth})"
-    log(ERR, m1) unless ok
-    return res   unless ok
 
-    res[:min] = vals.min
-    res[:max] = vals.max
+    res[:min] = vals.min.is_a?(Numeric) ? vals.min : nil
+    res[:max] = vals.max.is_a?(Numeric) ? vals.min : nil
 
     res
   end
@@ -2137,14 +2113,14 @@ module OSut
 
       unless schedule.empty?
         schedule = schedule.get
-        default = schedule.defaultDaySchedule
+        default  = schedule.defaultDaySchedule
         ok = ok && default.nameString           == dft
         ok = ok && default.times.size           == 1
         ok = ok && default.values.size          == 1
         ok = ok && default.times.first          == time
         ok = ok && default.values.first         == val
         rules = schedule.scheduleRules
-        ok = ok && (rules.size == 0 || rules.size == 1)
+        ok = ok && rules.size < 2
 
         if rules.size == 1
           rule = rules.first
@@ -2169,32 +2145,37 @@ module OSut
 
     schedule = OpenStudio::Model::ScheduleRuleset.new(model)
     schedule.setName(nom)
-    ok1 = schedule.setScheduleTypeLimits(limits)
-    ok2 = schedule.defaultDaySchedule.addValue(time, val)
-    m1  = "'#{nom}': Can't set schedule type limits (#{mth})"
-    m2  = "'#{nom}': Can't set default day schedule (#{mth})"
-    log(ERR, m1) unless ok2
-    log(ERR, m2) unless ok2
-    return nil   unless ok1
-    return nil   unless ok2
+
+    unless schedule.setScheduleTypeLimits(limits)
+      log(ERR, "'#{nom}': Can't set schedule type limits (#{mth})")
+      return nil
+    end
+
+    unless schedule.defaultDaySchedule.addValue(time, val)
+      log(ERR, "'#{nom}': Can't set default day schedule (#{mth})")
+      return nil
+    end
 
     schedule.defaultDaySchedule.setName(dft)
 
     unless tag.empty?
       rule = OpenStudio::Model::ScheduleRule.new(schedule, sch)
       rule.setName(tag)
-      ok3 = rule.setStartDate(may01)
-      ok4 = rule.setEndDate(oct31)
-      ok5 = rule.setApplyAllDays(true)
-      m3  = "'#{tag}': Can't set start date (#{mth})"
-      m4  = "'#{tag}': Can't set end date (#{mth})"
-      m5  = "'#{tag}': Can't apply to all days (#{mth})"
-      log(ERR, m3) unless ok3
-      log(ERR, m4) unless ok4
-      log(ERR, m5) unless ok5
-      return nil   unless ok3
-      return nil   unless ok4
-      return nil   unless ok5
+
+      unless rule.setStartDate(may01)
+        log(ERR, "'#{tag}': Can't set start date (#{mth})")
+        return nil
+      end
+
+      unless rule.setEndDate(oct31)
+        log(ERR, "'#{tag}': Can't set end date (#{mth})")
+        return nil
+      end
+
+      unless rule.setApplyAllDays(true)
+        log(ERR, "'#{tag}': Can't apply to all days (#{mth})")
+        return nil
+      end
 
       rule.daySchedule.setName(day)
     end
@@ -2253,7 +2234,7 @@ module OSut
     return mismatch("point 2", p2, cl, mth, DBG, false) unless p2.is_a?(cl)
 
     # OpenStudio.isAlmostEqual3dPt(p1, p2, TOL) # ... from v350 onwards.
-    (p1.x - p2.x).abs < TOL && (p1.y - p2.y).abs < TOL && (p1.z - p2.z).abs < TOL
+    (p1.x-p2.x).abs < TOL && (p1.y-p2.y).abs < TOL && (p1.z-p2.z).abs < TOL
   end
 
   ##
@@ -2826,9 +2807,9 @@ module OSut
   # @return [false] false if invalid input (see logs)
   def fits?(p1 = nil, p2 = nil, flat = true)
     mth  = "OSut::#{__callee__}"
-    flat = true  unless [true, false].include?(flat)
     p1   = poly(p1, false, true, false)
     p2   = poly(p2, false, true, false)
+    flat = true  unless [true, false].include?(flat)
     return false     if p1.empty?
     return false     if p2.empty?
 
@@ -2874,9 +2855,9 @@ module OSut
   # @return [false] if invalid input (see logs)
   def overlaps?(p1 = nil, p2 = nil, flat = true)
     mth  = "OSut::#{__callee__}"
-    flat = true unless [true, false].include?(flat)
     p1   = poly(p1, false, true, false)
     p2   = poly(p2, false, true, false)
+    flat = true unless [true, false].include?(flat)
     return false    if p1.empty?
     return false    if p2.empty?
 
