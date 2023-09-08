@@ -1164,6 +1164,55 @@ RSpec.describe TBD do
     model.save(file, true)
   end
 
+  it "can generate and access KIVA inputs (midrise apts)" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    TBD.clean!
+
+    argh  = {}
+    file  = File.join(__dir__, "files/osms/in/midrise.osm")
+    path  = OpenStudio::Path.new(file)
+    model = translator.loadModel(path)
+    expect(model.empty?).to be(false)
+    model = model.get
+
+    argh[:option  ] = "poor (BETBG)"
+    argh[:gen_kiva] = true
+
+    json = TBD.process(model, argh)
+    expect(json.is_a?(Hash)).to be(true)
+    expect(json.key?(:io)).to be(true)
+    expect(json.key?(:surfaces)).to be(true)
+
+    io       = json[:io      ]
+    surfaces = json[:surfaces]
+    expect(TBD.status).to eq(0)
+    expect(TBD.logs.empty?).to be(true)
+    expect(io.nil?).to be(false)
+    expect(io.is_a?(Hash)).to be(true)
+    expect(io.empty?).to be(false)
+    expect(surfaces.nil?).to be(false)
+    expect(surfaces.is_a?(Hash)).to be(true)
+    expect(surfaces.size).to eq(180)
+
+    # Validate.
+    surfaces.each do |id, surface|
+      next unless surface.key?(:foundation) # ... only floors
+      next unless surface.key?(:kiva)
+
+      expect(surface[:kiva]).to eq(:slab)
+      expect(surface.key?(:exposed)).to be(true)
+      expect(id).to eq("g Floor C")
+      expect(surface[:exposed]).to be_within(TOL).of(3.36)
+      gFC = model.getSurfaceByName("g Floor C")
+      expect(gFC.empty?).to be(false)
+      gFC = gFC.get
+      expect(gFC.outsideBoundaryCondition.downcase).to eq("foundation")
+    end
+
+    file = File.join(__dir__, "files/osms/out/midrise_KIVA.osm")
+    model.save(file, true)
+  end
+
   it "can test 5ZoneNoHVAC (failed) uprating" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     TBD.clean!
@@ -1475,7 +1524,7 @@ RSpec.describe TBD do
       expect(TBD.error?     ).to be( true)
       expect(TBD.logs.empty?).to be(false)
       expect(TBD.logs.size  ).to eq(    2)
-      
+
       expect(TBD.logs.first[:message].include?("Invalid"        )).to be(true)
       expect(TBD.logs.first[:message].include?("Can't uprate "  )).to be(true)
       expect(TBD.logs.last[:message].include?("Unable to uprate")).to be(true)

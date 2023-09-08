@@ -545,6 +545,7 @@ module TBD
     mth = "TBD::#{__callee__}"
     return mismatch("s1", s1, Hash, mth, DBG, false) unless s1.is_a?(Hash)
     return mismatch("s2", s2, Hash, mth, DBG, false) unless s2.is_a?(Hash)
+    return false if s1 == s2
 
     return hashkey("s1", s1,  :angle, mth, DBG, false) unless s1.key?(:angle )
     return hashkey("s2", s2,  :angle, mth, DBG, false) unless s2.key?(:angle )
@@ -587,6 +588,7 @@ module TBD
     mth = "TBD::#{__callee__}"
     return mismatch("s1", s1, Hash, mth, DBG, false) unless s1.is_a?(Hash)
     return mismatch("s2", s2, Hash, mth, DBG, false) unless s2.is_a?(Hash)
+    return false if s1 == s2
 
     return hashkey("s1", s1,  :angle, mth, DBG, false) unless s1.key?(:angle )
     return hashkey("s2", s2,  :angle, mth, DBG, false) unless s2.key?(:angle )

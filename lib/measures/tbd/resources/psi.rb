@@ -1313,16 +1313,17 @@ module TBD
     return tbd    if empty
 
     edges.values.each do |edge|
-      next unless edge.key?(:surfaces)
+      set        = {}
       deratables = []
+      next unless edge.key?(:surfaces)
 
       edge[:surfaces].keys.each do |id|
         next unless tbd[:surfaces].key?(id)
+
         deratables << id if tbd[:surfaces][id][:deratable]
       end
 
       next if deratables.empty?
-      set = {}
 
       if edge.key?(:io_type)
         bdg = json[:psi].safe(psi, edge[:io_type]) # building safe type fallback
@@ -1391,8 +1392,6 @@ module TBD
             gardian = uncle if   boys.include?(i)
             gardian = id    if nieces.include?(i)
           end
-
-          next if gardian.empty?
 
           s1      = edge[:surfaces][gardian]
           s2      = edge[:surfaces][i]
@@ -1536,8 +1535,8 @@ module TBD
         balcony = false
 
         edge[:surfaces].keys.each do |i|
-          break          if balcony
-          next           if i == id
+          break if balcony
+          next  if i == id
 
           balcony = true if shades.key?(i)
         end
@@ -1550,10 +1549,11 @@ module TBD
           next  unless floors.key?(i)
           next  unless floors[i].key?(:conditioned)
           next  unless floors[i][:conditioned]
-          next      if floors[i][:ground]
+          next      if floors[i][:ground     ]
 
           other = deratables.first unless deratables.first == id
           other = deratables.last  unless deratables.last  == id
+          other = id                   if deratables.size  == 1
 
           s1      = edge[:surfaces][id]
           s2      = edge[:surfaces][other]
