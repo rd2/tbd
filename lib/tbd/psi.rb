@@ -1393,6 +1393,8 @@ module TBD
             gardian = id    if nieces.include?(i)
           end
 
+          next if gardian.empty?
+
           s1      = edge[:surfaces][gardian]
           s2      = edge[:surfaces][i]
           concave = concave?(s1, s2)
