@@ -479,7 +479,7 @@ module TBD
       break unless fd
       break unless valid
 
-      valid = fits?(sub[:points], surface.vertices, id, nom)
+      valid = fits?(sub[:points], surface.vertices)
       msg   = "Skipping '#{id}': can't fit in '#{nom}' (#{mth})"
       log(ERR, msg)  unless valid
 
@@ -487,7 +487,7 @@ module TBD
         break unless valid
         next if i == id
 
-        oops = overlaps?(sb[:points], sub[:points], id, nom)
+        oops = overlaps?(sb[:points], sub[:points])
         msg = "Skipping '#{id}': overlaps sibling '#{i}' (#{mth})"
         log(ERR, msg) if oops
         valid = false if oops
