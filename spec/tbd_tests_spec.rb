@@ -2343,4 +2343,86 @@ RSpec.describe TBD do
       expect(area).to be_within(TOL).of(569.50)
     end
   end
+
+  it "can factor in negative PSI values (JSON input)" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    TBD.clean!
+
+    file  = File.join(__dir__, "files/osms/in/warehouse.osm")
+    path  = OpenStudio::Path.new(file)
+    model = translator.loadModel(path)
+    expect(model).to_not be_empty
+    model = model.get
+
+    argh               = {}
+    argh[:option     ] = "compliant" # superseded by :building PSI set on file
+    argh[:io_path    ] = File.join(__dir__, "../json/tbd_warehouse4.json")
+    argh[:schema_path] = File.join(__dir__, "../tbd.schema.json")
+
+    json     = TBD.process(model, argh)
+    expect(json).to be_a(Hash)
+    expect(json).to have_key(:io)
+    expect(json).to have_key(:surfaces)
+    io       = json[:io      ]
+    surfaces = json[:surfaces]
+    expect(TBD.status.zero?).to be true
+    expect(TBD.logs).to be_empty
+    expect(surfaces).to be_a Hash
+    expect(surfaces.size).to eq(23)
+    expect(io).to be_a(Hash)
+    expect(io).to have_key(:edges)
+    expect(io[:edges].size).to eq(300)
+
+    ids = { a: "Office Front Wall",
+            b: "Office Left Wall",
+            c: "Fine Storage Roof",
+            d: "Fine Storage Office Front Wall",
+            e: "Fine Storage Office Left Wall",
+            f: "Fine Storage Front Wall",
+            g: "Fine Storage Left Wall",
+            h: "Fine Storage Right Wall",
+            i: "Bulk Storage Roof",
+            j: "Bulk Storage Rear Wall",
+            k: "Bulk Storage Left Wall",
+            l: "Bulk Storage Right Wall" }.freeze
+
+    surfaces.each do |id, surface|
+      expect(ids).to have_value(id)         if surface.key?(:edges)
+      expect(ids).to_not have_value(id) unless surface.key?(:edges)
+    end
+
+    surfaces.each do |id, surface|
+      next unless surface[:boundary].downcase == "outdoors"
+      next unless surface.key?(:ratio)
+
+      expect(ids).to have_value(id)
+      expect(surface).to have_key(:heatloss)
+
+      # Ratios are typically negative e.g., a steel corner column decreasing
+      # linked surface RSi values. In some cases, a corner PSI can be positive
+      # (and thus increasing linked surface RSi values). This happens when
+      # estimating PSI values for convex corners while relying on an interior
+      # dimensioning convention e.g., BETBG Detail 7.6.2, ISO 14683.
+      expect(surface[:ratio]).to be_within(TOL).of(0.18) if id == ids[:a]
+      expect(surface[:ratio]).to be_within(TOL).of(0.55) if id == ids[:b]
+      expect(surface[:ratio]).to be_within(TOL).of(0.15) if id == ids[:d]
+      expect(surface[:ratio]).to be_within(TOL).of(0.43) if id == ids[:e]
+      expect(surface[:ratio]).to be_within(TOL).of(0.20) if id == ids[:f]
+      expect(surface[:ratio]).to be_within(TOL).of(0.13) if id == ids[:h]
+      expect(surface[:ratio]).to be_within(TOL).of(0.12) if id == ids[:j]
+      expect(surface[:ratio]).to be_within(TOL).of(0.04) if id == ids[:k]
+      expect(surface[:ratio]).to be_within(TOL).of(0.04) if id == ids[:l]
+
+      # In such cases, negative heatloss means heat gained.
+      expect(surface[:heatloss]).to be_within(TOL).of(-0.10) if id == ids[:a]
+      expect(surface[:heatloss]).to be_within(TOL).of(-0.10) if id == ids[:b]
+      expect(surface[:heatloss]).to be_within(TOL).of(-0.10) if id == ids[:d]
+      expect(surface[:heatloss]).to be_within(TOL).of(-0.10) if id == ids[:e]
+      expect(surface[:heatloss]).to be_within(TOL).of(-0.20) if id == ids[:f]
+      expect(surface[:heatloss]).to be_within(TOL).of(-0.20) if id == ids[:h]
+      expect(surface[:heatloss]).to be_within(TOL).of(-0.40) if id == ids[:j]
+      expect(surface[:heatloss]).to be_within(TOL).of(-0.20) if id == ids[:k]
+      expect(surface[:heatloss]).to be_within(TOL).of(-0.20) if id == ids[:l]
+    end
+  end
 end

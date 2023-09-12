@@ -877,10 +877,13 @@ module TBD
       return hashkey(tag, s, k, mth, ERR) unless s.key?(k)
 
       case k
-      when :heatloss, :net, :r
+      when :heatloss
+        return mismatch(tag, s[k], Numeric, mth) unless s[k].respond_to?(:to_f)
+        return zero(tag, mth, WRN)                   if s[k].to_f.abs < 0.001
+      when :net, :r
         return mismatch(tag, s[k], Numeric, mth) unless s[k].respond_to?(:to_f)
         return negative(tag, mth, 2, ERR)            if s[k].to_f < 0
-        return zero(tag, mth, WRN)                   if s[k].to_f < TOL
+        return zero(tag, mth, WRN)                   if s[k].to_f.abs < 0.001
       when :index
         return mismatch(tag, s[k], Numeric, mth) unless s[k].respond_to?(:to_i)
         return negative(tag, mth, 2, ERR)            if s[k].to_f < 0
@@ -2040,9 +2043,10 @@ module TBD
           next unless json[:khi].point.key?(k[:id])
           next unless json[:khi].point[k[:id]] > 0.001
 
-          s[:heatloss]    = 0 unless s.key?(:heatloss)
-          s[:heatloss]   += json[:khi].point[k[:id]] * k[:count]
-          s[:pts]         = {} unless s.key?(:pts)
+          s[:heatloss]  = 0 unless s.key?(:heatloss)
+          s[:heatloss] += json[:khi].point[k[:id]] * k[:count]
+          s[:pts     ]  = {} unless s.key?(:pts)
+
           s[:pts][k[:id]] = { val: json[:khi].point[k[:id]], n: k[:count] }
         end
       end
@@ -2051,8 +2055,8 @@ module TBD
     # If user has selected a Ut to meet, e.g. argh'ments:
     #   :uprate_walls
     #   :wall_ut
-    #   :wall_option
-    # (same triple arguments for roofs and exposed floors)
+    #   :wall_option ... (same triple arguments for roofs and exposed floors)
+    #
     # ... first 'uprate' targeted insulation layers (see ua.rb) before derating.
     # Check for new argh keys [:wall_uo], [:roof_uo] and/or [:floor_uo].
     up = argh[:uprate_walls] || argh[:uprate_roofs] || argh[:uprate_floors]
@@ -2066,75 +2070,77 @@ module TBD
     # (or rather layered materials) having " tbd" in their OpenStudio name.
     tbd[:surfaces].each do |id, surface|
       next unless surface.key?(:construction)
-      next unless surface.key?(:index       )
-      next unless surface.key?(:ltype       )
-      next unless surface.key?(:r           )
-      next unless surface.key?(:edges       )
-      next unless surface.key?(:heatloss    )
+      next unless surface.key?(:index)
+      next unless surface.key?(:ltype)
+      next unless surface.key?(:r)
+      next unless surface.key?(:edges)
+      next unless surface.key?(:heatloss)
       next unless surface[:heatloss].abs > TOL
 
-      model.getSurfaces.each do |s|
-        next unless id == s.nameString
+      s = model.getSurfaceByName(id)
+      next if s.empty?
 
-        index     = surface[:index       ]
-        current_c = surface[:construction]
-        c         = current_c.clone(model).to_LayeredConstruction.get
-        m         = nil
-        m         = derate(id, surface, c) if index
-        # m may be nilled simply because the targeted construction has already
-        # been derated, i.e. holds " tbd" in its name. Names of cloned/derated
-        # constructions (due to TBD) include the surface name (since derated
-        # constructions are now unique to each surface) and the suffix " c tbd".
-        if m
-          c.setLayer(index, m)
-          c.setName("#{id} c tbd")
-          current_R = rsi(current_c, s.filmResistance)
+      s = s.get
 
-          # In principle, the derated "ratio" could be calculated simply by
-          # accessing a surface's uFactor. Yet air layers within constructions
-          # (not air films) are ignored in OpenStudio's uFactor calculation.
-          # An example would be 25mm-50mm pressure-equalized air gaps behind
-          # brick veneer. This is not always compliant to some energy codes.
-          # TBD currently factors-in air gap (and exterior cladding) R-values.
-          #
-          # If one comments out the following loop (3 lines), tested surfaces
-          # with air layers will generate discrepencies between the calculed RSi
-          # value above and the inverse of the uFactor. All other surface
-          # constructions pass the test.
-          #
-          # if ((1/current_R) - s.uFactor.to_f).abs > 0.005
-          #   puts "#{s.nameString} - Usi:#{1/current_R} UFactor: #{s.uFactor}"
-          # end
-          s.setConstruction(c)
+      index     = surface[:index       ]
+      current_c = surface[:construction]
+      c         = current_c.clone(model).to_LayeredConstruction.get
+      m         = nil
+      m         = derate(id, surface, c) if index
 
-          # If the derated surface construction separates CONDITIONED space from
-          # UNCONDITIONED or UNENCLOSED space, then derate the adjacent surface
-          # construction as well (unless defaulted).
-          if s.outsideBoundaryCondition.downcase == "surface"
-            unless s.adjacentSurface.empty?
-              adjacent = s.adjacentSurface.get
-              nom      = adjacent.nameString
-              default  = adjacent.isConstructionDefaulted == false
+      # m may be nilled simply because the targeted construction has already
+      # been derated, i.e. holds " tbd" in its name. Names of cloned/derated
+      # constructions (due to TBD) include the surface name (since derated
+      # constructions are now unique to each surface) and the suffix " c tbd".
+      if m
+        c.setLayer(index, m)
+        c.setName("#{id} c tbd")
+        current_R = rsi(current_c, s.filmResistance)
 
-              if default  && tbd[:surfaces].key?(nom)
-                current_cc = tbd[:surfaces][nom][:construction]
-                cc         = current_cc.clone(model).to_LayeredConstruction.get
+        # In principle, the derated "ratio" could be calculated simply by
+        # accessing a surface's uFactor. Yet air layers within constructions
+        # (not air films) are ignored in OpenStudio's uFactor calculation.
+        # An example would be 25mm-50mm pressure-equalized air gaps behind
+        # brick veneer. This is not always compliant to some energy codes.
+        # TBD currently factors-in air gap (and exterior cladding) R-values.
+        #
+        # If one comments out the following loop (3 lines), tested surfaces
+        # with air layers will generate discrepencies between the calculed RSi
+        # value above and the inverse of the uFactor. All other surface
+        # constructions pass the test.
+        #
+        # if ((1/current_R) - s.uFactor.to_f).abs > 0.005
+        #   puts "#{s.nameString} - Usi:#{1/current_R} UFactor: #{s.uFactor}"
+        # end
+        s.setConstruction(c)
 
-                cc.setLayer(tbd[:surfaces][nom][:index], m)
-                cc.setName("#{nom} c tbd")
-                adjacent.setConstruction(cc)
-              end
+        # If the derated surface construction separates CONDITIONED space from
+        # UNCONDITIONED or UNENCLOSED space, then derate the adjacent surface
+        # construction as well (unless defaulted).
+        if s.outsideBoundaryCondition.downcase == "surface"
+          unless s.adjacentSurface.empty?
+            adjacent = s.adjacentSurface.get
+            nom      = adjacent.nameString
+            default  = adjacent.isConstructionDefaulted == false
+
+            if default  && tbd[:surfaces].key?(nom)
+              current_cc = tbd[:surfaces][nom][:construction]
+              cc         = current_cc.clone(model).to_LayeredConstruction.get
+
+              cc.setLayer(tbd[:surfaces][nom][:index], m)
+              cc.setName("#{nom} c tbd")
+              adjacent.setConstruction(cc)
             end
           end
-
-          # Compute updated RSi value from layers.
-          updated_c = s.construction.get.to_LayeredConstruction.get
-          updated_R = rsi(updated_c, s.filmResistance)
-          ratio     = -(current_R - updated_R) * 100 / current_R
-
-          surface[:ratio] = ratio if ratio.abs > TOL
-          surface[:u    ] = 1 / current_R       # un-derated U-factors (for UA')
         end
+
+        # Compute updated RSi value from layers.
+        updated_c = s.construction.get.to_LayeredConstruction.get
+        updated_R = rsi(updated_c, s.filmResistance)
+        ratio     = -(current_R - updated_R) * 100 / current_R
+
+        surface[:ratio] = ratio if ratio.abs > TOL
+        surface[:u    ] = 1 / current_R       # un-derated U-factors (for UA')
       end
     end
 
