@@ -1042,24 +1042,26 @@ module TBD
         next     if tbd[:surfaces][surface[:boundary]][:conditioned]
       end
 
-      ok  = surface.key?(:index)
-      msg = "Skipping '#{id}': insulating layer? (#{mth})"
-      log(ERR, msg)          unless ok
-      surface[:deratable] = true if ok
+      if surface.key?(:index)
+        surface[:deratable] = true
+      else
+        log(ERR, "Skipping '#{id}': insulating layer? (#{mth})")
+      end
     end
 
     # Sort subsurfaces before processing.
     [:windows, :doors, :skylights].each do |holes|
       tbd[:surfaces].values.each do |surface|
-        ok = surface.key?(holes)
-        surface[holes] = surface[holes].sort_by { |_, s| s[:minz] }.to_h if ok
+        next unless surface.key?(holes)
+
+        surface[holes] = surface[holes].sort_by { |_, s| s[:minz] }.to_h
       end
     end
 
     # Split "surfaces" hash into "floors", "ceilings" and "walls" hashes.
-    floors   = tbd[:surfaces].select { |_, s| s[:type] == :floor    }
-    ceilings = tbd[:surfaces].select { |_, s| s[:type] == :ceiling  }
-    walls    = tbd[:surfaces].select { |_, s| s[:type] == :wall     }
+    floors   = tbd[:surfaces].select { |_, s| s[:type] == :floor   }
+    ceilings = tbd[:surfaces].select { |_, s| s[:type] == :ceiling }
+    walls    = tbd[:surfaces].select { |_, s| s[:type] == :wall    }
 
     floors   = floors.sort_by        { |_, s| [s[:minz], s[:space]] }.to_h
     ceilings = ceilings.sort_by      { |_, s| [s[:minz], s[:space]] }.to_h

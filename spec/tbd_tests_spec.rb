@@ -1629,7 +1629,7 @@ RSpec.describe TBD do
       expect(surface[:heatloss]).to be_within(0.01).of(3.5)
     end
   end # KEEP
-  
+
   it "can check for attics vs plenums" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     TBD.clean!
@@ -3698,4 +3698,278 @@ RSpec.describe TBD do
     expect(vec[2].y).to be_within(TOL).of( 0.25)
     expect(vec[2].z).to be_within(TOL).of(11.83)
   end
+
+  it "can uprate (ALL roof) constructions" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    TBD.clean!
+
+    file = File.join(__dir__, "files/osms/in/warehouse.osm")
+    path = OpenStudio::Path.new(file)
+    model = translator.loadModel(path)
+    expect(model).to_not be_empty
+    model = model.get
+
+    # Mimics measure.
+    walls = {c: {}, dft: "ALL wall constructions" }
+    roofs = {c: {}, dft: "ALL roof constructions" }
+    flors = {c: {}, dft: "ALL floor constructions"}
+
+    walls[:c][walls[:dft]] = {a: 100000000000000}
+    roofs[:c][roofs[:dft]] = {a: 100000000000000}
+    flors[:c][flors[:dft]] = {a: 100000000000000}
+    
+    walls[:chx] = OpenStudio::StringVector.new
+    roofs[:chx] = OpenStudio::StringVector.new
+    flors[:chx] = OpenStudio::StringVector.new
+
+    model.getSurfaces.each do |s|
+      type = s.surfaceType.downcase
+      next unless ["wall", "roofceiling", "floor"].include?(type)
+      next unless s.outsideBoundaryCondition.downcase == "outdoors"
+      next     if s.construction.empty?
+      next     if s.construction.get.to_LayeredConstruction.empty?
+
+      lc = s.construction.get.to_LayeredConstruction.get
+      id = lc.nameString
+      next if walls[:c].key?(id)
+      next if roofs[:c].key?(id)
+      next if flors[:c].key?(id)
+
+      a = lc.getNetArea
+      # One challenge of the uprate approach concerns OpenStudio-reported
+      # surface film resistances, which factor-in the slope of the surface and
+      # surface emittances. As the uprate approach relies on user-defined Ut
+      # factors (inputs, as targets to meet), it also considers surface film
+      # resistances. In the schematic cross-section below, let's postulate that
+      # each slope has a unique pitch: 50° (s1), 0° (s2), & 60° (s3). All three
+      # surfaces reference the same construction.
+      #
+      #         s2
+      #        _____
+      #       /     \
+      #   s1 /       \ s3
+      #     /         \
+      #
+      # For highly-reflective interior finishes (think of Bruce Lee in Enter
+      # the Dragon), the difference here in reported RSi could reach 0.1 m2.K/W
+      # or R0.6. That's a 1% to 3% difference for a well-insulated construction.
+      # This may seem significant, but the impact on energy simulation results
+      # should be barely noticeable. However, these discrepancies could become
+      # an irritant when processing an OpenStudio model for code compliance
+      # purposes. For clear-field (Uo) calculations, a simple solution is ensure
+      # that the (common) layered construction meets minimal code requirements
+      # for the surface with the lowest film resistance, here s2. Thus surfaces
+      # s1 & s3 will slightly overshoot the Uo target.
+      #
+      # For Ut calculations (which factor-in major thermal bridging), this is
+      # not as straightforward as adjusting the construction layers by hand. Yet
+      # conceptually, the approach here remains similar: for a selected
+      # construction shared by more than one surface, the considered film
+      # resistance will be that of the worst case encountered. The resulting Uo
+      # for that uprated construction might be slightly lower (i.e., better
+      # performing) than expected in some circumstances.
+      f = s.filmResistance
+
+      case type
+      when "wall"
+        walls[:c][id]     = {a: a, lc: lc}
+        walls[:c][id][:f] = f unless walls[:c][id].key?(:f)
+        walls[:c][id][:f] = f     if walls[:c][id][:f] > f
+      when "roofceiling"
+        roofs[:c][id]     = {a: a, lc: lc}
+        roofs[:c][id][:f] = f unless roofs[:c][id].key?(:f)
+        roofs[:c][id][:f] = f     if roofs[:c][id][:f] > f
+      else
+        flors[:c][id]     = {a: a, lc: lc}
+        flors[:c][id][:f] = f unless flors[:c][id].key?(:f)
+        flors[:c][id][:f] = f     if flors[:c][id][:f] > f
+      end
+    end
+
+    walls[:c] = walls[:c].sort_by{ |k,v| v[:a] }.reverse!.to_h
+    roofs[:c] = roofs[:c].sort_by{ |k,v| v[:a] }.reverse!.to_h
+    flors[:c] = flors[:c].sort_by{ |k,v| v[:a] }.reverse!.to_h
+
+    walls[:c][walls[:dft]][:a] = 0
+    roofs[:c][roofs[:dft]][:a] = 0
+    flors[:c][flors[:dft]][:a] = 0
+
+    walls[:c].keys.each { |id| walls[:chx] << id }
+    roofs[:c].keys.each { |id| roofs[:chx] << id }
+    flors[:c].keys.each { |id| flors[:chx] << id }
+
+    expect(roofs[:c].size).to eq(3)
+    rf1 = "Typical Insulated Metal Building Roof R-10.31 1"
+    rf2 = "Typical Insulated Metal Building Roof R-18.18"
+    expect(roofs[:c].keys[0]).to eq("ALL roof constructions")
+    expect(roofs[:c]["ALL roof constructions"][:a]).to be_within(TOL).of(0)
+    roof1 = roofs[:c].values[1]
+    roof2 = roofs[:c].values[2]
+    expect(roof1[:a] > roof2[:a]).to be true
+    expect(roof1[:f]).to be_within(TOL).of(roof2[:f])
+    expect(roof1[:f]).to be_within(TOL).of(0.1360)
+    expect(1/TBD.rsi(roof1[:lc], roof1[:f])).to be_within(TOL).of(0.5512) # R10
+    expect(1/TBD.rsi(roof2[:lc], roof2[:f])).to be_within(TOL).of(0.3124) # R18
+
+    # Deeper dive into rf1 (more prevalent).
+    targeted = model.getConstructionByName(rf1)
+    expect(targeted).to_not be_empty
+    targeted = targeted.get
+    expect(targeted.to_LayeredConstruction).to_not be_empty
+    targeted = targeted.to_LayeredConstruction.get
+    expect(targeted.is_a?(OpenStudio::Model::LayeredConstruction)).to be true
+    expect(targeted.layers.size).to eq(2)
+
+    targeted.layers.each do |layer|
+      next unless layer.nameString == "Typical Insulation R-9.53 1"
+      expect(layer.to_MasslessOpaqueMaterial).to_not be_empty
+      layer = layer.to_MasslessOpaqueMaterial.get
+      expect(layer.thermalResistance).to be_within(TOL).of(1.68) # m2.K/W (R9.5)
+    end
+
+    # argh[:roof_option ] = "Typical Insulated Metal Building Roof R-10.31 1"
+    argh                = {}
+    argh[:roof_option ] = "ALL roof constructions"
+    argh[:option      ] = "poor (BETBG)"
+    argh[:uprate_roofs] = true
+    argh[:roof_ut     ] = 0.138 # NECB 2017 (RSi 7.25 / R41)
+
+    json     = TBD.process(model, argh)
+    expect(json).to be_a(Hash)
+    expect(json).to have_key(:io)
+    expect(json).to have_key(:surfaces)
+    io       = json[:io      ]
+    surfaces = json[:surfaces]
+    expect(TBD.status).to be_zero
+    expect(TBD.logs).to be_empty
+    expect(surfaces).to be_a(Hash)
+    expect(surfaces.size).to eq(23)
+    expect(io).to be_a(Hash)
+    expect(io).to have_key(:edges)
+    expect(io[:edges].size).to eq(300)
+
+    bulk = "Bulk Storage Roof"
+    fine = "Fine Storage Roof"
+
+    # OpenStudio objects.
+    bulk_roof = model.getSurfaceByName(bulk)
+    fine_roof = model.getSurfaceByName(fine)
+    expect(bulk_roof).to_not be_empty
+    expect(fine_roof).to_not be_empty
+    bulk_roof = bulk_roof.get
+    fine_roof = fine_roof.get
+
+    bulk_construction = bulk_roof.construction
+    fine_construction = fine_roof.construction
+    expect(bulk_construction).to_not be_empty
+    expect(fine_construction).to_not be_empty
+
+    bulk_construction = bulk_construction.get.to_LayeredConstruction
+    fine_construction = fine_construction.get.to_LayeredConstruction
+    expect(bulk_construction).to_not be_empty
+    expect(fine_construction).to_not be_empty
+
+    bulk_construction = bulk_construction.get
+    fine_construction = fine_construction.get
+    expect(bulk_construction.nameString).to eq("Bulk Storage Roof c tbd")
+    expect(fine_construction.nameString).to eq("Fine Storage Roof c tbd")
+    expect(bulk_construction.layers.size).to eq(2)
+    expect(fine_construction.layers.size).to eq(2)
+
+    bulk_insulation = bulk_construction.layers.at(1).to_MasslessOpaqueMaterial
+    fine_insulation = fine_construction.layers.at(1).to_MasslessOpaqueMaterial
+    expect(bulk_insulation).to_not be_empty
+    expect(fine_insulation).to_not be_empty
+
+    bulk_insulation   = bulk_insulation.get
+    fine_insulation   = fine_insulation.get
+    bulk_insulation_r = bulk_insulation.thermalResistance
+    fine_insulation_r = fine_insulation.thermalResistance
+    expect(bulk_insulation_r).to be_within(TOL).of(7.307) # once derated
+    expect(fine_insulation_r).to be_within(TOL).of(6.695) # once derated
+
+    # TBD objects.
+    expect(surfaces).to have_key(bulk)
+    expect(surfaces).to have_key(fine)
+    expect(surfaces[bulk]).to have_key(:heatloss)
+    expect(surfaces[fine]).to have_key(:heatloss)
+    expect(surfaces[bulk]).to have_key(:net)
+    expect(surfaces[fine]).to have_key(:net)
+
+    expect(surfaces[bulk][:heatloss]).to be_within(TOL).of(161.02)
+    expect(surfaces[fine][:heatloss]).to be_within(TOL).of( 87.16)
+    expect(surfaces[bulk][:net     ]).to be_within(TOL).of(3157.28)
+    expect(surfaces[fine][:net     ]).to be_within(TOL).of(1372.60)
+
+    heatloss = surfaces[bulk][:heatloss] + surfaces[fine][:heatloss]
+    area     = surfaces[bulk][:net     ] + surfaces[fine][:net     ]
+
+    expect(heatloss).to be_within(TOL).of( 248.19)
+    expect(area    ).to be_within(TOL).of(4529.88)
+
+    expect(surfaces[bulk]).to have_key(:construction) # not yet derated
+    expect(surfaces[fine]).to have_key(:construction)
+
+    expect(surfaces[bulk][:construction].nameString).to eq(rf1)
+    expect(surfaces[fine][:construction].nameString).to eq(rf1) # no longer rf2
+
+    uprated = model.getConstructionByName(rf1) # not yet derated
+    expect(uprated).to_not be_empty
+    uprated = uprated.get
+    expect(uprated.to_LayeredConstruction).to_not be_empty
+    uprated = uprated.to_LayeredConstruction.get
+
+    expect(uprated.is_a?(OpenStudio::Model::LayeredConstruction)).to be true
+    expect(uprated.layers.size).to eq(2)
+    uprated_layer_r = 0
+
+    uprated.layers.each do |layer|
+      next unless layer.nameString.include?(" uprated")
+
+      expect(layer.to_MasslessOpaqueMaterial).to_not be_empty
+      layer           = layer.to_MasslessOpaqueMaterial.get
+      uprated_layer_r = layer.thermalResistance
+      expect(layer.thermalResistance).to be_within(TOL).of(11.65) # m2.K/W (R66)
+    end
+
+    rt = TBD.rsi(uprated, roof1[:f])
+    expect(1/rt).to be_within(TOL).of(0.0849) # R67 (with surface films)
+
+    # Bulk storage roof demonstration.
+    u = surfaces[bulk][:heatloss] / surfaces[bulk][:net]
+    expect(u).to be_within(TOL).of(0.051) # W/m2.K
+
+    de_u   = 1 / uprated_layer_r + u
+    de_r   = 1 / de_u
+    bulk_r = de_r + roof1[:f]
+    bulk_u = 1 / bulk_r
+    expect(de_u).to be_within(TOL).of(0.137) # bit below required Ut of 0.138
+    expect(de_r).to be_within(TOL).of(bulk_insulation_r) # 7.307, not 11.65
+    ratio  = -(uprated_layer_r - de_r) * 100 / (uprated_layer_r + roof1[:f])
+    expect(ratio).to be_within(TOL).of(-36.84)
+    expect(surfaces[bulk]).to have_key(:ratio)
+    expect(surfaces[bulk][:ratio]).to be_within(TOL).of(ratio)
+
+    # Fine storage roof demonstration.
+    u = surfaces[fine][:heatloss] / surfaces[fine][:net]
+    expect(u).to be_within(TOL).of(0.063) # W/m2.K
+
+    de_u   = 1 / uprated_layer_r + u
+    de_r   = 1 / de_u
+    fine_r = de_r + roof1[:f]
+    fine_u = 1 / fine_r
+    expect(de_u).to be_within(TOL).of(0.149) # above required Ut of 0.138
+    expect(de_r).to be_within(TOL).of(fine_insulation_r) # 6.695, not 11.65
+    ratio  = -(uprated_layer_r - de_r) * 100 / (uprated_layer_r + roof1[:f])
+    expect(ratio).to be_within(TOL).of(-42.03)
+    expect(surfaces[fine]).to have_key(:ratio)
+    expect(surfaces[fine][:ratio]).to be_within(TOL).of(ratio)
+
+    ua    = bulk_u * surfaces[bulk][:net] + fine_u * surfaces[fine][:net]
+    ave_u = ua / area
+    expect(ave_u).to be_within(TOL).of(argh[:roof_ut]) # area-weighted average
+
+    file = File.join(__dir__, "files/osms/out/up_warehouse.osm")
+    model.save(file, true)
+  end # NOT OK !!!
 end

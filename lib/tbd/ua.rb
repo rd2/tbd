@@ -341,7 +341,7 @@ module TBD
             sss = sss.get
 
             if sss.isConstructionDefaulted
-              set = defaultConstructionSet(model, sss) # building? story?
+              set = defaultConstructionSet(sss) # building? story?
               constructions = set.defaultExteriorSurfaceConstructions
 
               unless constructions.empty?
