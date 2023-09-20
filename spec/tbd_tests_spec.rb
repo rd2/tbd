@@ -3880,7 +3880,7 @@ RSpec.describe TBD do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     TBD.clean!
 
-    file  = File.join(__dir__, "files/osms/in/loscrigno.osm")
+    file  = File.join(__dir__, "files/osms/out/loscrigno.osm")
     path  = OpenStudio::Path.new(file)
     model = translator.loadModel(path)
     expect(model).to_not be_empty
