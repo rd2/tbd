@@ -52,14 +52,22 @@ module TBD
     def initialize
       @point = {}
 
-      # The following are defaults. Users may edit these defaults, append new
-      # key:value pairs, or even read-in other pairs on file. Units are in W/K.
-      @point["poor (BETBG)"          ] = 0.900 # detail 5.7.2 BETBG
-      @point["regular (BETBG)"       ] = 0.500 # detail 5.7.4 BETBG
-      @point["efficient (BETBG)"     ] = 0.150 # detail 5.7.3 BETBG
-      @point["code (Quebec)"         ] = 0.500 # art. 3.3.1.3. NECB-QC
-      @point["uncompliant (Quebec)"  ] = 1.000 # NECB-QC Guide
-      @point["(non thermal bridging)"] = 0.000 # defaults to 0
+      # The following are built-in KHI-factors. Users may append new key:value
+      # pairs, preferably through a TBD JSON input file. Units are in W/K.
+      @point["poor (BETBG)"               ] = 0.900 # detail 5.7.2 BETBG
+      @point["regular (BETBG)"            ] = 0.500 # detail 5.7.4 BETBG
+      @point["efficient (BETBG)"          ] = 0.150 # detail 5.7.3 BETBG
+      @point["code (Quebec)"              ] = 0.500 # art. 3.3.1.3. NECB-QC
+      @point["uncompliant (Quebec)"       ] = 1.000 # NECB-QC Guide
+      @point["90.1.22|steel.m|default"    ] = 0.480 # steel/metal, compliant
+      @point["90.1.22|steel.m|unmitigated"] = 0.920 # steel/metal, non-compliant
+      @point["90.1.22|mass.ex|default"    ] = 0.330 # ext/integral, compliant
+      @point["90.1.22|mass.ex|unmitigated"] = 0.460 # ext/integral, non-compliant
+      @point["90.1.22|mass.in|default"    ] = 0.330 # interior mass, compliant
+      @point["90.1.22|mass.in|unmitigated"] = 0.460 # interior, non-compliant
+      @point["90.1.22|wood.fr|default"    ] = 0.040 # compliant
+      @point["90.1.22|wood.fr|unmitigated"] = 0.330 # non-compliant
+      @point["(non thermal bridging)"     ] = 0.000 # defaults to 0
     end
 
     ##
@@ -119,10 +127,10 @@ module TBD
       @has = {}
       @val = {}
 
-      # The following are default PSI-factors. Users may edit these sets, add
-      # new sets, or preferably read-in custom sets from a TBD JSON input file.
-      # PSI units are in W/K per linear meter. The provided "spandrel" sets are
-      # suitable for early design.
+      # The following are default PSI-factor sets. Users may append new sets,
+      # preferably through a TBD JSON input file. Units are in W/K per meter.
+
+      # The provided "spandrel" sets are suitable for early design.
 
       # Convex vs concave PSI adjustments may be warranted if there is a
       # mismatch between dimensioning conventions (interior vs exterior) used
@@ -144,113 +152,256 @@ module TBD
       # Based on INTERIOR dimensioning (p.15 BETBG).
       @set["poor (BETBG)"] =
       {
-        rimjoist:      1.000, # re: BETBG
-        parapet:       0.800, # re: BETBG
-        fenestration:  0.500, # re: BETBG
-        corner:        0.850, # re: BETBG
-        balcony:       1.000, # re: BETBG
-        party:         0.850, # re: BETBG
-        grade:         0.850, # re: BETBG
-        joint:         0.300, # re: BETBG
-        transition:    0.000  # defaults to 0
+        rimjoist:     1.000000, # re: BETBG
+        parapet:      0.800000, # re: BETBG
+        roof:         0.800000, # same as parapet
+        fenestration: 0.500000, # re: BETBG
+        corner:       0.850000, # re: BETBG
+        balcony:      1.000001, # re: BETBG
+        balconysill:  1.000001, # inferred, same as balcony
+        party:        0.850001, # re: BETBG
+        grade:        0.850000, # re: BETBG
+        joint:        0.300000, # re: BETBG
+        transition:   0.000000  # defaults to 0
       }.freeze
 
       # Based on INTERIOR dimensioning (p.15 BETBG).
       @set["regular (BETBG)"] =
       {
-        rimjoist:      0.500, # re: BETBG
-        parapet:       0.450, # re: BETBG
-        fenestration:  0.350, # re: BETBG
-        corner:        0.450, # re: BETBG
-        balcony:       0.500, # re: BETBG
-        party:         0.450, # re: BETBG
-        grade:         0.450, # re: BETBG
-        joint:         0.200, # re: BETBG
-        transition:    0.000  # defaults to 0
+        rimjoist:     0.500000, # re: BETBG
+        parapet:      0.450000, # re: BETBG
+        roof:         0.450000, # same as parapet
+        fenestration: 0.350000, # re: BETBG
+        corner:       0.450000, # re: BETBG
+        balcony:      0.500001, # re: BETBG
+        balconysill:  0.500002, # inferred, same as balcony
+        party:        0.450001, # re: BETBG
+        grade:        0.450000, # re: BETBG
+        joint:        0.200000, # re: BETBG
+        transition:   0.000000  # defaults to 0
       }.freeze
 
       # Based on INTERIOR dimensioning (p.15 BETBG).
       @set["efficient (BETBG)"] =
       {
-        rimjoist:      0.200, # re: BETBG
-        parapet:       0.200, # re: BETBG
-        fenestration:  0.200, # re: BETBG
-        corner:        0.200, # re: BETBG
-        balcony:       0.200, # re: BETBG
-        party:         0.200, # re: BETBG
-        grade:         0.200, # re: BETBG
-        joint:         0.100, # re: BETBG
-        transition:    0.000  # defaults to 0
+        rimjoist:     0.200000, # re: BETBG
+        parapet:      0.200000, # re: BETBG
+        roof:         0.200000, # same as parapet
+        fenestration: 0.200001, # re: BETBG
+        corner:       0.200000, # re: BETBG
+        balcony:      0.200002, # re: BETBG
+        balconysill:  0.200002, # inferred, same as balcony
+        party:        0.200001, # re: BETBG
+        grade:        0.200003, # re: BETBG
+        joint:        0.100000, # re: BETBG
+        transition:   0.000000  # defaults to 0
       }.freeze
 
       # "Conventional", closer to window wall spandrels.
       @set["spandrel (BETBG)"] =
       {
-        rimjoist:      0.615, # Detail 1.2.1
-        parapet:       1.000, # Detail 1.3.2
-        fenestration:  0.000, # inferred, generally part of clear-field RSi
-        corner:        0.425, # Detail 1.4.1
-        balcony:       1.110, # Detail 8.1.9/9.1.6
-        party:         0.990, # inferred, similar to parapet/balcony
-        grade:         0.880, # Detail 2.5.1
-        joint:         0.500, # Detail 3.3.2
-        transition:    0.000  # defaults to 0
+        rimjoist:     0.615000, # Detail 1.2.1
+        parapet:      1.000000, # Detail 1.3.2
+        roof:         1.000000, # same as parapet
+        fenestration: 0.000000, # inferred, generally part of clear-field RSi
+        corner:       0.425000, # Detail 1.4.1
+        balcony:      1.110000, # Detail 8.1.9/9.1.6
+        balconysill:  1.110000, # inferred, same as balcony
+        party:        0.990000, # inferred, similar to parapet/balcony
+        grade:        0.880000, # Detail 2.5.1
+        joint:        0.500000, # Detail 3.3.2
+        transition:   0.000000  # defaults to 0
       }.freeze
 
       # "GoodHigh performance" curtainwall spandrels.
       @set["spandrel HP (BETBG)"] =
       {
-        rimjoist:      0.170, # Detail 1.2.7
-        parapet:       0.660, # Detail 1.3.2
-        fenestration:  0.000, # inferred, generally part of clear-field RSi
-        corner:        0.200, # Detail 1.4.2
-        balcony:       0.400, # Detail 9.1.15
-        party:         0.500, # inferred, similar to parapet/balcony
-        grade:         0.880, # Detail 2.5.1
-        joint:         0.140, # Detail 7.4.2
-        transition:    0.000  # defaults to 0
+        rimjoist:     0.170000, # Detail 1.2.7
+        parapet:      0.660000, # Detail 1.3.2
+        roof:         0.660000, # same as parapet
+        fenestration: 0.000000, # inferred, generally part of clear-field RSi
+        corner:       0.200000, # Detail 1.4.2
+        balcony:      0.400000, # Detail 9.1.15
+        balconysill:  0.400000, # inferred, same as balcony
+        party:        0.500000, # inferred, similar to parapet/balcony
+        grade:        0.880000, # Detail 2.5.1
+        joint:        0.140000, # Detail 7.4.2
+        transition:   0.000000  # defaults to 0
       }.freeze
 
-      # NECB-QC (CCQ, Chapitre i1 ... "Ci1"), code-compliant defaults.
+      # CCQ, Chapitre I1, code-compliant defaults.
       @set["code (Quebec)"] =
       {
-        rimjoist:      0.300, # re Ci1
-        parapet:       0.325, # re Ci1
-        fenestration:  0.200, # re Ci1
-        corner:        0.300, # inferred from description, not explicitely set
-        balcony:       0.500, # re Ci1
-        party:         0.450, # re Ci1
-        grade:         0.450, # re Ci1
-        joint:         0.200, # re Ci1
-        transition:    0.000  # defaults to 0
+        rimjoist:     0.300000, # re I1
+        parapet:      0.325000, # re I1
+        roof:         0.325000, # same as parapet
+        fenestration: 0.200000, # re I1
+        corner:       0.300000, # inferred from description, not explicitely set
+        balcony:      0.500000, # re I1
+        balconysill:  0.500000, # inferred, same as balcony
+        party:        0.450000, # re I1
+        grade:        0.450000, # re I1
+        joint:        0.200000, # re I1
+        transition:   0.000000  # defaults to 0
       }.freeze
 
-      # NECB-QC (CCQ, Chapitre i1), non-code-compliant defaults.
+      # CCQ, Chapitre I1, non-code-compliant defaults.
       @set["uncompliant (Quebec)"] =
       {
-        rimjoist:      0.850, # re Ci1
-        parapet:       0.800, # re Ci1
-        fenestration:  0.500, # re Ci1
-        corner:        0.850, # inferred from description, not explicitely set
-        balcony:       1.000, # re Ci1
-        party:         0.850, # re Ci1
-        grade:         0.850, # re Ci1
-        joint:         0.500, # re Ci1
-        transition:    0.000  # defaults to 0
+        rimjoist:     0.850000, # re I1
+        parapet:      0.800000, # re I1
+        roof:         0.800000, # same as parapet
+        fenestration: 0.500000, # re I1
+        corner:       0.850000, # inferred from description, not explicitely set
+        balcony:      1.000000, # re I1
+        balconysill:  1.000000, # inferred, same as balcony
+        party:        0.850001, # re I1
+        grade:        0.850001, # re I1
+        joint:        0.500001, # re I1
+        transition:   0.000000  # defaults to 0
       }.freeze
 
-      # ... would not derate surfaces.
+      # ASHRAE 90.1 2022 (A10) "default" steel-framed and metal buildings.
+      @set["90.1.22|steel.m|default"] =
+      {
+        rimjoist:     0.307000, # "intermediate floor to wall intersection"
+        parapet:      0.260000, # "parapet" edge
+        roof:         0.020000, # (non-parapet) "roof edge"
+        fenestration: 0.194000, # "wall to vertical fenestration intersection"
+        corner:       0.000000, # (unspecified, defaults to 0)
+        balcony:      0.307001, # "intermediate floor balcony/overhang" edge
+        balconysill:  0.307002, # "intermediate floor balcony" edge (when sill)
+        party:        0.000000, # (unspecified, defaults to 0)
+        grade:        0.000000, # (unspecified, defaults to 0)
+        joint:        0.376000, # placeholder for "cladding support"
+        transition:   0.000000  # defaults to 0
+      }.freeze
+
+      # ASHRAE 90.1 2022 (A10) "unmitigated" steel-framed and metal buildings.
+      @set["90.1.22|steel.m|unmitigated"] =
+      {
+        rimjoist:     0.842000, # "intermediate floor to wall intersection"
+        parapet:      0.500000, # "parapet" edge
+        roof:         0.650000, # (non-parapet) "roof edge"
+        fenestration: 0.505000, # "wall to vertical fenestration intersection"
+        corner:       0.000000, # (unspecified, defaults to 0)
+        balcony:      0.842001, # "intermediate floor balcony/overhang" edge
+        balconysill:  1.686000, # "intermediate floor balcony" edge (when sill)
+        party:        0.000000, # (unspecified, defaults to 0)
+        grade:        0.000000, # (unspecified, defaults to 0)
+        joint:        0.554000, # placeholder for "cladding support"
+        transition:   0.000000  # defaults to 0
+      }.freeze
+
+      # ASHRAE 90.1 2022 (A10) "default" exterior/integral mass walls.
+      @set["90.1.22|mass.ex|default"] =
+      {
+        rimjoist:     0.205000, # "intermediate floor to wall intersection"
+        parapet:      0.217000, # "parapet" edge
+        roof:         0.150000, # (non-parapet) "roof edge"
+        fenestration: 0.226000, # "wall to vertical fenestration intersection"
+        corner:       0.000000, # (unspecified, defaults to 0)
+        balcony:      0.205001, # "intermediate floor balcony/overhang" edge
+        balconysill:  0.307000, # "intermediate floor balcony" edge (when sill)
+        party:        0.000000, # (unspecified, defaults to 0)
+        grade:        0.000000, # (unspecified, defaults to 0)
+        joint:        0.322000, # placeholder for "cladding support"
+        transition:   0.000000  # defaults to 0
+      }.freeze
+
+      # ASHRAE 90.1 2022 (A10) "unmitigated" exterior/integral mass walls.
+      @set["90.1.22|mass.ex|unmitigated"] =
+      {
+        rimjoist:     0.824000, # "intermediate floor to wall intersection"
+        parapet:      0.412000, # "parapet" edge
+        roof:         0.750000, # (non-parapet) "roof edge"
+        fenestration: 0.325000, # "wall to vertical fenestration intersection"
+        corner:       0.000000, # (unspecified, defaults to 0)
+        balcony:      0.824001, # "intermediate floor balcony/overhang" edge
+        balconysill:  1.686000, # "intermediate floor balcony" edge (when sill)
+        party:        0.000000, # (unspecified, defaults to 0)
+        grade:        0.000000, # (unspecified, defaults to 0)
+        joint:        0.476000, # placeholder for "cladding support"
+        transition:   0.000000  # defaults to 0
+      }.freeze
+
+      # ASHRAE 90.1 2022 (A10) "default" interior mass walls.
+      @set["90.1.22|mass.in|default"] =
+      {
+        rimjoist:     0.495000, # "intermediate floor to wall intersection"
+        parapet:      0.393000, # "parapet" edge
+        roof:         0.150000, # (non-parapet) "roof edge"
+        fenestration: 0.143000, # "wall to vertical fenestration intersection"
+        corner:       0.000000, # (unspecified, defaults to 0)
+        balcony:      0.495001, # "intermediate floor balcony/overhang" edge
+        balconysill:  0.307000, # "intermediate floor balcony" edge (when sill)
+        party:        0.000000, # (unspecified, defaults to 0)
+        grade:        0.000000, # (unspecified, defaults to 0)
+        joint:        0.322000, # placeholder for "cladding support"
+        transition:   0.000000  # defaults to 0
+      }.freeze
+
+      # ASHRAE 90.1 2022 (A10) "unmitigated" interior mass walls.
+      @set["90.1.22|mass.in|unmitigated"] =
+      {
+        rimjoist:     0.824000, # "intermediate floor to wall intersection"
+        parapet:      0.884000, # "parapet" edge
+        roof:         0.750000, # (non-parapet) "roof edge"
+        fenestration: 0.543000, # "wall to vertical fenestration intersection"
+        corner:       0.000000, # (unspecified, defaults to 0)
+        balcony:      0.824001, # "intermediate floor balcony/overhang" edge
+        balconysill:  1.686000, # "intermediate floor balcony" edge (when sill)
+        party:        0.000000, # (unspecified, defaults to 0)
+        grade:        0.000000, # (unspecified, defaults to 0)
+        joint:        0.476000, # placeholder for "cladding support"
+        transition:   0.000000  # defaults to 0
+      }.freeze
+
+      # ASHRAE 90.1 2022 (A10) "default" wood-framed (and other) walls.
+      @set["90.1.22|wood.fr|default"] =
+      {
+        rimjoist:     0.084000, # "intermediate floor to wall intersection"
+        parapet:      0.056000, # "parapet" edge
+        roof:         0.020000, # (non-parapet) "roof edge"
+        fenestration: 0.171000, # "wall to vertical fenestration intersection"
+        corner:       0.000000, # (unspecified, defaults to 0)
+        balcony:      0.000000, # "intermediate floor balcony/overhang" edge
+        balconysill:  0.171001, # "intermediate floor balcony" edge (when sill)
+        party:        0.000000, # (unspecified, defaults to 0)
+        grade:        0.000000, # (unspecified, defaults to 0)
+        joint:        0.074000, # placeholder for "cladding support"
+        transition:   0.000000  # defaults to 0
+      }.freeze
+
+      # ASHRAE 90.1 2022 (A10) "unmitigated" wood-framed (and other) walls.
+      @set["90.1.22|wood.fr|unmitigated"] =
+      {
+        rimjoist:     0.582000, # "intermediate floor to wall intersection"
+        parapet:      0.056000, # "parapet" edge
+        roof:         0.150000, # (non-parapet) "roof edge"
+        fenestration: 0.260000, # "wall to vertical fenestration intersection"
+        corner:       0.000000, # (unspecified, defaults to 0)
+        balcony:      0.000000, # "intermediate floor balcony/overhang" edge
+        balconysill:  0.260001, # "intermediate floor balcony" edge (when sill)
+        party:        0.000000, # (unspecified, defaults to 0)
+        grade:        0.000000, # (unspecified, defaults to 0)
+        joint:        0.322000, # placeholder for "cladding support"
+        transition:   0.000000  # defaults to 0
+      }.freeze
+
       @set["(non thermal bridging)"] =
       {
-        rimjoist:      0.000, # defaults to 0
-        parapet:       0.000, # defaults to 0
-        fenestration:  0.000, # defaults to 0
-        corner:        0.000, # defaults to 0
-        balcony:       0.000, # defaults to 0
-        party:         0.000, # defaults to 0
-        grade:         0.000, # defaults to 0
-        joint:         0.000, # defaults to 0
-        transition:    0.000  # defaults to 0
+        rimjoist:     0.000000, # defaults to 0
+        parapet:      0.000000, # defaults to 0
+        roof:         0.000000, # defaults to 0
+        fenestration: 0.000000, # defaults to 0
+        corner:       0.000000, # defaults to 0
+        balcony:      0.000000, # defaults to 0
+        balconysill:  0.000000, # defaults to 0
+        party:        0.000000, # defaults to 0
+        grade:        0.000000, # defaults to 0
+        joint:        0.000000, # defaults to 0
+        transition:   0.000000  # defaults to 0
       }.freeze
 
       @set.keys.each { |k| self.gen(k) }
@@ -268,110 +419,141 @@ module TBD
       return hashkey(id, @set, id, mth, ERR, false) unless @set.key?(id)
 
       h                   = {} # true/false if PSI set has PSI type
-      h[:joint          ] = @set[id].key?(:joint          )
-      h[:transition     ] = @set[id].key?(:transition     )
-      h[:fenestration   ] = @set[id].key?(:fenestration   )
-      h[:head           ] = @set[id].key?(:head           )
-      h[:headconcave    ] = @set[id].key?(:headconcave    )
-      h[:headconvex     ] = @set[id].key?(:headconvex     )
-      h[:sill           ] = @set[id].key?(:sill           )
-      h[:sillconcave    ] = @set[id].key?(:sillconcave    )
-      h[:sillconvex     ] = @set[id].key?(:sillconvex     )
-      h[:jamb           ] = @set[id].key?(:jamb           )
-      h[:jambconcave    ] = @set[id].key?(:jambconcave    )
-      h[:jambconvex     ] = @set[id].key?(:jambconvex     )
-      h[:corner         ] = @set[id].key?(:corner         )
-      h[:cornerconcave  ] = @set[id].key?(:cornerconcave  )
-      h[:cornerconvex   ] = @set[id].key?(:cornerconvex   )
-      h[:parapet        ] = @set[id].key?(:parapet        )
-      h[:partyconcave   ] = @set[id].key?(:parapetconcave )
-      h[:parapetconvex  ] = @set[id].key?(:parapetconvex  )
-      h[:party          ] = @set[id].key?(:party          )
-      h[:partyconcave   ] = @set[id].key?(:partyconcave   )
-      h[:partyconvex    ] = @set[id].key?(:partyconvex    )
-      h[:grade          ] = @set[id].key?(:grade          )
-      h[:gradeconcave   ] = @set[id].key?(:gradeconcave   )
-      h[:gradeconvex    ] = @set[id].key?(:gradeconvex    )
-      h[:balcony        ] = @set[id].key?(:balcony        )
-      h[:balconyconcave ] = @set[id].key?(:balconyconcave )
-      h[:balconyconvex  ] = @set[id].key?(:balconyconvex  )
-      h[:rimjoist       ] = @set[id].key?(:rimjoist       )
-      h[:rimjoistconcave] = @set[id].key?(:rimjoistconcave)
-      h[:rimjoistconvex ] = @set[id].key?(:rimjoistconvex )
+      h[:joint             ] = @set[id].key?(:joint)
+      h[:transition        ] = @set[id].key?(:transition)
+      h[:fenestration      ] = @set[id].key?(:fenestration)
+      h[:head              ] = @set[id].key?(:head)
+      h[:headconcave       ] = @set[id].key?(:headconcave)
+      h[:headconvex        ] = @set[id].key?(:headconvex)
+      h[:sill              ] = @set[id].key?(:sill)
+      h[:sillconcave       ] = @set[id].key?(:sillconcave)
+      h[:sillconvex        ] = @set[id].key?(:sillconvex)
+      h[:jamb              ] = @set[id].key?(:jamb)
+      h[:jambconcave       ] = @set[id].key?(:jambconcave)
+      h[:jambconvex        ] = @set[id].key?(:jambconvex)
+      h[:corner            ] = @set[id].key?(:corner)
+      h[:cornerconcave     ] = @set[id].key?(:cornerconcave)
+      h[:cornerconvex      ] = @set[id].key?(:cornerconvex)
+      h[:parapet           ] = @set[id].key?(:parapet)
+      h[:partyconcave      ] = @set[id].key?(:parapetconcave)
+      h[:parapetconvex     ] = @set[id].key?(:parapetconvex)
+      h[:roof              ] = @set[id].key?(:roof)
+      h[:roofconcave       ] = @set[id].key?(:roofconcave)
+      h[:roofconvex        ] = @set[id].key?(:roofconvex)
+      h[:party             ] = @set[id].key?(:party)
+      h[:partyconcave      ] = @set[id].key?(:partyconcave)
+      h[:partyconvex       ] = @set[id].key?(:partyconvex)
+      h[:grade             ] = @set[id].key?(:grade)
+      h[:gradeconcave      ] = @set[id].key?(:gradeconcave)
+      h[:gradeconvex       ] = @set[id].key?(:gradeconvex)
+      h[:balcony           ] = @set[id].key?(:balcony)
+      h[:balconyconcave    ] = @set[id].key?(:balconyconcave)
+      h[:balconyconvex     ] = @set[id].key?(:balconyconvex)
+      h[:balconysill       ] = @set[id].key?(:balconysill)
+      h[:balconysillconcave] = @set[id].key?(:balconysillconvex)
+      h[:balconysillconvex ] = @set[id].key?(:balconysillconvex)
+      h[:rimjoist          ] = @set[id].key?(:rimjoist)
+      h[:rimjoistconcave   ] = @set[id].key?(:rimjoistconcave)
+      h[:rimjoistconvex    ] = @set[id].key?(:rimjoistconvex)
       @has[id]            = h
 
-      v            = {} # PSI-value (W/K per linear meter)
-      v[:joint   ] = 0; v[:transition     ] = 0; v[:fenestration  ] = 0
-      v[:head    ] = 0; v[:headconcave    ] = 0; v[:headconvex    ] = 0
-      v[:sill    ] = 0; v[:sillconcave    ] = 0; v[:sillconvex    ] = 0
-      v[:jamb    ] = 0; v[:jambconcave    ] = 0; v[:jambconvex    ] = 0
-      v[:corner  ] = 0; v[:cornerconcave  ] = 0; v[:cornerconvex  ] = 0
-      v[:parapet ] = 0; v[:parapetconcave ] = 0; v[:parapetconvex ] = 0
-      v[:party   ] = 0; v[:partyconcave   ] = 0; v[:partyconvex   ] = 0
-      v[:grade   ] = 0; v[:gradeconcave   ] = 0; v[:gradeconvex   ] = 0
-      v[:balcony ] = 0; v[:balconyconcave ] = 0; v[:balconyconvex ] = 0
-      v[:rimjoist] = 0; v[:rimjoistconcave] = 0; v[:rimjoistconvex] = 0
+      v               = {} # PSI-value (W/K per linear meter)
+      v[:joint      ] = 0; v[:transition        ] = 0; v[:fenestration     ] = 0
+      v[:head       ] = 0; v[:headconcave       ] = 0; v[:headconvex       ] = 0
+      v[:sill       ] = 0; v[:sillconcave       ] = 0; v[:sillconvex       ] = 0
+      v[:jamb       ] = 0; v[:jambconcave       ] = 0; v[:jambconvex       ] = 0
+      v[:corner     ] = 0; v[:cornerconcave     ] = 0; v[:cornerconvex     ] = 0
+      v[:parapet    ] = 0; v[:parapetconcave    ] = 0; v[:parapetconvex    ] = 0
+      v[:roof       ] = 0; v[:roofconcave       ] = 0; v[:roofconvex       ] = 0
+      v[:party      ] = 0; v[:partyconcave      ] = 0; v[:partyconvex      ] = 0
+      v[:grade      ] = 0; v[:gradeconcave      ] = 0; v[:gradeconvex      ] = 0
+      v[:balcony    ] = 0; v[:balconyconcave    ] = 0; v[:balconyconvex    ] = 0
+      v[:balconysill] = 0; v[:balconysillconcave] = 0; v[:balconysillconvex] = 0
+      v[:rimjoist   ] = 0; v[:rimjoistconcave   ] = 0; v[:rimjoistconvex   ] = 0
 
-      v[:joint          ] = @set[id][:joint          ] if h[:joint          ]
-      v[:transition     ] = @set[id][:transition     ] if h[:transition     ]
-      v[:fenestration   ] = @set[id][:fenestration   ] if h[:fenestration   ]
-      v[:head           ] = @set[id][:fenestration   ] if h[:fenestration   ]
-      v[:headconcave    ] = @set[id][:fenestration   ] if h[:fenestration   ]
-      v[:headconvex     ] = @set[id][:fenestration   ] if h[:fenestration   ]
-      v[:sill           ] = @set[id][:fenestration   ] if h[:fenestration   ]
-      v[:sillconcave    ] = @set[id][:fenestration   ] if h[:fenestration   ]
-      v[:sillconvex     ] = @set[id][:fenestration   ] if h[:fenestration   ]
-      v[:jamb           ] = @set[id][:fenestration   ] if h[:fenestration   ]
-      v[:jambconcave    ] = @set[id][:fenestration   ] if h[:fenestration   ]
-      v[:jambconvex     ] = @set[id][:fenestration   ] if h[:fenestration   ]
-      v[:head           ] = @set[id][:head           ] if h[:head           ]
-      v[:headconcave    ] = @set[id][:head           ] if h[:head           ]
-      v[:headconvex     ] = @set[id][:head           ] if h[:head           ]
-      v[:sill           ] = @set[id][:sill           ] if h[:sill           ]
-      v[:sillconcave    ] = @set[id][:sill           ] if h[:sill           ]
-      v[:sillconvex     ] = @set[id][:sill           ] if h[:sill           ]
-      v[:jamb           ] = @set[id][:jamb           ] if h[:jamb           ]
-      v[:jambconcave    ] = @set[id][:jamb           ] if h[:jamb           ]
-      v[:jambconvex     ] = @set[id][:jamb           ] if h[:jamb           ]
-      v[:headconcave    ] = @set[id][:headconcave    ] if h[:headconcave    ]
-      v[:headconvex     ] = @set[id][:headconvex     ] if h[:headconvex     ]
-      v[:sillconcave    ] = @set[id][:sillconcave    ] if h[:sillconcave    ]
-      v[:sillconvex     ] = @set[id][:sillconvex     ] if h[:sillconvex     ]
-      v[:jambconcave    ] = @set[id][:jambconcave    ] if h[:jambconcave    ]
-      v[:jambconvex     ] = @set[id][:jambconvex     ] if h[:jambconvex     ]
-      v[:corner         ] = @set[id][:corner         ] if h[:corner         ]
-      v[:cornerconcave  ] = @set[id][:corner         ] if h[:corner         ]
-      v[:cornerconvex   ] = @set[id][:corner         ] if h[:corner         ]
-      v[:cornerconcave  ] = @set[id][:cornerconcave  ] if h[:cornerconcave  ]
-      v[:cornerconvex   ] = @set[id][:cornerconvex   ] if h[:cornerconvex   ]
-      v[:parapet        ] = @set[id][:parapet        ] if h[:parapet        ]
-      v[:parapetconcave ] = @set[id][:parapet        ] if h[:parapet        ]
-      v[:parapetconvex  ] = @set[id][:parapet        ] if h[:parapet        ]
-      v[:parapetconcave ] = @set[id][:parapetconcave ] if h[:parapetconcave ]
-      v[:parapetconvex  ] = @set[id][:parapetconvex  ] if h[:parapetconvex  ]
-      v[:party          ] = @set[id][:party          ] if h[:party          ]
-      v[:partyconcave   ] = @set[id][:party          ] if h[:party          ]
-      v[:partyconvex    ] = @set[id][:party          ] if h[:party          ]
-      v[:partyconcave   ] = @set[id][:partyconcave   ] if h[:partyconcave   ]
-      v[:partyconvex    ] = @set[id][:partyconvex    ] if h[:partyconvex    ]
-      v[:grade          ] = @set[id][:grade          ] if h[:grade          ]
-      v[:gradeconcave   ] = @set[id][:grade          ] if h[:grade          ]
-      v[:gradeconvex    ] = @set[id][:grade          ] if h[:grade          ]
-      v[:gradeconcave   ] = @set[id][:gradeconcave   ] if h[:gradeconcave   ]
-      v[:gradeconvex    ] = @set[id][:gradeconvex    ] if h[:gradeconvex    ]
-      v[:balcony        ] = @set[id][:balcony        ] if h[:balcony        ]
-      v[:balconyconcave ] = @set[id][:balcony        ] if h[:balcony        ]
-      v[:balconyconvex  ] = @set[id][:balcony        ] if h[:balcony        ]
-      v[:balconyconcave ] = @set[id][:balconyconcave ] if h[:balconyconcave ]
-      v[:balconyconvex  ] = @set[id][:balconyconvex  ] if h[:balconyconvex  ]
-      v[:rimjoist       ] = @set[id][:rimjoist       ] if h[:rimjoist       ]
-      v[:rimjoistconcave] = @set[id][:rimjoist       ] if h[:rimjoist       ]
-      v[:rimjoistconvex ] = @set[id][:rimjoist       ] if h[:rimjoist       ]
-      v[:rimjoistconcave] = @set[id][:rimjoistconcave] if h[:rimjoistconcave]
-      v[:rimjoistconvex ] = @set[id][:rimjoistconvex ] if h[:rimjoistconvex ]
+      v[:joint             ] = @set[id][:joint             ] if h[:joint             ]
+      v[:transition        ] = @set[id][:transition        ] if h[:transition        ]
+      v[:fenestration      ] = @set[id][:fenestration      ] if h[:fenestration      ]
+      v[:head              ] = @set[id][:fenestration      ] if h[:fenestration      ]
+      v[:headconcave       ] = @set[id][:fenestration      ] if h[:fenestration      ]
+      v[:headconvex        ] = @set[id][:fenestration      ] if h[:fenestration      ]
+      v[:sill              ] = @set[id][:fenestration      ] if h[:fenestration      ]
+      v[:sillconcave       ] = @set[id][:fenestration      ] if h[:fenestration      ]
+      v[:sillconvex        ] = @set[id][:fenestration      ] if h[:fenestration      ]
+      v[:jamb              ] = @set[id][:fenestration      ] if h[:fenestration      ]
+      v[:jambconcave       ] = @set[id][:fenestration      ] if h[:fenestration      ]
+      v[:jambconvex        ] = @set[id][:fenestration      ] if h[:fenestration      ]
+      v[:head              ] = @set[id][:head              ] if h[:head              ]
+      v[:headconcave       ] = @set[id][:head              ] if h[:head              ]
+      v[:headconvex        ] = @set[id][:head              ] if h[:head              ]
+      v[:sill              ] = @set[id][:sill              ] if h[:sill              ]
+      v[:sillconcave       ] = @set[id][:sill              ] if h[:sill              ]
+      v[:sillconvex        ] = @set[id][:sill              ] if h[:sill              ]
+      v[:jamb              ] = @set[id][:jamb              ] if h[:jamb              ]
+      v[:jambconcave       ] = @set[id][:jamb              ] if h[:jamb              ]
+      v[:jambconvex        ] = @set[id][:jamb              ] if h[:jamb              ]
+      v[:headconcave       ] = @set[id][:headconcave       ] if h[:headconcave       ]
+      v[:headconvex        ] = @set[id][:headconvex        ] if h[:headconvex        ]
+      v[:sillconcave       ] = @set[id][:sillconcave       ] if h[:sillconcave       ]
+      v[:sillconvex        ] = @set[id][:sillconvex        ] if h[:sillconvex        ]
+      v[:jambconcave       ] = @set[id][:jambconcave       ] if h[:jambconcave       ]
+      v[:jambconvex        ] = @set[id][:jambconvex        ] if h[:jambconvex        ]
+      v[:corner            ] = @set[id][:corner            ] if h[:corner            ]
+      v[:cornerconcave     ] = @set[id][:corner            ] if h[:corner            ]
+      v[:cornerconvex      ] = @set[id][:corner            ] if h[:corner            ]
+      v[:cornerconcave     ] = @set[id][:cornerconcave     ] if h[:cornerconcave     ]
+      v[:cornerconvex      ] = @set[id][:cornerconvex      ] if h[:cornerconvex      ]
+      v[:parapet           ] = @set[id][:parapet           ] if h[:parapet           ]
+      v[:parapetconcave    ] = @set[id][:parapet           ] if h[:parapet           ]
+      v[:parapetconvex     ] = @set[id][:parapet           ] if h[:parapet           ]
+      v[:parapetconcave    ] = @set[id][:parapetconcave    ] if h[:parapetconcave    ]
+      v[:parapetconvex     ] = @set[id][:parapetconvex     ] if h[:parapetconvex     ]
+      v[:roof              ] = @set[id][:parapet           ] if h[:parapet           ]
+      v[:roofconcave       ] = @set[id][:parapet           ] if h[:parapet           ]
+      v[:roofconvex        ] = @set[id][:parapet           ] if h[:parapet           ]
+      v[:roofconcave       ] = @set[id][:parapetconcave    ] if h[:parapetconcave    ]
+      v[:roofconvex        ] = @set[id][:parapetxonvex     ] if h[:parapetconvex     ]
+      v[:roof              ] = @set[id][:roof              ] if h[:roof              ]
+      v[:roofconcave       ] = @set[id][:roof              ] if h[:roof              ]
+      v[:roofconvex        ] = @set[id][:roof              ] if h[:roof              ]
+      v[:roofconcave       ] = @set[id][:roofconcave       ] if h[:roofconcave       ]
+      v[:roofconvex        ] = @set[id][:roofconvex        ] if h[:roofconvex        ]
+      v[:party             ] = @set[id][:party             ] if h[:party             ]
+      v[:partyconcave      ] = @set[id][:party             ] if h[:party             ]
+      v[:partyconvex       ] = @set[id][:party             ] if h[:party             ]
+      v[:partyconcave      ] = @set[id][:partyconcave      ] if h[:partyconcave      ]
+      v[:partyconvex       ] = @set[id][:partyconvex       ] if h[:partyconvex       ]
+      v[:grade             ] = @set[id][:grade             ] if h[:grade             ]
+      v[:gradeconcave      ] = @set[id][:grade             ] if h[:grade             ]
+      v[:gradeconvex       ] = @set[id][:grade             ] if h[:grade             ]
+      v[:gradeconcave      ] = @set[id][:gradeconcave      ] if h[:gradeconcave      ]
+      v[:gradeconvex       ] = @set[id][:gradeconvex       ] if h[:gradeconvex       ]
+      v[:balcony           ] = @set[id][:balcony           ] if h[:balcony           ]
+      v[:balconyconcave    ] = @set[id][:balcony           ] if h[:balcony           ]
+      v[:balconyconvex     ] = @set[id][:balcony           ] if h[:balcony           ]
+      v[:balconyconcave    ] = @set[id][:balconyconcave    ] if h[:balconyconcave    ]
+      v[:balconyconvex     ] = @set[id][:balconyconvex     ] if h[:balconyconvex     ]
+      v[:balconysill       ] = @set[id][:balcony           ] if h[:balcony           ]
+      v[:balconysillconcave] = @set[id][:balcony           ] if h[:balcony           ]
+      v[:balconysillconvex ] = @set[id][:balcony           ] if h[:balcony           ]
+      v[:balconysillconcave] = @set[id][:balconyconcave    ] if h[:balconyconcave    ]
+      v[:balconysillconvex ] = @set[id][:balconyconvex     ] if h[:balconycinvex     ]
+      v[:balconysill       ] = @set[id][:balconysill       ] if h[:balconysill       ]
+      v[:balconysillconcave] = @set[id][:balconysill       ] if h[:balconysill       ]
+      v[:balconysillconvex ] = @set[id][:balconysill       ] if h[:balconysill       ]
+      v[:balconysillconcave] = @set[id][:balconysillconcave] if h[:balconysillconcave]
+      v[:balconysillconvex ] = @set[id][:balconysillconvex ] if h[:balconysillconvex ]
+      v[:rimjoist          ] = @set[id][:rimjoist          ] if h[:rimjoist          ]
+      v[:rimjoistconcave   ] = @set[id][:rimjoist          ] if h[:rimjoist          ]
+      v[:rimjoistconvex    ] = @set[id][:rimjoist          ] if h[:rimjoist          ]
+      v[:rimjoistconcave   ] = @set[id][:rimjoistconcave   ] if h[:rimjoistconcave   ]
+      v[:rimjoistconvex    ] = @set[id][:rimjoistconvex    ] if h[:rimjoistconvex    ]
 
       max = [v[:parapetconcave], v[:parapetconvex]].max
       v[:parapet] = max unless @has[:parapet]
+
+      max = [v[:roofconcave], v[:roofconvex]].max
+      v[:roof] = max unless @has[:roof]
       @val[id] = v
 
       true
@@ -388,6 +570,9 @@ module TBD
     # @option set [#to_f] :parapet roof-to-wall intersection
     # @option set [#to_f] :parapetconcave basilaire variant
     # @option set [#to_f] :parapetconvex typical
+    # @option set [#to_f] :roof roof-to-wall intersection
+    # @option set [#to_f] :roofconcave basilaire variant
+    # @option set [#to_f] :roofconvex typical
     # @option set [#to_f] :head sub surface head interface
     # @option set [#to_f] :headconcave basilaire variant
     # @option set [#to_f] :headconvex parapet variant
@@ -403,6 +588,9 @@ module TBD
     # @option set [#to_f] :balcony intermediate floor-balcony intersection
     # @option set [#to_f] :balconyconcave basilaire variant
     # @option set [#to_f] :balconyconvex cantilever variant
+    # @option set [#to_f] :balconysill intermediate floor-balcony intersection
+    # @option set [#to_f] :balconycsilloncave basilaire variant
+    # @option set [#to_f] :balconysillconvex cantilever variant
     # @option set [#to_f] :party demising surface intersection
     # @option set [#to_f] :partyconcave interior corner or basilaire variant
     # @option set [#to_f] :partyconvex exterior corner or cantilever variant
@@ -437,39 +625,45 @@ module TBD
       # type that is not autoassigned to an edge (i.e., only via a TBD JSON
       # input file). Finally, transitions are autoassigned by TBD when an edge
       # is "flat", i.e, no noticeable polar angle difference between surfaces.
-      s[:rimjoist       ] = set[:rimjoist       ] if set.key?(:rimjoist       )
-      s[:rimjoistconcave] = set[:rimjoistconcave] if set.key?(:rimjoistconcave)
-      s[:rimjoistconvex ] = set[:rimjoistconvex ] if set.key?(:rimjoistconvex )
-      s[:parapet        ] = set[:parapet        ] if set.key?(:parapet        )
-      s[:parapetconcave ] = set[:parapetconcave ] if set.key?(:parapetconcave )
-      s[:parapetconvex  ] = set[:parapetconvex  ] if set.key?(:parapetconvex  )
-      s[:head           ] = set[:head           ] if set.key?(:head           )
-      s[:headconcave    ] = set[:headconcave    ] if set.key?(:headconcave    )
-      s[:headconvex     ] = set[:headconvex     ] if set.key?(:headconvex     )
-      s[:sill           ] = set[:sill           ] if set.key?(:sill           )
-      s[:sillconcave    ] = set[:sillconcave    ] if set.key?(:sillconcave    )
-      s[:sillconvex     ] = set[:sillconvex     ] if set.key?(:sillconvex     )
-      s[:jamb           ] = set[:jamb           ] if set.key?(:jamb           )
-      s[:jambconcave    ] = set[:jambconcave    ] if set.key?(:jambconcave    )
-      s[:jambconvex     ] = set[:jambconvex     ] if set.key?(:jambconcave    )
-      s[:corner         ] = set[:corner         ] if set.key?(:corner         )
-      s[:cornerconcave  ] = set[:cornerconcave  ] if set.key?(:cornerconcave  )
-      s[:cornerconvex   ] = set[:cornerconvex   ] if set.key?(:cornerconvex   )
-      s[:balcony        ] = set[:balcony        ] if set.key?(:balcony        )
-      s[:balconyconcave ] = set[:balconyconcave ] if set.key?(:balconyconcave )
-      s[:balconyconvex  ] = set[:balconyconvex  ] if set.key?(:balconyconvex  )
-      s[:party          ] = set[:party          ] if set.key?(:party          )
-      s[:partyconcave   ] = set[:partyconcave   ] if set.key?(:partyconcave   )
-      s[:partyconvex    ] = set[:partyconvex    ] if set.key?(:partyconvex    )
-      s[:grade          ] = set[:grade          ] if set.key?(:grade          )
-      s[:gradeconcave   ] = set[:gradeconcave   ] if set.key?(:gradeconcave   )
-      s[:gradeconvex    ] = set[:gradeconvex    ] if set.key?(:gradeconvex    )
-      s[:fenestration   ] = set[:fenestration   ] if set.key?(:fenestration   )
-      s[:joint          ] = set[:joint          ] if set.key?(:joint          )
-      s[:transition     ] = set[:transition     ] if set.key?(:transition     )
+      s[:rimjoist          ] = set[:rimjoist          ] if set.key?(:rimjoist)
+      s[:rimjoistconcave   ] = set[:rimjoistconcave   ] if set.key?(:rimjoistconcave)
+      s[:rimjoistconvex    ] = set[:rimjoistconvex    ] if set.key?(:rimjoistconvex)
+      s[:parapet           ] = set[:parapet           ] if set.key?(:parapet)
+      s[:parapetconcave    ] = set[:parapetconcave    ] if set.key?(:parapetconcave)
+      s[:parapetconvex     ] = set[:parapetconvex     ] if set.key?(:parapetconvex)
+      s[:roof              ] = set[:roof              ] if set.key?(:roof)
+      s[:roofconcave       ] = set[:roofconcave       ] if set.key?(:roofconcave)
+      s[:roofconvex        ] = set[:roofconvex        ] if set.key?(:roofconvex)
+      s[:head              ] = set[:head              ] if set.key?(:head)
+      s[:headconcave       ] = set[:headconcave       ] if set.key?(:headconcave)
+      s[:headconvex        ] = set[:headconvex        ] if set.key?(:headconvex)
+      s[:sill              ] = set[:sill              ] if set.key?(:sill)
+      s[:sillconcave       ] = set[:sillconcave       ] if set.key?(:sillconcave)
+      s[:sillconvex        ] = set[:sillconvex        ] if set.key?(:sillconvex)
+      s[:jamb              ] = set[:jamb              ] if set.key?(:jamb)
+      s[:jambconcave       ] = set[:jambconcave       ] if set.key?(:jambconcave)
+      s[:jambconvex        ] = set[:jambconvex        ] if set.key?(:jambconvex)
+      s[:corner            ] = set[:corner            ] if set.key?(:corner)
+      s[:cornerconcave     ] = set[:cornerconcave     ] if set.key?(:cornerconcave)
+      s[:cornerconvex      ] = set[:cornerconvex      ] if set.key?(:cornerconvex)
+      s[:balcony           ] = set[:balcony           ] if set.key?(:balcony)
+      s[:balconyconcave    ] = set[:balconyconcave    ] if set.key?(:balconyconcave)
+      s[:balconyconvex     ] = set[:balconyconvex     ] if set.key?(:balconyconvex)
+      s[:balconysill       ] = set[:balconysill       ] if set.key?(:balconysill)
+      s[:balconysillconcave] = set[:balconysillconcave] if set.key?(:balconysillconcave)
+      s[:balconysillconvex ] = set[:balconysillconvex ] if set.key?(:balconysillconvex)
+      s[:party             ] = set[:party             ] if set.key?(:party)
+      s[:partyconcave      ] = set[:partyconcave      ] if set.key?(:partyconcave)
+      s[:partyconvex       ] = set[:partyconvex       ] if set.key?(:partyconvex)
+      s[:grade             ] = set[:grade             ] if set.key?(:grade)
+      s[:gradeconcave      ] = set[:gradeconcave      ] if set.key?(:gradeconcave)
+      s[:gradeconvex       ] = set[:gradeconvex       ] if set.key?(:gradeconvex)
+      s[:fenestration      ] = set[:fenestration      ] if set.key?(:fenestration)
+      s[:joint             ] = set[:joint             ] if set.key?(:joint)
+      s[:transition        ] = set[:transition        ] if set.key?(:transition)
 
-      s[:joint          ] = 0.000             unless set.key?(:joint          )
-      s[:transition     ] = 0.000             unless set.key?(:transition     )
+      s[:joint              ] = 0.000               unless set.key?(:joint)
+      s[:transition         ] = 0.000               unless set.key?(:transition)
 
       @set[id] = s
       self.gen(id)
@@ -540,6 +734,7 @@ module TBD
       ok = parapets.size == 2
       ok = true            if @has[id][:parapet       ]
       return false     unless ok
+
       return false     unless @has[id][:party         ]
       return false     unless @has[id][:grade         ]
       return false     unless @has[id][:balcony       ]
@@ -1351,16 +1546,18 @@ module TBD
         next unless deratables.include?(id)
 
         # Evaluate current set content before processing a new linked surface.
-        is            = {}
-        is[:head    ] = set.keys.to_s.include?("head"    )
-        is[:sill    ] = set.keys.to_s.include?("sill"    )
-        is[:jamb    ] = set.keys.to_s.include?("jamb"    )
-        is[:corner  ] = set.keys.to_s.include?("corner"  )
-        is[:parapet ] = set.keys.to_s.include?("parapet" )
-        is[:party   ] = set.keys.to_s.include?("party"   )
-        is[:grade   ] = set.keys.to_s.include?("grade"   )
-        is[:balcony ] = set.keys.to_s.include?("balcony" )
-        is[:rimjoist] = set.keys.to_s.include?("rimjoist")
+        is               = {}
+        is[:head       ] = set.keys.to_s.include?("head")
+        is[:sill       ] = set.keys.to_s.include?("sill")
+        is[:jamb       ] = set.keys.to_s.include?("jamb")
+        is[:corner     ] = set.keys.to_s.include?("corner")
+        is[:parapet    ] = set.keys.to_s.include?("parapet")
+        is[:roof       ] = set.keys.to_s.include?("roof")
+        is[:party      ] = set.keys.to_s.include?("party")
+        is[:grade      ] = set.keys.to_s.include?("grade")
+        is[:balcony    ] = set.keys.to_s.include?("balcony")
+        is[:balconysill] = set.keys.to_s.include?("balconysill")
+        is[:rimjoist   ] = set.keys.to_s.include?("rimjoist")
 
         # Label edge as :head, :sill or :jamb if linked to:
         #   1x subsurface
@@ -1373,18 +1570,19 @@ module TBD
           gardian = id if deratables.size == 1 # just dad
 
           if gardian.empty? # seek uncle
-            pops   = {}                                             # kids?
-            uncles = {}                                             # nieces?
-            boys   = []                                             # kids
-            nieces = []                                             # nieces
+            pops   = {} # kids?
+            uncles = {} # nieces?
+            boys   = [] # kids
+            nieces = [] # nieces
+
             uncle  = deratables.first unless deratables.first == id # uncle #1?
             uncle  = deratables.last  unless deratables.last  == id # uncle #2?
 
-            pops[:w  ] = tbd[:surfaces][id   ].key?(:windows  )
-            pops[:d  ] = tbd[:surfaces][id   ].key?(:doors    )
+            pops[:w  ] = tbd[:surfaces][id   ].key?(:windows)
+            pops[:d  ] = tbd[:surfaces][id   ].key?(:doors)
             pops[:s  ] = tbd[:surfaces][id   ].key?(:skylights)
-            uncles[:w] = tbd[:surfaces][uncle].key?(:windows  )
-            uncles[:d] = tbd[:surfaces][uncle].key?(:doors    )
+            uncles[:w] = tbd[:surfaces][uncle].key?(:windows)
+            uncles[:d] = tbd[:surfaces][uncle].key?(:doors)
             uncles[:s] = tbd[:surfaces][uncle].key?(:skylights)
 
             boys   += tbd[:surfaces][id   ][:windows  ].keys if   pops[:w]
@@ -1463,7 +1661,7 @@ module TBD
            is[:corner       ] = true
         end
 
-        # Label edge as :parapet if linked to:
+        # Label edge as :parapet/:roof if linked to:
         #   1x deratable wall
         #   1x deratable ceiling
         edge[:surfaces].keys.each do |i|
@@ -1484,6 +1682,11 @@ module TBD
           set[:parapetconcave] = shorts[:val][:parapetconcave] if concave
           set[:parapetconvex ] = shorts[:val][:parapetconvex ] if convex
            is[:parapet       ] = true
+
+          # set[:roof          ] = shorts[:val][:roof          ] if flat
+          # set[:roofconcave   ] = shorts[:val][:roofconcave   ] if concave
+          # set[:roofconvex    ] = shorts[:val][:roofconvex    ] if convex
+          #   is[:roof         ] = true
         end
 
         # Label edge as :party if linked to:
@@ -1535,21 +1738,31 @@ module TBD
            is[:grade       ] = true
         end
 
-        # Label edge as :rimjoist (or :balcony) if linked to:
+        # Label edge as :rimjoist, :balcony or :balconysill if linked to:
         #   1x deratable surface
         #   1x CONDITIONED floor
         #   1x shade (optional)
-        balcony = false
+        #   1x subsurface (optional)
+        balcony     = false
+        balconysill = false
 
         edge[:surfaces].keys.each do |i|
           break if balcony
           next  if i == id
 
-          balcony = true if shades.key?(i)
+          balcony = shades.key?(i)
         end
 
         edge[:surfaces].keys.each do |i|
-          break     if is[:rimjoist] || is[:balcony]
+          break unless balcony
+          break     if balconysill
+          next      if i == id
+
+          balconysill = holes.key?(i)
+        end
+
+        edge[:surfaces].keys.each do |i|
+          break     if is[:rimjoist] || is[:balcony] || is[:balconysill]
           break unless deratables.size > 0
           break     if floors.key?(id)
           next      if i == id
@@ -1568,16 +1781,21 @@ module TBD
           convex  = convex?(s1, s2)
           flat    = !concave && !convex
 
-          if balcony
-            set[:balcony        ] = shorts[:val][:balcony        ] if flat
-            set[:balconyconcave ] = shorts[:val][:balconyconcave ] if concave
-            set[:balconyconvex  ] = shorts[:val][:balconyconvex  ] if convex
-             is[:balcony        ] = true
+          if balconysill
+            set[:balconysill       ] = shorts[:val][:balconysill       ] if flat
+            set[:balconysillconcave] = shorts[:val][:balconysillconcave] if concave
+            set[:balconysillconvex ] = shorts[:val][:balconysillconvex ] if convex
+             is[:balconysill       ] = true
+          elsif balcony
+            set[:balcony           ] = shorts[:val][:balcony           ] if flat
+            set[:balconyconcave    ] = shorts[:val][:balconyconcave    ] if concave
+            set[:balconyconvex     ] = shorts[:val][:balconyconvex     ] if convex
+             is[:balcony           ] = true
           else
-            set[:rimjoist       ] = shorts[:val][:rimjoist       ] if flat
-            set[:rimjoistconcave] = shorts[:val][:rimjoistconcave] if concave
-            set[:rimjoistconvex ] = shorts[:val][:rimjoistconvex ] if convex
-             is[:rimjoist       ] = true
+            set[:rimjoist          ] = shorts[:val][:rimjoist          ] if flat
+            set[:rimjoistconcave   ] = shorts[:val][:rimjoistconcave   ] if concave
+            set[:rimjoistconvex    ] = shorts[:val][:rimjoistconvex    ] if convex
+             is[:rimjoist          ] = true
           end
         end
       end # edge's surfaces loop
@@ -2025,6 +2243,7 @@ module TBD
 
       surface[:heatloss] = 0
       e = surface[:edges].values
+
       e.each { |edge| surface[:heatloss] += edge[:psi] * edge[:length] }
     end
 
@@ -2128,7 +2347,6 @@ module TBD
             if default  && tbd[:surfaces].key?(nom)
               current_cc = tbd[:surfaces][nom][:construction]
               cc         = current_cc.clone(model).to_LayeredConstruction.get
-
               cc.setLayer(tbd[:surfaces][nom][:index], m)
               cc.setName("#{nom} c tbd")
               adjacent.setConstruction(cc)

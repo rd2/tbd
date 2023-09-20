@@ -46,6 +46,15 @@ module OSut
   HEAD = 2.032 # standard 80" door
   SILL = 0.762 # standard 30" window sill
 
+  # General surface orientations (see facets method)
+  SIDZ = [:bottom, # e.g. ground-facing, exposed floros
+             :top, # e.g. roof/ceiling
+           :north, # NORTH
+            :east, # EAST
+           :south, # SOUTH
+            :west  # WEST
+          ].freeze
+
   # This first set of utilities support OpenStudio materials, constructions,
   # construction sets, etc. If relying on default StandardOpaqueMaterial:
   #   - roughness            (rgh) : "Smooth"
@@ -2689,10 +2698,11 @@ module OSut
       # Using a transformation that is most likely not specific to pts. The
       # most probable reason to retain this option is when testing for polygon
       # intersections, unions, etc., operations that typically require that
-      # points remain nonetheless 'aligned'. This logs a warning if aligned
-      # points aren't @Z =0, before 'flattening'.
-      invalid("points (non-aligned)", mth, 1, WRN) unless xyz?(a, :z, 0)
-      a = flatten(a).to_a                          unless xyz?(a, :z, 0)
+      # points remain nonetheless 'aligned'. If re-activated, this logs a
+      # warning if aligned points aren't @Z =0, before 'flattening'.
+      #
+      #   invalid("points (non-aligned)", mth, 1, WRN) unless xyz?(a, :z, 0)
+      a = flatten(a).to_a unless xyz?(a, :z, 0)
     end
 
     # The following 2x lines are commented out. This is a very commnon and very
@@ -2837,11 +2847,12 @@ module OSut
     return false if area.empty?
 
     area = area.get
-    return false if area < TOL
-    return true  if (area - area2).abs < TOL
-    return false if (area - area2).abs > TOL
 
-    true
+    if area > TOL
+      return true if (area - area2).abs < TOL
+    end
+
+    false
   end
 
   ##
@@ -2851,7 +2862,7 @@ module OSut
   # @param p2 [Set<OpenStudio::Point3d>] 2nd set of 3D points
   # @param flat [Bool] whether points are to be pre-flattened (Z=0)
   #
-  # @return [Bool] whether olygons overlap (or either fit into one another)
+  # @return [Bool] whether polygons overlap (or fit)
   # @return [false] if invalid input (see logs)
   def overlaps?(p1 = nil, p2 = nil, flat = true)
     mth  = "OSut::#{__callee__}"
@@ -2870,6 +2881,9 @@ module OSut
     return false     if p1.empty?
     return false     if p2.empty?
 
+    return true if fits?(p1, p2)
+    return true if fits?(p2, p1)
+
     area1 = OpenStudio.getArea(p1)
     area2 = OpenStudio.getArea(p2)
     return empty("points 1 area", mth, ERR, false) if area1.empty?
@@ -2884,12 +2898,17 @@ module OSut
     area  = OpenStudio.getArea(union)
     return false if area.empty?
 
-    area = area.get
-    delta = (area - area1 - area2).abs
-    return false if area  < TOL
-    return false if delta < TOL
+    area  = area.get
+    delta = area1 + area2 - area
 
-    true
+    if area > TOL
+      return false if (area - area1).abs < TOL
+      return false if (area - area2).abs < TOL
+      return false if delta.abs < TOL
+      return true  if delta > TOL
+    end
+
+    false
   end
 
   ##
@@ -3205,7 +3224,7 @@ module OSut
   # @param spaces [Array<OpenStudio::Model::Space>] target spaces
   # @param boundary [#to_s] OpenStudio outside boundary condition
   # @param type [#to_s] OpenStudio surface type
-  # @param sides [Arrayl<Symbols>] direction keys, e.g. :north, :top, :bottom
+  # @param sides [Array<Symbols>] direction keys, e.g. :north (see OSut::SIDZ)
   #
   # @return [Array<OpenStudio::Model::Surface>] surfaces (may be empty)
   def facets(spaces = [], boundary = "Outdoors", type = "Wall", sides = [])
@@ -3214,15 +3233,14 @@ module OSut
     return []     if sides.empty?
 
     faces    = []
-    list     = [:bottom, :top, :north, :east, :south, :west].freeze
     boundary = trim(boundary).downcase
     type     = trim(type).downcase
     return [] if boundary.empty?
     return [] if type.empty?
 
     # Keep valid sides.
-    orientations = sides.select { |o| list.include?(o) }
-    return [] if orientations.empty?
+    sides = sides.select { |side| SIDZ.include?(side) }
+    return [] if sides.empty?
 
     spaces.each do |space|
       return [] unless space.respond_to?(:setSpaceType)
@@ -3231,18 +3249,15 @@ module OSut
         next unless s.outsideBoundaryCondition.downcase == boundary
         next unless s.surfaceType.downcase == type
 
-        sidez = []
-        sidez << :top    if s.outwardNormal.z >  TOL
-        sidez << :bottom if s.outwardNormal.z < -TOL
-        sidez << :north  if s.outwardNormal.y >  TOL
-        sidez << :east   if s.outwardNormal.x >  TOL
-        sidez << :south  if s.outwardNormal.y < -TOL
-        sidez << :west   if s.outwardNormal.x < -TOL
-        ok = true
+        orientations = []
+        orientations << :top    if s.outwardNormal.z >  TOL
+        orientations << :bottom if s.outwardNormal.z < -TOL
+        orientations << :north  if s.outwardNormal.y >  TOL
+        orientations << :east   if s.outwardNormal.x >  TOL
+        orientations << :south  if s.outwardNormal.y < -TOL
+        orientations << :west   if s.outwardNormal.x < -TOL
 
-        orientations.each { |o| ok = false unless sidez.include?(o) }
-
-        faces << s if ok
+        faces << s if sides.all? { |o| orientations.include?(o) }
       end
     end
 
@@ -3336,6 +3351,54 @@ module OSut
     end
 
     slb
+  end
+
+  ##
+  # Returns outdoor-facing, space-(related) roof/ceiling surfaces. These
+  # include outdoor-facing roof/ceilings of the space per se, as well as
+  # any outside-facing roof/ceiling surface of an unoccupied space
+  # immediately above (e.g. a plenum) overlapping any of the roof/ceilings
+  # of the space itself.
+  #
+  # @param space [OpenStudio::Model::Space] a space
+  #
+  # @return [Array<OpenStudio::Model::Surface>] surfaces (see logs if empty)
+  def getRoofs(space = nil)
+    mth = "OSut::#{__callee__}"
+    cl  = OpenStudio::Model::Space
+    return mismatch("space", space, cl, mth, DBG, []) unless space.is_a?(cl)
+
+    roofs = space.surfaces # outdoor-facing roofs of the space
+    clngs = space.surfaces # surface-facing ceilings of the space
+
+    roofs = roofs.select {|s| s.surfaceType.downcase == "roofceiling" }
+    roofs = roofs.select {|s| s.outsideBoundaryCondition.downcase == "outdoors" }
+
+    clngs = clngs.select { |s| s.surfaceType.downcase == "roofceiling" }
+    clngs = clngs.select { |s| s.outsideBoundaryCondition.downcase == "surface" }
+
+    clngs.each do |ceiling|
+      floor = ceiling.adjacentSurface
+      next if floor.empty?
+
+      other = floor.get.space
+      next if other.empty?
+
+      rufs = other.get.surfaces
+
+      rufs = rufs.select { |s| s.surfaceType.downcase == "roofceiling" }
+      rufs = rufs.select { |s| s.outsideBoundaryCondition.downcase == "outdoors" }
+      next if rufs.empty?
+
+      # Only keep track of "other" roof(s) that "overlap" ceiling below.
+      rufs.each do |ruf|
+        next unless overlaps?(ceiling, ruf)
+
+        roofs << ruf unless roofs.include?(ruf)
+      end
+    end
+
+    roofs
   end
 
   ##

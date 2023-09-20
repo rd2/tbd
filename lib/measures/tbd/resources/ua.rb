@@ -169,15 +169,15 @@ module TBD
     return mismatch("surfaces",     s, cl2, mth, DBG, a) unless s.is_a?(cl2)
     return mismatch("argh"    , model, cl1, mth, DBG, a) unless argh.is_a?(cl2)
 
-    argh[:uprate_walls ] = false unless argh.key?(:uprate_walls )
-    argh[:uprate_roofs ] = false unless argh.key?(:uprate_roofs )
+    argh[:uprate_walls ] = false unless argh.key?(:uprate_walls)
+    argh[:uprate_roofs ] = false unless argh.key?(:uprate_roofs)
     argh[:uprate_floors] = false unless argh.key?(:uprate_floors)
-    argh[:wall_ut      ] = 5.678 unless argh.key?(:wall_ut      )
-    argh[:roof_ut      ] = 5.678 unless argh.key?(:roof_ut      )
-    argh[:floor_ut     ] = 5.678 unless argh.key?(:floor_ut     )
-    argh[:wall_option  ] = ""    unless argh.key?(:wall_option  )
-    argh[:roof_option  ] = ""    unless argh.key?(:roof_option  )
-    argh[:floor_option ] = ""    unless argh.key?(:floor_option )
+    argh[:wall_ut      ] = 5.678 unless argh.key?(:wall_ut)
+    argh[:roof_ut      ] = 5.678 unless argh.key?(:roof_ut)
+    argh[:floor_ut     ] = 5.678 unless argh.key?(:floor_ut)
+    argh[:wall_option  ] = ""    unless argh.key?(:wall_option)
+    argh[:roof_option  ] = ""    unless argh.key?(:roof_option)
+    argh[:floor_option ] = ""    unless argh.key?(:floor_option)
 
     argh[:wall_option  ] = trim(argh[:wall_option ])
     argh[:roof_option  ] = trim(argh[:roof_option ])
@@ -710,11 +710,13 @@ module TBD
           case type
           when /rimjoist/i     then bloc[:pro][:rimjoists] += loss
           when /parapet/i      then bloc[:pro][:parapets ] += loss
+          when /roof/i         then bloc[:pro][:parapets ] += loss
           when /fenestration/i then bloc[:pro][:trim     ] += loss
           when /head/i         then bloc[:pro][:trim     ] += loss
           when /sill/i         then bloc[:pro][:trim     ] += loss
           when /jamb/i         then bloc[:pro][:trim     ] += loss
           when /corner/i       then bloc[:pro][:corners  ] += loss
+          when /balcony/i      then bloc[:pro][:balconies] += loss
           when /grade/i        then bloc[:pro][:grade    ] += loss
           else                      bloc[:pro][:other    ] += loss
           end
@@ -730,11 +732,13 @@ module TBD
           case safer.to_s
           when /rimjoist/i     then bloc[:ref][:rimjoists] += loss
           when /parapet/i      then bloc[:ref][:parapets ] += loss
+          when /roof/i         then bloc[:pro][:parapets ] += loss
           when /fenestration/i then bloc[:ref][:trim     ] += loss
           when /head/i         then bloc[:ref][:trim     ] += loss
           when /sill/i         then bloc[:ref][:trim     ] += loss
           when /jamb/i         then bloc[:ref][:trim     ] += loss
           when /corner/i       then bloc[:ref][:corners  ] += loss
+          when /balcony/i      then bloc[:pro][:balconies] += loss
           when /grade/i        then bloc[:ref][:grade    ] += loss
           else                      bloc[:ref][:other    ] += loss
           end
@@ -831,34 +835,10 @@ module TBD
             end
           end
 
-          # Deterministic sorting
+          # Deterministic sorting.
           ua[lang][b][:summary] = ua[lang][b].delete(:summary)
-          ok = ua[lang][b].key?(:walls)
-          ua[lang][b][:walls] = ua[lang][b].delete(:walls)         if ok
-          ok = ua[lang][b].key?(:roofs)
-          ua[lang][b][:roofs] = ua[lang][b].delete(:roofs)         if ok
-          ok = ua[lang][b].key?(:floors)
-          ua[lang][b][:floors] = ua[lang][b].delete(:floors)       if ok
-          ok = ua[lang][b].key?(:doors)
-          ua[lang][b][:doors] = ua[lang][b].delete(:doors)         if ok
-          ok = ua[lang][b].key?(:windows)
-          ua[lang][b][:windows] = ua[lang][b].delete(:windows)     if ok
-          ok = ua[lang][b].key?(:skylights)
-          ua[lang][b][:skylights] = ua[lang][b].delete(:skylights) if ok
-          ok = ua[lang][b].key?(:rimjoists)
-          ua[lang][b][:rimjoists] = ua[lang][b].delete(:rimjoists) if ok
-          ok = ua[lang][b].key?(:parapets)
-          ua[lang][b][:parapets] = ua[lang][b].delete(:parapets)   if ok
-          ok = ua[lang][b].key?(:trim)
-          ua[lang][b][:trim] = ua[lang][b].delete(:trim)           if ok
-          ok = ua[lang][b].key?(:corners)
-          ua[lang][b][:corners] = ua[lang][b].delete(:corners)     if ok
-          ok = ua[lang][b].key?(:balconies)
-          ua[lang][b][:balconies] = ua[lang][b].delete(:balconies) if ok
-          ok = ua[lang][b].key?(:grade)
-          ua[lang][b][:grade] = ua[lang][b].delete(:grade)         if ok
-          ok = ua[lang][b].key?(:other)
-          ua[lang][b][:other] = ua[lang][b].delete(:other)         if ok
+
+          ua[lang][b].keys.each { |k| ua[lang][b][k] = ua[lang][b].delete(k) }
         end
       end
     end
@@ -873,19 +853,24 @@ module TBD
 
     str  = format("walls : %.1f m2 (net)", areas[:walls][:net])
     str += format(", %.1f m2 (gross)", areas[:walls][:gross])
-    ua[:en][:areas][:walls] = str unless areas[:walls][:gross] < TOL
+    ua[:en][:areas][:walls]  = str unless areas[:walls ][:gross] < TOL
+
     str  = format("roofs : %.1f m2 (net)", areas[:roofs][:net])
     str += format(", %.1f m2 (gross)", areas[:roofs][:gross])
-    ua[:en][:areas][:roofs] = str unless areas[:roofs][:gross] < TOL
+    ua[:en][:areas][:roofs]  = str unless areas[:roofs ][:gross] < TOL
+
     str  = format("floors : %.1f m2 (net)", areas[:floors][:net])
     str += format(", %.1f m2 (gross)", areas[:floors][:gross])
     ua[:en][:areas][:floors] = str unless areas[:floors][:gross] < TOL
+
     str  = format("murs : %.1f m2 (net)", areas[:walls][:net])
     str += format(", %.1f m2 (brut)", areas[:walls][:gross])
-    ua[:fr][:areas][:walls] = str unless areas[:walls][:gross] < TOL
+    ua[:fr][:areas][:walls]  = str unless areas[:walls ][:gross] < TOL
+
     str  = format("toits : %.1f m2 (net)", areas[:roofs][:net])
     str += format(", %.1f m2 (brut)", areas[:roofs][:gross])
-    ua[:fr][:areas][:roofs] = str unless areas[:roofs][:gross] < TOL
+    ua[:fr][:areas][:roofs]  = str unless areas[:roofs ][:gross] < TOL
+
     str  = format("planchers : %.1f m2 (net)", areas[:floors][:net])
     str += format(", %.1f m2 (brut)", areas[:floors][:gross])
     ua[:fr][:areas][:floors] = str unless areas[:floors][:gross] < TOL

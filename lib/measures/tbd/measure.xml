@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>4c733377-1034-4f2a-b8da-a33a7db289a1</version_id>
-  <version_modified>2023-09-13T18:50:18Z</version_modified>
+  <version_id>b571114a-e9b6-466d-9206-8760aaa885c7</version_id>
+  <version_modified>2023-09-20T12:41:41Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -94,6 +94,38 @@
         <choice>
           <value>uncompliant (Quebec)</value>
           <display_name>uncompliant (Quebec)</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|steel.m|default</value>
+          <display_name>90.1.22|steel.m|default</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|steel.m|unmitigated</value>
+          <display_name>90.1.22|steel.m|unmitigated</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|mass.ex|default</value>
+          <display_name>90.1.22|mass.ex|default</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|mass.ex|unmitigated</value>
+          <display_name>90.1.22|mass.ex|unmitigated</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|mass.in|default</value>
+          <display_name>90.1.22|mass.in|default</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|mass.in|unmitigated</value>
+          <display_name>90.1.22|mass.in|unmitigated</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|wood.fr|default</value>
+          <display_name>90.1.22|wood.fr|default</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|wood.fr|unmitigated</value>
+          <display_name>90.1.22|wood.fr|unmitigated</display_name>
         </choice>
         <choice>
           <value>(non thermal bridging)</value>
@@ -261,6 +293,38 @@
           <display_name>uncompliant (Quebec)</display_name>
         </choice>
         <choice>
+          <value>90.1.22|steel.m|default</value>
+          <display_name>90.1.22|steel.m|default</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|steel.m|unmitigated</value>
+          <display_name>90.1.22|steel.m|unmitigated</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|mass.ex|default</value>
+          <display_name>90.1.22|mass.ex|default</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|mass.ex|unmitigated</value>
+          <display_name>90.1.22|mass.ex|unmitigated</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|mass.in|default</value>
+          <display_name>90.1.22|mass.in|default</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|mass.in|unmitigated</value>
+          <display_name>90.1.22|mass.in|unmitigated</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|wood.fr|default</value>
+          <display_name>90.1.22|wood.fr|default</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|wood.fr|unmitigated</value>
+          <display_name>90.1.22|wood.fr|unmitigated</display_name>
+        </choice>
+        <choice>
           <value>(non thermal bridging)</value>
           <display_name>(non thermal bridging)</display_name>
         </choice>
@@ -421,7 +485,7 @@
       <filename>psi.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>708E1DB4</checksum>
+      <checksum>BBE43FA2</checksum>
     </file>
     <file>
       <filename>tbd.rb</filename>
@@ -439,13 +503,13 @@
       <filename>ua.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>F88A0480</checksum>
+      <checksum>645F2256</checksum>
     </file>
     <file>
       <filename>utils.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>8EF4D76E</checksum>
+      <checksum>6959DA97</checksum>
     </file>
     <file>
       <filename>version.rb</filename>
