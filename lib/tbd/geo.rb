@@ -352,6 +352,7 @@ module TBD
     surf[:n          ] = n
     surf[:gross      ] = surface.grossArea
     surf[:filmRSI    ] = surface.filmResistance
+    surf[:spandrel   ] = spandrel?(surface)
 
     surface.subSurfaces.sort_by { |s| s.nameString }.each do |s|
       next if poly(s).empty?

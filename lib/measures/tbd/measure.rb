@@ -66,15 +66,6 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     alter.setDefaultValue(true)
     args << alter
 
-    arg = "sub_tol"
-    dsc = "Proximity tolerance (e.g. 0.100 m) between subsurface edges, e.g. "\
-          "between near-adjacent window jambs."
-    sub_tol = OpenStudio::Measure::OSArgument.makeDoubleArgument(arg, false)
-    sub_tol.setDisplayName("Proximity tolerance (m)")
-    sub_tol.setDescription(dsc)
-    sub_tol.setDefaultValue(TBD::TOL)
-    args << sub_tol
-
     arg = "load_tbd_json"
     dsc = "Loads existing 'tbd.json' file (under '/files'), may override "\
           "'default thermal bridge' set."
@@ -89,7 +80,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     psi.set.keys.each { |k| chs << k.to_s }
 
     arg = "option"
-    dsc = "e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by "\
+    dsc = "e.g. '90.1.22|steel.m|unmitigated' (may be overridden by "\
           "'tbd.json' file)."
     option = OpenStudio::Measure::OSArgument.makeChoiceArgument(arg, chs, false)
     option.setDisplayName("Default thermal bridge set")
@@ -98,7 +89,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args << option
 
     arg = "write_tbd_json"
-    dsc = "Write out 'tbd.out.json' file e.g., to customize for subsequent "\
+    dsc = "Write out 'tbd.out.json' file, e.g. to customize for subsequent "\
           "runs (edit, and place under '/files' as 'tbd.json')."
     write_tbd = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
     write_tbd.setDisplayName("Write 'tbd.out.json'")
@@ -106,19 +97,33 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     write_tbd.setDefaultValue(false)
     args << write_tbd
 
+    arg = "parapet"
+    dsc = "Leave CHECKED if wall-roof edge is considered a parapet or an "\
+          "overhang (see ASHRAE 90.1 2022 5.5.5.1 & A10)."
+    parapet = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
+    parapet.setDisplayName("Wall-roof edge as 'parapet'")
+    parapet.setDescription(dsc)
+    parapet.setDefaultValue(true)
+    args << parapet
+
     none = "NONE"
+
     all_walls = "ALL wall constructions"
     all_roofs = "ALL roof constructions"
     all_flors = "ALL floor constructions"
+
     walls = {c: {}}
     roofs = {c: {}}
     flors = {c: {}}
+
     walls[:c][none] = {a: 0}
     roofs[:c][none] = {a: 0}
     flors[:c][none] = {a: 0}
+
     walls[:c][all_walls] = {a: 100000000000000}
     roofs[:c][all_roofs] = {a: 100000000000000}
     flors[:c][all_flors] = {a: 100000000000000}
+
     walls[:chx] = OpenStudio::StringVector.new
     roofs[:chx] = OpenStudio::StringVector.new
     flors[:chx] = OpenStudio::StringVector.new
@@ -248,6 +253,15 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     kiva_force.setDefaultValue(false)
     args << kiva_force
 
+    arg = "sub_tol"
+    dsc = "Proximity tolerance (e.g. 0.100 m) between subsurface edges, e.g. "\
+          "between near-adjacent window jambs."
+    sub_tol = OpenStudio::Measure::OSArgument.makeDoubleArgument(arg, false)
+    sub_tol.setDisplayName("Proximity tolerance (m)")
+    sub_tol.setDescription(dsc)
+    sub_tol.setDefaultValue(TBD::TOL)
+    args << sub_tol
+
     args
   end
 
@@ -258,10 +272,10 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
   # @param runner [OpenStudio::Measure::OSRunner] Measure runner
   # @param [OpenStudio::Measure::OSArgumentVector] args Measure argument list
   # @option args [Bool] :alter (true) irreversibly applies changes to the model
-  # @option args [#to_f] :sub_tol (OSut::TOL) proximity tolerance between edges
   # @option args [Bool] :load_tbd (false) whether to load a TBD JSON input file
   # @option args [#to_s] :option ("poor (BETBG)") selected PSI set
   # @option args [Bool] :write_tbd_json (false) whether to output a JSON file
+  # @option args [Bool] :parapet (true) wall-roof edge as parapet
   # @option args [#to_s] :wall_option wall(s) construction to uprate
   # @option args [#to_s] :roof_option roof(s) construction to uprate
   # @option args [#to_s] :floor_option floor(s) construction to uprate
@@ -272,6 +286,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
   # @option args [#to_s] :ua_reference ("code (Quebec)") UA' ruleset
   # @option args [Bool] :gen_kiva (false) whether to generate KIVA inputs
   # @option args [Bool] :gen_kiva_force (false) whether to force KIVA inputs
+  # @option args [#to_f] :sub_tol (OSut::TOL) proximity tolerance between edges
   #
   # @return [Bool] whether TBD Measure is successful
   def run(mdl, runner, args)
@@ -279,10 +294,10 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
 
     argh                 = {}
     argh[:alter        ] = runner.getBoolArgumentValue("alter_model"   , args)
-    argh[:sub_tol      ] = runner.getDoubleArgumentValue("sub_tol"     , args)
     argh[:load_tbd     ] = runner.getBoolArgumentValue("load_tbd_json" , args)
     argh[:option       ] = runner.getStringArgumentValue("option"      , args)
     argh[:write_tbd    ] = runner.getBoolArgumentValue("write_tbd_json", args)
+    argh[:parapet      ] = runner.getBoolArgumentValue("parapet"       , args)
     argh[:wall_ut      ] = runner.getDoubleArgumentValue("wall_ut"     , args)
     argh[:roof_ut      ] = runner.getDoubleArgumentValue("roof_ut"     , args)
     argh[:floor_ut     ] = runner.getDoubleArgumentValue("floor_ut"    , args)
@@ -293,6 +308,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     argh[:ua_ref       ] = runner.getStringArgumentValue("ua_reference", args)
     argh[:gen_kiva     ] = runner.getBoolArgumentValue("gen_kiva"      , args)
     argh[:kiva_force   ] = runner.getBoolArgumentValue("gen_kiva_force", args)
+    argh[:sub_tol      ] = runner.getDoubleArgumentValue("sub_tol"     , args)
 
     argh[:uprate_walls ] = argh[:wall_option ] != "NONE"
     argh[:uprate_roofs ] = argh[:roof_option ] != "NONE"

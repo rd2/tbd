@@ -1028,7 +1028,7 @@ module OSut
   end
 
   ##
-  # Identify a layered construction's (opaque) insulating layer. The method
+  # Identifies a layered construction's (opaque) insulating layer. The method
   # returns a 3-keyed hash :index, the insulating layer index [0, n layers)
   # within the layered construction; :type, either :standard or :massless; and
   # :r, material thermal resistance in m2•K/W.
@@ -1080,6 +1080,36 @@ module OSut
     end
 
     res
+  end
+
+  ##
+  # Validates whether opaque surface can be considered as a curtain wall (or
+  # similar technology) spandrel, regardless of construction layers, by looking
+  # up AdditionalProperties or its identifier.
+  #
+  # @param s [OpenStudio::Model::Surface] an opaque surface
+  #
+  # @return [Bool] whether surface can be considered 'spandrel'
+  # @return [false] if invalid input (see logs)
+  def spandrel?(s = nil)
+    mth = "OSut::#{__callee__}"
+    cl  = OpenStudio::Model::Surface
+    return invalid("surface", mth, 1, DBG, false) unless s.respond_to?(NS)
+
+    id = s.nameString
+    m1  = "#{id}:spandrel"
+    m2  = "#{id}:spandrel:boolean"
+
+    if s.additionalProperties.hasFeature("spandrel")
+      val = s.additionalProperties.getFeatureAsBoolean("spandrel")
+      return invalid(m1, mth, 1, ERR, false) if val.empty?
+
+      val = val.get
+      return invalid(m2, mth, 1, ERR, false) unless [true, false].include?(val)
+      return val
+    end
+
+    id.downcase.include?("spandrel")
   end
 
   # ---- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---- #
@@ -1546,8 +1576,8 @@ module OSut
   #
   # @param model [OpenStudio::Model::Model] a model
   #
-  # @return [Bool] wether model holds valid heating temperature setpoints
-  # @return [false] false if invalid input (see logs)
+  # @return [Bool] whether model holds valid heating temperature setpoints
+  # @return [false] if invalid input (see logs)
   def heatingTemperatureSetpoints?(model = nil)
     mth = "OSut::#{__callee__}"
     cl  = OpenStudio::Model::Model
@@ -1784,7 +1814,7 @@ module OSut
 
     id  = space.nameString
     m1  = "#{id}:vestibule"
-    m1  = "#{id}:vestibule boolean"
+    m2  = "#{id}:vestibule:boolean"
 
     if space.additionalProperties.hasFeature("vestibule")
       val = space.additionalProperties.getFeatureAsBoolean("vestibule")
@@ -2814,7 +2844,7 @@ module OSut
   # @param flat [Bool] whether points are to be pre-flattened (Z=0)
   #
   # @return [Bool] whether 1st polygon fits within the 2nd polygon
-  # @return [false] false if invalid input (see logs)
+  # @return [false] if invalid input (see logs)
   def fits?(p1 = nil, p2 = nil, flat = true)
     mth  = "OSut::#{__callee__}"
     p1   = poly(p1, false, true, false)

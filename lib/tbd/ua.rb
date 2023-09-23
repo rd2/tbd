@@ -182,12 +182,14 @@ module TBD
     argh[:wall_option  ] = trim(argh[:wall_option ])
     argh[:roof_option  ] = trim(argh[:roof_option ])
     argh[:floor_option ] = trim(argh[:floor_option])
+
     groups[:wall ][:up] = argh[:uprate_walls ]
     groups[:roof ][:up] = argh[:uprate_roofs ]
     groups[:floor][:up] = argh[:uprate_floors]
     groups[:wall ][:ut] = argh[:wall_ut      ]
     groups[:roof ][:ut] = argh[:roof_ut      ]
     groups[:floor][:ut] = argh[:floor_ut     ]
+
     groups[:wall ][:op] = trim(argh[:wall_option  ])
     groups[:roof ][:op] = trim(argh[:roof_option  ])
     groups[:floor][:op] = trim(argh[:floor_option ])
@@ -197,6 +199,7 @@ module TBD
       next unless g[:ut].is_a?(Numeric)
       next unless g[:ut] < 5.678
       next     if g[:ut] < 0
+
       typ  = type
       typ  = :ceiling if typ == :roof
       coll = {}
@@ -287,6 +290,7 @@ module TBD
         lyr[:index] = nil unless lyr[:index].is_a?(Numeric)
         lyr[:index] = nil unless lyr[:index] >= 0
         lyr[:index] = nil unless lyr[:index] < lc.layers.size
+
         log(ERR, "Insulation index for '#{id}'? (#{mth})") unless lyr[:index]
         next                                               unless lyr[:index]
 
@@ -319,16 +323,16 @@ module TBD
           end
         end
 
-        hloss = 0 # sum of applicable psi+khi effects [W/K]
+        hloss = 0 # sum of applicable psi+khi-related losses [W/K]
 
         # Tally applicable psi+khi losses. Possible construction reassignment.
         coll.each do |i, col|
           col[:s].keys.each do |nom|
             next unless s.key?(nom)
             next unless s[nom].key?(:construction)
-            next unless s[nom].key?(:index       )
-            next unless s[nom].key?(:ltype       )
-            next unless s[nom].key?(:r           )
+            next unless s[nom].key?(:index)
+            next unless s[nom].key?(:ltype)
+            next unless s[nom].key?(:r)
 
             # Tally applicable psi+khi.
             hloss += s[nom][:heatloss    ] if s[nom].key?(:heatloss)
@@ -371,16 +375,19 @@ module TBD
         end
 
         coll.delete_if { |i, _| i != id }
-        msg = "Collection == 1? for '#{id}' (#{mth})"
-        log(DBG, msg) unless coll.size == 1
-        next          unless coll.size == 1
 
-        area = lc.getNetArea
-        coll[id][:area] = area
+        unless coll.size == 1
+          log(DBG, "Collection == 1? for '#{id}' (#{mth})")
+          next
+        end
+
+        coll[id][:area] = lc.getNetArea
         res = uo(model, lc, id, hloss, film, g[:ut])
-        msg = "Unable to uprate '#{id}' (#{mth})"
-        log(ERR, msg) unless res[:uo] && res[:m]
-        next          unless res[:uo] && res[:m]
+
+        unless res[:uo] && res[:m]
+          log(ERR, "Unable to uprate '#{id}' (#{mth})")
+          next
+        end
 
         lyr = insulatingLayer(lc)
 
@@ -393,7 +400,7 @@ module TBD
           next unless s[nom][:index] == lyr[:index]
           next unless s[nom][:ltype] == lyr[:type ]
 
-          s[nom][:r] = lyr[:r]  # uprated insulating RSi factor, before derating
+          s[nom][:r] = lyr[:r] # uprated insulating RSi factor, before derating
         end
 
         argh[:wall_uo ] = res[:uo] if typ == :wall
@@ -514,7 +521,7 @@ module TBD
   # @option argh [#to_s] :ua_ref reference ruleset e.g. "code (Quebec)"
   # @option argh [Hash] :surfaces set of TBD surfaces (see )
   # @option argh [#to_s] :version OpenStudio SDK, e.g. "3.6.1"
-  # @option argh [Hash] :io (see )
+  # @option argh [Hash] :io TBD input/output variables (see TBD JSON schema)
   #
   # @return [Hash] binned values for UA' (see logs if empty)
   def ua_summary(date = Time.now, argh = {})
@@ -632,7 +639,7 @@ module TBD
     blc = { walls:   0, roofs:     0, floors:    0, doors:     0,
             windows: 0, skylights: 0, rimjoists: 0, parapets:  0,
             trim:    0, corners:   0, balconies: 0, grade:     0,
-            other:   0 } # includes party wall edges, expansion joints, etc.
+            other:   0 } # party edges, expansion joints, spandrel edges, etc.
 
     b1       = {}
     b2       = {}

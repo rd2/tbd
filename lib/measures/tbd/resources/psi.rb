@@ -156,6 +156,7 @@ module TBD
         parapet:      0.800000, # re: BETBG
         roof:         0.800000, # same as parapet
         fenestration: 0.500000, # re: BETBG
+        spandrel:     0.155000, # Detail 5.4.4
         corner:       0.850000, # re: BETBG
         balcony:      1.000001, # re: BETBG
         balconysill:  1.000001, # inferred, same as balcony
@@ -172,6 +173,7 @@ module TBD
         parapet:      0.450000, # re: BETBG
         roof:         0.450000, # same as parapet
         fenestration: 0.350000, # re: BETBG
+        spandrel:     0.155000, # Detail 5.4.4
         corner:       0.450000, # re: BETBG
         balcony:      0.500001, # re: BETBG
         balconysill:  0.500002, # inferred, same as balcony
@@ -188,6 +190,7 @@ module TBD
         parapet:      0.200000, # re: BETBG
         roof:         0.200000, # same as parapet
         fenestration: 0.200001, # re: BETBG
+        spandrel:     0.155000, # Detail 5.4.4
         corner:       0.200000, # re: BETBG
         balcony:      0.200002, # re: BETBG
         balconysill:  0.200002, # inferred, same as balcony
@@ -204,6 +207,7 @@ module TBD
         parapet:      1.000000, # Detail 1.3.2
         roof:         1.000000, # same as parapet
         fenestration: 0.000000, # inferred, generally part of clear-field RSi
+        spandrel:     0.155000, # Detail 5.4.4
         corner:       0.425000, # Detail 1.4.1
         balcony:      1.110000, # Detail 8.1.9/9.1.6
         balconysill:  1.110000, # inferred, same as balcony
@@ -220,6 +224,7 @@ module TBD
         parapet:      0.660000, # Detail 1.3.2
         roof:         0.660000, # same as parapet
         fenestration: 0.000000, # inferred, generally part of clear-field RSi
+        spandrel:     0.155000, # Detail 5.4.4
         corner:       0.200000, # Detail 1.4.2
         balcony:      0.400000, # Detail 9.1.15
         balconysill:  0.400000, # inferred, same as balcony
@@ -236,6 +241,7 @@ module TBD
         parapet:      0.325000, # re I1
         roof:         0.325000, # same as parapet
         fenestration: 0.200000, # re I1
+        spandrel:     0.155000, # BETBG Detail 5.4.4 (same as uncompliant)
         corner:       0.300000, # inferred from description, not explicitely set
         balcony:      0.500000, # re I1
         balconysill:  0.500000, # inferred, same as balcony
@@ -252,6 +258,7 @@ module TBD
         parapet:      0.800000, # re I1
         roof:         0.800000, # same as parapet
         fenestration: 0.500000, # re I1
+        spandrel:     0.155000, # BETBG Detail 5.4.4 (same as compliant)
         corner:       0.850000, # inferred from description, not explicitely set
         balcony:      1.000000, # re I1
         balconysill:  1.000000, # inferred, same as balcony
@@ -268,6 +275,7 @@ module TBD
         parapet:      0.260000, # "parapet" edge
         roof:         0.020000, # (non-parapet) "roof edge"
         fenestration: 0.194000, # "wall to vertical fenestration intersection"
+        spandrel:     0.000000, # (unspecified, defaults to 0)
         corner:       0.000000, # (unspecified, defaults to 0)
         balcony:      0.307001, # "intermediate floor balcony/overhang" edge
         balconysill:  0.307002, # "intermediate floor balcony" edge (when sill)
@@ -284,6 +292,7 @@ module TBD
         parapet:      0.500000, # "parapet" edge
         roof:         0.650000, # (non-parapet) "roof edge"
         fenestration: 0.505000, # "wall to vertical fenestration intersection"
+        spandrel:     0.000000, # (unspecified, defaults to 0)
         corner:       0.000000, # (unspecified, defaults to 0)
         balcony:      0.842001, # "intermediate floor balcony/overhang" edge
         balconysill:  1.686000, # "intermediate floor balcony" edge (when sill)
@@ -300,6 +309,7 @@ module TBD
         parapet:      0.217000, # "parapet" edge
         roof:         0.150000, # (non-parapet) "roof edge"
         fenestration: 0.226000, # "wall to vertical fenestration intersection"
+        spandrel:     0.000000, # (unspecified, defaults to 0)
         corner:       0.000000, # (unspecified, defaults to 0)
         balcony:      0.205001, # "intermediate floor balcony/overhang" edge
         balconysill:  0.307000, # "intermediate floor balcony" edge (when sill)
@@ -316,6 +326,7 @@ module TBD
         parapet:      0.412000, # "parapet" edge
         roof:         0.750000, # (non-parapet) "roof edge"
         fenestration: 0.325000, # "wall to vertical fenestration intersection"
+        spandrel:     0.000000, # (unspecified, defaults to 0)
         corner:       0.000000, # (unspecified, defaults to 0)
         balcony:      0.824001, # "intermediate floor balcony/overhang" edge
         balconysill:  1.686000, # "intermediate floor balcony" edge (when sill)
@@ -332,6 +343,7 @@ module TBD
         parapet:      0.393000, # "parapet" edge
         roof:         0.150000, # (non-parapet) "roof edge"
         fenestration: 0.143000, # "wall to vertical fenestration intersection"
+        spandrel:     0.000000, # (unspecified, defaults to 0)
         corner:       0.000000, # (unspecified, defaults to 0)
         balcony:      0.495001, # "intermediate floor balcony/overhang" edge
         balconysill:  0.307000, # "intermediate floor balcony" edge (when sill)
@@ -348,6 +360,7 @@ module TBD
         parapet:      0.884000, # "parapet" edge
         roof:         0.750000, # (non-parapet) "roof edge"
         fenestration: 0.543000, # "wall to vertical fenestration intersection"
+        spandrel:     0.000000, # (unspecified, defaults to 0)
         corner:       0.000000, # (unspecified, defaults to 0)
         balcony:      0.824001, # "intermediate floor balcony/overhang" edge
         balconysill:  1.686000, # "intermediate floor balcony" edge (when sill)
@@ -364,6 +377,7 @@ module TBD
         parapet:      0.056000, # "parapet" edge
         roof:         0.020000, # (non-parapet) "roof edge"
         fenestration: 0.171000, # "wall to vertical fenestration intersection"
+        spandrel:     0.000000, # (unspecified, defaults to 0)
         corner:       0.000000, # (unspecified, defaults to 0)
         balcony:      0.000000, # "intermediate floor balcony/overhang" edge
         balconysill:  0.171001, # "intermediate floor balcony" edge (when sill)
@@ -380,6 +394,7 @@ module TBD
         parapet:      0.056000, # "parapet" edge
         roof:         0.150000, # (non-parapet) "roof edge"
         fenestration: 0.260000, # "wall to vertical fenestration intersection"
+        spandrel:     0.000000, # (unspecified, defaults to 0)
         corner:       0.000000, # (unspecified, defaults to 0)
         balcony:      0.000000, # "intermediate floor balcony/overhang" edge
         balconysill:  0.260001, # "intermediate floor balcony" edge (when sill)
@@ -395,6 +410,7 @@ module TBD
         parapet:      0.000000, # defaults to 0
         roof:         0.000000, # defaults to 0
         fenestration: 0.000000, # defaults to 0
+        spandrel:     0.000000, # defaults to 0
         corner:       0.000000, # defaults to 0
         balcony:      0.000000, # defaults to 0
         balconysill:  0.000000, # defaults to 0
@@ -431,6 +447,9 @@ module TBD
       h[:jamb              ] = @set[id].key?(:jamb)
       h[:jambconcave       ] = @set[id].key?(:jambconcave)
       h[:jambconvex        ] = @set[id].key?(:jambconvex)
+      h[:spandrel          ] = @set[id].key?(:spandrel)
+      h[:spandrelconcave   ] = @set[id].key?(:spandrelconcave)
+      h[:spandrelconvex    ] = @set[id].key?(:spandrelconvex)
       h[:corner            ] = @set[id].key?(:corner)
       h[:cornerconcave     ] = @set[id].key?(:cornerconcave)
       h[:cornerconvex      ] = @set[id].key?(:cornerconvex)
@@ -462,6 +481,7 @@ module TBD
       v[:head       ] = 0; v[:headconcave       ] = 0; v[:headconvex       ] = 0
       v[:sill       ] = 0; v[:sillconcave       ] = 0; v[:sillconvex       ] = 0
       v[:jamb       ] = 0; v[:jambconcave       ] = 0; v[:jambconvex       ] = 0
+      v[:spandrel   ] = 0; v[:spandrelconcave   ] = 0; v[:spandrelconvex   ] = 0
       v[:corner     ] = 0; v[:cornerconcave     ] = 0; v[:cornerconvex     ] = 0
       v[:parapet    ] = 0; v[:parapetconcave    ] = 0; v[:parapetconvex    ] = 0
       v[:roof       ] = 0; v[:roofconcave       ] = 0; v[:roofconvex       ] = 0
@@ -483,6 +503,11 @@ module TBD
       v[:jamb              ] = @set[id][:fenestration      ] if h[:fenestration      ]
       v[:jambconcave       ] = @set[id][:fenestration      ] if h[:fenestration      ]
       v[:jambconvex        ] = @set[id][:fenestration      ] if h[:fenestration      ]
+      v[:spandrel          ] = @set[id][:spandrel          ] if h[:spandrel          ]
+      v[:spandrelconcave   ] = @set[id][:spandrel          ] if h[:spandrel          ]
+      v[:spandrelconvex    ] = @set[id][:spandrel          ] if h[:spandrel          ]
+      v[:spandrelconcave   ] = @set[id][:spandrelconcave   ] if h[:spandrelconcave   ]
+      v[:spandrelconvex    ] = @set[id][:spandrelconvex    ] if h[:spandrelconvex    ]
       v[:head              ] = @set[id][:head              ] if h[:head              ]
       v[:headconcave       ] = @set[id][:head              ] if h[:head              ]
       v[:headconvex        ] = @set[id][:head              ] if h[:head              ]
@@ -503,6 +528,11 @@ module TBD
       v[:cornerconvex      ] = @set[id][:corner            ] if h[:corner            ]
       v[:cornerconcave     ] = @set[id][:cornerconcave     ] if h[:cornerconcave     ]
       v[:cornerconvex      ] = @set[id][:cornerconvex      ] if h[:cornerconvex      ]
+      v[:parapet           ] = @set[id][:roof              ] if h[:roof              ]
+      v[:parapetconcave    ] = @set[id][:roof              ] if h[:roof              ]
+      v[:parapetconvex     ] = @set[id][:roof              ] if h[:roof              ]
+      v[:parapetconcave    ] = @set[id][:roofconcave       ] if h[:roofconcave       ]
+      v[:parapetconvex     ] = @set[id][:roofconvex        ] if h[:roofconvex        ]
       v[:parapet           ] = @set[id][:parapet           ] if h[:parapet           ]
       v[:parapetconcave    ] = @set[id][:parapet           ] if h[:parapet           ]
       v[:parapetconvex     ] = @set[id][:parapet           ] if h[:parapet           ]
@@ -533,6 +563,14 @@ module TBD
       v[:balconyconvex     ] = @set[id][:balcony           ] if h[:balcony           ]
       v[:balconyconcave    ] = @set[id][:balconyconcave    ] if h[:balconyconcave    ]
       v[:balconyconvex     ] = @set[id][:balconyconvex     ] if h[:balconyconvex     ]
+      v[:balconysill       ] = @set[id][:fenestration      ] if h[:fenestration      ]
+      v[:balconysillconcave] = @set[id][:fenestration      ] if h[:fenestration      ]
+      v[:balconysillconvex ] = @set[id][:fenestration      ] if h[:fenestration      ]
+      v[:balconysill       ] = @set[id][:sill              ] if h[:sill              ]
+      v[:balconysillconcave] = @set[id][:sill              ] if h[:sill              ]
+      v[:balconysillconvex ] = @set[id][:sill              ] if h[:sill              ]
+      v[:balconysillconcave] = @set[id][:sillconcave       ] if h[:sillconcave       ]
+      v[:balconysillconvex ] = @set[id][:sillconvex        ] if h[:sillconvex        ]
       v[:balconysill       ] = @set[id][:balcony           ] if h[:balcony           ]
       v[:balconysillconcave] = @set[id][:balcony           ] if h[:balcony           ]
       v[:balconysillconvex ] = @set[id][:balcony           ] if h[:balcony           ]
@@ -582,6 +620,9 @@ module TBD
     # @option set [#to_f] :jamb sub surface jamb interface
     # @option set [#to_f] :jambconcave interior corner variant
     # @option set [#to_f] :jambconvex exterior corner variant
+    # @option set [#to_f] :spandrel spandrel/other interface
+    # @option set [#to_f] :spandrelconcave interior corner variant
+    # @option set [#to_f] :spandrelconvex exterior corner variant
     # @option set [#to_f] :corner corner intersection
     # @option set [#to_f] :cornerconcave interior corner variant
     # @option set [#to_f] :cornerconvex exterior corner variant
@@ -643,6 +684,9 @@ module TBD
       s[:jamb              ] = set[:jamb              ] if set.key?(:jamb)
       s[:jambconcave       ] = set[:jambconcave       ] if set.key?(:jambconcave)
       s[:jambconvex        ] = set[:jambconvex        ] if set.key?(:jambconvex)
+      s[:spandrel          ] = set[:spandrel          ] if set.key?(:spandrel)
+      s[:spandrelconcave   ] = set[:spandrelconcave   ] if set.key?(:spandrelconcave)
+      s[:spandrelconvex    ] = set[:spandrelconvex    ] if set.key?(:spandrelconvex)
       s[:corner            ] = set[:corner            ] if set.key?(:corner)
       s[:cornerconcave     ] = set[:cornerconcave     ] if set.key?(:cornerconcave)
       s[:cornerconvex      ] = set[:cornerconvex      ] if set.key?(:cornerconvex)
@@ -729,12 +773,15 @@ module TBD
       return false     unless ok
 
       parapets = []
+      roofs    = []
       parapets << :concave if @has[id][:parapetconcave]
       parapets << :convex  if @has[id][:parapetconvex ]
-      ok = parapets.size == 2
+      roofs    << :concave if @has[id][:roofconcave   ]
+      parapets << :convex  if @has[id][:roofconvex    ]
+      ok = parapets.size == 2 || roofs.size == 2
       ok = true            if @has[id][:parapet       ]
+      ok = true            if @has[id][:roof          ]
       return false     unless ok
-
       return false     unless @has[id][:party         ]
       return false     unless @has[id][:grade         ]
       return false     unless @has[id][:balcony       ]
@@ -1031,7 +1078,8 @@ module TBD
       # argh[:option] must refer to a valid PSI set. If valid, all edges inherit
       # a default PSI set (without KHI entries).
       msg = "Incomplete building PSI set '#{argh[opt]}' (#{mth})"
-      ok = ipt[:psi].complete?(argh[opt])
+      ok  = ipt[:psi].complete?(argh[opt])
+
       io[:building] = { psi: argh[opt] } if ok
       log(FTL, msg)                  unless ok
       return ipt                     unless ok
@@ -1162,10 +1210,10 @@ module TBD
   #
   # @param model [OpenStudio::Model::Model] a model
   # @param [Hash] argh TBD arguments
-  # @option argh [#to_f] :sub_tol proximity tolerance between edges in m
   # @option argh [#to_s] :option selected PSI set
   # @option argh [#to_s] :io_path tbd.json input file path
   # @option argh [#to_s] :schema_path TBD JSON schema file path
+  # @option argh [Bool] :parapet (true) wall-roof edge as parapet
   # @option argh [Bool] :uprate_walls whether to uprate walls
   # @option argh [Bool] :uprate_roofs whether to uprate roofs
   # @option argh [Bool] :uprate_floors whether to uprate floors
@@ -1178,6 +1226,7 @@ module TBD
   # @option argh [Bool] :gen_ua whether to generate a UA' report
   # @option argh [#to_s] :ua_ref selected UA' ruleset
   # @option argh [Bool] :gen_kiva whether to generate KIVA inputs
+  # @option argh [#to_f] :sub_tol proximity tolerance between edges in m
   #
   # @return [Hash] io: (Hash), surfaces: (Hash)
   # @return [Hash] io: nil, surfaces: nil if invalid input (see logs)
@@ -1189,22 +1238,23 @@ module TBD
     return mismatch("argh", argh, Hash, mth, DBG, tbd) unless argh.is_a?(Hash)
 
     argh                 = {}           if argh.empty?
-    argh[:sub_tol      ] = TBD::TOL unless argh.key?(:sub_tol      )
-    argh[:option       ] = ""       unless argh.key?(:option       )
-    argh[:io_path      ] = nil      unless argh.key?(:io_path      )
-    argh[:schema_path  ] = nil      unless argh.key?(:schema_path  )
-    argh[:uprate_walls ] = false    unless argh.key?(:uprate_walls )
-    argh[:uprate_roofs ] = false    unless argh.key?(:uprate_roofs )
+    argh[:option       ] = ""       unless argh.key?(:option)
+    argh[:io_path      ] = nil      unless argh.key?(:io_path)
+    argh[:schema_path  ] = nil      unless argh.key?(:schema_path)
+    argh[:parapet      ] = true     unless argh.key?(:parapet)
+    argh[:uprate_walls ] = false    unless argh.key?(:uprate_walls)
+    argh[:uprate_roofs ] = false    unless argh.key?(:uprate_roofs)
     argh[:uprate_floors] = false    unless argh.key?(:uprate_floors)
-    argh[:wall_ut      ] = 0        unless argh.key?(:wall_ut      )
-    argh[:roof_ut      ] = 0        unless argh.key?(:roof_ut      )
-    argh[:floor_ut     ] = 0        unless argh.key?(:floor_ut     )
-    argh[:wall_option  ] = ""       unless argh.key?(:wall_option  )
-    argh[:roof_option  ] = ""       unless argh.key?(:roof_option  )
-    argh[:floor_option ] = ""       unless argh.key?(:floor_option )
-    argh[:gen_ua       ] = false    unless argh.key?(:gen_ua       )
-    argh[:ua_ref       ] = ""       unless argh.key?(:ua_ref       )
-    argh[:gen_kiva     ] = false    unless argh.key?(:gen_kiva     )
+    argh[:wall_ut      ] = 0        unless argh.key?(:wall_ut)
+    argh[:roof_ut      ] = 0        unless argh.key?(:roof_ut)
+    argh[:floor_ut     ] = 0        unless argh.key?(:floor_ut)
+    argh[:wall_option  ] = ""       unless argh.key?(:wall_option)
+    argh[:roof_option  ] = ""       unless argh.key?(:roof_option)
+    argh[:floor_option ] = ""       unless argh.key?(:floor_option)
+    argh[:gen_ua       ] = false    unless argh.key?(:gen_ua)
+    argh[:ua_ref       ] = ""       unless argh.key?(:ua_ref)
+    argh[:gen_kiva     ] = false    unless argh.key?(:gen_kiva)
+    argh[:sub_tol      ] = TBD::TOL unless argh.key?(:sub_tol)
 
     # Create the Topolys Model.
     t_model = Topolys::Model.new
@@ -1507,10 +1557,11 @@ module TBD
 
     psi    = json[:io][:building][:psi] # default building PSI on file
     shorts = json[:psi].shorthands(psi)
-    empty  = shorts[:has].empty? || shorts[:val].empty?
-    msg    = "Invalid or incomplete building PSI set (#{mth})"
-    log(FTL, msg) if empty
-    return tbd    if empty
+
+    if shorts[:has].empty? || shorts[:val].empty?
+      log(FTL, "Invalid or incomplete building PSI set (#{mth})")
+      return tbd
+    end
 
     edges.values.each do |edge|
       set        = {}
@@ -1550,6 +1601,7 @@ module TBD
         is[:head       ] = set.keys.to_s.include?("head")
         is[:sill       ] = set.keys.to_s.include?("sill")
         is[:jamb       ] = set.keys.to_s.include?("jamb")
+        is[:spandrel   ] = set.keys.to_s.include?("spandrel")
         is[:corner     ] = set.keys.to_s.include?("corner")
         is[:parapet    ] = set.keys.to_s.include?("parapet")
         is[:roof       ] = set.keys.to_s.include?("roof")
@@ -1641,6 +1693,32 @@ module TBD
           end
         end
 
+        # Label edge as :spandrel if linked to:
+        #   1x deratable, non-spandrel wall
+        #   1x deratable, spandrel wall
+        edge[:surfaces].keys.each do |i|
+          break     if is[:spandrel]
+          break unless tbd[:surfaces][id][:spandrel]
+          break unless deratables.size == 2
+          break unless walls.key?(id)
+          next      if i == id
+          next  unless deratables.include?(i)
+          next  unless walls.key?(i)
+          next  unless tbd[:surfaces].key?(i)
+          next      if tbd[:surfaces][i][:spandrel]
+
+          s1      = edge[:surfaces][id]
+          s2      = edge[:surfaces][i ]
+          concave = concave?(s1, s2)
+          convex  = convex?(s1, s2)
+          flat    = !concave && !convex
+
+          set[:spandrel       ] = shorts[:val][:spandrel       ] if flat
+          set[:spandrelconcave] = shorts[:val][:spandrelconcave] if concave
+          set[:spandrelconvex ] = shorts[:val][:spandrelconvex ] if convex
+           is[:spandrel       ] = true
+        end
+
         # Label edge as :cornerconcave or :cornerconvex if linked to:
         #   2x deratable walls & f(relative polar wall vectors around edge)
         edge[:surfaces].keys.each do |i|
@@ -1666,6 +1744,7 @@ module TBD
         #   1x deratable ceiling
         edge[:surfaces].keys.each do |i|
           break     if is[:parapet]
+          break     if is[:roof   ]
           break unless deratables.size == 2
           break unless ceilings.key?(id)
           next      if i == id
@@ -1673,20 +1752,22 @@ module TBD
           next  unless walls.key?(i)
 
           s1      = edge[:surfaces][id]
-          s2      = edge[:surfaces][i]
+          s2      = edge[:surfaces][i ]
           concave = concave?(s1, s2)
           convex  = convex?(s1, s2)
           flat    = !concave && !convex
 
-          set[:parapet       ] = shorts[:val][:parapet       ] if flat
-          set[:parapetconcave] = shorts[:val][:parapetconcave] if concave
-          set[:parapetconvex ] = shorts[:val][:parapetconvex ] if convex
-           is[:parapet       ] = true
-
-          # set[:roof          ] = shorts[:val][:roof          ] if flat
-          # set[:roofconcave   ] = shorts[:val][:roofconcave   ] if concave
-          # set[:roofconvex    ] = shorts[:val][:roofconvex    ] if convex
-          #   is[:roof         ] = true
+          if argh[:parapet]
+            set[:parapet       ] = shorts[:val][:parapet       ] if flat
+            set[:parapetconcave] = shorts[:val][:parapetconcave] if concave
+            set[:parapetconvex ] = shorts[:val][:parapetconvex ] if convex
+             is[:parapet       ] = true
+          else
+            set[:roof       ] = shorts[:val][:roof       ] if flat
+            set[:roofconcave] = shorts[:val][:roofconcave] if concave
+            set[:roofconvex ] = shorts[:val][:roofconvex ] if convex
+             is[:roof       ] = true
+          end
         end
 
         # Label edge as :party if linked to:
@@ -1819,6 +1900,7 @@ module TBD
       end
 
       next unless deratable
+
       edge[:psi] = { transition: 0.000 }
       edge[:set] = json[:io][:building][:psi]
     end
@@ -1856,44 +1938,144 @@ module TBD
       edge[:set] = json[:io][:building][:psi]
     end
 
-    # A priori, TBD applies (default) :building PSI types and values to
-    # individual edges. If a TBD JSON input file holds custom PSI sets for:
-    #   :stories
-    #   :spacetypes
-    #   :surfaces
-    #   :edges
-    # ... that may apply to individual edges, then the default :building PSI
-    # types and/or values are overridden, as follows:
-    #   custom :stories    PSI sets trump :building PSI sets
-    #   custom :spacetypes PSI sets trump aforementioned PSI sets
-    #   custom :spaces     PSI sets trump aforementioned PSI sets
-    #   custom :surfaces   PSI sets trump aforementioned PSI sets
-    #   custom :edges      PSI sets trump aforementioned PSI sets
     if json[:io]
-      if json[:io].key?(:subsurfaces) # reset subsurface U-factors (if on file)
+      # Reset subsurface U-factors (if on file).
+      if json[:io].key?(:subsurfaces)
         json[:io][:subsurfaces].each do |sub|
+          match = false
           next unless sub.key?(:id)
           next unless sub.key?(:usi)
-          match = false
 
           tbd[:surfaces].values.each do |surface|
             break if match
 
             [:windows, :doors, :skylights].each do |types|
-              if surface.key?(types)
-                surface[types].each do |id, opening|
-                  break    if match
-                  next unless opening.key?(:u)
+              break    if match
+              next unless surface.key?(types)
 
-                  match = true            if sub[:id] == id
-                  opening[:u] = sub[:usi] if sub[:id] == id
-                end
+              surface[types].each do |id, opening|
+                break    if match
+                next unless opening.key?(:u)
+                next unless sub[:id] == id
+
+                opening[:u] = sub[:usi]
+                match       = true
               end
             end
           end
         end
       end
 
+      # Reset wall-to-roof intersection type (if on file) - groups.
+      [:stories, :spacetypes, :spaces].each do |groups|
+        key = :story
+        key = :stype if groups == :spacetypes
+        key = :space if groups == :spaces
+        next unless json[:io].key?(groups)
+
+        json[:io][groups].each do |group|
+          next unless group.key?(:id)
+          next unless group.key?(:parapet)
+
+          edges.values.each do |edge|
+            match = false
+            next unless edge.key?(:psi)
+            next unless edge.key?(:surfaces)
+            next     if edge.key?(:io_type)
+
+            edge[:surfaces].keys.each do |id|
+              break    if match
+              next unless tbd[:surfaces].key?(id)
+              next unless tbd[:surfaces][id].key?(key)
+
+              match = group[:id] == tbd[:surfaces][id][key].nameString
+            end
+
+            next unless match
+
+            parapets = edge[:psi].select {|ty| ty.to_s.include?("parapet")}
+            roofs    = edge[:psi].select {|ty| ty.to_s.include?("roof")}
+            type     = nil
+
+            if group[:parapet]
+              next unless parapets.empty?
+              next     if roofs.empty?
+
+              type = :parapet
+              type = :parapetconcave if roofs.first.to_s.include?("concave")
+              type = :parapetconvex  if roofs.first.to_s.include?("convex")
+
+              edge[:psi][type] = shorts[:val][type]
+              roofs.each {|ty| edges[:psi].delete(ty)}
+            else
+              next unless roofs.empty?
+              next     if parapets.empty?
+
+              type = :roof
+              type = :roofconcave if parapets.first.to_s.include?("concave")
+              type = :roofconvex  if parapets.first.to_s.include?("convex")
+
+              edge[:psi][type] = shorts[:val][type]
+              parapets.each {|ty| edges[:psi].delete(ty)}
+            end
+          end
+        end
+      end
+
+      # Reset wall-to-roof intersection type (if on file) - individual surfaces.
+      if json[:io].key?(:surfaces)
+        json[:io][:surfaces].each do |surface|
+          next unless surface.key?(:parapet)
+          next unless surface.key?(:id)
+
+          edges.values.each do |edge|
+            next     if edge.key?(:io_type)
+            next unless edge.key?(:psi)
+            next unless edge.key?(:surfaces)
+            next unless edge[:surfaces].keys.include?(surface[:id])
+
+            parapets = edge[:psi].select {|ty| ty.to_s.include?("parapet")}
+            roofs    = edge[:psi].select {|ty| ty.to_s.include?("roof")}
+            type     = nil
+
+            if surface[:parapet]
+              next unless parapets.empty?
+              next     if roofs.empty?
+
+              type = :parapet
+              type = :parapetconcave if roofs.first.to_s.include?("concave")
+              type = :parapetconvex  if roofs.first.to_s.include?("convex")
+
+              edge[:psi][type] = shorts[:val][type]
+              roofs.each {|ty| edges[:psi].delete(ty)}
+            else
+              next unless roofs.empty?
+              next     if parapets.empty?
+
+              type = :roof
+              type = :roofconcave if parapets.first.to_s.include?("concave")
+              type = :roofconvex  if parapets.first.to_s.include?("convex")
+
+              edge[:psi][type] = shorts[:val][type]
+              parapets.each {|ty| edges[:psi].delete(ty)}
+            end
+          end
+        end
+      end
+
+      # A priori, TBD applies (default) :building PSI types and values to
+      # individual edges. If a TBD JSON input file holds custom PSI sets for:
+      #   :stories
+      #   :spacetypes
+      #   :surfaces
+      #   :edges
+      # ... that may apply to individual edges, then the default :building PSI
+      # types and/or values are overridden, as follows:
+      #   custom :stories    PSI sets trump :building PSI sets
+      #   custom :spacetypes PSI sets trump aforementioned PSI sets
+      #   custom :spaces     PSI sets trump aforementioned PSI sets
+      #   custom :surfaces   PSI sets trump aforementioned PSI sets
+      #   custom :edges      PSI sets trump aforementioned PSI sets
       [:stories, :spacetypes, :spaces].each do |groups|
         key = :story
         key = :stype if groups == :spacetypes
@@ -1909,39 +2091,44 @@ module TBD
           next if sh[:val].empty?
 
           edges.values.each do |edge|
-            next     if edge.key?(:io_set)
+            match = false
             next unless edge.key?(:psi)
             next unless edge.key?(:surfaces)
+            next     if edge.key?(:io_set)
 
             edge[:surfaces].keys.each do |id|
+              break    if match
               next unless tbd[:surfaces].key?(id)
               next unless tbd[:surfaces][id].key?(key)
-              next unless group[:id] == tbd[:surfaces][id][key].nameString
 
-              edge[groups]              = {} unless edge.key?(groups)
-              edge[groups][group[:psi]] = {}
-              set                       = {}
-
-              if edge.key?(:io_type)
-                safer = json[:psi].safe(group[:psi], edge[:io_type])
-                set[edge[:io_type]] = sh[:val][safer] if safer
-              else
-                edge[:psi].keys.each do |type|
-                  safer = json[:psi].safe(group[:psi], type)
-                  set[type] = sh[:val][safer]         if safer
-                end
-              end
-
-              edge[groups][group[:psi]] = set unless set.empty?
+              match = group[:id] == tbd[:surfaces][id][key].nameString
             end
+
+            next unless match
+
+            set                       = {}
+            edge[groups]              = {} unless edge.key?(groups)
+            edge[groups][group[:psi]] = {}
+
+            if edge.key?(:io_type)
+              safer = json[:psi].safe(group[:psi], edge[:io_type])
+              set[edge[:io_type]] = sh[:val][safer] if safer
+            else
+              edge[:psi].keys.each do |type|
+                safer = json[:psi].safe(group[:psi], type)
+                set[type] = sh[:val][safer] if safer
+              end
+            end
+
+            edge[groups][group[:psi]] = set unless set.empty?
           end
         end
 
         # TBD/Topolys edges will generally be linked to more than one surface
-        # and hence to more than one story. It is possible for a TBD JSON file
-        # to hold 2x story PSI sets that end up targetting one or more edges
-        # common to both stories. In such cases, TBD retains the most conductive
-        # PSI type/value from either story PSI set.
+        # and hence to more than one group. It is possible for a TBD JSON file
+        # to hold 2x group PSI sets that end up targetting one or more edges
+        # common to both groups. In such cases, TBD retains the most conductive
+        # PSI type/value from either group PSI set.
         edges.values.each do |edge|
           next unless edge.key?(:psi)
           next unless edge.key?(groups)
@@ -1968,8 +2155,9 @@ module TBD
 
       if json[:io].key?(:surfaces)
         json[:io][:surfaces].each do |surface|
-          next unless surface.key?(:id)
           next unless surface.key?(:psi)
+          next unless surface.key?(:id)
+          next unless tbd[:surfaces].key?(surface[:id ])
           next unless json[:psi].set.key?(surface[:psi])
 
           sh = json[:psi].shorthands(surface[:psi])
@@ -1979,26 +2167,25 @@ module TBD
             next     if edge.key?(:io_set)
             next unless edge.key?(:psi)
             next unless edge.key?(:surfaces)
+            next unless edge[:surfaces].keys.include?(surface[:id])
 
-            edge[:surfaces].each do |id, s|
-              next unless tbd[:surfaces].key?(id)
-              next unless surface[:id] == id
+            s   = edge[:surfaces][surface[:id]]
+            set = {}
 
-              set = {}
-
-              if edge.key?(:io_type)
-                safer = json[:psi].safe(surface[:psi], edge[:io_type])
-                set[:io_type] = sh[:val][safer] if safer
-              else
-                edge[:psi].keys.each do |type|
-                  safer = json[:psi].safe(surface[:psi], type)
-                  set[type] = sh[:val][safer]   if safer
-                end
+            if edge.key?(:io_type)
+              safer = json[:psi].safe(surface[:psi], edge[:io_type])
+              set[:io_type] = sh[:val][safer] if safer
+            else
+              edge[:psi].keys.each do |type|
+                safer = json[:psi].safe(surface[:psi], type)
+                set[type] = sh[:val][safer] if safer
               end
-
-              s[:psi] = set           unless set.empty?
-              s[:set] = surface[:psi] unless set.empty?
             end
+
+            next if set.empty?
+
+            s[:psi] = set
+            s[:set] = surface[:psi]
           end
         end
 
@@ -2026,7 +2213,7 @@ module TBD
 
             next if vals.empty?
 
-            edge[:psi][type]  = vals.values.max
+            edge[:psi ][type] = vals.values.max
             edge[:sets]       = {} unless edge.key?(:sets)
             edge[:sets][type] = vals.key(vals.values.max)
           end
@@ -2421,7 +2608,7 @@ module TBD
       end
     end
 
-    tbd[:io       ] = json[:io]
+    tbd[:io       ] = json[:io     ]
     argh[:io      ] = tbd[:io      ]
     argh[:surfaces] = tbd[:surfaces]
     argh[:version ] = model.getVersion.versionIdentifier

@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>b571114a-e9b6-466d-9206-8760aaa885c7</version_id>
-  <version_modified>2023-09-20T12:41:41Z</version_modified>
+  <version_id>f4a66494-0095-4448-95cf-0b806e90e5ce</version_id>
+  <version_modified>2023-09-23T13:17:02Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -31,15 +31,6 @@
       </choices>
     </argument>
     <argument>
-      <name>sub_tol</name>
-      <display_name>Proximity tolerance (m)</display_name>
-      <description>Proximity tolerance (e.g. 0.100 m) between subsurface edges, e.g. between near-adjacent window jambs.</description>
-      <type>Double</type>
-      <required>false</required>
-      <model_dependent>false</model_dependent>
-      <default_value>0.01</default_value>
-    </argument>
-    <argument>
       <name>load_tbd_json</name>
       <display_name>Load 'tbd.json'</display_name>
       <description>Loads existing 'tbd.json' file (under '/files'), may override 'default thermal bridge' set.</description>
@@ -61,7 +52,7 @@
     <argument>
       <name>option</name>
       <display_name>Default thermal bridge set</display_name>
-      <description>e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by 'tbd.json' file).</description>
+      <description>e.g. '90.1.22|steel.m|unmitigated' (may be overridden by 'tbd.json' file).</description>
       <type>Choice</type>
       <required>false</required>
       <model_dependent>false</model_dependent>
@@ -136,11 +127,30 @@
     <argument>
       <name>write_tbd_json</name>
       <display_name>Write 'tbd.out.json'</display_name>
-      <description>Write out 'tbd.out.json' file e.g., to customize for subsequent runs (edit, and place under '/files' as 'tbd.json').</description>
+      <description>Write out 'tbd.out.json' file, e.g. to customize for subsequent runs (edit, and place under '/files' as 'tbd.json').</description>
       <type>Boolean</type>
       <required>false</required>
       <model_dependent>false</model_dependent>
       <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>parapet</name>
+      <display_name>Wall-roof edge as 'parapet'</display_name>
+      <description>Leave CHECKED if wall-roof edge is considered a parapet or an overhang (see ASHRAE 90.1 2022 5.5.5.1 &amp; A10).</description>
+      <type>Boolean</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>true</default_value>
       <choices>
         <choice>
           <value>true</value>
@@ -368,6 +378,15 @@
         </choice>
       </choices>
     </argument>
+    <argument>
+      <name>sub_tol</name>
+      <display_name>Proximity tolerance (m)</display_name>
+      <description>Proximity tolerance (e.g. 0.100 m) between subsurface edges, e.g. between near-adjacent window jambs.</description>
+      <type>Double</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>0.01</default_value>
+    </argument>
   </arguments>
   <outputs />
   <provenances />
@@ -432,7 +451,7 @@
       <filename>README.md</filename>
       <filetype>md</filetype>
       <usage_type>readme</usage_type>
-      <checksum>685D521B</checksum>
+      <checksum>F66CB700</checksum>
     </file>
     <file>
       <filename>README.md.erb</filename>
@@ -455,13 +474,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>E85CF840</checksum>
+      <checksum>0CF03CEA</checksum>
     </file>
     <file>
       <filename>geo.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>F52EE984</checksum>
+      <checksum>C3677FAB</checksum>
     </file>
     <file>
       <filename>geometry.rb</filename>
@@ -485,7 +504,7 @@
       <filename>psi.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>BBE43FA2</checksum>
+      <checksum>7DA59770</checksum>
     </file>
     <file>
       <filename>tbd.rb</filename>
@@ -503,13 +522,13 @@
       <filename>ua.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>645F2256</checksum>
+      <checksum>086F74C1</checksum>
     </file>
     <file>
       <filename>utils.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>6959DA97</checksum>
+      <checksum>8EE2909C</checksum>
     </file>
     <file>
       <filename>version.rb</filename>
@@ -527,7 +546,7 @@
       <filename>tbd_tests.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>58ED6635</checksum>
+      <checksum>064B77B7</checksum>
     </file>
   </files>
 </measure>

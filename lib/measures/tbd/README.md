@@ -27,14 +27,6 @@ For EnergyPlus simulations, leave CHECKED. For iterative exploration with Apply 
 **Required:** false,
 **Model Dependent:** false
 
-### Proximity tolerance (m)
-Proximity tolerance (e.g. 0.100 m) between subsurface edges, e.g. between near-adjacent window jambs.
-**Name:** sub_tol,
-**Type:** Double,
-**Units:** ,
-**Required:** false,
-**Model Dependent:** false
-
 ### Load 'tbd.json'
 Loads existing 'tbd.json' file (under '/files'), may override 'default thermal bridge' set.
 **Name:** load_tbd_json,
@@ -44,7 +36,7 @@ Loads existing 'tbd.json' file (under '/files'), may override 'default thermal b
 **Model Dependent:** false
 
 ### Default thermal bridge set
-e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by 'tbd.json' file).
+e.g. '90.1.22|steel.m|unmitigated' (may be overridden by 'tbd.json' file).
 **Name:** option,
 **Type:** Choice,
 **Units:** ,
@@ -52,8 +44,16 @@ e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by 'tbd.json' fil
 **Model Dependent:** false
 
 ### Write 'tbd.out.json'
-Write out 'tbd.out.json' file e.g., to customize for subsequent runs (edit, and place under '/files' as 'tbd.json').
+Write out 'tbd.out.json' file, e.g. to customize for subsequent runs (edit, and place under '/files' as 'tbd.json').
 **Name:** write_tbd_json,
+**Type:** Boolean,
+**Units:** ,
+**Required:** false,
+**Model Dependent:** false
+
+### Wall-roof edge as 'parapet'
+Leave CHECKED if wall-roof edge is considered a parapet or an overhang (see ASHRAE 90.1 2022 5.5.5.1 & A10).
+**Name:** parapet,
 **Type:** Boolean,
 **Units:** ,
 **Required:** false,
@@ -135,6 +135,14 @@ Generates Kiva settings & objects for surfaces with 'foundation' boundary condit
 Overwrites 'ground' boundary conditions as 'foundation' before generating Kiva inputs (recommended).
 **Name:** gen_kiva_force,
 **Type:** Boolean,
+**Units:** ,
+**Required:** false,
+**Model Dependent:** false
+
+### Proximity tolerance (m)
+Proximity tolerance (e.g. 0.100 m) between subsurface edges, e.g. between near-adjacent window jambs.
+**Name:** sub_tol,
+**Type:** Double,
 **Units:** ,
 **Required:** false,
 **Model Dependent:** false

@@ -99,15 +99,27 @@
           "type": "number"
         },
         "parapet": {
-          "title": "Roof/wall edge PSI",
+          "title": "Parapet/overhang edge PSI",
           "type": "number"
         },
         "parapetconcave": {
-          "title": "Concave roof/wall edge PSI",
+          "title": "Concave parapet/overhang edge PSI",
           "type": "number"
         },
         "parapetconvex": {
-          "title": "Convex roof/wall edge PSI",
+          "title": "Convex parapet/overhang edge PSI",
+          "type": "number"
+        },
+        "roof": {
+          "title": "Roof/wall (other than parapet/overhang) edge PSI",
+          "type": "number"
+        },
+        "roofconcave": {
+          "title": "Concave (other than parapet/overhang) roof/wall edge PSI",
+          "type": "number"
+        },
+        "roofconvex": {
+          "title": "Convex (other than parapet/overhang) roof/wall edge PSI",
           "type": "number"
         },
         "fenestration": {
@@ -150,6 +162,18 @@
           "title": "Convex aperture jamb/side PSI",
           "type": "number"
         },
+        "spandrel": {
+          "title": "Spandrel/other edge PSI",
+          "type": "number"
+        },
+        "spandrelconcave": {
+          "title": "Concave spandrel/other edge PSI",
+          "type": "number"
+        },
+        "spandrelconvex": {
+          "title": "Convex spandrel/other edge PSI",
+          "type": "number"
+        },
         "corner": {
           "title": "Any wall corner [0°,135°) or (225°,360°] PSI",
           "type": "number"
@@ -174,6 +198,18 @@
           "title": "Convex floor/balcony edge PSI ",
           "type": "number"
         },
+        "balconysill": {
+          "title": "Floor/balcony/sill edge PSI ",
+          "type": "number"
+        },
+        "balconysillconcave": {
+          "title": "Concave floor/balcony/sill edge PSI ",
+          "type": "number"
+        },
+        "balconysillconvex": {
+          "title": "Convex floor/balcony/sill edge PSI ",
+          "type": "number"
+        },
         "party": {
           "title": "Party wall edge PSI",
           "type": "number"
@@ -194,7 +230,7 @@
           "title": "Concave floor/foundation edge PSI",
           "type": "number"
         },
-        "gradecovex": {
+        "gradeconvex": {
           "title": "Convex floor/foundation edge PSI",
           "type": "number"
         },
@@ -250,6 +286,9 @@
             "parapet",
             "parapetconcave",
             "parapetconvex",
+            "roof",
+            "roofconcave",
+            "roofconvex",
             "fenestration",
             "head",
             "headconcave",
@@ -260,12 +299,18 @@
             "jamb",
             "jambconcave",
             "jambconvex",
+            "spandrel",
+            "spandrelconcave",
+            "spandrelconvex",
             "corner",
             "cornerconcave",
             "cornerconvex",
             "balcony",
             "balconyconcave",
             "balconyconvex",
+            "balconysill",
+            "balconysillconcave",
+            "balconysillconvex",
             "party",
             "partyconcave",
             "partyconvex",
@@ -355,6 +400,10 @@
           "title": "PSI-set identifier",
           "type": "string"
         },
+        "parapet": {
+          "title": "wall-roof edge as parapet",
+          "type": "boolean"
+        },
         "khis": {
           "title": "Surface-hosted point thermal bridges",
           "type": "array",
@@ -397,12 +446,16 @@
         "psi": {
           "title": "PSI-set identifier",
           "type": "string"
+        },
+        "parapet": {
+          "title": "wall-roof edge as parapet",
+          "type": "boolean"
         }
       },
       "additionalProperties": false,
+      "minProperties": 2,
       "required": [
-        "id",
-        "psi"
+        "id"
       ]
     },
     "SpaceType": {
@@ -416,12 +469,16 @@
         "psi": {
           "title": "PSI-set identifier",
           "type": "string"
+        },
+        "parapet": {
+          "title": "wall-roof edge as parapet",
+          "type": "boolean"
         }
       },
       "additionalProperties": false,
+      "minProperties": 2,
       "required": [
-        "id",
-        "psi"
+        "id"
       ]
     },
     "Story": {
@@ -435,12 +492,16 @@
         "psi": {
           "title": "PSI-set identifier",
           "type": "string"
+        },
+        "parapet": {
+          "title": "wall-roof edge as parapet",
+          "type": "boolean"
         }
       },
       "additionalProperties": false,
+      "minProperties": 2,
       "required": [
-        "id",
-        "psi"
+        "id"
       ]
     },
     "Building": {
@@ -450,9 +511,14 @@
         "psi": {
           "title": "PSI-set identifier",
           "type": "string"
+        },
+        "parapet": {
+          "title": "wall-roof edge as parapet",
+          "type": "boolean"
         }
       },
       "additionalProperties": false,
+      "minProperties": 1,
       "required": [
         "psi"
       ]
@@ -554,6 +620,9 @@
           "type": "string"
         },
         "corners": {
+          "type": "string"
+        },
+        "balconies": {
           "type": "string"
         },
         "grade": {
