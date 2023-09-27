@@ -127,11 +127,12 @@ module TBD
       @has = {}
       @val = {}
 
-      # The following are default PSI-factor sets. Users may append new sets,
+      # The following are built-in PSI-factor sets, more often predefined sets
+      # published in guides or energy codes. Users may append new sets,
       # preferably through a TBD JSON input file. Units are in W/K per meter.
-
+      #
       # The provided "spandrel" sets are suitable for early design.
-
+      #
       # Convex vs concave PSI adjustments may be warranted if there is a
       # mismatch between dimensioning conventions (interior vs exterior) used
       # for the OpenStudio model vs published PSI data. For instance, the BETBG
@@ -156,11 +157,13 @@ module TBD
         parapet:      0.800000, # re: BETBG
         roof:         0.800000, # same as parapet
         fenestration: 0.500000, # re: BETBG
+        door:         0.500000, # inferred, same as (vertical) fenestration
+        skylight:     0.500000, # inferred, same as (vertical) fenestration
         spandrel:     0.155000, # Detail 5.4.4
         corner:       0.850000, # re: BETBG
-        balcony:      1.000001, # re: BETBG
-        balconysill:  1.000001, # inferred, same as balcony
-        party:        0.850001, # re: BETBG
+        balcony:      1.000000, # re: BETBG
+        balconysill:  1.000000, # inferred, same as balcony
+        party:        0.850000, # re: BETBG
         grade:        0.850000, # re: BETBG
         joint:        0.300000, # re: BETBG
         transition:   0.000000  # defaults to 0
@@ -173,10 +176,12 @@ module TBD
         parapet:      0.450000, # re: BETBG
         roof:         0.450000, # same as parapet
         fenestration: 0.350000, # re: BETBG
+        door:         0.350000, # inferred, same as (vertical) fenestration
+        skylight:     0.350000, # inferred, same as (vertical) fenestration
         spandrel:     0.155000, # Detail 5.4.4
         corner:       0.450000, # re: BETBG
-        balcony:      0.500001, # re: BETBG
-        balconysill:  0.500002, # inferred, same as balcony
+        balcony:      0.500000, # re: BETBG
+        balconysill:  0.500000, # inferred, same as balcony
         party:        0.450001, # re: BETBG
         grade:        0.450000, # re: BETBG
         joint:        0.200000, # re: BETBG
@@ -189,13 +194,15 @@ module TBD
         rimjoist:     0.200000, # re: BETBG
         parapet:      0.200000, # re: BETBG
         roof:         0.200000, # same as parapet
-        fenestration: 0.200001, # re: BETBG
+        fenestration: 0.199999, # re: BETBG
+        door:         0.199999, # inferred, same as (vertical) fenestration
+        skylight:     0.199999, # inferred, same as (vertical) fenestration
         spandrel:     0.155000, # Detail 5.4.4
         corner:       0.200000, # re: BETBG
-        balcony:      0.200002, # re: BETBG
-        balconysill:  0.200002, # inferred, same as balcony
+        balcony:      0.200000, # re: BETBG
+        balconysill:  0.200000, # inferred, same as balcony
         party:        0.200001, # re: BETBG
-        grade:        0.200003, # re: BETBG
+        grade:        0.200000, # re: BETBG
         joint:        0.100000, # re: BETBG
         transition:   0.000000  # defaults to 0
       }.freeze
@@ -207,6 +214,8 @@ module TBD
         parapet:      1.000000, # Detail 1.3.2
         roof:         1.000000, # same as parapet
         fenestration: 0.000000, # inferred, generally part of clear-field RSi
+        door:         0.000000, # inferred, generally part of clear-field RSi
+        skylight:     0.350000, # same as "regular (BETBG)"
         spandrel:     0.155000, # Detail 5.4.4
         corner:       0.425000, # Detail 1.4.1
         balcony:      1.110000, # Detail 8.1.9/9.1.6
@@ -224,6 +233,8 @@ module TBD
         parapet:      0.660000, # Detail 1.3.2
         roof:         0.660000, # same as parapet
         fenestration: 0.000000, # inferred, generally part of clear-field RSi
+        door:         0.000000, # inferred, generally part of clear-field RSi
+        skylight:     0.350000, # same as "regular (BETBG)"
         spandrel:     0.155000, # Detail 5.4.4
         corner:       0.200000, # Detail 1.4.2
         balcony:      0.400000, # Detail 9.1.15
@@ -241,6 +252,8 @@ module TBD
         parapet:      0.325000, # re I1
         roof:         0.325000, # same as parapet
         fenestration: 0.200000, # re I1
+        door:         0.200000, # re I1
+        skylight:     0.200000, # re I1
         spandrel:     0.155000, # BETBG Detail 5.4.4 (same as uncompliant)
         corner:       0.300000, # inferred from description, not explicitely set
         balcony:      0.500000, # re I1
@@ -258,13 +271,15 @@ module TBD
         parapet:      0.800000, # re I1
         roof:         0.800000, # same as parapet
         fenestration: 0.500000, # re I1
+        door:         0.500000, # re I1
+        skylight:     0.500000, # re I1
         spandrel:     0.155000, # BETBG Detail 5.4.4 (same as compliant)
         corner:       0.850000, # inferred from description, not explicitely set
         balcony:      1.000000, # re I1
         balconysill:  1.000000, # inferred, same as balcony
         party:        0.850001, # re I1
-        grade:        0.850001, # re I1
-        joint:        0.500001, # re I1
+        grade:        0.850000, # re I1
+        joint:        0.500000, # re I1
         transition:   0.000000  # defaults to 0
       }.freeze
 
@@ -275,12 +290,14 @@ module TBD
         parapet:      0.260000, # "parapet" edge
         roof:         0.020000, # (non-parapet) "roof edge"
         fenestration: 0.194000, # "wall to vertical fenestration intersection"
+        door:         0.000000, # (unspecified, defaults to 0)
+        skylight:     0.000000, # (unspecified, defaults to 0)
         spandrel:     0.000000, # (unspecified, defaults to 0)
-        corner:       0.000000, # (unspecified, defaults to 0)
-        balcony:      0.307001, # "intermediate floor balcony/overhang" edge
-        balconysill:  0.307002, # "intermediate floor balcony" edge (when sill)
-        party:        0.000000, # (unspecified, defaults to 0)
-        grade:        0.000000, # (unspecified, defaults to 0)
+        corner:       0.000001, # (unspecified, defaults to 0)
+        balcony:      0.307000, # "intermediate floor balcony/overhang" edge
+        balconysill:  0.307000, # "intermediate floor balcony" edge (when sill)
+        party:        0.000001, # (unspecified, defaults to 0)
+        grade:        0.000001, # (unspecified, defaults to 0)
         joint:        0.376000, # placeholder for "cladding support"
         transition:   0.000000  # defaults to 0
       }.freeze
@@ -292,12 +309,14 @@ module TBD
         parapet:      0.500000, # "parapet" edge
         roof:         0.650000, # (non-parapet) "roof edge"
         fenestration: 0.505000, # "wall to vertical fenestration intersection"
+        door:         0.000000, # (unspecified, defaults to 0)
+        skylight:     0.000000, # (unspecified, defaults to 0)
         spandrel:     0.000000, # (unspecified, defaults to 0)
-        corner:       0.000000, # (unspecified, defaults to 0)
-        balcony:      0.842001, # "intermediate floor balcony/overhang" edge
+        corner:       0.000001, # (unspecified, defaults to 0)
+        balcony:      0.842000, # "intermediate floor balcony/overhang" edge
         balconysill:  1.686000, # "intermediate floor balcony" edge (when sill)
-        party:        0.000000, # (unspecified, defaults to 0)
-        grade:        0.000000, # (unspecified, defaults to 0)
+        party:        0.000001, # (unspecified, defaults to 0)
+        grade:        0.000001, # (unspecified, defaults to 0)
         joint:        0.554000, # placeholder for "cladding support"
         transition:   0.000000  # defaults to 0
       }.freeze
@@ -309,12 +328,14 @@ module TBD
         parapet:      0.217000, # "parapet" edge
         roof:         0.150000, # (non-parapet) "roof edge"
         fenestration: 0.226000, # "wall to vertical fenestration intersection"
+        door:         0.000000, # (unspecified, defaults to 0)
+        skylight:     0.000000, # (unspecified, defaults to 0)
         spandrel:     0.000000, # (unspecified, defaults to 0)
-        corner:       0.000000, # (unspecified, defaults to 0)
-        balcony:      0.205001, # "intermediate floor balcony/overhang" edge
+        corner:       0.000001, # (unspecified, defaults to 0)
+        balcony:      0.205000, # "intermediate floor balcony/overhang" edge
         balconysill:  0.307000, # "intermediate floor balcony" edge (when sill)
-        party:        0.000000, # (unspecified, defaults to 0)
-        grade:        0.000000, # (unspecified, defaults to 0)
+        party:        0.000001, # (unspecified, defaults to 0)
+        grade:        0.000001, # (unspecified, defaults to 0)
         joint:        0.322000, # placeholder for "cladding support"
         transition:   0.000000  # defaults to 0
       }.freeze
@@ -326,12 +347,14 @@ module TBD
         parapet:      0.412000, # "parapet" edge
         roof:         0.750000, # (non-parapet) "roof edge"
         fenestration: 0.325000, # "wall to vertical fenestration intersection"
+        door:         0.000000, # (unspecified, defaults to 0)
+        skylight:     0.000000, # (unspecified, defaults to 0)
         spandrel:     0.000000, # (unspecified, defaults to 0)
-        corner:       0.000000, # (unspecified, defaults to 0)
-        balcony:      0.824001, # "intermediate floor balcony/overhang" edge
+        corner:       0.000001, # (unspecified, defaults to 0)
+        balcony:      0.824000, # "intermediate floor balcony/overhang" edge
         balconysill:  1.686000, # "intermediate floor balcony" edge (when sill)
-        party:        0.000000, # (unspecified, defaults to 0)
-        grade:        0.000000, # (unspecified, defaults to 0)
+        party:        0.000001, # (unspecified, defaults to 0)
+        grade:        0.000001, # (unspecified, defaults to 0)
         joint:        0.476000, # placeholder for "cladding support"
         transition:   0.000000  # defaults to 0
       }.freeze
@@ -343,12 +366,14 @@ module TBD
         parapet:      0.393000, # "parapet" edge
         roof:         0.150000, # (non-parapet) "roof edge"
         fenestration: 0.143000, # "wall to vertical fenestration intersection"
+        door:         0.000000, # (unspecified, defaults to 0)
+        skylight:     0.000000, # (unspecified, defaults to 0)
         spandrel:     0.000000, # (unspecified, defaults to 0)
-        corner:       0.000000, # (unspecified, defaults to 0)
-        balcony:      0.495001, # "intermediate floor balcony/overhang" edge
+        corner:       0.000001, # (unspecified, defaults to 0)
+        balcony:      0.495000, # "intermediate floor balcony/overhang" edge
         balconysill:  0.307000, # "intermediate floor balcony" edge (when sill)
-        party:        0.000000, # (unspecified, defaults to 0)
-        grade:        0.000000, # (unspecified, defaults to 0)
+        party:        0.000001, # (unspecified, defaults to 0)
+        grade:        0.000001, # (unspecified, defaults to 0)
         joint:        0.322000, # placeholder for "cladding support"
         transition:   0.000000  # defaults to 0
       }.freeze
@@ -360,12 +385,14 @@ module TBD
         parapet:      0.884000, # "parapet" edge
         roof:         0.750000, # (non-parapet) "roof edge"
         fenestration: 0.543000, # "wall to vertical fenestration intersection"
+        door:         0.000000, # (unspecified, defaults to 0)
+        skylight:     0.000000, # (unspecified, defaults to 0)
         spandrel:     0.000000, # (unspecified, defaults to 0)
-        corner:       0.000000, # (unspecified, defaults to 0)
-        balcony:      0.824001, # "intermediate floor balcony/overhang" edge
+        corner:       0.000001, # (unspecified, defaults to 0)
+        balcony:      0.824000, # "intermediate floor balcony/overhang" edge
         balconysill:  1.686000, # "intermediate floor balcony" edge (when sill)
-        party:        0.000000, # (unspecified, defaults to 0)
-        grade:        0.000000, # (unspecified, defaults to 0)
+        party:        0.000001, # (unspecified, defaults to 0)
+        grade:        0.000001, # (unspecified, defaults to 0)
         joint:        0.476000, # placeholder for "cladding support"
         transition:   0.000000  # defaults to 0
       }.freeze
@@ -377,12 +404,14 @@ module TBD
         parapet:      0.056000, # "parapet" edge
         roof:         0.020000, # (non-parapet) "roof edge"
         fenestration: 0.171000, # "wall to vertical fenestration intersection"
+        door:         0.000000, # (unspecified, defaults to 0)
+        skylight:     0.000000, # (unspecified, defaults to 0)
         spandrel:     0.000000, # (unspecified, defaults to 0)
-        corner:       0.000000, # (unspecified, defaults to 0)
-        balcony:      0.000000, # "intermediate floor balcony/overhang" edge
-        balconysill:  0.171001, # "intermediate floor balcony" edge (when sill)
-        party:        0.000000, # (unspecified, defaults to 0)
-        grade:        0.000000, # (unspecified, defaults to 0)
+        corner:       0.000001, # (unspecified, defaults to 0)
+        balcony:      0.084000, # "intermediate floor balcony/overhang" edge
+        balconysill:  0.171001, # # same as :fenestration
+        party:        0.000001, # (unspecified, defaults to 0)
+        grade:        0.000001, # (unspecified, defaults to 0)
         joint:        0.074000, # placeholder for "cladding support"
         transition:   0.000000  # defaults to 0
       }.freeze
@@ -394,12 +423,14 @@ module TBD
         parapet:      0.056000, # "parapet" edge
         roof:         0.150000, # (non-parapet) "roof edge"
         fenestration: 0.260000, # "wall to vertical fenestration intersection"
+        door:         0.000000, # (unspecified, defaults to 0)
+        skylight:     0.000000, # (unspecified, defaults to 0)
         spandrel:     0.000000, # (unspecified, defaults to 0)
-        corner:       0.000000, # (unspecified, defaults to 0)
-        balcony:      0.000000, # "intermediate floor balcony/overhang" edge
-        balconysill:  0.260001, # "intermediate floor balcony" edge (when sill)
-        party:        0.000000, # (unspecified, defaults to 0)
-        grade:        0.000000, # (unspecified, defaults to 0)
+        corner:       0.000001, # (unspecified, defaults to 0)
+        balcony:      0.582000, # same as :rimjoist
+        balconysill:  0.582000, # same as :rimjoist
+        party:        0.000001, # (unspecified, defaults to 0)
+        grade:        0.000001, # (unspecified, defaults to 0)
         joint:        0.322000, # placeholder for "cladding support"
         transition:   0.000000  # defaults to 0
       }.freeze
@@ -410,6 +441,8 @@ module TBD
         parapet:      0.000000, # defaults to 0
         roof:         0.000000, # defaults to 0
         fenestration: 0.000000, # defaults to 0
+        door:         0.000000, # defaults to 0
+        skylight:     0.000000, # defaults to 0
         spandrel:     0.000000, # defaults to 0
         corner:       0.000000, # defaults to 0
         balcony:      0.000000, # defaults to 0
@@ -435,157 +468,254 @@ module TBD
       return hashkey(id, @set, id, mth, ERR, false) unless @set.key?(id)
 
       h                   = {} # true/false if PSI set has PSI type
-      h[:joint             ] = @set[id].key?(:joint)
-      h[:transition        ] = @set[id].key?(:transition)
-      h[:fenestration      ] = @set[id].key?(:fenestration)
-      h[:head              ] = @set[id].key?(:head)
-      h[:headconcave       ] = @set[id].key?(:headconcave)
-      h[:headconvex        ] = @set[id].key?(:headconvex)
-      h[:sill              ] = @set[id].key?(:sill)
-      h[:sillconcave       ] = @set[id].key?(:sillconcave)
-      h[:sillconvex        ] = @set[id].key?(:sillconvex)
-      h[:jamb              ] = @set[id].key?(:jamb)
-      h[:jambconcave       ] = @set[id].key?(:jambconcave)
-      h[:jambconvex        ] = @set[id].key?(:jambconvex)
-      h[:spandrel          ] = @set[id].key?(:spandrel)
-      h[:spandrelconcave   ] = @set[id].key?(:spandrelconcave)
-      h[:spandrelconvex    ] = @set[id].key?(:spandrelconvex)
-      h[:corner            ] = @set[id].key?(:corner)
-      h[:cornerconcave     ] = @set[id].key?(:cornerconcave)
-      h[:cornerconvex      ] = @set[id].key?(:cornerconvex)
-      h[:parapet           ] = @set[id].key?(:parapet)
-      h[:partyconcave      ] = @set[id].key?(:parapetconcave)
-      h[:parapetconvex     ] = @set[id].key?(:parapetconvex)
-      h[:roof              ] = @set[id].key?(:roof)
-      h[:roofconcave       ] = @set[id].key?(:roofconcave)
-      h[:roofconvex        ] = @set[id].key?(:roofconvex)
-      h[:party             ] = @set[id].key?(:party)
-      h[:partyconcave      ] = @set[id].key?(:partyconcave)
-      h[:partyconvex       ] = @set[id].key?(:partyconvex)
-      h[:grade             ] = @set[id].key?(:grade)
-      h[:gradeconcave      ] = @set[id].key?(:gradeconcave)
-      h[:gradeconvex       ] = @set[id].key?(:gradeconvex)
-      h[:balcony           ] = @set[id].key?(:balcony)
-      h[:balconyconcave    ] = @set[id].key?(:balconyconcave)
-      h[:balconyconvex     ] = @set[id].key?(:balconyconvex)
-      h[:balconysill       ] = @set[id].key?(:balconysill)
-      h[:balconysillconcave] = @set[id].key?(:balconysillconvex)
-      h[:balconysillconvex ] = @set[id].key?(:balconysillconvex)
-      h[:rimjoist          ] = @set[id].key?(:rimjoist)
-      h[:rimjoistconcave   ] = @set[id].key?(:rimjoistconcave)
-      h[:rimjoistconvex    ] = @set[id].key?(:rimjoistconvex)
+      h[:joint              ] = @set[id].key?(:joint)
+      h[:transition         ] = @set[id].key?(:transition)
+      h[:fenestration       ] = @set[id].key?(:fenestration)
+      h[:head               ] = @set[id].key?(:head)
+      h[:headconcave        ] = @set[id].key?(:headconcave)
+      h[:headconvex         ] = @set[id].key?(:headconvex)
+      h[:sill               ] = @set[id].key?(:sill)
+      h[:sillconcave        ] = @set[id].key?(:sillconcave)
+      h[:sillconvex         ] = @set[id].key?(:sillconvex)
+      h[:jamb               ] = @set[id].key?(:jamb)
+      h[:jambconcave        ] = @set[id].key?(:jambconcave)
+      h[:jambconvex         ] = @set[id].key?(:jambconvex)
+      h[:door               ] = @set[id].key?(:door)
+      h[:doorhead           ] = @set[id].key?(:doorhead)
+      h[:doorheadconcave    ] = @set[id].key?(:doorheadconcave)
+      h[:doorheadconvex     ] = @set[id].key?(:doorheadconvex)
+      h[:doorsill           ] = @set[id].key?(:doorsill)
+      h[:doorsillconcave    ] = @set[id].key?(:doorsillconcave)
+      h[:doorsillconvex     ] = @set[id].key?(:doorsillconvex)
+      h[:doorjamb           ] = @set[id].key?(:doorjamb)
+      h[:doorjambconcave    ] = @set[id].key?(:doorjambconcave)
+      h[:doorjambconvex     ] = @set[id].key?(:doorjambconvex)
+      h[:skylight           ] = @set[id].key?(:skylight)
+      h[:skylighthead       ] = @set[id].key?(:skylighthead)
+      h[:skylightheadconcave] = @set[id].key?(:skylightheadconcave)
+      h[:skylightheadconvex ] = @set[id].key?(:skylightheadconvex)
+      h[:skylightsill       ] = @set[id].key?(:skylightsill)
+      h[:skylightsillconcave] = @set[id].key?(:skylightsillconcave)
+      h[:skylightsillconvex ] = @set[id].key?(:skylightsillconvex)
+      h[:skylightjamb       ] = @set[id].key?(:skylightjamb)
+      h[:skylightjambconcave] = @set[id].key?(:skylightjambconcave)
+      h[:skylightjambconvex ] = @set[id].key?(:skylightjambconvex)
+      h[:spandrel           ] = @set[id].key?(:spandrel)
+      h[:spandrelconcave    ] = @set[id].key?(:spandrelconcave)
+      h[:spandrelconvex     ] = @set[id].key?(:spandrelconvex)
+      h[:corner             ] = @set[id].key?(:corner)
+      h[:cornerconcave      ] = @set[id].key?(:cornerconcave)
+      h[:cornerconvex       ] = @set[id].key?(:cornerconvex)
+      h[:party              ] = @set[id].key?(:party)
+      h[:partyconcave       ] = @set[id].key?(:partyconcave)
+      h[:partyconvex        ] = @set[id].key?(:partyconvex)
+      h[:parapet            ] = @set[id].key?(:parapet)
+      h[:partyconcave       ] = @set[id].key?(:parapetconcave)
+      h[:parapetconvex      ] = @set[id].key?(:parapetconvex)
+      h[:roof               ] = @set[id].key?(:roof)
+      h[:roofconcave        ] = @set[id].key?(:roofconcave)
+      h[:roofconvex         ] = @set[id].key?(:roofconvex)
+      h[:grade              ] = @set[id].key?(:grade)
+      h[:gradeconcave       ] = @set[id].key?(:gradeconcave)
+      h[:gradeconvex        ] = @set[id].key?(:gradeconvex)
+      h[:balcony            ] = @set[id].key?(:balcony)
+      h[:balconyconcave     ] = @set[id].key?(:balconyconcave)
+      h[:balconyconvex      ] = @set[id].key?(:balconyconvex)
+      h[:balconysill        ] = @set[id].key?(:balconysill)
+      h[:balconysillconcave ] = @set[id].key?(:balconysillconvex)
+      h[:balconysillconvex  ] = @set[id].key?(:balconysillconvex)
+      h[:rimjoist           ] = @set[id].key?(:rimjoist)
+      h[:rimjoistconcave    ] = @set[id].key?(:rimjoistconcave)
+      h[:rimjoistconvex     ] = @set[id].key?(:rimjoistconvex)
       @has[id]            = h
 
       v               = {} # PSI-value (W/K per linear meter)
-      v[:joint      ] = 0; v[:transition        ] = 0; v[:fenestration     ] = 0
-      v[:head       ] = 0; v[:headconcave       ] = 0; v[:headconvex       ] = 0
-      v[:sill       ] = 0; v[:sillconcave       ] = 0; v[:sillconvex       ] = 0
-      v[:jamb       ] = 0; v[:jambconcave       ] = 0; v[:jambconvex       ] = 0
-      v[:spandrel   ] = 0; v[:spandrelconcave   ] = 0; v[:spandrelconvex   ] = 0
-      v[:corner     ] = 0; v[:cornerconcave     ] = 0; v[:cornerconvex     ] = 0
-      v[:parapet    ] = 0; v[:parapetconcave    ] = 0; v[:parapetconvex    ] = 0
-      v[:roof       ] = 0; v[:roofconcave       ] = 0; v[:roofconvex       ] = 0
-      v[:party      ] = 0; v[:partyconcave      ] = 0; v[:partyconvex      ] = 0
-      v[:grade      ] = 0; v[:gradeconcave      ] = 0; v[:gradeconvex      ] = 0
-      v[:balcony    ] = 0; v[:balconyconcave    ] = 0; v[:balconyconvex    ] = 0
-      v[:balconysill] = 0; v[:balconysillconcave] = 0; v[:balconysillconvex] = 0
-      v[:rimjoist   ] = 0; v[:rimjoistconcave   ] = 0; v[:rimjoistconvex   ] = 0
+      v[:door        ] = 0; v[:fenestration       ] = 0; v[:skylight          ] = 0
+      v[:head        ] = 0; v[:headconcave        ] = 0; v[:headconvex        ] = 0
+      v[:sill        ] = 0; v[:sillconcave        ] = 0; v[:sillconvex        ] = 0
+      v[:jamb        ] = 0; v[:jambconcave        ] = 0; v[:jambconvex        ] = 0
+      v[:doorhead    ] = 0; v[:doorheadconcave    ] = 0; v[:doorconvex        ] = 0
+      v[:doorsill    ] = 0; v[:doorsillconcave    ] = 0; v[:doorsillconvex    ] = 0
+      v[:doorjamb    ] = 0; v[:doorjambconcave    ] = 0; v[:doorjambconvex    ] = 0
+      v[:skylighthead] = 0; v[:skylightheadconcave] = 0; v[:skylightconvex    ] = 0
+      v[:skylightsill] = 0; v[:skylightsillconcave] = 0; v[:skylightsillconvex] = 0
+      v[:skylightjamb] = 0; v[:skylightjambconcave] = 0; v[:skylightjambconvex] = 0
+      v[:spandrel    ] = 0; v[:spandrelconcave    ] = 0; v[:spandrelconvex    ] = 0
+      v[:corner      ] = 0; v[:cornerconcave      ] = 0; v[:cornerconvex      ] = 0
+      v[:parapet     ] = 0; v[:parapetconcave     ] = 0; v[:parapetconvex     ] = 0
+      v[:roof        ] = 0; v[:roofconcave        ] = 0; v[:roofconvex        ] = 0
+      v[:party       ] = 0; v[:partyconcave       ] = 0; v[:partyconvex       ] = 0
+      v[:grade       ] = 0; v[:gradeconcave       ] = 0; v[:gradeconvex       ] = 0
+      v[:balcony     ] = 0; v[:balconyconcave     ] = 0; v[:balconyconvex     ] = 0
+      v[:balconysill ] = 0; v[:balconysillconcave ] = 0; v[:balconysillconvex ] = 0
+      v[:rimjoist    ] = 0; v[:rimjoistconcave    ] = 0; v[:rimjoistconvex    ] = 0
+      v[:joint       ] = 0; v[:transition         ] = 0
 
-      v[:joint             ] = @set[id][:joint             ] if h[:joint             ]
-      v[:transition        ] = @set[id][:transition        ] if h[:transition        ]
-      v[:fenestration      ] = @set[id][:fenestration      ] if h[:fenestration      ]
-      v[:head              ] = @set[id][:fenestration      ] if h[:fenestration      ]
-      v[:headconcave       ] = @set[id][:fenestration      ] if h[:fenestration      ]
-      v[:headconvex        ] = @set[id][:fenestration      ] if h[:fenestration      ]
-      v[:sill              ] = @set[id][:fenestration      ] if h[:fenestration      ]
-      v[:sillconcave       ] = @set[id][:fenestration      ] if h[:fenestration      ]
-      v[:sillconvex        ] = @set[id][:fenestration      ] if h[:fenestration      ]
-      v[:jamb              ] = @set[id][:fenestration      ] if h[:fenestration      ]
-      v[:jambconcave       ] = @set[id][:fenestration      ] if h[:fenestration      ]
-      v[:jambconvex        ] = @set[id][:fenestration      ] if h[:fenestration      ]
-      v[:spandrel          ] = @set[id][:spandrel          ] if h[:spandrel          ]
-      v[:spandrelconcave   ] = @set[id][:spandrel          ] if h[:spandrel          ]
-      v[:spandrelconvex    ] = @set[id][:spandrel          ] if h[:spandrel          ]
-      v[:spandrelconcave   ] = @set[id][:spandrelconcave   ] if h[:spandrelconcave   ]
-      v[:spandrelconvex    ] = @set[id][:spandrelconvex    ] if h[:spandrelconvex    ]
-      v[:head              ] = @set[id][:head              ] if h[:head              ]
-      v[:headconcave       ] = @set[id][:head              ] if h[:head              ]
-      v[:headconvex        ] = @set[id][:head              ] if h[:head              ]
-      v[:sill              ] = @set[id][:sill              ] if h[:sill              ]
-      v[:sillconcave       ] = @set[id][:sill              ] if h[:sill              ]
-      v[:sillconvex        ] = @set[id][:sill              ] if h[:sill              ]
-      v[:jamb              ] = @set[id][:jamb              ] if h[:jamb              ]
-      v[:jambconcave       ] = @set[id][:jamb              ] if h[:jamb              ]
-      v[:jambconvex        ] = @set[id][:jamb              ] if h[:jamb              ]
-      v[:headconcave       ] = @set[id][:headconcave       ] if h[:headconcave       ]
-      v[:headconvex        ] = @set[id][:headconvex        ] if h[:headconvex        ]
-      v[:sillconcave       ] = @set[id][:sillconcave       ] if h[:sillconcave       ]
-      v[:sillconvex        ] = @set[id][:sillconvex        ] if h[:sillconvex        ]
-      v[:jambconcave       ] = @set[id][:jambconcave       ] if h[:jambconcave       ]
-      v[:jambconvex        ] = @set[id][:jambconvex        ] if h[:jambconvex        ]
-      v[:corner            ] = @set[id][:corner            ] if h[:corner            ]
-      v[:cornerconcave     ] = @set[id][:corner            ] if h[:corner            ]
-      v[:cornerconvex      ] = @set[id][:corner            ] if h[:corner            ]
-      v[:cornerconcave     ] = @set[id][:cornerconcave     ] if h[:cornerconcave     ]
-      v[:cornerconvex      ] = @set[id][:cornerconvex      ] if h[:cornerconvex      ]
-      v[:parapet           ] = @set[id][:roof              ] if h[:roof              ]
-      v[:parapetconcave    ] = @set[id][:roof              ] if h[:roof              ]
-      v[:parapetconvex     ] = @set[id][:roof              ] if h[:roof              ]
-      v[:parapetconcave    ] = @set[id][:roofconcave       ] if h[:roofconcave       ]
-      v[:parapetconvex     ] = @set[id][:roofconvex        ] if h[:roofconvex        ]
-      v[:parapet           ] = @set[id][:parapet           ] if h[:parapet           ]
-      v[:parapetconcave    ] = @set[id][:parapet           ] if h[:parapet           ]
-      v[:parapetconvex     ] = @set[id][:parapet           ] if h[:parapet           ]
-      v[:parapetconcave    ] = @set[id][:parapetconcave    ] if h[:parapetconcave    ]
-      v[:parapetconvex     ] = @set[id][:parapetconvex     ] if h[:parapetconvex     ]
-      v[:roof              ] = @set[id][:parapet           ] if h[:parapet           ]
-      v[:roofconcave       ] = @set[id][:parapet           ] if h[:parapet           ]
-      v[:roofconvex        ] = @set[id][:parapet           ] if h[:parapet           ]
-      v[:roofconcave       ] = @set[id][:parapetconcave    ] if h[:parapetconcave    ]
-      v[:roofconvex        ] = @set[id][:parapetxonvex     ] if h[:parapetconvex     ]
-      v[:roof              ] = @set[id][:roof              ] if h[:roof              ]
-      v[:roofconcave       ] = @set[id][:roof              ] if h[:roof              ]
-      v[:roofconvex        ] = @set[id][:roof              ] if h[:roof              ]
-      v[:roofconcave       ] = @set[id][:roofconcave       ] if h[:roofconcave       ]
-      v[:roofconvex        ] = @set[id][:roofconvex        ] if h[:roofconvex        ]
-      v[:party             ] = @set[id][:party             ] if h[:party             ]
-      v[:partyconcave      ] = @set[id][:party             ] if h[:party             ]
-      v[:partyconvex       ] = @set[id][:party             ] if h[:party             ]
-      v[:partyconcave      ] = @set[id][:partyconcave      ] if h[:partyconcave      ]
-      v[:partyconvex       ] = @set[id][:partyconvex       ] if h[:partyconvex       ]
-      v[:grade             ] = @set[id][:grade             ] if h[:grade             ]
-      v[:gradeconcave      ] = @set[id][:grade             ] if h[:grade             ]
-      v[:gradeconvex       ] = @set[id][:grade             ] if h[:grade             ]
-      v[:gradeconcave      ] = @set[id][:gradeconcave      ] if h[:gradeconcave      ]
-      v[:gradeconvex       ] = @set[id][:gradeconvex       ] if h[:gradeconvex       ]
-      v[:balcony           ] = @set[id][:balcony           ] if h[:balcony           ]
-      v[:balconyconcave    ] = @set[id][:balcony           ] if h[:balcony           ]
-      v[:balconyconvex     ] = @set[id][:balcony           ] if h[:balcony           ]
-      v[:balconyconcave    ] = @set[id][:balconyconcave    ] if h[:balconyconcave    ]
-      v[:balconyconvex     ] = @set[id][:balconyconvex     ] if h[:balconyconvex     ]
-      v[:balconysill       ] = @set[id][:fenestration      ] if h[:fenestration      ]
-      v[:balconysillconcave] = @set[id][:fenestration      ] if h[:fenestration      ]
-      v[:balconysillconvex ] = @set[id][:fenestration      ] if h[:fenestration      ]
-      v[:balconysill       ] = @set[id][:sill              ] if h[:sill              ]
-      v[:balconysillconcave] = @set[id][:sill              ] if h[:sill              ]
-      v[:balconysillconvex ] = @set[id][:sill              ] if h[:sill              ]
-      v[:balconysillconcave] = @set[id][:sillconcave       ] if h[:sillconcave       ]
-      v[:balconysillconvex ] = @set[id][:sillconvex        ] if h[:sillconvex        ]
-      v[:balconysill       ] = @set[id][:balcony           ] if h[:balcony           ]
-      v[:balconysillconcave] = @set[id][:balcony           ] if h[:balcony           ]
-      v[:balconysillconvex ] = @set[id][:balcony           ] if h[:balcony           ]
-      v[:balconysillconcave] = @set[id][:balconyconcave    ] if h[:balconyconcave    ]
-      v[:balconysillconvex ] = @set[id][:balconyconvex     ] if h[:balconycinvex     ]
-      v[:balconysill       ] = @set[id][:balconysill       ] if h[:balconysill       ]
-      v[:balconysillconcave] = @set[id][:balconysill       ] if h[:balconysill       ]
-      v[:balconysillconvex ] = @set[id][:balconysill       ] if h[:balconysill       ]
-      v[:balconysillconcave] = @set[id][:balconysillconcave] if h[:balconysillconcave]
-      v[:balconysillconvex ] = @set[id][:balconysillconvex ] if h[:balconysillconvex ]
-      v[:rimjoist          ] = @set[id][:rimjoist          ] if h[:rimjoist          ]
-      v[:rimjoistconcave   ] = @set[id][:rimjoist          ] if h[:rimjoist          ]
-      v[:rimjoistconvex    ] = @set[id][:rimjoist          ] if h[:rimjoist          ]
-      v[:rimjoistconcave   ] = @set[id][:rimjoistconcave   ] if h[:rimjoistconcave   ]
-      v[:rimjoistconvex    ] = @set[id][:rimjoistconvex    ] if h[:rimjoistconvex    ]
+      v[:joint              ] = @set[id][:joint              ] if h[:joint              ]
+      v[:transition         ] = @set[id][:transition         ] if h[:transition         ]
+      v[:fenestration       ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:head               ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:headconcave        ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:headconvex         ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:sill               ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:sillconcave        ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:sillconvex         ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:jamb               ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:jambconcave        ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:jambconvex         ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:door               ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:doorhead           ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:doorheadconcave    ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:doorheadconvex     ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:doorsill           ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:doorsillconcave    ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:doorsillconvex     ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:doorjamb           ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:doorjambconcave    ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:doorjambconvex     ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:skylight           ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:skylighthead       ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:skylightheadconcave] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:skylightheadconvex ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:skylightsill       ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:skylightsillconcave] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:skylightsillconvex ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:skylightjamb       ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:skylightjambconcave] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:skylightjambconvex ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:door               ] = @set[id][:door               ] if h[:door               ]
+      v[:doorhead           ] = @set[id][:door               ] if h[:door               ]
+      v[:doorheadconcave    ] = @set[id][:door               ] if h[:door               ]
+      v[:doorheadconvex     ] = @set[id][:door               ] if h[:door               ]
+      v[:doorsill           ] = @set[id][:door               ] if h[:door               ]
+      v[:doorsillconcave    ] = @set[id][:door               ] if h[:door               ]
+      v[:doorsillconvex     ] = @set[id][:door               ] if h[:door               ]
+      v[:doorjamb           ] = @set[id][:door               ] if h[:door               ]
+      v[:doorjambconcave    ] = @set[id][:door               ] if h[:door               ]
+      v[:doorjambconvex     ] = @set[id][:door               ] if h[:door               ]
+      v[:skylight           ] = @set[id][:skylight           ] if h[:skylight           ]
+      v[:skylighthead       ] = @set[id][:skylight           ] if h[:skylight           ]
+      v[:skylightheadconcave] = @set[id][:skylight           ] if h[:skylight           ]
+      v[:skylightheadconvex ] = @set[id][:skylight           ] if h[:skylight           ]
+      v[:skylightsill       ] = @set[id][:skylight           ] if h[:skylight           ]
+      v[:skylightsillconcave] = @set[id][:skylight           ] if h[:skylight           ]
+      v[:skylightsillconvex ] = @set[id][:skylight           ] if h[:skylight           ]
+      v[:skylightjamb       ] = @set[id][:skylight           ] if h[:skylight           ]
+      v[:skylightjambconcave] = @set[id][:skylight           ] if h[:skylight           ]
+      v[:skylightjambconvex ] = @set[id][:skylight           ] if h[:skylight           ]
+      v[:head               ] = @set[id][:head               ] if h[:head               ]
+      v[:headconcave        ] = @set[id][:head               ] if h[:head               ]
+      v[:headconvex         ] = @set[id][:head               ] if h[:head               ]
+      v[:sill               ] = @set[id][:sill               ] if h[:sill               ]
+      v[:sillconcave        ] = @set[id][:sill               ] if h[:sill               ]
+      v[:sillconvex         ] = @set[id][:sill               ] if h[:sill               ]
+      v[:jamb               ] = @set[id][:jamb               ] if h[:jamb               ]
+      v[:jambconcave        ] = @set[id][:jamb               ] if h[:jamb               ]
+      v[:jambconvex         ] = @set[id][:jamb               ] if h[:jamb               ]
+      v[:doorhead           ] = @set[id][:doorhead           ] if h[:doorhead           ]
+      v[:doorheadconcave    ] = @set[id][:doorhead           ] if h[:doorhead           ]
+      v[:doorheadconvex     ] = @set[id][:doorhead           ] if h[:doorhead           ]
+      v[:doorsill           ] = @set[id][:doorsill           ] if h[:doorsill           ]
+      v[:doorsillconcave    ] = @set[id][:doorsill           ] if h[:doorsill           ]
+      v[:doorsillconvex     ] = @set[id][:doorsill           ] if h[:doorsill           ]
+      v[:doorjamb           ] = @set[id][:doorjamb           ] if h[:doorjamb           ]
+      v[:doorjambconcave    ] = @set[id][:doorjamb           ] if h[:doorjamb           ]
+      v[:doorjambconvex     ] = @set[id][:doorjamb           ] if h[:doorjamb           ]
+      v[:skylighthead       ] = @set[id][:skylighthead       ] if h[:skylighthead       ]
+      v[:skylightheadconcave] = @set[id][:skylighthead       ] if h[:skylighthead       ]
+      v[:skylightheadconvex ] = @set[id][:skylighthead       ] if h[:skylighthead       ]
+      v[:skylightsill       ] = @set[id][:skylightsill       ] if h[:skylightsill       ]
+      v[:skylightsillconcave] = @set[id][:skylightsill       ] if h[:skylightsill       ]
+      v[:skylightsillconvex ] = @set[id][:skylightsill       ] if h[:skylightsill       ]
+      v[:skylightjamb       ] = @set[id][:skylightjamb       ] if h[:skylightjamb       ]
+      v[:skylightjambconcave] = @set[id][:skylightjamb       ] if h[:skylightjamb       ]
+      v[:skylightjambconvex ] = @set[id][:skylightjamb       ] if h[:skylightjamb       ]
+      v[:headconcave        ] = @set[id][:headconcave        ] if h[:headconcave        ]
+      v[:headconvex         ] = @set[id][:headconvex         ] if h[:headconvex         ]
+      v[:sillconcave        ] = @set[id][:sillconcave        ] if h[:sillconcave        ]
+      v[:sillconvex         ] = @set[id][:sillconvex         ] if h[:sillconvex         ]
+      v[:jambconcave        ] = @set[id][:jambconcave        ] if h[:jambconcave        ]
+      v[:jambconvex         ] = @set[id][:jambconvex         ] if h[:jambconvex         ]
+      v[:doorheadconcave    ] = @set[id][:doorheadconcave    ] if h[:doorheadconcave    ]
+      v[:doorheadconvex     ] = @set[id][:doorheadconvex     ] if h[:doorheadconvex     ]
+      v[:doorsillconcave    ] = @set[id][:doorsillconcave    ] if h[:doorsillconcave    ]
+      v[:doorsillconvex     ] = @set[id][:doorsillconvex     ] if h[:doorsillconvex     ]
+      v[:doorjambconcave    ] = @set[id][:doorjambconcave    ] if h[:doorjambconcave    ]
+      v[:doorjambconvex     ] = @set[id][:doorjambconvex     ] if h[:doorjambconvex     ]
+      v[:skylightheadconcave] = @set[id][:skylightheadconcave] if h[:skylightheadconcave]
+      v[:skylightheadconvex ] = @set[id][:skylightheadconvex ] if h[:skylightheadconvex ]
+      v[:skylightsillconcave] = @set[id][:skylightsillconcave] if h[:skylightsillconcave]
+      v[:skylightsillconvex ] = @set[id][:skylightsillconvex ] if h[:skylightsillconvex ]
+      v[:skylightjambconcave] = @set[id][:skylightjambconcave] if h[:skylightjambconcave]
+      v[:skylightjambconvex ] = @set[id][:skylightjambconvex ] if h[:skylightjambconvex ]
+      v[:spandrel           ] = @set[id][:spandrel           ] if h[:spandrel           ]
+      v[:spandrelconcave    ] = @set[id][:spandrel           ] if h[:spandrel           ]
+      v[:spandrelconvex     ] = @set[id][:spandrel           ] if h[:spandrel           ]
+      v[:spandrelconcave    ] = @set[id][:spandrelconcave    ] if h[:spandrelconcave    ]
+      v[:spandrelconvex     ] = @set[id][:spandrelconvex     ] if h[:spandrelconvex     ]
+      v[:corner             ] = @set[id][:corner             ] if h[:corner             ]
+      v[:cornerconcave      ] = @set[id][:corner             ] if h[:corner             ]
+      v[:cornerconvex       ] = @set[id][:corner             ] if h[:corner             ]
+      v[:cornerconcave      ] = @set[id][:cornerconcave      ] if h[:cornerconcave      ]
+      v[:cornerconvex       ] = @set[id][:cornerconvex       ] if h[:cornerconvex       ]
+      v[:parapet            ] = @set[id][:roof               ] if h[:roof               ]
+      v[:parapetconcave     ] = @set[id][:roof               ] if h[:roof               ]
+      v[:parapetconvex      ] = @set[id][:roof               ] if h[:roof               ]
+      v[:parapetconcave     ] = @set[id][:roofconcave        ] if h[:roofconcave        ]
+      v[:parapetconvex      ] = @set[id][:roofconvex         ] if h[:roofconvex         ]
+      v[:parapet            ] = @set[id][:parapet            ] if h[:parapet            ]
+      v[:parapetconcave     ] = @set[id][:parapet            ] if h[:parapet            ]
+      v[:parapetconvex      ] = @set[id][:parapet            ] if h[:parapet            ]
+      v[:parapetconcave     ] = @set[id][:parapetconcave     ] if h[:parapetconcave     ]
+      v[:parapetconvex      ] = @set[id][:parapetconvex      ] if h[:parapetconvex      ]
+      v[:roof               ] = @set[id][:parapet            ] if h[:parapet            ]
+      v[:roofconcave        ] = @set[id][:parapet            ] if h[:parapet            ]
+      v[:roofconvex         ] = @set[id][:parapet            ] if h[:parapet            ]
+      v[:roofconcave        ] = @set[id][:parapetconcave     ] if h[:parapetconcave     ]
+      v[:roofconvex         ] = @set[id][:parapetxonvex      ] if h[:parapetconvex      ]
+      v[:roof               ] = @set[id][:roof               ] if h[:roof               ]
+      v[:roofconcave        ] = @set[id][:roof               ] if h[:roof               ]
+      v[:roofconvex         ] = @set[id][:roof               ] if h[:roof               ]
+      v[:roofconcave        ] = @set[id][:roofconcave        ] if h[:roofconcave        ]
+      v[:roofconvex         ] = @set[id][:roofconvex         ] if h[:roofconvex         ]
+      v[:party              ] = @set[id][:party              ] if h[:party              ]
+      v[:partyconcave       ] = @set[id][:party              ] if h[:party              ]
+      v[:partyconvex        ] = @set[id][:party              ] if h[:party              ]
+      v[:partyconcave       ] = @set[id][:partyconcave       ] if h[:partyconcave       ]
+      v[:partyconvex        ] = @set[id][:partyconvex        ] if h[:partyconvex        ]
+      v[:grade              ] = @set[id][:grade              ] if h[:grade              ]
+      v[:gradeconcave       ] = @set[id][:grade              ] if h[:grade              ]
+      v[:gradeconvex        ] = @set[id][:grade              ] if h[:grade              ]
+      v[:gradeconcave       ] = @set[id][:gradeconcave       ] if h[:gradeconcave       ]
+      v[:gradeconvex        ] = @set[id][:gradeconvex        ] if h[:gradeconvex        ]
+      v[:balcony            ] = @set[id][:balcony            ] if h[:balcony            ]
+      v[:balconyconcave     ] = @set[id][:balcony            ] if h[:balcony            ]
+      v[:balconyconvex      ] = @set[id][:balcony            ] if h[:balcony            ]
+      v[:balconyconcave     ] = @set[id][:balconyconcave     ] if h[:balconyconcave     ]
+      v[:balconyconvex      ] = @set[id][:balconyconvex      ] if h[:balconyconvex      ]
+      v[:balconysill        ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:balconysillconcave ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:balconysillconvex  ] = @set[id][:fenestration       ] if h[:fenestration       ]
+      v[:balconysill        ] = @set[id][:sill               ] if h[:sill               ]
+      v[:balconysillconcave ] = @set[id][:sill               ] if h[:sill               ]
+      v[:balconysillconvex  ] = @set[id][:sill               ] if h[:sill               ]
+      v[:balconysillconcave ] = @set[id][:sillconcave        ] if h[:sillconcave        ]
+      v[:balconysillconvex  ] = @set[id][:sillconvex         ] if h[:sillconvex         ]
+      v[:balconysill        ] = @set[id][:balcony            ] if h[:balcony            ]
+      v[:balconysillconcave ] = @set[id][:balcony            ] if h[:balcony            ]
+      v[:balconysillconvex  ] = @set[id][:balcony            ] if h[:balcony            ]
+      v[:balconysillconcave ] = @set[id][:balconyconcave     ] if h[:balconyconcave     ]
+      v[:balconysillconvex  ] = @set[id][:balconyconvex      ] if h[:balconycinvex      ]
+      v[:balconysill        ] = @set[id][:balconysill        ] if h[:balconysill        ]
+      v[:balconysillconcave ] = @set[id][:balconysill        ] if h[:balconysill        ]
+      v[:balconysillconvex  ] = @set[id][:balconysill        ] if h[:balconysill        ]
+      v[:balconysillconcave ] = @set[id][:balconysillconcave ] if h[:balconysillconcave ]
+      v[:balconysillconvex  ] = @set[id][:balconysillconvex  ] if h[:balconysillconvex  ]
+      v[:rimjoist           ] = @set[id][:rimjoist           ] if h[:rimjoist           ]
+      v[:rimjoistconcave    ] = @set[id][:rimjoist           ] if h[:rimjoist           ]
+      v[:rimjoistconvex     ] = @set[id][:rimjoist           ] if h[:rimjoist           ]
+      v[:rimjoistconcave    ] = @set[id][:rimjoistconcave    ] if h[:rimjoistconcave    ]
+      v[:rimjoistconvex     ] = @set[id][:rimjoistconvex     ] if h[:rimjoistconvex     ]
 
       max = [v[:parapetconcave], v[:parapetconvex]].max
       v[:parapet] = max unless @has[:parapet]
@@ -611,15 +741,36 @@ module TBD
     # @option set [#to_f] :roof roof-to-wall intersection
     # @option set [#to_f] :roofconcave basilaire variant
     # @option set [#to_f] :roofconvex typical
-    # @option set [#to_f] :head sub surface head interface
-    # @option set [#to_f] :headconcave basilaire variant
-    # @option set [#to_f] :headconvex parapet variant
-    # @option set [#to_f] :sill sub surface sill interface
-    # @option set [#to_f] :sillconcave basilaire variant
-    # @option set [#to_f] :sillconvex cantilever variant
-    # @option set [#to_f] :jamb sub surface jamb interface
-    # @option set [#to_f] :jambconcave interior corner variant
-    # @option set [#to_f] :jambconvex exterior corner variant
+    # @option set [#to_f] :fenestration head/sill/jamb interface
+    # @option set [#to_f] :head (fenestrated) header interface
+    # @option set [#to_f] :headconcave (fenestrated) basilaire variant
+    # @option set [#to_f] :headconvex  (fenestrated) parapet variant
+    # @option set [#to_f] :sill (fenestrated) threshold/sill interface
+    # @option set [#to_f] :sillconcave (fenestrated) basilaire variant
+    # @option set [#to_f] :sillconvex (fenestrated) cantilever variant
+    # @option set [#to_f] :jamb (fenestrated) side jamb interface
+    # @option set [#to_f] :jambconcave (fenestrated) interior corner variant
+    # @option set [#to_f] :jambconvex (fenestrated) exterior corner variant
+    # @option set [#to_f] :door (opaque) head/sill/jamb interface
+    # @option set [#to_f] :doorhead (opaque) header interface
+    # @option set [#to_f] :doorheadconcave (opaque) basilaire variant
+    # @option set [#to_f] :doorheadconvex (opaque) parapet variant
+    # @option set [#to_f] :doorsill (opaque) threshold interface
+    # @option set [#to_f] :doorsillconcave (opaque) basilaire variant
+    # @option set [#to_f] :doorsillconvex (opaque) cantilever variant
+    # @option set [#to_f] :doorjamb (opaque) side jamb interface
+    # @option set [#to_f] :doorjambconcave (opaque) interior corner variant
+    # @option set [#to_f] :doorjambconvex (opaque) exterior corner variant
+    # @option set [#to_f] :skylight to roof interface
+    # @option set [#to_f] :skylighthead header interface
+    # @option set [#to_f] :skylightheadconcave basilaire variant
+    # @option set [#to_f] :skylightheadconvex parapet variant
+    # @option set [#to_f] :skylightsill sill interface
+    # @option set [#to_f] :skylightsillconcave basilaire variant
+    # @option set [#to_f] :skylightsillconvex cantilever variant
+    # @option set [#to_f] :skylightjamb side jamb interface
+    # @option set [#to_f] :skylightjambconcave (opaque) interior corner variant
+    # @option set [#to_f] :skylightjambconvex (opaque) parapet variant
     # @option set [#to_f] :spandrel spandrel/other interface
     # @option set [#to_f] :spandrelconcave interior corner variant
     # @option set [#to_f] :spandrelconvex exterior corner variant
@@ -638,7 +789,6 @@ module TBD
     # @option set [#to_f] :grade foundation wall or slab-on-grade intersection
     # @option set [#to_f] :gradeconcave cantilever variant
     # @option set [#to_f] :gradeconvex basilaire variant
-    # @option set [#to_f] :fenestration head/sill/jamb interface
     # @option set [#to_f] :joint strong ~coplanar joint
     # @option set [#to_f] :transition mild ~coplanar transition
     #
@@ -666,48 +816,68 @@ module TBD
       # type that is not autoassigned to an edge (i.e., only via a TBD JSON
       # input file). Finally, transitions are autoassigned by TBD when an edge
       # is "flat", i.e, no noticeable polar angle difference between surfaces.
-      s[:rimjoist          ] = set[:rimjoist          ] if set.key?(:rimjoist)
-      s[:rimjoistconcave   ] = set[:rimjoistconcave   ] if set.key?(:rimjoistconcave)
-      s[:rimjoistconvex    ] = set[:rimjoistconvex    ] if set.key?(:rimjoistconvex)
-      s[:parapet           ] = set[:parapet           ] if set.key?(:parapet)
-      s[:parapetconcave    ] = set[:parapetconcave    ] if set.key?(:parapetconcave)
-      s[:parapetconvex     ] = set[:parapetconvex     ] if set.key?(:parapetconvex)
-      s[:roof              ] = set[:roof              ] if set.key?(:roof)
-      s[:roofconcave       ] = set[:roofconcave       ] if set.key?(:roofconcave)
-      s[:roofconvex        ] = set[:roofconvex        ] if set.key?(:roofconvex)
-      s[:head              ] = set[:head              ] if set.key?(:head)
-      s[:headconcave       ] = set[:headconcave       ] if set.key?(:headconcave)
-      s[:headconvex        ] = set[:headconvex        ] if set.key?(:headconvex)
-      s[:sill              ] = set[:sill              ] if set.key?(:sill)
-      s[:sillconcave       ] = set[:sillconcave       ] if set.key?(:sillconcave)
-      s[:sillconvex        ] = set[:sillconvex        ] if set.key?(:sillconvex)
-      s[:jamb              ] = set[:jamb              ] if set.key?(:jamb)
-      s[:jambconcave       ] = set[:jambconcave       ] if set.key?(:jambconcave)
-      s[:jambconvex        ] = set[:jambconvex        ] if set.key?(:jambconvex)
-      s[:spandrel          ] = set[:spandrel          ] if set.key?(:spandrel)
-      s[:spandrelconcave   ] = set[:spandrelconcave   ] if set.key?(:spandrelconcave)
-      s[:spandrelconvex    ] = set[:spandrelconvex    ] if set.key?(:spandrelconvex)
-      s[:corner            ] = set[:corner            ] if set.key?(:corner)
-      s[:cornerconcave     ] = set[:cornerconcave     ] if set.key?(:cornerconcave)
-      s[:cornerconvex      ] = set[:cornerconvex      ] if set.key?(:cornerconvex)
-      s[:balcony           ] = set[:balcony           ] if set.key?(:balcony)
-      s[:balconyconcave    ] = set[:balconyconcave    ] if set.key?(:balconyconcave)
-      s[:balconyconvex     ] = set[:balconyconvex     ] if set.key?(:balconyconvex)
-      s[:balconysill       ] = set[:balconysill       ] if set.key?(:balconysill)
-      s[:balconysillconcave] = set[:balconysillconcave] if set.key?(:balconysillconcave)
-      s[:balconysillconvex ] = set[:balconysillconvex ] if set.key?(:balconysillconvex)
-      s[:party             ] = set[:party             ] if set.key?(:party)
-      s[:partyconcave      ] = set[:partyconcave      ] if set.key?(:partyconcave)
-      s[:partyconvex       ] = set[:partyconvex       ] if set.key?(:partyconvex)
-      s[:grade             ] = set[:grade             ] if set.key?(:grade)
-      s[:gradeconcave      ] = set[:gradeconcave      ] if set.key?(:gradeconcave)
-      s[:gradeconvex       ] = set[:gradeconvex       ] if set.key?(:gradeconvex)
-      s[:fenestration      ] = set[:fenestration      ] if set.key?(:fenestration)
-      s[:joint             ] = set[:joint             ] if set.key?(:joint)
-      s[:transition        ] = set[:transition        ] if set.key?(:transition)
+      s[:rimjoist           ] = set[:rimjoist           ] if set.key?(:rimjoist)
+      s[:rimjoistconcave    ] = set[:rimjoistconcave    ] if set.key?(:rimjoistconcave)
+      s[:rimjoistconvex     ] = set[:rimjoistconvex     ] if set.key?(:rimjoistconvex)
+      s[:parapet            ] = set[:parapet            ] if set.key?(:parapet)
+      s[:parapetconcave     ] = set[:parapetconcave     ] if set.key?(:parapetconcave)
+      s[:parapetconvex      ] = set[:parapetconvex      ] if set.key?(:parapetconvex)
+      s[:roof               ] = set[:roof               ] if set.key?(:roof)
+      s[:roofconcave        ] = set[:roofconcave        ] if set.key?(:roofconcave)
+      s[:roofconvex         ] = set[:roofconvex         ] if set.key?(:roofconvex)
+      s[:fenestration       ] = set[:fenestration       ] if set.key?(:fenestration)
+      s[:head               ] = set[:head               ] if set.key?(:head)
+      s[:headconcave        ] = set[:headconcave        ] if set.key?(:headconcave)
+      s[:headconvex         ] = set[:headconvex         ] if set.key?(:headconvex)
+      s[:sill               ] = set[:sill               ] if set.key?(:sill)
+      s[:sillconcave        ] = set[:sillconcave        ] if set.key?(:sillconcave)
+      s[:sillconvex         ] = set[:sillconvex         ] if set.key?(:sillconvex)
+      s[:jamb               ] = set[:jamb               ] if set.key?(:jamb)
+      s[:jambconcave        ] = set[:jambconcave        ] if set.key?(:jambconcave)
+      s[:jambconvex         ] = set[:jambconvex         ] if set.key?(:jambconvex)
+      s[:door               ] = set[:door               ] if set.key?(:door)
+      s[:doorhead           ] = set[:doorhead           ] if set.key?(:doorhead)
+      s[:doorheadconcave    ] = set[:doorheadconcave    ] if set.key?(:doorheadconcave)
+      s[:doorheadconvex     ] = set[:doorheadconvex     ] if set.key?(:doorheadconvex)
+      s[:doorsill           ] = set[:doorsill           ] if set.key?(:doorsill)
+      s[:doorsillconcave    ] = set[:doorsillconcave    ] if set.key?(:doorsillconcave)
+      s[:doorsillconvex     ] = set[:doorsillconvex     ] if set.key?(:doorsillconvex)
+      s[:doorjamb           ] = set[:doorjamb           ] if set.key?(:doorjamb)
+      s[:doorjambconcave    ] = set[:doorjambconcave    ] if set.key?(:doorjambconcave)
+      s[:doorjambconvex     ] = set[:doorjambconvex     ] if set.key?(:doorjambconvex)
+      s[:skylight           ] = set[:skylight           ] if set.key?(:skylight)
+      s[:skylighthead       ] = set[:skylighthead       ] if set.key?(:skylighthead)
+      s[:skylightheadconcave] = set[:skylightheadconcave] if set.key?(:skylightheadconcave)
+      s[:skylightheadconvex ] = set[:skylightheadconvex ] if set.key?(:skylightheadconvex)
+      s[:skylightsill       ] = set[:skylightsill       ] if set.key?(:skylightsill)
+      s[:skylightsillconcave] = set[:skylightsillconcave] if set.key?(:skylightsillconcave)
+      s[:skylightsillconvex ] = set[:skylightsillconvex ] if set.key?(:skylightsillconvex)
+      s[:skylightjamb       ] = set[:skylightjamb       ] if set.key?(:skylightjamb)
+      s[:skylightjambconcave] = set[:skylightjambconcave] if set.key?(:skylightjambconcave)
+      s[:skylightjambconvex ] = set[:skylightjambconvex ] if set.key?(:skylightjambconvex)
+      s[:spandrel           ] = set[:spandrel           ] if set.key?(:spandrel)
+      s[:spandrelconcave    ] = set[:spandrelconcave    ] if set.key?(:spandrelconcave)
+      s[:spandrelconvex     ] = set[:spandrelconvex     ] if set.key?(:spandrelconvex)
+      s[:corner             ] = set[:corner             ] if set.key?(:corner)
+      s[:cornerconcave      ] = set[:cornerconcave      ] if set.key?(:cornerconcave)
+      s[:cornerconvex       ] = set[:cornerconvex       ] if set.key?(:cornerconvex)
+      s[:balcony            ] = set[:balcony            ] if set.key?(:balcony)
+      s[:balconyconcave     ] = set[:balconyconcave     ] if set.key?(:balconyconcave)
+      s[:balconyconvex      ] = set[:balconyconvex      ] if set.key?(:balconyconvex)
+      s[:balconysill        ] = set[:balconysill        ] if set.key?(:balconysill)
+      s[:balconysillconcave ] = set[:balconysillconcave ] if set.key?(:balconysillconcave)
+      s[:balconysillconvex  ] = set[:balconysillconvex  ] if set.key?(:balconysillconvex)
+      s[:party              ] = set[:party              ] if set.key?(:party)
+      s[:partyconcave       ] = set[:partyconcave       ] if set.key?(:partyconcave)
+      s[:partyconvex        ] = set[:partyconvex        ] if set.key?(:partyconvex)
+      s[:grade              ] = set[:grade              ] if set.key?(:grade)
+      s[:gradeconcave       ] = set[:gradeconcave       ] if set.key?(:gradeconcave)
+      s[:gradeconvex        ] = set[:gradeconvex        ] if set.key?(:gradeconvex)
+      s[:joint              ] = set[:joint              ] if set.key?(:joint)
+      s[:transition         ] = set[:transition         ] if set.key?(:transition)
 
-      s[:joint              ] = 0.000               unless set.key?(:joint)
-      s[:transition         ] = 0.000               unless set.key?(:transition)
+      s[:joint              ] = 0.000  unless set.key?(:joint)
+      s[:transition         ] = 0.000  unless set.key?(:transition)
 
       @set[id] = s
       self.gen(id)
@@ -725,7 +895,7 @@ module TBD
     # @example intermediate floor slab intersection
     #   shorthands("A901")
     #
-    # @return [Hash] has: Hash (Bool), val: Hash (PSI values) see logs if empty
+    # @return [Hash] has: Hash (Bool), val: Hash (PSI factors) see logs if empty
     def shorthands(id = "")
       mth = "TBD::#{__callee__}"
       sh  = { has: {}, val: {} }
@@ -796,7 +966,7 @@ module TBD
     # @param id [#to_s] PSI set identifier
     # @param type [#to_sym] PSI type
     # @example intermediate floor slab intersection
-    #   safe("A901", :rimjoistconcave)
+    #   safe("90.1.22|wood.fr|unmitigated", :rimjoistconcave)
     #
     # @return [Symbol] safe PSI type
     # @return [nil] if invalid inputs (see logs)
@@ -810,20 +980,31 @@ module TBD
       return hashkey(id, @set,  id,         mth, ERR) unless @set.key?(id)
       return hashkey(id, @has,  id,         mth, ERR) unless @has.key?(id)
 
-      type  = type.to_sym
-      safer = type
+      safer = type.to_sym
 
       unless @has[id][safer]
-        concave = type.to_s.include?("concave")
-        convex  = type.to_s.include?("convex")
-        safer   = type.to_s.chomp("concave").to_sym if concave
-        safer   = type.to_s.chomp("convex").to_sym  if convex
+        concave = safer.to_s.include?("concave")
+        convex  = safer.to_s.include?("convex")
+        safer   = safer.to_s.chomp("concave").to_sym if concave
+        safer   = safer.to_s.chomp("convex").to_sym  if convex
+      end
 
-        unless @has[id][safer]
-          safer = :fenestration if safer == :head
-          safer = :fenestration if safer == :sill
-          safer = :fenestration if safer == :jamb
-        end
+      unless @has[id][safer]
+        safer = :fenestration if safer == :head
+        safer = :fenestration if safer == :sill
+        safer = :fenestration if safer == :jamb
+        safer = :door         if safer == :doorhead
+        safer = :door         if safer == :doorsill
+        safer = :door         if safer == :doorjamb
+        safer = :skylight     if safer == :skylighthead
+        safer = :skylight     if safer == :skylightsill
+        safer = :skylight     if safer == :skylightjamb
+      end
+
+      unless @has[id][safer]
+        safer = :fenestration if safer.to_s.include?("head")
+        safer = :fenestration if safer.to_s.include?("sill")
+        safer = :fenestration if safer.to_s.include?("jamb")
       end
 
       return safer if @has[id][safer]
@@ -1308,9 +1489,9 @@ module TBD
     ceilings = tbd[:surfaces].select { |_, s| s[:type] == :ceiling }
     walls    = tbd[:surfaces].select { |_, s| s[:type] == :wall    }
 
-    floors   = floors.sort_by        { |_, s| [s[:minz], s[:space]] }.to_h
-    ceilings = ceilings.sort_by      { |_, s| [s[:minz], s[:space]] }.to_h
-    walls    = walls.sort_by         { |_, s| [s[:minz], s[:space]] }.to_h
+    floors   = floors.sort_by   { |_, s| [s[:minz], s[:space]] }.to_h
+    ceilings = ceilings.sort_by { |_, s| [s[:minz], s[:space]] }.to_h
+    walls    = walls.sort_by    { |_, s| [s[:minz], s[:space]] }.to_h
 
     # Fetch OpenStudio shading surfaces & key attributes.
     shades = {}
@@ -1348,13 +1529,13 @@ module TBD
 
     # Mutually populate TBD & Topolys surfaces. Keep track of created "holes".
     holes         = {}
-    floor_holes   = dads(t_model, floors  )
+    floor_holes   = dads(t_model, floors)
     ceiling_holes = dads(t_model, ceilings)
-    wall_holes    = dads(t_model, walls   )
+    wall_holes    = dads(t_model, walls)
 
-    holes.merge!(floor_holes  )
+    holes.merge!(floor_holes)
     holes.merge!(ceiling_holes)
-    holes.merge!(wall_holes   )
+    holes.merge!(wall_holes)
     dads(t_model, shades)
 
     # Loop through Topolys edges and populate TBD edge hash. Initially, there
@@ -1416,8 +1597,10 @@ module TBD
       vertical   = dx < TOL && dy < TOL
       edge_V     = terminal - origin
 
-      invalid("1x edge length < TOL", mth, 0, ERROR) if edge_V.magnitude < TOL
-      next                                           if edge_V.magnitude < TOL
+      if edge_V.magnitude < TOL
+        invalid("1x edge length < TOL", mth, 0, ERROR)
+        next
+      end
 
       edge_plane = Topolys::Plane3D.new(origin, edge_V)
 
@@ -1471,9 +1654,10 @@ module TBD
               plane = Topolys::Plane3D.from_points(origin, terminal, point)
             end
 
-            next unless (normal.x - plane.normal.x).abs < TOL &&
-                        (normal.y - plane.normal.y).abs < TOL &&
-                        (normal.z - plane.normal.z).abs < TOL
+            dnx = (normal.x - plane.normal.x).abs
+            dny = (normal.y - plane.normal.y).abs
+            dnz = (normal.z - plane.normal.z).abs
+            next unless dnx < TOL && dny < TOL && dnz < TOL
 
             farther    = point_V_magnitude > farthest_V.magnitude
             farthest   = point          if farther
@@ -1489,11 +1673,13 @@ module TBD
           if vertical
             adjust = true if east.dot(farthest_V) < -TOL
           else
-            if north.dot(farthest_V).abs < TOL ||
-              (north.dot(farthest_V).abs - 1).abs < TOL
+            dN  = north.dot(farthest_V)
+            dN1 = north.dot(farthest_V).abs - 1
+
+            if dN.abs < TOL || dN1.abs < TOL
               adjust = true if east.dot(farthest_V) < -TOL
             else
-              adjust = true if north.dot(farthest_V) < -TOL
+              adjust = true if dN < -TOL
             end
           end
 
@@ -1503,12 +1689,12 @@ module TBD
           farthest_V.normalize!
           surface[:polar ] = farthest_V
           surface[:normal] = normal
-        end                           # end of edge-linked, surface-to-wire loop
+        end # end of edge-linked, surface-to-wire loop
       end # end of edge-linked surface loop
 
       edge[:horizontal] = horizontal
       edge[:vertical  ] = vertical
-      edge[:surfaces  ] = edge[:surfaces].sort_by{ |i, p| p[:angle] }.to_h
+      edge[:surfaces  ] = edge[:surfaces].sort_by{ |_, p| p[:angle] }.to_h
     end # end of edge loop
 
     # Topolys edges may constitute thermal bridges (and therefore thermally
@@ -1598,97 +1784,193 @@ module TBD
 
         # Evaluate current set content before processing a new linked surface.
         is               = {}
-        is[:head       ] = set.keys.to_s.include?("head")
-        is[:sill       ] = set.keys.to_s.include?("sill")
-        is[:jamb       ] = set.keys.to_s.include?("jamb")
-        is[:spandrel   ] = set.keys.to_s.include?("spandrel")
-        is[:corner     ] = set.keys.to_s.include?("corner")
-        is[:parapet    ] = set.keys.to_s.include?("parapet")
-        is[:roof       ] = set.keys.to_s.include?("roof")
-        is[:party      ] = set.keys.to_s.include?("party")
-        is[:grade      ] = set.keys.to_s.include?("grade")
-        is[:balcony    ] = set.keys.to_s.include?("balcony")
-        is[:balconysill] = set.keys.to_s.include?("balconysill")
-        is[:rimjoist   ] = set.keys.to_s.include?("rimjoist")
+        is[:head        ] = set.keys.to_s.include?("head")
+        is[:sill        ] = set.keys.to_s.include?("sill")
+        is[:jamb        ] = set.keys.to_s.include?("jamb")
+        is[:doorhead    ] = set.keys.to_s.include?("doorhead")
+        is[:doorsill    ] = set.keys.to_s.include?("doorsill")
+        is[:doorjamb    ] = set.keys.to_s.include?("doorjamb")
+        is[:skylighthead] = set.keys.to_s.include?("skylighthead")
+        is[:skylightsill] = set.keys.to_s.include?("skylightsill")
+        is[:skylightjamb] = set.keys.to_s.include?("skylightjamb")
+        is[:spandrel    ] = set.keys.to_s.include?("spandrel")
+        is[:corner      ] = set.keys.to_s.include?("corner")
+        is[:parapet     ] = set.keys.to_s.include?("parapet")
+        is[:roof        ] = set.keys.to_s.include?("roof")
+        is[:party       ] = set.keys.to_s.include?("party")
+        is[:grade       ] = set.keys.to_s.include?("grade")
+        is[:balcony     ] = set.keys.to_s.include?("balcony")
+        is[:balconysill ] = set.keys.to_s.include?("balconysill")
+        is[:rimjoist    ] = set.keys.to_s.include?("rimjoist")
 
-        # Label edge as :head, :sill or :jamb if linked to:
-        #   1x subsurface
+        # Label edge as ...
+        #         :head,         :sill,         :jamb (vertical fenestration)
+        #     :doorhead,     :doorsill,     :doorjamb (opaque door)
+        # :skylighthead, :skylightsill, :skylightjamb (all other cases)
+        #
+        # ... if linked to:
+        #   1x subsurface (vertical or non-vertical)
         edge[:surfaces].keys.each do |i|
-          break    if is[:head] || is[:sill] || is[:jamb]
+          break    if is[:head        ]
+          break    if is[:sill        ]
+          break    if is[:jamb        ]
+          break    if is[:doorhead    ]
+          break    if is[:doorsill    ]
+          break    if is[:doorjamb    ]
+          break    if is[:skylighthead]
+          break    if is[:skylightsill]
+          break    if is[:skylightjamb]
           next     if deratables.include?(i)
           next unless holes.key?(i)
 
-          gardian = ""
-          gardian = id if deratables.size == 1 # just dad
+          # In most cases, subsurface edges simply delineate the rough opening
+          # of its base surface (here, a "gardian"). Door sills, corner windows,
+          # as well as a subsurface header aligned with a plenum "floor"
+          # (ceiling tiles), are common instances where a subsurface edge links
+          # 2x (opaque) surfaces. Deratable surface "id" may not be the gardian
+          # of subsurface "i" - the latter may be a neighbour. The single
+          # surface to derate is not the gardian in such cases.
+          gardian = deratables.size == 1 ? id : ""
 
-          if gardian.empty? # seek uncle
-            pops   = {} # kids?
-            uncles = {} # nieces?
-            boys   = [] # kids
-            nieces = [] # nieces
+          # Retrieve base surface's subsurfaces.
+          windows   = tbd[:surfaces][id].key?(:windows)
+          doors     = tbd[:surfaces][id].key?(:doors)
+          skylights = tbd[:surfaces][id].key?(:skylights)
 
-            uncle  = deratables.first unless deratables.first == id # uncle #1?
-            uncle  = deratables.last  unless deratables.last  == id # uncle #2?
+          windows   =   windows ? tbd[:surfaces][id][:windows  ] : {}
+          doors     =     doors ? tbd[:surfaces][id][:doors    ] : {}
+          skylights = skylights ? tbd[:surfaces][id][:skylights] : {}
 
-            pops[:w  ] = tbd[:surfaces][id   ].key?(:windows)
-            pops[:d  ] = tbd[:surfaces][id   ].key?(:doors)
-            pops[:s  ] = tbd[:surfaces][id   ].key?(:skylights)
-            uncles[:w] = tbd[:surfaces][uncle].key?(:windows)
-            uncles[:d] = tbd[:surfaces][uncle].key?(:doors)
-            uncles[:s] = tbd[:surfaces][uncle].key?(:skylights)
+          # The gardian is "id" if subsurface "ids" holds "i".
+          ids = windows.keys + doors.keys + skylights.keys
 
-            boys   += tbd[:surfaces][id   ][:windows  ].keys if   pops[:w]
-            boys   += tbd[:surfaces][id   ][:doors    ].keys if   pops[:d]
-            boys   += tbd[:surfaces][id   ][:skylights].keys if   pops[:s]
-            nieces += tbd[:surfaces][uncle][:windows  ].keys if uncles[:w]
-            nieces += tbd[:surfaces][uncle][:doors    ].keys if uncles[:d]
-            nieces += tbd[:surfaces][uncle][:skylights].keys if uncles[:s]
+          if gardian.empty?
+            other = deratables.first == id ? deratables.last : deratables.first
 
-            gardian = uncle if   boys.include?(i)
-            gardian = id    if nieces.include?(i)
+            gardian = ids.include?(i) ? id : other
+
+            windows   = tbd[:surfaces][gardian].key?(:windows)
+            doors     = tbd[:surfaces][gardian].key?(:doors)
+            skylights = tbd[:surfaces][gardian].key?(:skylights)
+
+            windows   =   windows ? tbd[:surfaces][gardian][:windows  ] : {}
+            doors     =     doors ? tbd[:surfaces][gardian][:doors    ] : {}
+            skylights = skylights ? tbd[:surfaces][gardian][:skylights] : {}
+
+            ids = windows.keys + doors.keys + skylights.keys
           end
 
-          next if gardian.empty?
+          unless ids.include?(i)
+            log(ERR, "Orphaned subsurface #{i} (mth)")
+            next
+          end
+
+          window   =   windows.key?(i) ?   windows[i] : {}
+          door     =     doors.key?(i) ?     doors[i] : {}
+          skylight = skylights.key?(i) ? skylights[i] : {}
+
+          sub = window   unless window.empty?
+          sub = door     unless door.empty?
+          sub = skylight unless skylight.empty?
+
+          window = sub[:type] == :window
+          door   = sub[:type] == :door
+          glazed = door && sub.key?(:glazed) && sub[:glazed]
 
           s1      = edge[:surfaces][gardian]
-          s2      = edge[:surfaces][i]
+          s2      = edge[:surfaces][i      ]
           concave = concave?(s1, s2)
           convex  = convex?(s1, s2)
           flat    = !concave && !convex
 
-          # Subsurface edges are tagged as :head, :sill or :jamb, regardless
-          # of building PSI set subsurface tags. If the latter is simply
-          # :fenestration, then its (single) PSI value is systematically
-          # attributed to subsurface :head, :sill & :jamb edges. If absent,
-          # concave or convex variants also inherit from base type.
+          # Subsurface edges are tagged as head, sill or jamb, regardless of
+          # building PSI set subsurface-related tags. If the latter is simply
+          # :fenestration, then its single PSI factor is systematically
+          # assigned to e.g. a window's :head, :sill & :jamb edges.
           #
-          # TBD tags a subsurface edge as :jamb if the subsurface is "flat".
-          # If not flat, TBD tags a horizontal edge as either :head or :sill
-          # based on the polar angle of the subsurface around the edge vs sky
-          # zenith. Otherwise, all other subsurface edges are tagged as :jamb.
-          if ((s2[:normal].dot(zenith)).abs - 1).abs < TOL
-            set[:jamb       ] = shorts[:val][:jamb       ] if flat
-            set[:jambconcave] = shorts[:val][:jambconcave] if concave
-            set[:jambconvex ] = shorts[:val][:jambconvex ] if convex
-             is[:jamb       ] = true
-          else
-            if edge[:horizontal]
-              if s2[:polar].dot(zenith) < 0
-                set[:head       ] = shorts[:val][:head       ] if flat
-                set[:headconcave] = shorts[:val][:headconcave] if concave
-                set[:headconvex ] = shorts[:val][:headconvex ] if convex
-                 is[:head       ] = true
-              else
-                set[:sill       ] = shorts[:val][:sill       ] if flat
-                set[:sillconcave] = shorts[:val][:sillconcave] if concave
-                set[:sillconvex ] = shorts[:val][:sillconvex ] if convex
-                 is[:sill       ] = true
-              end
-            else
+          # Additionally, concave or convex variants also inherit from the base
+          # type if undefined in the PSI set.
+          #
+          # If a subsurface is not horizontal, TBD tags any horizontal edge as
+          # either :head or :sill based on the polar angle of the subsurface
+          # around the edge vs sky zenith. Otherwise, all other subsurface edges
+          # are tagged as :jamb.
+          if ((s2[:normal].dot(zenith)).abs - 1).abs < TOL # horizontal surface
+            if glazed || window
               set[:jamb       ] = shorts[:val][:jamb       ] if flat
               set[:jambconcave] = shorts[:val][:jambconcave] if concave
               set[:jambconvex ] = shorts[:val][:jambconvex ] if convex
                is[:jamb       ] = true
+            elsif door
+              set[:doorjamb       ] = shorts[:val][:doorjamb       ] if flat
+              set[:doorjambconcave] = shorts[:val][:doorjambconcave] if concave
+              set[:doorjambconvex ] = shorts[:val][:doorjambconvex ] if convex
+               is[:doorjamb       ] = true
+            else
+              set[:skylightjamb       ] = shorts[:val][:skylightjamb       ] if flat
+              set[:skylightjambconcave] = shorts[:val][:skylightjambconcave] if concave
+              set[:skylightjambconvex ] = shorts[:val][:skylightjambconvex ] if convex
+               is[:skylightjamb       ] = true
+            end
+          else
+            if glazed || window
+              if edge[:horizontal]
+                if s2[:polar].dot(zenith) < 0
+                  set[:head       ] = shorts[:val][:head       ] if flat
+                  set[:headconcave] = shorts[:val][:headconcave] if concave
+                  set[:headconvex ] = shorts[:val][:headconvex ] if convex
+                   is[:head       ] = true
+                else
+                  set[:sill       ] = shorts[:val][:sill       ] if flat
+                  set[:sillconcave] = shorts[:val][:sillconcave] if concave
+                  set[:sillconvex ] = shorts[:val][:sillconvex ] if convex
+                   is[:sill       ] = true
+                end
+              else
+                set[:jamb       ] = shorts[:val][:jamb       ] if flat
+                set[:jambconcave] = shorts[:val][:jambconcave] if concave
+                set[:jambconvex ] = shorts[:val][:jambconvex ] if convex
+                 is[:jamb       ] = true
+              end
+            elsif door
+              if edge[:horizontal]
+                if s2[:polar].dot(zenith) < 0
+
+                  set[:doorhead       ] = shorts[:val][:doorhead       ] if flat
+                  set[:doorheadconcave] = shorts[:val][:doorheadconcave] if concave
+                  set[:doorheadconvex ] = shorts[:val][:doorheadconvex ] if convex
+                   is[:doorhead       ] = true
+                else
+                  set[:doorsill       ] = shorts[:val][:doorsill       ] if flat
+                  set[:doorsillconcave] = shorts[:val][:doorsillconcave] if concave
+                  set[:doorsillconvex ] = shorts[:val][:doorsillconvex ] if convex
+                   is[:doorsill       ] = true
+                end
+              else
+                set[:doorjamb       ] = shorts[:val][:doorjamb       ] if flat
+                set[:doorjambconcave] = shorts[:val][:doorjambconcave] if concave
+                set[:doorjambconvex ] = shorts[:val][:doorjambconvex ] if convex
+                 is[:doorjamb       ] = true
+              end
+            else
+              if edge[:horizontal]
+                if s2[:polar].dot(zenith) < 0
+                  set[:skylighthead       ] = shorts[:val][:skylighthead       ] if flat
+                  set[:skylightheadconcave] = shorts[:val][:skylightheadconcave] if concave
+                  set[:skylightheadconvex ] = shorts[:val][:skylightheadconvex ] if convex
+                   is[:skylighthead       ] = true
+                else
+                  set[:skylightsill       ] = shorts[:val][:skylightsill       ] if flat
+                  set[:skylightsillconcave] = shorts[:val][:skylightsillconcave] if concave
+                  set[:skylightsillconvex ] = shorts[:val][:skylightsillconvex ] if convex
+                   is[:skylightsill       ] = true
+                end
+              else
+                set[:skylightjamb       ] = shorts[:val][:skylightjamb       ] if flat
+                set[:skylightjambconcave] = shorts[:val][:skylightjambconcave] if concave
+                set[:skylightjambconvex ] = shorts[:val][:skylightjambconvex ] if convex
+                 is[:skylightjamb       ] = true
+              end
             end
           end
         end
@@ -1785,7 +2067,7 @@ module TBD
           next unless facing == "othersidecoefficients"
 
           s1      = edge[:surfaces][id]
-          s2      = edge[:surfaces][i]
+          s2      = edge[:surfaces][i ]
           concave = concave?(s1, s2)
           convex  = convex?(s1, s2)
           flat    = !concave && !convex
@@ -1966,7 +2248,7 @@ module TBD
         end
       end
 
-      # Reset wall-to-roof intersection type (if on file) - groups.
+      # Reset wall-to-roof intersection type (if on file) ... per group.
       [:stories, :spacetypes, :spaces].each do |groups|
         key = :story
         key = :stype if groups == :spacetypes
@@ -2287,7 +2569,7 @@ module TBD
             # An edge may be tagged with (potentially conflicting) multipliers.
             # This is only possible if the edge links 2 subsurfaces, e.g. a
             # shared jamb between window & door. By default, TBD tags common
-            # subsurface edges as (mild) "transitions" (i.e. PSI 0 W/K.m), so
+            # subsurface edges as (mild) "transitions" (i.e. PSI 0 W/K•m), so
             # there would be no point in assigning an edge multiplier. Users
             # can however reset an edge type via a TBD JSON input file (e.g.
             # "joint" instead of "transition"). It would be a very odd choice,

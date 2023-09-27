@@ -123,43 +123,123 @@
           "type": "number"
         },
         "fenestration": {
-          "title": "Window, door, skylight perimeter PSI",
+          "title": "Window or glazed door perimeter PSI",
           "type": "number"
         },
         "head": {
-          "title": "Aperture head/lintel PSI",
+          "title": "Window or glazed door header/lintel PSI",
           "type": "number"
         },
         "headconcave": {
-          "title": "Concave aperture head/lintel PSI",
+          "title": "Concave window or glazed door header/lintel PSI",
           "type": "number"
         },
         "headconvex": {
-          "title": "Convex aperture head/lintel PSI",
+          "title": "Convex window or glazed door header/lintel PSI",
           "type": "number"
         },
         "sill": {
-          "title": "Aperture sill/base PSI",
+          "title": "Window or glazed door sill/threshold PSI",
           "type": "number"
         },
         "sillconcave": {
-          "title": "Concave aperture sill/base PSI",
+          "title": "Concave window or glazed door sill/threshold PSI",
           "type": "number"
         },
         "sillconvex": {
-          "title": "Convex aperture sill/base PSI",
+          "title": "Convex window or glazed door sill/threshold PSI",
           "type": "number"
         },
         "jamb": {
-          "title": "Aperture jamb/side PSI",
+          "title": "Window or glazed door side jamb PSI",
           "type": "number"
         },
         "jambconcave": {
-          "title": "Concave aperture jamb/side PSI",
+          "title": "Concave window or glazed door side jamb PSI",
           "type": "number"
         },
         "jambconvex": {
-          "title": "Convex aperture jamb/side PSI",
+          "title": "Convex window or glazed door side jamb PSI",
+          "type": "number"
+        },
+        "door": {
+          "title": "Opaque door perimeter PSI",
+          "type": "number"
+        },
+        "doorhead": {
+          "title": "Opaque door header/lintel PSI",
+          "type": "number"
+        },
+        "doorheadconcave": {
+          "title": "Concave opaque door header/lintel PSI",
+          "type": "number"
+        },
+        "doorheadconvex": {
+          "title": "Convex opaque door header/lintel PSI",
+          "type": "number"
+        },
+        "doorsill": {
+          "title": "Opaque door sill/threshold PSI",
+          "type": "number"
+        },
+        "doorsillconcave": {
+          "title": "Concave opaque door sill/threshold PSI",
+          "type": "number"
+        },
+        "doorsillconvex": {
+          "title": "Convex opaque door sill/threshold PSI",
+          "type": "number"
+        },
+        "doorjamb": {
+          "title": "Opaque door side jamb PSI",
+          "type": "number"
+        },
+        "doorjambconcave": {
+          "title": "Concave opaque door side jamb PSI",
+          "type": "number"
+        },
+        "doorjambconvex": {
+          "title": "Convex opaque door side jamb PSI",
+          "type": "number"
+        },
+        "skylight": {
+          "title": "Skylight perimeter PSI",
+          "type": "number"
+        },
+        "skylighthead": {
+          "title": "Skylight header/lintel PSI",
+          "type": "number"
+        },
+        "skylightheadconcave": {
+          "title": "Concave skylight header/lintel PSI",
+          "type": "number"
+        },
+        "skylightheadconvex": {
+          "title": "Convex skylight header/lintel PSI",
+          "type": "number"
+        },
+        "skylightsill": {
+          "title": "Skylight sill/threshold PSI",
+          "type": "number"
+        },
+        "skylightsillconcave": {
+          "title": "Concave skylight sill/threshold PSI",
+          "type": "number"
+        },
+        "skylightsillconvex": {
+          "title": "Convex skylight sill/threshold PSI",
+          "type": "number"
+        },
+        "skylightjamb": {
+          "title": "Skylight side jamb PSI",
+          "type": "number"
+        },
+        "skylightjambconcave": {
+          "title": "Concave skylight side jamb PSI",
+          "type": "number"
+        },
+        "skylightjambconvex": {
+          "title": "Convex skylight side jamb PSI",
           "type": "number"
         },
         "spandrel": {
@@ -299,6 +379,26 @@
             "jamb",
             "jambconcave",
             "jambconvex",
+            "door",
+            "doorhead",
+            "doorheadconcave",
+            "doorheadconvex",
+            "doorsill",
+            "doorsillconcave",
+            "doorsillconvex",
+            "doorjamb",
+            "doorjambconcave",
+            "doorjambconvex",
+            "skylight",
+            "skylighthead",
+            "skylightheadconcave",
+            "skylightheadconvex",
+            "skylightsill",
+            "skylightsillconcave",
+            "skylightsillconvex",
+            "skylightjamb",
+            "skylightjambconcave",
+            "skylightjambconvex",
             "spandrel",
             "spandrelconcave",
             "spandrelconvex",

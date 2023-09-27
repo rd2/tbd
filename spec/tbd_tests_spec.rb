@@ -10,7 +10,7 @@ RSpec.describe TBD do
   ERR  = TBD::ERR
   FTL  = TBD::FTL
 
-  it "can process testing JSON surface KHI entries" do
+  it "can process JSON surface KHI entries" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     expect(TBD.level     ).to eq(INF)
     expect(TBD.reset(DBG)).to eq(DBG)
@@ -151,7 +151,7 @@ RSpec.describe TBD do
     expect(TBD.logs.first[:message]).to include("existing PSI set")
     TBD.clean!
 
-    # ...
+    # Side test on balcony/sill.
     expect(ps.safe("code (Quebec)", :balconysillconcave)).to eq(:balconysill)
 
     # Defined vs missing conductances.
@@ -409,13 +409,13 @@ RSpec.describe TBD do
       bloc = bloc1
       bloc = bloc2 if surface[:heating] < 18
 
-      if    surface[:type ] == :wall
+      if surface[:type ] == :wall
         bloc[:pro][:walls ] += surface[:net] * surface[:u  ]
         bloc[:ref][:walls ] += surface[:net] * surface[:ref]
       elsif surface[:type ] == :ceiling
         bloc[:pro][:roofs ] += surface[:net] * surface[:u  ]
         bloc[:ref][:roofs ] += surface[:net] * surface[:ref]
-      else                   # :floors
+      else
         bloc[:pro][:floors] += surface[:net] * surface[:u  ]
         bloc[:ref][:floors] += surface[:net] * surface[:ref]
       end
@@ -500,6 +500,14 @@ RSpec.describe TBD do
             bloc[:pro][:parapets ] += edge[:length] * edge[:psi  ]
             bloc[:ref][:parapets ] += edge[:length] * edge[:ratio] * val[tt]
           when :fenestration
+            expect(rate).to be_within(0.1).of(40.0)
+            bloc[:pro][:trim     ] += edge[:length] * edge[:psi  ]
+            bloc[:ref][:trim     ] += edge[:length] * edge[:ratio] * val[tt]
+          when :door
+            expect(rate).to be_within(0.1).of(40.0)
+            bloc[:pro][:trim     ] += edge[:length] * edge[:psi  ]
+            bloc[:ref][:trim     ] += edge[:length] * edge[:ratio] * val[tt]
+          when :skylight
             expect(rate).to be_within(0.1).of(40.0)
             bloc[:pro][:trim     ] += edge[:length] * edge[:psi  ]
             bloc[:ref][:trim     ] += edge[:length] * edge[:ratio] * val[tt]
@@ -1235,7 +1243,7 @@ RSpec.describe TBD do
     original_r = insulation.thickness / insulation.thermalConductivity
     expect(original_r).to be_within(TOL).of(1.8380)
 
-    argh = { option: "efficient (BETBG)" } # all PSI factors @ 0.2 W/K.m
+    argh = { option: "efficient (BETBG)" } # all PSI factors @ 0.2 W/K•m
 
     json     = TBD.process(model, argh)
     expect(json).to be_a(Hash)
@@ -1333,7 +1341,7 @@ RSpec.describe TBD do
     model = model.get
 
     argh                = {}
-    argh[:option      ] = "efficient (BETBG)" # all PSI factors @ 0.2 W/K.m
+    argh[:option      ] = "efficient (BETBG)" # all PSI factors @ 0.2 W/K•m
     argh[:uprate_walls] = true
     argh[:uprate_roofs] = true
     argh[:wall_option ] = "ALL wall constructions"
@@ -1608,8 +1616,8 @@ RSpec.describe TBD do
     # development of an OpenStudio model. In determining the conditioning
     # status of each OpenStudio space, TBD relies on OSut methods:
     #   - 'setpoints(space)': applicable space heating/cooling setpoints
-    #   - 'heatingTemperatureSetpoints?': ANY space holds heating setpoints?
-    #   - 'coolingTemperatureSetpoints?': ANY space holds cooling setpoints?
+    #   - 'heatingTemperatureSetpoints?': ANY space holding heating setpoints?
+    #   - 'coolingTemperatureSetpoints?': ANY space holding cooling setpoints?
     #
     # Users can consult the online OSut API documentation to know more.
 
@@ -2400,6 +2408,10 @@ RSpec.describe TBD do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     TBD.clean!
 
+    # The following populates OpenStudio and Topolys models of "Lo Scrigno"
+    # (or Jewel Box), by Renzo Piano (Lingotto Factory, Turin); a cantilevered,
+    # single space art gallery (space #1) above a supply plenum with slanted
+    # undersides (space #2) resting on four main pillars.
     file  = File.join(__dir__, "files/osms/in/loscrigno.osm")
     path  = OpenStudio::Path.new(file)
     model = translator.loadModel(path)
@@ -2427,6 +2439,8 @@ RSpec.describe TBD do
     n_edges_as_balconysills      = 0
     n_edges_as_concave_parapets  = 0
     n_edges_as_convex_parapets   = 0
+    n_edges_as_concave_roofs     = 0
+    n_edges_as_convex_roofs      = 0
     n_edges_as_rimjoists         = 0
     n_edges_as_concave_rimjoists = 0
     n_edges_as_convex_rimjoists  = 0
@@ -2434,6 +2448,10 @@ RSpec.describe TBD do
     n_edges_as_heads             = 0
     n_edges_as_sills             = 0
     n_edges_as_jambs             = 0
+    n_edges_as_doorheads         = 0
+    n_edges_as_doorsills         = 0
+    n_edges_as_doorjambs         = 0
+    n_edges_as_skylightjambs     = 0
     n_edges_as_concave_jambs     = 0
     n_edges_as_convex_jambs      = 0
     n_edges_as_corners           = 0
@@ -2455,6 +2473,8 @@ RSpec.describe TBD do
       n_edges_as_balconysills      += 1 if edge[:type] == :balconysillconvex
       n_edges_as_concave_parapets  += 1 if edge[:type] == :parapetconcave
       n_edges_as_convex_parapets   += 1 if edge[:type] == :parapetconvex
+      n_edges_as_concave_roofs     += 1 if edge[:type] == :roofconcave
+      n_edges_as_convex_roofs      += 1 if edge[:type] == :roofconvex
       n_edges_as_rimjoists         += 1 if edge[:type] == :rimjoist
       n_edges_as_concave_rimjoists += 1 if edge[:type] == :rimjoistconcave
       n_edges_as_convex_rimjoists  += 1 if edge[:type] == :rimjoistconvex
@@ -2468,6 +2488,223 @@ RSpec.describe TBD do
       n_edges_as_jambs             += 1 if edge[:type] == :jamb
       n_edges_as_concave_jambs     += 1 if edge[:type] == :jambconcave
       n_edges_as_convex_jambs      += 1 if edge[:type] == :jambconvex
+      n_edges_as_doorheads         += 1 if edge[:type] == :doorhead
+      n_edges_as_doorsills         += 1 if edge[:type] == :doorsill
+      n_edges_as_doorjambs         += 1 if edge[:type] == :doorjamb
+      n_edges_as_skylightjambs     += 1 if edge[:type] == :skylightjamb
+      n_edges_as_skylightjambs     += 1 if edge[:type] == :skylightjambconvex
+      n_edges_as_corners           += 1 if edge[:type] == :corner
+      n_edges_as_concave_corners   += 1 if edge[:type] == :cornerconcave
+      n_edges_as_convex_corners    += 1 if edge[:type] == :cornerconvex
+      n_edges_as_transitions       += 1 if edge[:type] == :transition
+    end
+
+    # Lo Scrigno holds 8x wall/roof edges:
+    #   - 4x along gallery roof/skylight (all convex)
+    #   - 4x along the elevator roof (3x convex + 1x concave)
+    #
+    # The gallery wall/roof edges are not modelled here "as built", but rather
+    # closer to details of another Renzo Piano extension: the Modern Wing of the
+    # Art Institute of Chicago. Both galleries are similar in that daylighting
+    # is zenithal, covering all (or nearly all) of the roof surface. In the
+    # case of Chicago, the roof is entirely glazed (as reflected in the model):
+    #
+    # www.archdaily.com/24652/the-modern-wing-renzo-piano/
+    # 5010473228ba0d42220015f8-the-modern-wing-renzo-piano-image?next_project=no
+    #
+    # This is allowed in OpenStudio, yet SketchUp (via the plugin) would
+    # complain.
+    #
+    # No judgement here on the suitability of the design for either Chicago or
+    # Turin. The model nonetheless remains an interesting (~extreme) test case
+    # for TBD. Here, the transition from "wall-to-roof" and "roof-to-skylight"
+    # are one and the same. So is the edge a :skylight edge? or a :parapet (or
+    # :roof) edge? They're both. In such cases, the final selection in TBD is
+    # based on the greatest PSI factor. In ASHRAE 90.1 2022, only "vertical
+    # fenestration" edge PSI factors are explicitely stated/published. For this
+    # reason, the 8x TBD-built-in ASHRAE PSI sets have 0 W/K per meter assigned
+    # for any non-regulated edge, e.g.:
+    #
+    #   - skylight perimeters
+    #   - non-fenestrated door perimeters
+    #   - corners
+    #
+    # There are (possibly) 2x admissible interpretations of how to treat
+    # non-regulated heat losss (edges as linear thermal bridges) in 90.1:
+    #   1. assign 0 W/K•m for both proposed design and budget building models
+    #   2. assign more realistic PSi factors, equally to both proposed/budget
+    #
+    # In both cases, the treatment of non-regulated heat loss remains "neutral"
+    # between both proposed design and budget building models. Option #2 remains
+    # closer to reality (more heat loss in winter, likely more heat gain in
+    # summer), which is preferable for HVAC autosizing. Yet 90.1 (2022) ECB
+    # doesn't seem to afford this type of flexibility, contrary to the "neutral"
+    # treatment of (non-regulated) miscellaneous (process) loads. So for now,
+    # TBD's built-in ASHRAE 90.1 2022 (A10) PSI factor sets recflect option #1.
+    #
+    # Users who prefer option #2 can always write up a custom ASHRAE 90.1 (A10)
+    # PSI factor set on file (tbd.json), initially based on the built-in 90.1
+    # sets yet while resetting non-zero PSI factors.
+    expect(n_edges_at_grade            ).to eq( 0)
+    expect(n_edges_as_balconies        ).to eq( 2)
+    expect(n_edges_as_balconysills     ).to eq( 2) # (2x instances of GlassDoor)
+    expect(n_edges_as_concave_parapets ).to eq( 1)
+    expect(n_edges_as_convex_parapets  ).to eq( 7)
+    expect(n_edges_as_concave_roofs    ).to eq( 0)
+    expect(n_edges_as_convex_roofs     ).to eq( 0)
+    expect(n_edges_as_rimjoists        ).to eq( 5)
+    expect(n_edges_as_concave_rimjoists).to eq( 5)
+    expect(n_edges_as_convex_rimjoists ).to eq(18)
+    expect(n_edges_as_fenestrations    ).to eq( 0)
+    expect(n_edges_as_heads            ).to eq( 2) # GlassDoor == fenestration
+    expect(n_edges_as_sills            ).to eq( 0) # (2x balconysills)
+    expect(n_edges_as_jambs            ).to eq( 4)
+    expect(n_edges_as_concave_jambs    ).to eq( 0)
+    expect(n_edges_as_convex_jambs     ).to eq( 0)
+    expect(n_edges_as_doorheads        ).to eq( 0)
+    expect(n_edges_as_doorjambs        ).to eq( 0)
+    expect(n_edges_as_doorsills        ).to eq( 0)
+    expect(n_edges_as_skylightjambs    ).to eq( 0) # (4 of 7x convex parapets)
+    expect(n_edges_as_corners          ).to eq( 0)
+    expect(n_edges_as_concave_corners  ).to eq( 4)
+    expect(n_edges_as_convex_corners   ).to eq(12)
+    expect(n_edges_as_transitions      ).to eq( 4)
+
+    # For the purposes of the RSpec, vertical access (elevator and stairs,
+    # normally fully glazed) are modelled as (opaque) extensions of either
+    # space. Deratable (exterior) surfaces are grouped, prefixed as follows:
+    #
+    #   - "g_" : art gallery
+    #   - "p_" : underfloor plenum (supplying gallery)
+    #   - "s_" : stairwell (leading to/through plenum & gallery)
+    #   - "e_" : (side) elevator leading to gallery
+    #
+    # East vs West walls have equal heat loss (W/K) from major thermal bridging
+    # as they are symmetrical. North vs South walls differ slightly due to:
+    #   - adjacency with elevator walls
+    #   - different balcony lengths
+    expect(surfaces["g_E_wall"  ][:heatloss]).to be_within(TOL).of( 4.30)
+    expect(surfaces["g_W_wall"  ][:heatloss]).to be_within(TOL).of( 4.30)
+    expect(surfaces["g_N_wall"  ][:heatloss]).to be_within(TOL).of(15.95)
+    expect(surfaces["g_S_wall"  ][:heatloss]).to be_within(TOL).of(15.86)
+
+    expect(surfaces["e_top"     ][:heatloss]).to be_within(TOL).of( 1.43)
+    expect(surfaces["e_E_wall"  ][:heatloss]).to be_within(TOL).of( 0.32)
+    expect(surfaces["e_W_wall"  ][:heatloss]).to be_within(TOL).of( 0.32)
+    expect(surfaces["e_N_wall"  ][:heatloss]).to be_within(TOL).of( 0.95)
+    expect(surfaces["e_S_wall"  ][:heatloss]).to be_within(TOL).of( 0.85)
+    expect(surfaces["e_floor"   ][:heatloss]).to be_within(TOL).of( 2.46)
+
+    expect(surfaces["s_E_wall"  ][:heatloss]).to be_within(TOL).of( 1.17)
+    expect(surfaces["s_W_wall"  ][:heatloss]).to be_within(TOL).of( 1.17)
+    expect(surfaces["s_N_wall"  ][:heatloss]).to be_within(TOL).of( 1.54)
+    expect(surfaces["s_S_wall"  ][:heatloss]).to be_within(TOL).of( 1.54)
+    expect(surfaces["s_floor"   ][:heatloss]).to be_within(TOL).of( 2.70)
+
+    expect(surfaces["p_W1_floor"][:heatloss]).to be_within(TOL).of( 4.23)
+    expect(surfaces["p_W2_floor"][:heatloss]).to be_within(TOL).of( 4.22)
+    expect(surfaces["p_E_floor" ][:heatloss]).to be_within(TOL).of( 5.73)
+    expect(surfaces["p_N_wall"  ][:heatloss]).to be_within(TOL).of(11.44)
+    expect(surfaces["p_S2_wall" ][:heatloss]).to be_within(TOL).of( 8.16)
+    expect(surfaces["p_S1_wall" ][:heatloss]).to be_within(TOL).of( 2.04)
+    expect(surfaces["p_floor"   ][:heatloss]).to be_within(TOL).of( 3.07)
+
+    expect(argh).to have_key(:io)
+    out  = JSON.pretty_generate(argh[:io])
+    outP = File.join(__dir__, "../json/tbd_loscrigno1.out.json")
+    File.open(outP, "w") { |outP| outP.puts out }
+  end
+
+  it "can switch between parapet/roof edge types" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    TBD.clean!
+
+    file  = File.join(__dir__, "files/osms/in/loscrigno.osm")
+    path  = OpenStudio::Path.new(file)
+    model = translator.loadModel(path)
+    expect(model).to_not be_empty
+    model = model.get
+
+    # Switching wall/roof edges from/to:
+    #    - "parapet" PSI factor 0.26 W/K•m
+    #    - "roof"    PSI factor 0.02 W/K•m !!
+    #
+    # ... as per 90.1 2022 (non-"parapet" admisible thresholds are much lower).
+    argh = {option: "90.1.22|steel.m|default", parapet: false}
+
+    json     = TBD.process(model, argh)
+    expect(json).to be_a(Hash)
+    expect(json).to have_key(:io)
+    expect(json).to have_key(:surfaces)
+    io       = json[:io      ]
+    surfaces = json[:surfaces]
+    expect(TBD.status).to be_zero
+    expect(TBD.logs).to be_empty
+    expect(surfaces).to be_a Hash
+    expect(surfaces.size).to eq(27)
+    expect(io).to be_a(Hash)
+    expect(io).to have_key(:edges)
+    expect(io[:edges].size).to eq(66)
+
+    n_edges_at_grade             = 0
+    n_edges_as_balconies         = 0
+    n_edges_as_balconysills      = 0
+    n_edges_as_concave_parapets  = 0
+    n_edges_as_convex_parapets   = 0
+    n_edges_as_concave_roofs     = 0
+    n_edges_as_convex_roofs      = 0
+    n_edges_as_rimjoists         = 0
+    n_edges_as_concave_rimjoists = 0
+    n_edges_as_convex_rimjoists  = 0
+    n_edges_as_fenestrations     = 0
+    n_edges_as_heads             = 0
+    n_edges_as_sills             = 0
+    n_edges_as_jambs             = 0
+    n_edges_as_doorheads         = 0
+    n_edges_as_doorsills         = 0
+    n_edges_as_doorjambs         = 0
+    n_edges_as_skylightjambs     = 0
+    n_edges_as_concave_jambs     = 0
+    n_edges_as_convex_jambs      = 0
+    n_edges_as_corners           = 0
+    n_edges_as_concave_corners   = 0
+    n_edges_as_convex_corners    = 0
+    n_edges_as_transitions       = 0
+
+    io[:edges].each do |edge|
+      expect(edge).to have_key(:type)
+
+      n_edges_at_grade             += 1 if edge[:type] == :grade
+      n_edges_at_grade             += 1 if edge[:type] == :gradeconcave
+      n_edges_at_grade             += 1 if edge[:type] == :gradeconvex
+      n_edges_as_balconies         += 1 if edge[:type] == :balcony
+      n_edges_as_balconies         += 1 if edge[:type] == :balconyconcave
+      n_edges_as_balconies         += 1 if edge[:type] == :balconyconvex
+      n_edges_as_balconysills      += 1 if edge[:type] == :balconysill
+      n_edges_as_balconysills      += 1 if edge[:type] == :balconysillconcave
+      n_edges_as_balconysills      += 1 if edge[:type] == :balconysillconvex
+      n_edges_as_concave_parapets  += 1 if edge[:type] == :parapetconcave
+      n_edges_as_convex_parapets   += 1 if edge[:type] == :parapetconvex
+      n_edges_as_concave_roofs     += 1 if edge[:type] == :roofconcave
+      n_edges_as_convex_roofs      += 1 if edge[:type] == :roofconvex
+      n_edges_as_rimjoists         += 1 if edge[:type] == :rimjoist
+      n_edges_as_concave_rimjoists += 1 if edge[:type] == :rimjoistconcave
+      n_edges_as_convex_rimjoists  += 1 if edge[:type] == :rimjoistconvex
+      n_edges_as_fenestrations     += 1 if edge[:type] == :fenestration
+      n_edges_as_heads             += 1 if edge[:type] == :head
+      n_edges_as_heads             += 1 if edge[:type] == :headconcave
+      n_edges_as_heads             += 1 if edge[:type] == :headconvex
+      n_edges_as_sills             += 1 if edge[:type] == :sill
+      n_edges_as_sills             += 1 if edge[:type] == :sillconcave
+      n_edges_as_sills             += 1 if edge[:type] == :sillconvex
+      n_edges_as_jambs             += 1 if edge[:type] == :jamb
+      n_edges_as_concave_jambs     += 1 if edge[:type] == :jambconcave
+      n_edges_as_convex_jambs      += 1 if edge[:type] == :jambconvex
+      n_edges_as_doorheads         += 1 if edge[:type] == :doorhead
+      n_edges_as_doorsills         += 1 if edge[:type] == :doorsill
+      n_edges_as_doorjambs         += 1 if edge[:type] == :doorjamb
+      n_edges_as_skylightjambs     += 1 if edge[:type] == :skylightjamb
+      n_edges_as_skylightjambs     += 1 if edge[:type] == :skylightjambconvex
       n_edges_as_corners           += 1 if edge[:type] == :corner
       n_edges_as_concave_corners   += 1 if edge[:type] == :cornerconcave
       n_edges_as_convex_corners    += 1 if edge[:type] == :cornerconvex
@@ -2476,46 +2713,64 @@ RSpec.describe TBD do
 
     expect(n_edges_at_grade            ).to eq( 0)
     expect(n_edges_as_balconies        ).to eq( 2)
-    expect(n_edges_as_balconysills     ).to eq( 2)
-    expect(n_edges_as_concave_parapets ).to eq( 1)
-    expect(n_edges_as_convex_parapets  ).to eq( 7)
+    expect(n_edges_as_balconysills     ).to eq( 2) # (2x instances of GlassDoor)
+    expect(n_edges_as_concave_parapets ).to eq( 0) # 1 if parapet (not roof)
+    expect(n_edges_as_convex_parapets  ).to eq( 0) # 7 if parapet (not roof)
+    expect(n_edges_as_concave_roofs    ).to eq( 1)
+    expect(n_edges_as_convex_roofs     ).to eq( 7) # 7 - 4x "convex jambs"
     expect(n_edges_as_rimjoists        ).to eq( 5)
     expect(n_edges_as_concave_rimjoists).to eq( 5)
     expect(n_edges_as_convex_rimjoists ).to eq(18)
     expect(n_edges_as_fenestrations    ).to eq( 0)
-    expect(n_edges_as_heads            ).to eq( 2)
-    expect(n_edges_as_sills            ).to eq( 0) # balcony sills instead
+    expect(n_edges_as_heads            ).to eq( 2) # GlassDoor == fenestration
+    expect(n_edges_as_sills            ).to eq( 0) # (2x balconysills)
     expect(n_edges_as_jambs            ).to eq( 4)
     expect(n_edges_as_concave_jambs    ).to eq( 0)
     expect(n_edges_as_convex_jambs     ).to eq( 0)
+    expect(n_edges_as_doorheads        ).to eq( 0)
+    expect(n_edges_as_doorjambs        ).to eq( 0)
+    expect(n_edges_as_doorsills        ).to eq( 0)
+    expect(n_edges_as_skylightjambs    ).to eq( 0) # (4 of 7x convex roofs)
     expect(n_edges_as_corners          ).to eq( 0)
     expect(n_edges_as_concave_corners  ).to eq( 4)
     expect(n_edges_as_convex_corners   ).to eq(12)
     expect(n_edges_as_transitions      ).to eq( 4)
 
-    # "90.1.22|steel.m|default" vs "poor (BETBG)".
-    expect(surfaces["s_floor"   ][:heatloss]).to be_within(TOL).of( 2.700) # 8.800
-    expect(surfaces["s_E_wall"  ][:heatloss]).to be_within(TOL).of( 1.170) # 5.041
-    expect(surfaces["p_E_floor" ][:heatloss]).to be_within(TOL).of( 5.730) #18.650
-    expect(surfaces["s_S_wall"  ][:heatloss]).to be_within(TOL).of( 1.540) # 6.583
-    expect(surfaces["e_W_wall"  ][:heatloss]).to be_within(TOL).of( 0.320) # 6.023
-    expect(surfaces["p_N_wall"  ][:heatloss]).to be_within(TOL).of(11.440) #37.250
-    expect(surfaces["p_S2_wall" ][:heatloss]).to be_within(TOL).of( 8.160) #27.268
-    expect(surfaces["p_S1_wall" ][:heatloss]).to be_within(TOL).of( 2.040) # 7.063
-    expect(surfaces["g_S_wall"  ][:heatloss]).to be_within(TOL).of(15.860) #56.150
-    expect(surfaces["p_floor"   ][:heatloss]).to be_within(TOL).of( 3.070) #10.000
-    expect(surfaces["p_W1_floor"][:heatloss]).to be_within(TOL).of( 4.230) #13.775
-    expect(surfaces["e_N_wall"  ][:heatloss]).to be_within(TOL).of( 0.950) # 4.727
-    expect(surfaces["s_N_wall"  ][:heatloss]).to be_within(TOL).of( 1.540) # 6.583
-    expect(surfaces["g_E_wall"  ][:heatloss]).to be_within(TOL).of( 4.300) #18.195
-    expect(surfaces["e_S_wall"  ][:heatloss]).to be_within(TOL).of( 0.850) # 7.703
-    expect(surfaces["e_top"     ][:heatloss]).to be_within(TOL).of( 1.430) # 4.400
-    expect(surfaces["s_W_wall"  ][:heatloss]).to be_within(TOL).of( 1.170) # 5.670
-    expect(surfaces["e_E_wall"  ][:heatloss]).to be_within(TOL).of( 0.320) # 6.023
-    expect(surfaces["e_floor"   ][:heatloss]).to be_within(TOL).of( 2.460) # 8.007
-    expect(surfaces["g_W_wall"  ][:heatloss]).to be_within(TOL).of( 4.300) #18.195
-    expect(surfaces["g_N_wall"  ][:heatloss]).to be_within(TOL).of(15.950) #54.255
-    expect(surfaces["p_W2_floor"][:heatloss]).to be_within(TOL).of( 4.220) #13.729
+    #      roof PSI :  0.02 W/K•m
+    # - parapet PSI :  0.26 W/K•m
+    # ---------------------------
+    # =   delta PSI : -0.24 W/K•m
+    #
+    # e.g. East & West   : reduction of 10.4m x -0.24 W/K•m = -2.496 W/K
+    # e.g. North         : reduction of 36.6m x -0.24 W/K•m = -8.784 W/K
+    #
+    # Total length of roof/parapets : 11m + 2x 36.6m + 2x 10.4m = 105m
+    # ... 105m x -0.24 W/K•m = -25.2 W/K
+    expect(surfaces["g_E_wall"  ][:heatloss]).to be_within(TOL).of( 1.80) #   4.3 = -2.5
+    expect(surfaces["g_W_wall"  ][:heatloss]).to be_within(TOL).of( 1.80) #   4.3 = -2.5
+    expect(surfaces["g_N_wall"  ][:heatloss]).to be_within(TOL).of( 7.17) # 15.95 = -8.8
+    expect(surfaces["g_S_wall"  ][:heatloss]).to be_within(TOL).of( 6.59) # 15.85 = -9.3
+
+    expect(surfaces["e_top"     ][:heatloss]).to be_within(TOL).of( 0.11) #  1.32 = -1.2
+    expect(surfaces["e_E_wall"  ][:heatloss]).to be_within(TOL).of( 0.14) #  0.32 = -0.2
+    expect(surfaces["e_W_wall"  ][:heatloss]).to be_within(TOL).of( 0.14) #  0.32 = -0.2
+    expect(surfaces["e_N_wall"  ][:heatloss]).to be_within(TOL).of( 0.95)
+    expect(surfaces["e_S_wall"  ][:heatloss]).to be_within(TOL).of( 0.37) #  0.85 = -0.5
+    expect(surfaces["e_floor"   ][:heatloss]).to be_within(TOL).of( 2.46)
+
+    expect(surfaces["s_E_wall"  ][:heatloss]).to be_within(TOL).of( 1.17)
+    expect(surfaces["s_W_wall"  ][:heatloss]).to be_within(TOL).of( 1.17)
+    expect(surfaces["s_N_wall"  ][:heatloss]).to be_within(TOL).of( 1.54)
+    expect(surfaces["s_S_wall"  ][:heatloss]).to be_within(TOL).of( 1.54)
+    expect(surfaces["s_floor"   ][:heatloss]).to be_within(TOL).of( 2.70)
+
+    expect(surfaces["p_W1_floor"][:heatloss]).to be_within(TOL).of( 4.23)
+    expect(surfaces["p_W2_floor"][:heatloss]).to be_within(TOL).of( 4.22)
+    expect(surfaces["p_E_floor" ][:heatloss]).to be_within(TOL).of( 5.73)
+    expect(surfaces["p_N_wall"  ][:heatloss]).to be_within(TOL).of(11.44)
+    expect(surfaces["p_S2_wall" ][:heatloss]).to be_within(TOL).of( 8.16)
+    expect(surfaces["p_S1_wall" ][:heatloss]).to be_within(TOL).of( 2.04)
+    expect(surfaces["p_floor"   ][:heatloss]).to be_within(TOL).of( 3.07)
 
     expect(argh).to have_key(:io)
     out  = JSON.pretty_generate(argh[:io])

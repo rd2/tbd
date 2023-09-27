@@ -142,8 +142,9 @@ module TBD
 
       obj[:w].attributes[:id      ] = id
       obj[:w].attributes[:unhinged] = props[:unhinged] if props.key?(:unhinged)
-      obj[:w].attributes[:n       ] = props[:n]        if props.key?(:n)
-      props[:hole]                  = obj[:w]
+      obj[:w].attributes[:n       ] = props[:n       ] if props.key?(:n)
+
+      props[:hole] = obj[:w]
       holes << obj[:w]
     end
 
@@ -178,8 +179,8 @@ module TBD
       obj    = objects(model, props[:points])
       next unless obj[:vx] && obj[:w]
 
-      hols += kids(model, props[:windows  ]) if props.key?(:windows  )
-      hols += kids(model, props[:doors    ]) if props.key?(:doors    )
+      hols += kids(model, props[:windows  ]) if props.key?(:windows)
+      hols += kids(model, props[:doors    ]) if props.key?(:doors)
       hols += kids(model, props[:skylights]) if props.key?(:skylights)
 
       hols.each { |hol| hinged << hol unless hol.attributes[:unhinged] }
@@ -191,7 +192,8 @@ module TBD
 
       face.attributes[:id] = id
       face.attributes[:n ] = props[:n] if props.key?(:n)
-      props[:face]         = face
+
+      props[:face] = face
 
       hols.each { |hol| holes[hol.attributes[:id]] = hol }
     end
@@ -203,11 +205,13 @@ module TBD
   # Populates TBD edges with linked Topolys faces.
   #
   # @param [Hash] s TBD surfaces
-  # @option s [] :face
+  # @option s [Topolys::Face] :face a Topolys face
   # @param [Hash] e TBD edges
-  # @option e [] :length
+  # @option e [Numeric] :length edge length
+  # @option e [Topolys::Vertex] :v0 edge origin vertex
+  # @option e [Topolys::Vertex] :v1 edge terminal vertex
   #
-  # @return [Bool] whether successful if populating faces
+  # @return [Bool] whether successful in populating faces
   # @return [false] if invalid input (see logs)
   def faces(s = {}, e = {})
     mth = "TBD::#{__callee__}"
@@ -215,9 +219,10 @@ module TBD
     return mismatch("edges",    e, Hash, mth, DBG, false) unless e.is_a?(Hash)
 
     s.each do |id, props|
-      msg = "Missing Topolys face '#{id}' (#{mth})"
-      log(DBG, msg) unless props.key?(:face)
-      next          unless props.key?(:face)
+      unless props.key?(:face)
+        log(DBG, "Missing Topolys face '#{id}' (#{mth})")
+        next
+      end
 
       props[:face].wires.each do |wire|
         wire.edges.each do |edge|
@@ -357,22 +362,82 @@ module TBD
     surface.subSurfaces.sort_by { |s| s.nameString }.each do |s|
       next if poly(s).empty?
 
-      id       = s.nameString
-      valid    = s.vertices.size == 3 || s.vertices.size == 4
-      log(ERR, "Skipping '#{id}': vertex # 3 or 4 (#{mth})") unless valid
-      next                                                   unless valid
+      id  = s.nameString
+      typ = surface.surfaceType.downcase
 
-      vec      = s.vertices
-      area     = s.grossArea
-      mult     = s.multiplier
-      typ      = s.subSurfaceType.downcase
-      type     = :skylight
-      type     = :window       if typ.include?("window" )
-      type     = :door         if typ.include?("door"   )
-      glazed   = type == :door && typ.include?("glass"  )
-      tubular  =                  typ.include?("tubular")
-      domed    =                  typ.include?("dome"   )
-      unhinged = false
+      unless (3..4).cover?(s.vertices.size)
+        log(ERR, "Skipping '#{id}': vertex # 3 or 4 (#{mth})")
+        next
+      end
+
+      vec  = s.vertices
+      area = s.grossArea
+      mult = s.multiplier
+
+      # An OpenStudio subsurface has a "type" (string), either defaulted during
+      # initialization or explicitely set by the user (from a built-in list):
+      #
+      #   OpenStudio::Model::SubSurface.validSubSurfaceTypeValues
+      #   - "FixedWindow"
+      #   - "OperableWindow"
+      #   - "Door"
+      #   - "GlassDoor"
+      #   - "OverheadDoor"
+      #   - "Skylight"
+      #   - "TubularDaylightDome"
+      #   - "TubularDaylightDiffuser"
+      typ = s.subSurfaceType.downcase
+
+      # An OpenStudio default subsurface construction set can hold unique
+      # constructions assigned for each of these admissible types. In addition,
+      # type assignment determines whether frame/divider attributes can be
+      # linked to a subsurface (this shortlist has evolved between OpenStudio
+      # releases). Type assignment is relied upon when calculating (admissible)
+      # fenestration areas. TBD also relies on OpenStudio subsurface type
+      # assignment, with resulting TBD tags being a bit more concise, e.g.:
+      #
+      #   - :window includes "FixedWindow" and "OperableWindow"
+      #   - :door includes "Door", "OverheadWindow" and "GlassDoor"
+      #     ... a (roof) access roof hatch should be assigned as a "Door"
+      #   - :skylight includes "Skylight", "TubularDaylightDome", etc.
+      #
+      type = :skylight
+      type = :window if typ.include?("window") # operable or not
+      type = :door   if typ.include?("door")   # fenestrated or not
+
+      # In fact, ANY subsurface other than :window or :door is tagged as
+      # :skylight, e.g. a glazed floor opening (CN, Calgary, Tokyo towers). This
+      # happens to reflect OpenStudio default initialization behaviour. For
+      # instance, a subsurface added to an exposed (horizontal) floor in
+      # OpenStudio is automatically assigned a "Skylight" type. This is similar
+      # to the auto-assignment of (opaque) walls, roof/ceilings and floors
+      # (based on surface tilt) in OpenStudio.
+      #
+      # When it comes to major thermal bridging, ASHRAE 90.1 (2022) makes a
+      # clear distinction between "vertical fenestration" (a defined term) and
+      # all other subsurfaces. "Vertical fenestration" would include both
+      # instances of "Window", as well as "GlassDoor". It would exclude however
+      # a non-fenestrated "door" (another defined term), like "Door" &
+      # "OverheadDoor", as well as skylights. TBD tracks relevant subsurface
+      # attributes via a handful of boolean variables:
+      glazed   = type == :door && typ.include?("glass")   # fenestrated door
+      tubular  =                  typ.include?("tubular") # dome or diffuser
+      domed    =                  typ.include?("dome")    # (tubular) dome
+      unhinged = false                                    # (tubular) dome
+
+      # It would be tempting (and simple) to have TBD further validate whether a
+      # "GlassDoor" is actually integrated within a (vertical) wall. The
+      # automated type assignment in OpenStudio is very simple and reliable (as
+      # discussed in the preceding paragraphs), yet users can nonetheless reset
+      # this explicitly. For instance, while a vertical surface may indeed be
+      # auto-assigned "Wall", a modeller can just as easily reset its type as
+      # "Floor". Although OpenStudio supports 90.1 rules by default, it's not
+      # enforced. TBD retains the same approach: for whatever osbcur reason a
+      # modeller may decide (and hopefully the "authority having jurisdiction"
+      # may authorize) to reset a wall as a "Floor" or a roof skylight as a
+      # "GlassDoor", TBD maintains the same OpenStudio policy. Either OpenStudio
+      # (and consequently EnergyPlus) sub/surface type assignment is reliable,
+      # or it is not.
 
       # Determine if TDD dome subsurface is 'unhinged', i.e. unconnected to its
       # base surface (not same 3D plane).
@@ -381,16 +446,24 @@ module TBD
         n = s.outwardNormal if unhinged
       end
 
-      log(ERR, "Skipping '#{id}': gross area ~zero (#{mth})") if area < TOL
-      next                                                    if area < TOL
+      if area < TOL
+        log(ERR, "Skipping '#{id}': gross area ~zero (#{mth})")
+        next
+      end
 
       c = s.construction
-      log(ERR, "Skipping '#{id}': missing construction (#{mth})") if c.empty?
-      next                                                        if c.empty?
+
+      if c.empty?
+        log(ERR, "Skipping '#{id}': missing construction (#{mth})")
+        next
+      end
 
       c = c.get.to_LayeredConstruction
-      log(WRN, "Skipping '#{id}': subs limited to #{cl2} (#{mth})") if c.empty?
-      next                                                          if c.empty?
+
+      if c.empty?
+        log(WRN, "Skipping '#{id}': subs limited to #{cl2} (#{mth})")
+        next
+      end
 
       c = c.get
 
@@ -433,10 +506,12 @@ module TBD
       end
 
       unless u.is_a?(Numeric)
-        r   = rsi(c, surface.filmResistance)
-        msg = "Skipping '#{id}': U-factor unavailable (#{mth})"
-        log(ERR, msg) if r < TOL
-        next          if r < TOL
+        r = rsi(c, surface.filmResistance)
+
+        if r < TOL
+          log(ERR, "Skipping '#{id}': U-factor unavailable (#{mth})")
+          next
+        end
 
         u = 1 / r
       end
@@ -449,9 +524,11 @@ module TBD
         width = s.windowPropertyFrameAndDivider.get.frameWidth
         vec   = offset(vec, width, 300)
         area  = OpenStudio.getArea(vec)
-        msg   = "Skipping '#{id}': invalid offset (#{mth})"
-        log(ERR, msg) if area.empty?
-        next          if area.empty?
+
+        if area.empty?
+          log(ERR, "Skipping '#{id}': invalid offset (#{mth})")
+          next
+        end
 
         area = area.get
       end
@@ -467,7 +544,7 @@ module TBD
               unhinged: unhinged }
 
       sub[:glazed] = true if glazed
-      subs[id]     = sub
+      subs[id    ] = sub
     end
 
     valid = true
@@ -481,17 +558,16 @@ module TBD
       break unless valid
 
       valid = fits?(sub[:points], surface.vertices)
-      msg   = "Skipping '#{id}': can't fit in '#{nom}' (#{mth})"
-      log(ERR, msg)  unless valid
+      log(ERR, "Skipping '#{id}': can't fit in '#{nom}' (#{mth})") unless valid
 
       subs.each do |i, sb|
         break unless valid
-        next if i == id
+        next      if i == id
 
-        oops = overlaps?(sb[:points], sub[:points])
-        msg = "Skipping '#{id}': overlaps sibling '#{i}' (#{mth})"
-        log(ERR, msg) if oops
-        valid = false if oops
+        if overlaps?(sb[:points], sub[:points])
+          log(ERR, "Skipping '#{id}': overlaps sibling '#{i}' (#{mth})")
+          valid = false
+        end
       end
     end
 
@@ -515,16 +591,16 @@ module TBD
 
     subs.each do |id, sub|
       pts = (t * sub[:points]).map { |v| Topolys::Point3D.new(v.x, v.y, v.z) }
+
       sub[:points] = pts
       sub[:minz  ] = ( pts.map { |p| p.z } ).min
 
       [:windows, :doors, :skylights].each do |types|
         type = types.slice(0..-2).to_sym
-
-        if sub[:type] == type
-          surf[types]     = {} unless surf.key?(types)
-          surf[types][id] = sub
-        end
+        next unless sub[:type] == type
+        
+        surf[types]     = {} unless surf.key?(types)
+        surf[types][id] = sub
       end
     end
 
@@ -548,12 +624,12 @@ module TBD
     return mismatch("s2", s2, Hash, mth, DBG, false) unless s2.is_a?(Hash)
     return false if s1 == s2
 
-    return hashkey("s1", s1,  :angle, mth, DBG, false) unless s1.key?(:angle )
-    return hashkey("s2", s2,  :angle, mth, DBG, false) unless s2.key?(:angle )
+    return hashkey("s1", s1,  :angle, mth, DBG, false) unless s1.key?(:angle)
+    return hashkey("s2", s2,  :angle, mth, DBG, false) unless s2.key?(:angle)
     return hashkey("s1", s1, :normal, mth, DBG, false) unless s1.key?(:normal)
     return hashkey("s2", s2, :normal, mth, DBG, false) unless s2.key?(:normal)
-    return hashkey("s1", s1,  :polar, mth, DBG, false) unless s1.key?(:polar )
-    return hashkey("s2", s2,  :polar, mth, DBG, false) unless s2.key?(:polar )
+    return hashkey("s1", s1,  :polar, mth, DBG, false) unless s1.key?(:polar)
+    return hashkey("s2", s2,  :polar, mth, DBG, false) unless s2.key?(:polar)
 
     valid1 = s1[:angle].is_a?(Numeric)
     valid2 = s2[:angle].is_a?(Numeric)
@@ -591,12 +667,12 @@ module TBD
     return mismatch("s2", s2, Hash, mth, DBG, false) unless s2.is_a?(Hash)
     return false if s1 == s2
 
-    return hashkey("s1", s1,  :angle, mth, DBG, false) unless s1.key?(:angle )
-    return hashkey("s2", s2,  :angle, mth, DBG, false) unless s2.key?(:angle )
+    return hashkey("s1", s1,  :angle, mth, DBG, false) unless s1.key?(:angle)
+    return hashkey("s2", s2,  :angle, mth, DBG, false) unless s2.key?(:angle)
     return hashkey("s1", s1, :normal, mth, DBG, false) unless s1.key?(:normal)
     return hashkey("s2", s2, :normal, mth, DBG, false) unless s2.key?(:normal)
-    return hashkey("s1", s1,  :polar, mth, DBG, false) unless s1.key?(:polar )
-    return hashkey("s2", s2,  :polar, mth, DBG, false) unless s2.key?(:polar )
+    return hashkey("s1", s1,  :polar, mth, DBG, false) unless s1.key?(:polar)
+    return hashkey("s2", s2,  :polar, mth, DBG, false) unless s2.key?(:polar)
 
     valid1 = s1[:angle].is_a?(Numeric)
     valid2 = s2[:angle].is_a?(Numeric)

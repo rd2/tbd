@@ -533,11 +533,11 @@ module TBD
     return mismatch("date", date, cl1, mth, DBG, ua) unless date.is_a?(cl1)
     return mismatch("argh", argh, cl3, mth, DBG, ua) unless argh.is_a?(cl3)
 
-    argh[:seed    ] = ""  unless argh.key?(:seed    )
-    argh[:ua_ref  ] = ""  unless argh.key?(:ua_ref  )
+    argh[:seed    ] = ""  unless argh.key?(:seed)
+    argh[:ua_ref  ] = ""  unless argh.key?(:ua_ref)
     argh[:surfaces] = nil unless argh.key?(:surfaces)
-    argh[:version ] = ""  unless argh.key?(:version )
-    argh[:io      ] = {}  unless argh.key?(:io      )
+    argh[:version ] = ""  unless argh.key?(:version)
+    argh[:io      ] = {}  unless argh.key?(:io)
 
     file = argh[:seed    ]
     ref  = argh[:ua_ref  ]
@@ -712,20 +712,35 @@ module TBD
           next unless edge.key?(:psi)
 
           loss = edge[:length] * edge[:psi]
-          type = edge[:type].to_s
+          # type = edge[:type].to_s
+          type = edge[:type].to_s.downcase
 
-          case type
-          when /rimjoist/i     then bloc[:pro][:rimjoists] += loss
-          when /parapet/i      then bloc[:pro][:parapets ] += loss
-          when /roof/i         then bloc[:pro][:parapets ] += loss
-          when /fenestration/i then bloc[:pro][:trim     ] += loss
-          when /head/i         then bloc[:pro][:trim     ] += loss
-          when /sill/i         then bloc[:pro][:trim     ] += loss
-          when /jamb/i         then bloc[:pro][:trim     ] += loss
-          when /corner/i       then bloc[:pro][:corners  ] += loss
-          when /balcony/i      then bloc[:pro][:balconies] += loss
-          when /grade/i        then bloc[:pro][:grade    ] += loss
-          else                      bloc[:pro][:other    ] += loss
+          if edge[:type].to_s.downcase.include?("balcony")
+            bloc[:pro][:balconies] += loss
+          elsif edge[:type].to_s.downcase.include?("door")
+            bloc[:pro][:trim     ] += loss
+          elsif edge[:type].to_s.downcase.include?("skylight")
+            bloc[:pro][:trim     ] += loss
+          elsif edge[:type].to_s.downcase.include?("fenestration")
+            bloc[:pro][:trim     ] += loss
+          elsif edge[:type].to_s.downcase.include?("head")
+            bloc[:pro][:trim     ] += loss
+          elsif edge[:type].to_s.downcase.include?("sill")
+            bloc[:pro][:trim     ] += loss
+          elsif edge[:type].to_s.downcase.include?("jamb")
+            bloc[:pro][:trim     ] += loss
+          elsif edge[:type].to_s.downcase.include?("rimjoist")
+            bloc[:pro][:rimjoists] += loss
+          elsif edge[:type].to_s.downcase.include?("parapet")
+            bloc[:pro][:parapets ] += loss
+          elsif edge[:type].to_s.downcase.include?("roof")
+            bloc[:pro][:parapets ] += loss
+          elsif edge[:type].to_s.downcase.include?("corner")
+            bloc[:pro][:corners  ] += loss
+          elsif edge[:type].to_s.downcase.include?("grade")
+            bloc[:pro][:grade    ] += loss
+          else
+            bloc[:pro][:other    ] += loss
           end
 
           next if val.empty?
@@ -736,18 +751,32 @@ module TBD
           loss  = edge[:length] * edge[:ref]                    if ok
           loss  = edge[:length] * val[safer] * edge[:ratio] unless ok
 
-          case safer.to_s
-          when /rimjoist/i     then bloc[:ref][:rimjoists] += loss
-          when /parapet/i      then bloc[:ref][:parapets ] += loss
-          when /roof/i         then bloc[:pro][:parapets ] += loss
-          when /fenestration/i then bloc[:ref][:trim     ] += loss
-          when /head/i         then bloc[:ref][:trim     ] += loss
-          when /sill/i         then bloc[:ref][:trim     ] += loss
-          when /jamb/i         then bloc[:ref][:trim     ] += loss
-          when /corner/i       then bloc[:ref][:corners  ] += loss
-          when /balcony/i      then bloc[:pro][:balconies] += loss
-          when /grade/i        then bloc[:ref][:grade    ] += loss
-          else                      bloc[:ref][:other    ] += loss
+          if edge[:type].to_s.downcase.include?("balcony")
+            bloc[:pro][:balconies] += loss
+          elsif edge[:type].to_s.downcase.include?("door")
+            bloc[:pro][:trim     ] += loss
+          elsif edge[:type].to_s.downcase.include?("skylight")
+            bloc[:pro][:trim     ] += loss
+          elsif edge[:type].to_s.downcase.include?("fenestration")
+            bloc[:pro][:trim     ] += loss
+          elsif edge[:type].to_s.downcase.include?("head")
+            bloc[:pro][:trim     ] += loss
+          elsif edge[:type].to_s.downcase.include?("sill")
+            bloc[:pro][:trim     ] += loss
+          elsif edge[:type].to_s.downcase.include?("jamb")
+            bloc[:pro][:trim     ] += loss
+          elsif edge[:type].to_s.downcase.include?("rimjoist")
+            bloc[:pro][:rimjoists] += loss
+          elsif edge[:type].to_s.downcase.include?("parapet")
+            bloc[:pro][:parapets ] += loss
+          elsif edge[:type].to_s.downcase.include?("roof")
+            bloc[:pro][:parapets ] += loss
+          elsif edge[:type].to_s.downcase.include?("corner")
+            bloc[:pro][:corners  ] += loss
+          elsif edge[:type].to_s.downcase.include?("grade")
+            bloc[:pro][:grade    ] += loss
+          else
+            bloc[:pro][:other    ] += loss
           end
         end
       end
