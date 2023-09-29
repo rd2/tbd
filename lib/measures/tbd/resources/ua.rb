@@ -712,7 +712,6 @@ module TBD
           next unless edge.key?(:psi)
 
           loss = edge[:length] * edge[:psi]
-          # type = edge[:type].to_s
           type = edge[:type].to_s.downcase
 
           if edge[:type].to_s.downcase.include?("balcony")

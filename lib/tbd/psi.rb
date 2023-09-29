@@ -1497,34 +1497,29 @@ module TBD
     shades = {}
 
     model.getShadingSurfaces.each do |s|
-      id      = s.nameString
-      empty   = s.shadingSurfaceGroup.empty?
-      msg     = "Can't process '#{id}' transformation (#{mth})"
-      log(ERR, msg) if empty
-      next          if empty
+      id    = s.nameString
+      group = s.shadingSurfaceGroup
+      log(ERR, "Can't process '#{id}' transformation (#{mth})") if group.empty?
+      next                                                      if group.empty?
 
-      group   = s.shadingSurfaceGroup.get
-      shading = group.to_ShadingSurfaceGroup
+      group   = group.get
       tr      = transforms(group)
-      ok      = tr[:t] && tr[:r]
-      t       = tr[:t]
-      msg     = "Can't process '#{id}' transformation (#{mth})"
-      log(FTL, msg) unless ok
-      return tbd    unless ok
+      t       = tr[:t] if tr[:t] && tr[:r]
 
-      unless shading.empty?
-        empty = shading.get.space.empty?
-        tr[:r] += shading.get.space.get.directionofRelativeNorth unless empty
-      end
+      log(FTL, "Can't process '#{id}' transformation (#{mth})") unless t
+      return tbd                                                unless t
 
-      n = trueNormal(s, tr[:r])
-      msg = "Can't process '#{id}' true normal (#{mth})"
-      log(FTL, msg) unless n
-      return tbd    unless n
+      space   = group.space
+      tr[:r] += space.get.directionofRelativeNorth unless space.empty?
+      n       = trueNormal(s, tr[:r])
+      log(FTL, "Can't process '#{id}' true normal (#{mth})") unless n
+      return tbd                                             unless n
 
       points = (t * s.vertices).map { |v| Topolys::Point3D.new(v.x, v.y, v.z) }
+
       minz = ( points.map { |p| p.z } ).min
-      shades[id] = { group:  group, points: points, minz: minz, n: n }
+
+      shades[id] = { group: group, points: points, minz: minz, n: n }
     end
 
     # Mutually populate TBD & Topolys surfaces. Keep track of created "holes".
@@ -1548,13 +1543,13 @@ module TBD
       wire.edges.each do |e|
         i  = e.id
         l  = e.length
-        ok = edges.key?(i)
+        ex = edges.key?(i)
 
-        edges[i] = { length: l, v0: e.v0, v1: e.v1, surfaces: {} } unless ok
+        edges[i] = { length: l, v0: e.v0, v1: e.v1, surfaces: {} } unless ex
 
-        ok = edges[i][:surfaces].key?(wire.attributes[:id])
+        next if edges[i][:surfaces].key?(wire.attributes[:id])
 
-        edges[i][:surfaces][wire.attributes[:id]] = { wire: wire.id } unless ok
+        edges[i][:surfaces][wire.attributes[:id]] = { wire: wire.id }
       end
     end
 
@@ -1750,9 +1745,10 @@ module TBD
     end
 
     edges.values.each do |edge|
-      set        = {}
-      deratables = []
       next unless edge.key?(:surfaces)
+
+      deratables = []
+      set        = {}
 
       edge[:surfaces].keys.each do |id|
         next unless tbd[:surfaces].key?(id)
@@ -1831,6 +1827,7 @@ module TBD
           # of subsurface "i" - the latter may be a neighbour. The single
           # surface to derate is not the gardian in such cases.
           gardian = deratables.size == 1 ? id : ""
+          target  = gardian
 
           # Retrieve base surface's subsurfaces.
           windows   = tbd[:surfaces][id].key?(:windows)
@@ -1848,6 +1845,7 @@ module TBD
             other = deratables.first == id ? deratables.last : deratables.first
 
             gardian = ids.include?(i) ? id : other
+            target  = ids.include?(i) ? other : id
 
             windows   = tbd[:surfaces][gardian].key?(:windows)
             doors     = tbd[:surfaces][gardian].key?(:doors)
@@ -1877,7 +1875,7 @@ module TBD
           door   = sub[:type] == :door
           glazed = door && sub.key?(:glazed) && sub[:glazed]
 
-          s1      = edge[:surfaces][gardian]
+          s1      = edge[:surfaces][target]
           s2      = edge[:surfaces][i      ]
           concave = concave?(s1, s2)
           convex  = convex?(s1, s2)
@@ -1980,14 +1978,13 @@ module TBD
         #   1x deratable, spandrel wall
         edge[:surfaces].keys.each do |i|
           break     if is[:spandrel]
-          break unless tbd[:surfaces][id][:spandrel]
           break unless deratables.size == 2
           break unless walls.key?(id)
+          break unless walls[id][:spandrel]
           next      if i == id
           next  unless deratables.include?(i)
           next  unless walls.key?(i)
-          next  unless tbd[:surfaces].key?(i)
-          next      if tbd[:surfaces][i][:spandrel]
+          next      if walls[i][:spandrel]
 
           s1      = edge[:surfaces][id]
           s2      = edge[:surfaces][i ]
@@ -2008,8 +2005,8 @@ module TBD
           break unless deratables.size == 2
           break unless walls.key?(id)
           next      if i == id
-          next unless deratables.include?(i)
-          next unless walls.key?(i)
+          next  unless deratables.include?(i)
+          next  unless walls.key?(i)
 
           s1      = edge[:surfaces][id]
           s2      = edge[:surfaces][i]
