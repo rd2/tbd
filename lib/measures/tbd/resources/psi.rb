@@ -1002,9 +1002,8 @@ module TBD
       end
 
       unless @has[id][safer]
-        safer = :fenestration if safer.to_s.include?("head")
-        safer = :fenestration if safer.to_s.include?("sill")
-        safer = :fenestration if safer.to_s.include?("jamb")
+        safer = :fenestration if safer == :skylight
+        safer = :fenestration if safer == :door
       end
 
       return safer if @has[id][safer]
