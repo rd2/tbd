@@ -1201,6 +1201,67 @@ RSpec.describe TBD do
     model.save(file, true)
   end
 
+  it "can purge KIVA objects" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    TBD.clean!
+
+    # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
+    file  = File.join(__dir__, "files/osms/out/seb_KIVA.osm")
+    path  = OpenStudio::Path.new(file)
+    model = translator.loadModel(path)
+    expect(model).to_not be_empty
+    model = model.get
+
+    expect(model.foundationKivaSettings).to be_empty
+    expect(model.getSurfacePropertyExposedFoundationPerimeters.size).to eq(1)
+    expect(model.getFoundationKivas.size).to eq(4)
+
+    adjacents  = 0
+    foundation = nil
+
+    model.getSurfaces.each do |surface|
+      next unless surface.isGroundSurface
+      next     if surface.adjacentFoundation.empty?
+
+      adjacents += 1
+      foundation = surface.adjacentFoundation.get
+      expect(surface.surfacePropertyExposedFoundationPerimeter).to_not be_empty
+      expect(surface.outsideBoundaryCondition.downcase).to eq("foundation")
+    end
+
+    expect(adjacents).to eq(1)
+    expect(foundation).to be_a(OpenStudio::Model::FoundationKiva)
+
+    # Add 2x custom blocks for testing.
+    xps = model.getMaterialByName("XPS_38mm")
+    expect(xps).to_not be_empty
+    xps = xps.get
+    expect(foundation.addCustomBlock(xps, 0.1, 0.1, -0.5)).to be true
+    expect(foundation.addCustomBlock(xps, 0.1, 0.1, -1.5)).to be true
+
+    blocks = foundation.customBlocks
+    expect(blocks).to_not be_empty
+
+    blocks.each { |block| expect(block.material).to eq(xps) }
+
+    # Purge.
+    expect(TBD.resetKIVA(model, "Ground")).to be true
+    expect(model.foundationKivaSettings).to be_empty
+    expect(model.getSurfacePropertyExposedFoundationPerimeters).to be_empty
+    expect(model.getFoundationKivas).to be_empty
+
+    model.getSurfaces.each do |surface|
+      next unless surface.isGroundSurface
+
+      expect(surface.adjacentFoundation).to be_empty
+      expect(surface.surfacePropertyExposedFoundationPerimeter).to be_empty
+      expect(surface.outsideBoundaryCondition).to eq("Ground")
+    end
+
+    file = File.join(__dir__, "files/osms/out/seb_noKIVA.osm")
+    model.save(file, true)
+  end
+
   it "can test 5ZoneNoHVAC (failed) uprating" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     TBD.clean!

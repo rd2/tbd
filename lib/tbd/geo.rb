@@ -598,7 +598,7 @@ module TBD
       [:windows, :doors, :skylights].each do |types|
         type = types.slice(0..-2).to_sym
         next unless sub[:type] == type
-        
+
         surf[types]     = {} unless surf.key?(types)
         surf[types][id] = sub
       end
@@ -617,7 +617,7 @@ module TBD
   # @option s1 [Numeric] :angle polar angle vs reference (e.g. North, Zenith)
   #
   # @return [Bool] true if angle between surfaces is concave
-  # @return [Bool] false if invalid input (see logs)
+  # @return [false] if invalid input (see logs)
   def concave?(s1 = nil, s2 = nil)
     mth = "TBD::#{__callee__}"
     return mismatch("s1", s1, Hash, mth, DBG, false) unless s1.is_a?(Hash)
@@ -660,7 +660,7 @@ module TBD
   # @option s1 [Numeric] :angle polar angle vs reference (e.g. North, Zenith)
   #
   # @return [Bool] true if angle between surfaces is convex
-  # @return [Bool] false if invalid input (see logs)
+  # @return [false] if invalid input (see logs)
   def convex?(s1 = nil, s2 = nil)
     mth = "TBD::#{__callee__}"
     return mismatch("s1", s1, Hash, mth, DBG, false) unless s1.is_a?(Hash)
@@ -694,6 +694,54 @@ module TBD
   end
 
   ##
+  # Purge existing KIVA-related objects in an OpenStudio model. Resets ground-
+  # facing surface outside boundary condition to "Ground" or "Foundation".
+  #
+  # @param model [OpenStudio::Model::Model] a model
+  # @param boundary ["Ground", "Foundation"] new outside boundary condition
+  #
+  # @return [Bool] true if model is free of KIVA-related objects
+  # @retrun [false] if invalid input (see logs)
+  def resetKIVA(model = nil, boundary = "Foundation")
+    mth = "TBD::#{__callee__}"
+    cl  = OpenStudio::Model::Model
+    ck1 = model.is_a?(cl)
+    ck2 = boundary.respond_to?(:to_s)
+    return mismatch("model"   , model   , cl    , mth, DBG, false) unless ck1
+    return mismatch("boundary", boundary, String, mth, DBG, false) unless ck2
+
+    boundary.capitalize!
+    ck3 = ["Ground", "Foundation"].include?(boundary)
+    return invalid("boundary", mth, 2, DBG, false) unless ck3
+
+    settings   = model.foundationKivaSettings
+    perimeters = model.getSurfacePropertyExposedFoundationPerimeters
+
+    # Remove KIVA settings.
+    settings.get.remove unless settings.empty?
+
+    # Remove KIVA exposed perimeters.
+    perimeters.each { |perimeter| perimeter.remove }
+
+    # Remove KIVA custom blocks, & foundations.
+    model.getFoundationKivas.each do |kiva|
+      kiva.removeAllCustomBlocks
+      kiva.remove
+    end
+
+    # Reset surface KIVA-related objects.
+    model.getSurfaces.each do |surface|
+      surface.resetAdjacentFoundation
+      surface.resetSurfacePropertyExposedFoundationPerimeter
+
+      b = surface.outsideBoundaryCondition.capitalize
+      surface.setOutsideBoundaryCondition(boundary) unless b == boundary
+    end
+
+    true
+  end
+
+  ##
   # Generates Kiva settings and objects if model surfaces have 'foundation'
   # boundary conditions.
   #
@@ -703,7 +751,7 @@ module TBD
   # @param edges [Hash] TBD edges (many linking floors & walls
   #
   # @return [Bool] true if Kiva foundations are successfully generated
-  # @return [Bool] false if invalid input (see logs)
+  # @return [false] if invalid input (see logs)
   def kiva(model = nil, walls = {}, floors = {}, edges = {})
     mth = "TBD::#{__callee__}"
     cl1 = OpenStudio::Model::Model
