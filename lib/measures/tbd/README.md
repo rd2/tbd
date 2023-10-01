@@ -139,6 +139,14 @@ Overwrites 'ground' boundary conditions as 'foundation' before generating Kiva i
 **Required:** false,
 **Model Dependent:** false
 
+### Purge existing KIVA inputs
+Purges KIVA entries from model before generating Kiva inputs.
+**Name:** reset_kiva,
+**Type:** Boolean,
+**Units:** ,
+**Required:** false,
+**Model Dependent:** false
+
 ### Proximity tolerance (m)
 Proximity tolerance (e.g. 0.100 m) between subsurface edges, e.g. between near-adjacent window jambs.
 **Name:** sub_tol,

@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <measure>
-  <schema_version>3.1</schema_version>
+  <schema_version>3.0</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>6e5e4ee0-0792-4101-84bb-f8dbf3db6f32</version_id>
-  <version_modified>2023-09-30T20:19:34Z</version_modified>
+  <version_id>de2b4f28-a08e-4c63-b391-f94480c7bb96</version_id>
+  <version_modified>20231001T204149Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -379,6 +379,25 @@
       </choices>
     </argument>
     <argument>
+      <name>reset_kiva</name>
+      <display_name>Purge existing KIVA inputs</display_name>
+      <description>Purges KIVA entries from model before generating Kiva inputs.</description>
+      <type>Boolean</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
       <name>sub_tol</name>
       <display_name>Proximity tolerance (m)</display_name>
       <description>Proximity tolerance (e.g. 0.100 m) between subsurface edges, e.g. between near-adjacent window jambs.</description>
@@ -448,12 +467,6 @@
       <checksum>A91E64A0</checksum>
     </file>
     <file>
-      <filename>README.md</filename>
-      <filetype>md</filetype>
-      <usage_type>readme</usage_type>
-      <checksum>F66CB700</checksum>
-    </file>
-    <file>
       <filename>README.md.erb</filename>
       <filetype>erb</filetype>
       <usage_type>readmeerb</usage_type>
@@ -464,23 +477,6 @@
       <filetype>gitkeep</filetype>
       <usage_type>doc</usage_type>
       <checksum>32D70693</checksum>
-    </file>
-    <file>
-      <version>
-        <software_program>OpenStudio</software_program>
-        <identifier>2.9.1</identifier>
-        <min_compatible>2.9.1</min_compatible>
-      </version>
-      <filename>measure.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>script</usage_type>
-      <checksum>0CF03CEA</checksum>
-    </file>
-    <file>
-      <filename>geo.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>544B6769</checksum>
     </file>
     <file>
       <filename>geometry.rb</filename>
@@ -499,12 +495,6 @@
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
       <checksum>E4978588</checksum>
-    </file>
-    <file>
-      <filename>psi.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>4373C0E0</checksum>
     </file>
     <file>
       <filename>tbd.rb</filename>
@@ -546,7 +536,36 @@
       <filename>tbd_tests.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>064B77B7</checksum>
+      <checksum>85067AF6</checksum>
+    </file>
+    <file>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>2A3B1D51</checksum>
+    </file>
+    <file>
+      <filename>psi.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>8B86B9A6</checksum>
+    </file>
+    <file>
+      <filename>geo.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>8EB97992</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>2.9.1</identifier>
+        <min_compatible>2.9.1</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>9F21D760</checksum>
     </file>
   </files>
 </measure>

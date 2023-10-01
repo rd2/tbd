@@ -1039,15 +1039,13 @@ RSpec.describe TBD do
 
     construction = oa15.construction.get
     expect(oa15.setOutsideBoundaryCondition("Foundation")).to be true
-    expect(oa15.setAdjacentFoundation(foundation)        ).to be true
-    expect(oa15.setConstruction(construction)            ).to be true
+    expect(oa15.setAdjacentFoundation(foundation)).to be true
+    expect(oa15.setConstruction(construction)).to be true
 
     kfs = model.getFoundationKivas
     expect(kfs).to_not be_empty
     expect(kfs.size).to eq(4)
-
-    settings = model.getFoundationKivaSettings
-    expect(settings.soilConductivity).to be_within(TOL).of(1.73)
+    expect(model.foundationKivaSettings).to be_empty
 
     argh            = {}
     argh[:option  ] = "poor (BETBG)"
@@ -1059,13 +1057,93 @@ RSpec.describe TBD do
     expect(json).to have_key(:surfaces)
     io       = json[:io      ]
     surfaces = json[:surfaces]
-    expect(TBD.status).to be_zero
-    expect(TBD.logs).to be_empty
+    expect(TBD.error?).to be true
+    expect(TBD.logs.size).to eq(1)
+    expect(TBD.logs.first[:message]).to include("Exiting - KIVA objects in ")
+    expect(surfaces).to be_a(Hash)
+    expect(surfaces.size).to eq(56)
+    expect(io).to be_a(Hash)
+    expect(io).to have_key(:edges)
+
+    # 105x edges (-1x than the usual 106x for the seb.osm). The edge linking
+    # "Open area 1 Floor" to "Openarea 1 Wall 5" used to be of type :grade. As
+    # both slab and wall are now ground-facing, TBD ignores the edge altogether.
+    expect(io[:edges].size).to eq(105)
+    expect(model.foundationKivaSettings).to be_empty
+    expect(model.getSurfacePropertyExposedFoundationPerimeters.size).to eq(1)
+    expect(model.getFoundationKivas.size).to eq(4)
+
+    # TBD derates (above-grade) surfaces as usual. TBD is certainly 'aware' of
+    # the "Foundation"-facing slab and wall (and their shared edge), yet exits
+    # the KIVA generation step. As the warning message suggests, TBD safely
+    # exits when the OpenStudio model already holds KIVA objects.
+    surfaces.values.each { |surface| expect(surface).to_not have_key(:kiva) }
+
+    # As with the previously altered "files/osms/out/seb_KIVA.osm", OpenStudio
+    # can forward-translate and run an EnergyPlus simulation without warnings or
+    # errors. As "Openarea 1 Wall 5" is now a "Foundation"-facing wall, the
+    # exposed foundation perimeter length (set previously) is now invalid. Yet
+    # there are no internal checks in OpenStudio and/or EnergyPlus to ensure
+    # perimeter length consistency, WHEN exposed + foundation perimeter
+    # lengths < total slab perimeter lengths. Simulation runs without a glitch;
+    # simulation results would be 'off'.
+    file = File.join(__dir__, "files/osms/out/seb_KIVA2.osm")
+    model.save(file, true)
+
+    # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
+    # Try again. First, purge existing KIVA objects in model.
+    TBD.clean!
+    file  = File.join(__dir__, "files/osms/out/seb_KIVA.osm")
+    path  = OpenStudio::Path.new(file)
+    model = translator.loadModel(path)
+    expect(model).to_not be_empty
+    model = model.get
+
+    oa1f = model.getSurfaceByName("Open area 1 Floor")
+    expect(oa1f).to_not be_empty
+    oa1f = oa1f.get
+
+    expect(oa1f.outsideBoundaryCondition.downcase).to eq("foundation")
+    foundation = oa1f.adjacentFoundation
+    expect(foundation).to_not be_empty
+    foundation = foundation.get
+
+    oa15 = model.getSurfaceByName("Openarea 1 Wall 5") # 3.89m wide
+    expect(oa15).to_not be_empty
+    oa15 = oa15.get
+
+    construction = oa15.construction.get
+    expect(oa15.setOutsideBoundaryCondition("Foundation")).to be true
+    expect(oa15.setAdjacentFoundation(foundation)).to be true
+    expect(oa15.setConstruction(construction)).to be true
+
+    kfs = model.getFoundationKivas
+    expect(kfs).to_not be_empty
+    expect(kfs.size).to eq(4)
+    expect(model.foundationKivaSettings).to be_empty
+
+    argh              = {}
+    argh[:option    ] = "poor (BETBG)"
+    argh[:gen_kiva  ] = true
+    argh[:reset_kiva] = true
+
+    json     = TBD.process(model, argh)
+    expect(json).to be_a(Hash)
+    expect(json).to have_key(:io)
+    expect(json).to have_key(:surfaces)
+    io       = json[:io      ]
+    surfaces = json[:surfaces]
+    expect(TBD.info?).to be true
+    expect(TBD.logs.size).to eq(1)
+    expect(TBD.logs.first[:message]).to include("Purged KIVA objects from ")
     expect(surfaces).to be_a(Hash)
     expect(surfaces.size).to eq(56)
     expect(io).to be_a(Hash)
     expect(io).to have_key(:edges)
     expect(io[:edges].size).to eq(105)
+    expect(model.foundationKivaSettings).to_not be_empty
+    expect(model.getSurfacePropertyExposedFoundationPerimeters.size).to eq(1)
+    expect(model.getFoundationKivas.size).to eq(1) # !4 ... previously purged
 
     found_floor = false
     found_wall  = false
@@ -1087,9 +1165,9 @@ RSpec.describe TBD do
     end
 
     expect(found_floor).to be true
-    expect(found_wall ).to be true
+    expect(found_wall).to be true
 
-    file = File.join(__dir__, "files/osms/out/seb_KIVA2.osm")
+    file = File.join(__dir__, "files/osms/out/seb_KIVA3.osm")
     model.save(file, true)
 
     # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
@@ -1126,9 +1204,12 @@ RSpec.describe TBD do
     expect(io).to have_key(:edges)
     expect(io[:edges].size).to eq(106)
 
+    slabs = 0
+
     surfaces.each do |id, s|
       next unless s.key?(:kiva)
 
+      slabs += 1
       expect(s).to have_key(:exposed)
       slab = model.getSurfaceByName(id)
       expect(slab).to_not be_empty
@@ -1150,7 +1231,9 @@ RSpec.describe TBD do
       expect(per).to be_within(TOL).of( 6.95) if id == "Entry way  Floor"
     end
 
-    file = File.join(__dir__, "files/osms/out/seb_KIVA3.osm")
+    expect(slabs).to eq(4)
+
+    file = File.join(__dir__, "files/osms/out/seb_KIVA4.osm")
     model.save(file, true)
   end
 
@@ -1205,7 +1288,6 @@ RSpec.describe TBD do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     TBD.clean!
 
-    # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
     file  = File.join(__dir__, "files/osms/out/seb_KIVA.osm")
     path  = OpenStudio::Path.new(file)
     model = translator.loadModel(path)
@@ -1237,7 +1319,7 @@ RSpec.describe TBD do
     expect(xps).to_not be_empty
     xps = xps.get
     expect(foundation.addCustomBlock(xps, 0.1, 0.1, -0.5)).to be true
-    expect(foundation.addCustomBlock(xps, 0.1, 0.1, -1.5)).to be true
+    expect(foundation.addCustomBlock(xps, 0.2, 0.2, -1.5)).to be true
 
     blocks = foundation.customBlocks
     expect(blocks).to_not be_empty
@@ -1249,6 +1331,9 @@ RSpec.describe TBD do
     expect(model.foundationKivaSettings).to be_empty
     expect(model.getSurfacePropertyExposedFoundationPerimeters).to be_empty
     expect(model.getFoundationKivas).to be_empty
+    expect(TBD.info?).to be true
+    expect(TBD.logs.size).to eq(1)
+    expect(TBD.logs.first[:message]).to include("Purged KIVA objects from ")
 
     model.getSurfaces.each do |surface|
       next unless surface.isGroundSurface

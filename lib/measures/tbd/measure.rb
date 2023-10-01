@@ -253,6 +253,14 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     kiva_force.setDefaultValue(false)
     args << kiva_force
 
+    arg = "reset_kiva"
+    dsc = "Purges KIVA entries from model before generating Kiva inputs."
+    reset_kiva = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
+    reset_kiva.setDisplayName("Purge existing KIVA inputs")
+    reset_kiva.setDescription(dsc)
+    reset_kiva.setDefaultValue(false)
+    args << reset_kiva
+
     arg = "sub_tol"
     dsc = "Proximity tolerance (e.g. 0.100 m) between subsurface edges, e.g. "\
           "between near-adjacent window jambs."
@@ -286,6 +294,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
   # @option args [#to_s] :ua_reference ("code (Quebec)") UA' ruleset
   # @option args [Bool] :gen_kiva (false) whether to generate KIVA inputs
   # @option args [Bool] :gen_kiva_force (false) whether to force KIVA inputs
+  # @option args [Bool] :reset_kiva (false) whether to first purge KIVA inputs
   # @option args [#to_f] :sub_tol (OSut::TOL) proximity tolerance between edges
   #
   # @return [Bool] whether TBD Measure is successful
@@ -308,6 +317,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     argh[:ua_ref       ] = runner.getStringArgumentValue("ua_reference", args)
     argh[:gen_kiva     ] = runner.getBoolArgumentValue("gen_kiva"      , args)
     argh[:kiva_force   ] = runner.getBoolArgumentValue("gen_kiva_force", args)
+    argh[:reset_kiva   ] = runner.getBoolArgumentValue("reset_kiva"    , args)
     argh[:sub_tol      ] = runner.getDoubleArgumentValue("sub_tol"     , args)
 
     argh[:uprate_walls ] = argh[:wall_option ] != "NONE"
@@ -357,12 +367,29 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
       end
     end
 
-    # Pre-validate ground-facing constructions for KIVA.
-    if argh[:kiva_force] || argh[:gen_kiva]
-      kva = true
+    kva = false
+    kva = true unless mdl.getSurfacePropertyExposedFoundationPerimeters.empty?
+    kva = true unless mdl.getFoundationKivas.empty?
 
+    # Purge existing KIVA objects from model.
+    if argh[:reset_kiva]
+      if kva
+        if argh[:gen_kiva]
+          resetKIVA(mdl, "Foundation")
+        else
+          resetKIVA(mdl, "Ground")
+        end
+
+        kva = false
+      end
+    end
+
+    kva = true if argh[:kiva_force] || argh[:gen_kiva]
+
+    # Pre-validate ground-facing constructions for KIVA.
+    if kva
       mdl.getSurfaces.each do |s|
-        id = s.nameString
+        id           = s.nameString
         construction = s.construction
         next unless s.isGroundSurface
 
@@ -405,7 +432,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     str  = "temp_measure_manager.osm"
     seed = runner.workflow.seedFile
     seed = File.basename(seed.get.to_s) unless seed.empty?
-    seed = "OpenStudio model" if seed.empty? || seed == str
+    seed = "OpenStudio model"               if seed.empty? || seed == str
     argh[:seed] = seed
 
     if argh[:alter]

@@ -39,7 +39,7 @@ class TBDTest < Minitest::Test
     measure = TBDMeasure.new
     model = OpenStudio::Model::Model.new
     arguments = measure.arguments(model)
-    assert_equal(16, arguments.size)
+    assert_equal(17, arguments.size)
   end
 
   def test_no_load_tbd_json

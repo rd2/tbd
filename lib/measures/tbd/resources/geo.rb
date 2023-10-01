@@ -701,24 +701,40 @@ module TBD
   # @param boundary ["Ground", "Foundation"] new outside boundary condition
   #
   # @return [Bool] true if model is free of KIVA-related objects
-  # @retrun [false] if invalid input (see logs)
+  # @return [false] if invalid input (see logs)
   def resetKIVA(model = nil, boundary = "Foundation")
     mth = "TBD::#{__callee__}"
     cl  = OpenStudio::Model::Model
     ck1 = model.is_a?(cl)
     ck2 = boundary.respond_to?(:to_s)
-    return mismatch("model"   , model   , cl    , mth, DBG, false) unless ck1
-    return mismatch("boundary", boundary, String, mth, DBG, false) unless ck2
+    kva = false
+    b   = ["Ground", "Foundation"]
+    return mismatch("model"   , model   , cl    , mth, DBG, kva) unless ck1
+    return mismatch("boundary", boundary, String, mth, DBG, kva) unless ck2
 
     boundary.capitalize!
-    ck3 = ["Ground", "Foundation"].include?(boundary)
-    return invalid("boundary", mth, 2, DBG, false) unless ck3
+    return invalid("boundary", mth, 2, DBG, kva) unless b.include?(boundary)
 
-    settings   = model.foundationKivaSettings
+    # Reset surface KIVA-related objects.
+    model.getSurfaces.each do |surface|
+      kva = true unless surface.adjacentFoundation.empty?
+      kva = true unless surface.surfacePropertyExposedFoundationPerimeter.empty?
+      surface.resetAdjacentFoundation
+      surface.resetSurfacePropertyExposedFoundationPerimeter
+      next unless surface.isGroundSurface
+      next unless surface.outsideBoundaryCondition.capitalize == boundary
+
+      lc = surface.construction.empty? ? nil : surface.construction.get
+      surface.setOutsideBoundaryCondition(boundary)
+      next if boundary == "Ground"
+      next if lc.nil?
+
+      surface.setConstruction(lc) if surface.construction.empty?
+    end
+
     perimeters = model.getSurfacePropertyExposedFoundationPerimeters
 
-    # Remove KIVA settings.
-    settings.get.remove unless settings.empty?
+    kva = true unless perimeters.empty?
 
     # Remove KIVA exposed perimeters.
     perimeters.each { |perimeter| perimeter.remove }
@@ -729,14 +745,7 @@ module TBD
       kiva.remove
     end
 
-    # Reset surface KIVA-related objects.
-    model.getSurfaces.each do |surface|
-      surface.resetAdjacentFoundation
-      surface.resetSurfacePropertyExposedFoundationPerimeter
-
-      b = surface.outsideBoundaryCondition.capitalize
-      surface.setOutsideBoundaryCondition(boundary) unless b == boundary
-    end
+    log(INF, "Purged KIVA objects from model (#{mth})") if kva
 
     true
   end
@@ -756,12 +765,23 @@ module TBD
     mth = "TBD::#{__callee__}"
     cl1 = OpenStudio::Model::Model
     cl2 = Hash
-    kva = true
     a   = false
     return mismatch("model" ,  model, cl1, mth, DBG, a) unless model.is_a?(cl1)
     return mismatch("walls" ,  walls, cl2, mth, DBG, a) unless walls.is_a?(cl2)
     return mismatch("floors", floors, cl2, mth, DBG, a) unless floors.is_a?(cl2)
     return mismatch("edges" ,  edges, cl2, mth, DBG, a) unless edges.is_a?(cl2)
+
+    # Check for existing KIVA objects.
+    kva = false
+    kva = true unless model.getSurfacePropertyExposedFoundationPerimeters.empty?
+    kva = true unless model.getFoundationKivas.empty?
+
+    if kva
+      log(ERR, "Exiting - KIVA objects in model (#{mth})")
+      return a
+    else
+      kva = true
+    end
 
     # Pre-validate foundation-facing constructions.
     model.getSurfaces.each do |s|
@@ -770,19 +790,19 @@ module TBD
       next unless s.outsideBoundaryCondition.downcase == "foundation"
 
       if construction.empty?
-        log(ERR, "Invalid construction for KIVA (see #{id})")
+        log(ERR, "Invalid construction for #{id} (#{mth})")
         kva = false
       else
         construction = construction.get.to_LayeredConstruction
 
         if construction.empty?
-          log(ERR, "KIVA requires layered constructions (see #{id})")
+          log(ERR, "Invalid layered constructions for #{id} (#{mth})")
           kva = false
         else
           construction = construction.get
 
           unless standardOpaqueLayers?(construction)
-            log(ERR, "KIVA requires standard materials (see #{id})")
+            log(ERR, "Non-standard materials for #{id} (#{mth})")
             kva = false
           end
         end
@@ -792,7 +812,7 @@ module TBD
     return a unless kva
 
     # Strictly relying on Kiva's total exposed perimeter approach.
-    arg = "TotalExposedPerimeter"
+    arg  = "TotalExposedPerimeter"
     kiva = true
     # The following is loosely adapted from:
     #
@@ -805,6 +825,7 @@ module TBD
     # required. Initial tests show slight differences in simulation results
     # w/w/o explcit inclusion of the KIVA settings template in the model.
     settings = model.getFoundationKivaSettings
+
     k = settings.soilConductivity
     settings.setSoilConductivity(k)
 
@@ -815,10 +836,11 @@ module TBD
         next unless floors[id][:boundary].downcase == "foundation"
         next     if floors[id].key?(:kiva)
 
-        floors[id][:kiva   ] = :slab                  # initially slabs-on-grade
-        floors[id][:exposed] = 0.0 # slab-on-grade or basement walkout perimeter
+        floors[id][:kiva   ] = :slab # initially slabs-on-grade
+        floors[id][:exposed] = 0.0   # slab-on-grade or walkout perimeter
 
-        edge[:surfaces].keys.each do |i|              # loop around current edge
+        # Loop around current edge.
+        edge[:surfaces].keys.each do |i|
           next     if i == id
           next unless walls.key?(i)
           next unless walls[i][:boundary].downcase == "foundation"
@@ -828,7 +850,8 @@ module TBD
           walls[i  ][:kiva] = id
         end
 
-        edge[:surfaces].keys.each do |i|              # loop around current edge
+        # Loop around current edge.
+        edge[:surfaces].keys.each do |i|
           next     if i == id
           next unless walls.key?(i)
           next unless walls[i][:boundary].downcase == "outdoors"
@@ -836,11 +859,12 @@ module TBD
           floors[id][:exposed] += edge[:length]
         end
 
-        edges.each do |code2, e|                 # loop around other floor edges
-          next if code1 == code2                             #  skip - same edge
+        # Loop around other floor edges.
+        edges.each do |code2, e|
+          next if code1 == code2 #  skip - same edge
 
           e[:surfaces].keys.each do |i|
-            next unless i == id                              # good - same floor
+            next unless i == id # good - same floor
 
             e[:surfaces].keys.each do |ii|
               next     if i == ii

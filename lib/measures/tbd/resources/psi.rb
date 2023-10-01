@@ -1434,7 +1434,18 @@ module TBD
     argh[:gen_ua       ] = false    unless argh.key?(:gen_ua)
     argh[:ua_ref       ] = ""       unless argh.key?(:ua_ref)
     argh[:gen_kiva     ] = false    unless argh.key?(:gen_kiva)
+    argh[:reset_kiva   ] = false    unless argh.key?(:reset_kiva)
     argh[:sub_tol      ] = TBD::TOL unless argh.key?(:sub_tol)
+
+    # Ensure true or false: whether to generate KIVA inputs.
+    unless [true, false].include?(argh[:gen_kiva])
+      return invalid("generate KIVA option", mth, 0, DBG, tbd)
+    end
+
+    # Ensure true or false: whether to first purge (existing) KIVA inputs.
+    unless [true, false].include?(argh[:reset_kiva])
+      return invalid("reset KIVA option", mth, 0, DBG, tbd)
+    end
 
     # Create the Topolys Model.
     t_model = Topolys::Model.new
@@ -1558,8 +1569,23 @@ module TBD
     faces(walls   , edges)
     faces(shades  , edges)
 
+    # Purge existing KIVA objects from model.
+    if argh[:reset_kiva]
+      kva = false
+      kva = true unless model.getSurfacePropertyExposedFoundationPerimeters.empty?
+      kva = true unless model.getFoundationKivas.empty?
+
+      if kva
+        if argh[:gen_kiva]
+          resetKIVA(model, "Foundation")
+        else
+          resetKIVA(model, "Ground")
+        end
+      end
+    end
+
     # Generate OSM Kiva settings and objects if foundation-facing floors.
-    # returns false if partial failure (log failure eventually).
+    # Returns false if partial failure (log failure eventually).
     kiva(model, walls, floors, edges) if argh[:gen_kiva]
 
     # Thermal bridging characteristics of edges are determined - in part - by
