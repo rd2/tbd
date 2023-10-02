@@ -1317,7 +1317,7 @@ RSpec.describe TBD do
     expect(io).to have_key(:edges)
     expect(io[:edges].size).to eq(106)
 
-    # Without a resetKIVA request, TBD exits with 2x error messages.
+    # Without a resetKIVA request, TBD exits with 1x error message.
     surfaces.values.each { |surface| expect(surface).to_not have_key(:kiva) }
 
     # As the initial model already has valid & complete KIVA inputs, one
