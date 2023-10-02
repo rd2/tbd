@@ -722,7 +722,7 @@ module TBD
       surface.resetAdjacentFoundation
       surface.resetSurfacePropertyExposedFoundationPerimeter
       next unless surface.isGroundSurface
-      next unless surface.outsideBoundaryCondition.capitalize == boundary
+      next     if surface.outsideBoundaryCondition.capitalize == boundary
 
       lc = surface.construction.empty? ? nil : surface.construction.get
       surface.setOutsideBoundaryCondition(boundary)

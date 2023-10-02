@@ -375,9 +375,9 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     if argh[:reset_kiva]
       if kva
         if argh[:gen_kiva]
-          resetKIVA(mdl, "Foundation")
+          TBD.resetKIVA(mdl, "Foundation")
         else
-          resetKIVA(mdl, "Ground")
+          TBD.resetKIVA(mdl, "Ground")
         end
 
         kva = false
