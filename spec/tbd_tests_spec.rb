@@ -1171,7 +1171,7 @@ RSpec.describe TBD do
     model.save(file, true)
 
     # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
-    # Re-open & test initial model.
+    # Test initial model again.
     TBD.clean!
     file  = File.join(__dir__, "files/osms/in/seb.osm")
     path  = OpenStudio::Path.new(file)
@@ -1179,6 +1179,8 @@ RSpec.describe TBD do
     expect(model).to_not be_empty
     model = model.get
 
+    # Add "Foundation" as outside boundary condition to slabs, WITHOUT adding
+    # any other KIVA-related objects.
     model.getSurfaces.each do |s|
       next unless s.isGroundSurface
       next unless s.surfaceType.downcase == "floor"
@@ -1234,6 +1236,93 @@ RSpec.describe TBD do
     expect(slabs).to eq(4)
 
     file = File.join(__dir__, "files/osms/out/seb_KIVA4.osm")
+    model.save(file, true)
+
+    # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
+    # Recover KIVA-populated model and re- set/gen KIVA.
+    argh              = {}
+    argh[:option    ] = "(non thermal bridging)"
+    argh[:gen_kiva  ] = true
+    argh[:reset_kiva] = true
+
+    json     = TBD.process(model, argh)
+    expect(json).to be_a(Hash)
+    expect(json).to have_key(:io)
+    expect(json).to have_key(:surfaces)
+    io       = json[:io      ]
+    surfaces = json[:surfaces]
+    expect(TBD.info?).to be true
+    expect(TBD.logs.size).to eq(1)
+    expect(TBD.logs.first[:message]).to include("Purged KIVA objects from ")
+    expect(surfaces).to be_a(Hash)
+    expect(surfaces.size).to eq(56)
+    expect(io).to be_a(Hash)
+    expect(io).to have_key(:edges)
+    expect(io[:edges].size).to eq(106)
+
+    slabs = 0
+
+    # Same outcome as "seb_KIVA4.osm".
+    surfaces.each do |id, s|
+      next unless s.key?(:kiva)
+
+      slabs += 1
+      expect(s).to have_key(:exposed)
+      slab = model.getSurfaceByName(id)
+      expect(slab).to_not be_empty
+      slab = slab.get
+
+      expect(slab.adjacentFoundation).to_not be_empty
+      perimeter = slab.surfacePropertyExposedFoundationPerimeter
+      expect(perimeter).to_not be_empty
+      perimeter = perimeter.get
+
+      per = perimeter.totalExposedPerimeter
+      expect(per).to_not be_empty
+      per = per.get
+      expect((per - s[:exposed]).abs).to be_within(TOL).of(0)
+
+      expect(per).to be_within(TOL).of( 8.81) if id == "Small office 1 Floor"
+      expect(per).to be_within(TOL).of( 8.21) if id == "Utility 1 Floor"
+      expect(per).to be_within(TOL).of(12.59) if id == "Open area 1 Floor"
+      expect(per).to be_within(TOL).of( 6.95) if id == "Entry way  Floor"
+    end
+
+    expect(slabs).to eq(4)
+
+    # Forward-translating/running either "seb_KIVA4.osm" or "seb_KIVA5.osm"
+    # would yield the same simulation results.
+    file = File.join(__dir__, "files/osms/out/seb_KIVA5.osm")
+    model.save(file, true)
+
+    # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
+    # Recover KIVA-populated model and re-gen KIVA ... WITHOUT resetting KIVA.
+    TBD.clean!
+    argh              = {}
+    argh[:option   ] = "(non thermal bridging)"
+    argh[:gen_kiva] = true
+
+    json     = TBD.process(model, argh)
+    expect(json).to be_a(Hash)
+    expect(json).to have_key(:io)
+    expect(json).to have_key(:surfaces)
+    io       = json[:io      ]
+    surfaces = json[:surfaces]
+    expect(TBD.error?).to be true
+    expect(TBD.logs.size).to eq(1)
+    expect(TBD.logs.first[:message]).to include("Exiting - KIVA objects in ")
+    expect(surfaces).to be_a(Hash)
+    expect(surfaces.size).to eq(56)
+    expect(io).to be_a(Hash)
+    expect(io).to have_key(:edges)
+    expect(io[:edges].size).to eq(106)
+
+    # Without a resetKIVA request, TBD exits with 2x error messages.
+    surfaces.values.each { |surface| expect(surface).to_not have_key(:kiva) }
+
+    # As the initial model already has valid & complete KIVA inputs, one
+    # obtains the same outcome as "seb_KIVA4.osm" & "seb_KIVA5.osm".
+    file = File.join(__dir__, "files/osms/out/seb_KIVA6.osm")
     model.save(file, true)
   end
 
