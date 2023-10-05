@@ -2338,9 +2338,6 @@ module TBD
             next unless edge.key?(:surfaces)
             next unless edge[:surfaces].keys.include?(surface[:id])
 
-            # parapets = edge[:psi].select {|ty| ty.to_s.include?("parapet")}
-            # roofs    = edge[:psi].select {|ty| ty.to_s.include?("roof")}
-
             parapets = edge[:psi].keys.select {|ty| ty.to_s.include?("parapet")}
             roofs    = edge[:psi].keys.select {|ty| ty.to_s.include?("roof")}
 
