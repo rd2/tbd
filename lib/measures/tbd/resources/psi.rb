@@ -288,7 +288,7 @@ module TBD
       {
         rimjoist:     0.307000, # "intermediate floor to wall intersection"
         parapet:      0.260000, # "parapet" edge
-        roof:         0.020000, # (non-parapet) "roof edge"
+        roof:         0.020000, # (non-parapet) "roof" edge
         fenestration: 0.194000, # "wall to vertical fenestration intersection"
         door:         0.000000, # (unspecified, defaults to 0)
         skylight:     0.000000, # (unspecified, defaults to 0)
@@ -307,7 +307,7 @@ module TBD
       {
         rimjoist:     0.842000, # "intermediate floor to wall intersection"
         parapet:      0.500000, # "parapet" edge
-        roof:         0.650000, # (non-parapet) "roof edge"
+        roof:         0.650000, # (non-parapet) "roof" edge
         fenestration: 0.505000, # "wall to vertical fenestration intersection"
         door:         0.000000, # (unspecified, defaults to 0)
         skylight:     0.000000, # (unspecified, defaults to 0)
@@ -326,7 +326,7 @@ module TBD
       {
         rimjoist:     0.205000, # "intermediate floor to wall intersection"
         parapet:      0.217000, # "parapet" edge
-        roof:         0.150000, # (non-parapet) "roof edge"
+        roof:         0.150000, # (non-parapet) "roof" edge
         fenestration: 0.226000, # "wall to vertical fenestration intersection"
         door:         0.000000, # (unspecified, defaults to 0)
         skylight:     0.000000, # (unspecified, defaults to 0)
@@ -345,7 +345,7 @@ module TBD
       {
         rimjoist:     0.824000, # "intermediate floor to wall intersection"
         parapet:      0.412000, # "parapet" edge
-        roof:         0.750000, # (non-parapet) "roof edge"
+        roof:         0.750000, # (non-parapet) "roof" edge
         fenestration: 0.325000, # "wall to vertical fenestration intersection"
         door:         0.000000, # (unspecified, defaults to 0)
         skylight:     0.000000, # (unspecified, defaults to 0)
@@ -364,7 +364,7 @@ module TBD
       {
         rimjoist:     0.495000, # "intermediate floor to wall intersection"
         parapet:      0.393000, # "parapet" edge
-        roof:         0.150000, # (non-parapet) "roof edge"
+        roof:         0.150000, # (non-parapet) "roof" edge
         fenestration: 0.143000, # "wall to vertical fenestration intersection"
         door:         0.000000, # (unspecified, defaults to 0)
         skylight:     0.000000, # (unspecified, defaults to 0)
@@ -383,7 +383,7 @@ module TBD
       {
         rimjoist:     0.824000, # "intermediate floor to wall intersection"
         parapet:      0.884000, # "parapet" edge
-        roof:         0.750000, # (non-parapet) "roof edge"
+        roof:         0.750000, # (non-parapet) "roof" edge
         fenestration: 0.543000, # "wall to vertical fenestration intersection"
         door:         0.000000, # (unspecified, defaults to 0)
         skylight:     0.000000, # (unspecified, defaults to 0)
@@ -402,7 +402,7 @@ module TBD
       {
         rimjoist:     0.084000, # "intermediate floor to wall intersection"
         parapet:      0.056000, # "parapet" edge
-        roof:         0.020000, # (non-parapet) "roof edge"
+        roof:         0.020000, # (non-parapet) "roof" edge
         fenestration: 0.171000, # "wall to vertical fenestration intersection"
         door:         0.000000, # (unspecified, defaults to 0)
         skylight:     0.000000, # (unspecified, defaults to 0)
@@ -421,7 +421,7 @@ module TBD
       {
         rimjoist:     0.582000, # "intermediate floor to wall intersection"
         parapet:      0.056000, # "parapet" edge
-        roof:         0.150000, # (non-parapet) "roof edge"
+        roof:         0.150000, # (non-parapet) "roof" edge
         fenestration: 0.260000, # "wall to vertical fenestration intersection"
         door:         0.000000, # (unspecified, defaults to 0)
         skylight:     0.000000, # (unspecified, defaults to 0)
@@ -2297,9 +2297,8 @@ module TBD
 
             next unless match
 
-            parapets = edge[:psi].select {|ty| ty.to_s.include?("parapet")}
-            roofs    = edge[:psi].select {|ty| ty.to_s.include?("roof")}
-            type     = nil
+            parapets = edge[:psi].keys.select {|ty| ty.to_s.include?("parapet")}
+            roofs    = edge[:psi].keys.select {|ty| ty.to_s.include?("roof")}
 
             if group[:parapet]
               next unless parapets.empty?
@@ -2310,7 +2309,7 @@ module TBD
               type = :parapetconvex  if roofs.first.to_s.include?("convex")
 
               edge[:psi][type] = shorts[:val][type]
-              roofs.each {|ty| edges[:psi].delete(ty)}
+              roofs.each {|ty| edge[:psi].delete(ty)}
             else
               next unless roofs.empty?
               next     if parapets.empty?
@@ -2320,7 +2319,8 @@ module TBD
               type = :roofconvex  if parapets.first.to_s.include?("convex")
 
               edge[:psi][type] = shorts[:val][type]
-              parapets.each {|ty| edges[:psi].delete(ty)}
+
+              parapets.each { |ty| edge[:psi].delete(ty) }
             end
           end
         end
@@ -2338,9 +2338,12 @@ module TBD
             next unless edge.key?(:surfaces)
             next unless edge[:surfaces].keys.include?(surface[:id])
 
-            parapets = edge[:psi].select {|ty| ty.to_s.include?("parapet")}
-            roofs    = edge[:psi].select {|ty| ty.to_s.include?("roof")}
-            type     = nil
+            # parapets = edge[:psi].select {|ty| ty.to_s.include?("parapet")}
+            # roofs    = edge[:psi].select {|ty| ty.to_s.include?("roof")}
+
+            parapets = edge[:psi].keys.select {|ty| ty.to_s.include?("parapet")}
+            roofs    = edge[:psi].keys.select {|ty| ty.to_s.include?("roof")}
+
 
             if surface[:parapet]
               next unless parapets.empty?
@@ -2351,7 +2354,7 @@ module TBD
               type = :parapetconvex  if roofs.first.to_s.include?("convex")
 
               edge[:psi][type] = shorts[:val][type]
-              roofs.each {|ty| edges[:psi].delete(ty)}
+              roofs.each {|ty| edge[:psi].delete(ty)}
             else
               next unless roofs.empty?
               next     if parapets.empty?
@@ -2361,7 +2364,7 @@ module TBD
               type = :roofconvex  if parapets.first.to_s.include?("convex")
 
               edge[:psi][type] = shorts[:val][type]
-              parapets.each {|ty| edges[:psi].delete(ty)}
+              parapets.each {|ty| edge[:psi].delete(ty)}
             end
           end
         end
@@ -2799,7 +2802,6 @@ module TBD
       c         = current_c.clone(model).to_LayeredConstruction.get
       m         = nil
       m         = derate(id, surface, c) if index
-
       # m may be nilled simply because the targeted construction has already
       # been derated, i.e. holds " tbd" in its name. Names of cloned/derated
       # constructions (due to TBD) include the surface name (since derated
@@ -2851,7 +2853,7 @@ module TBD
         ratio     = -(current_R - updated_R) * 100 / current_R
 
         surface[:ratio] = ratio if ratio.abs > TOL
-        surface[:u    ] = 1 / current_R       # un-derated U-factors (for UA')
+        surface[:u    ] = 1 / current_R # un-derated U-factors (for UA')
       end
     end
 

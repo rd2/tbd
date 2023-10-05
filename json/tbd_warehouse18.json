@@ -1,0 +1,12 @@
+{
+  "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
+  "description": "testing roof/parapet switch (warehouse.osm)",
+  "spaces": [{
+    "id": "Zone3 Bulk Storage",
+    "parapet": false
+  }],
+  "surfaces": [{
+    "id": "Bulk Storage Rear Wall",
+    "parapet": true
+  }]
+}
