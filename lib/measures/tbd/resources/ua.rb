@@ -751,31 +751,31 @@ module TBD
           loss  = edge[:length] * val[safer] * edge[:ratio] unless ok
 
           if edge[:type].to_s.downcase.include?("balcony")
-            bloc[:pro][:balconies] += loss
+            bloc[:ref][:balconies] += loss
           elsif edge[:type].to_s.downcase.include?("door")
-            bloc[:pro][:trim     ] += loss
+            bloc[:ref][:trim     ] += loss
           elsif edge[:type].to_s.downcase.include?("skylight")
-            bloc[:pro][:trim     ] += loss
+            bloc[:ref][:trim     ] += loss
           elsif edge[:type].to_s.downcase.include?("fenestration")
-            bloc[:pro][:trim     ] += loss
+            bloc[:ref][:trim     ] += loss
           elsif edge[:type].to_s.downcase.include?("head")
-            bloc[:pro][:trim     ] += loss
+            bloc[:ref][:trim     ] += loss
           elsif edge[:type].to_s.downcase.include?("sill")
-            bloc[:pro][:trim     ] += loss
+            bloc[:ref][:trim     ] += loss
           elsif edge[:type].to_s.downcase.include?("jamb")
-            bloc[:pro][:trim     ] += loss
+            bloc[:ref][:trim     ] += loss
           elsif edge[:type].to_s.downcase.include?("rimjoist")
-            bloc[:pro][:rimjoists] += loss
+            bloc[:ref][:rimjoists] += loss
           elsif edge[:type].to_s.downcase.include?("parapet")
-            bloc[:pro][:parapets ] += loss
+            bloc[:ref][:parapets ] += loss
           elsif edge[:type].to_s.downcase.include?("roof")
-            bloc[:pro][:parapets ] += loss
+            bloc[:ref][:parapets ] += loss
           elsif edge[:type].to_s.downcase.include?("corner")
-            bloc[:pro][:corners  ] += loss
+            bloc[:ref][:corners  ] += loss
           elsif edge[:type].to_s.downcase.include?("grade")
-            bloc[:pro][:grade    ] += loss
+            bloc[:ref][:grade    ] += loss
           else
-            bloc[:pro][:other    ] += loss
+            bloc[:ref][:other    ] += loss
           end
         end
       end
