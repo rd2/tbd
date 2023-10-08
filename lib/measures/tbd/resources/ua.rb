@@ -951,12 +951,8 @@ module TBD
     if ua[lang].key?(:details) && ua[lang][:details].respond_to?(:&)
       ua[lang][:details].each do |d|
         report << "#{d.to_s}   " if d.respond_to?(:to_s)
-        report << "   "
       end
-    end
 
-    if ua[lang].key?(:details)
-      ua[lang][:details].each { |d| report << "#{d}   " }
       report << "   "
     end
 
