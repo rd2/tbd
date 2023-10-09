@@ -823,7 +823,7 @@ module TBD
     # @option set [#to_f] :balconyconcave basilaire variant
     # @option set [#to_f] :balconyconvex cantilever variant
     # @option set [#to_f] :balconysill intermediate floor-balcony-fenestration intersection
-    # @option set [#to_f] :balconycsilloncave basilaire variant
+    # @option set [#to_f] :balconysilloncave basilaire variant
     # @option set [#to_f] :balconysillconvex cantilever variant
     # @option set [#to_f] :balconydoorsill intermediate floor-balcony-door intersection
     # @option set [#to_f] :balconydoorsilloncave basilaire variant
