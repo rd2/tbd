@@ -2664,6 +2664,7 @@ RSpec.describe TBD do
     n_edges_at_grade             = 0
     n_edges_as_balconies         = 0
     n_edges_as_balconysills      = 0
+    n_edges_as_balconydoorsills  = 0
     n_edges_as_concave_parapets  = 0
     n_edges_as_convex_parapets   = 0
     n_edges_as_concave_roofs     = 0
@@ -2698,6 +2699,9 @@ RSpec.describe TBD do
       n_edges_as_balconysills      += 1 if edge[:type] == :balconysill
       n_edges_as_balconysills      += 1 if edge[:type] == :balconysillconcave
       n_edges_as_balconysills      += 1 if edge[:type] == :balconysillconvex
+      n_edges_as_balconydoorsills  += 1 if edge[:type] == :balconydoorsill
+      n_edges_as_balconydoorsills  += 1 if edge[:type] == :balconydoorsillconcave
+      n_edges_as_balconydoorsills  += 1 if edge[:type] == :balconydoorsillconvex
       n_edges_as_concave_parapets  += 1 if edge[:type] == :parapetconcave
       n_edges_as_convex_parapets   += 1 if edge[:type] == :parapetconvex
       n_edges_as_concave_roofs     += 1 if edge[:type] == :roofconcave
@@ -2775,6 +2779,7 @@ RSpec.describe TBD do
     expect(n_edges_at_grade            ).to eq( 0)
     expect(n_edges_as_balconies        ).to eq( 2)
     expect(n_edges_as_balconysills     ).to eq( 2) # (2x instances of GlassDoor)
+    expect(n_edges_as_balconydoorsills ).to eq( 0)
     expect(n_edges_as_concave_parapets ).to eq( 1)
     expect(n_edges_as_convex_parapets  ).to eq(11)
     expect(n_edges_as_concave_roofs    ).to eq( 0)
@@ -2856,6 +2861,13 @@ RSpec.describe TBD do
     expect(model).to_not be_empty
     model = model.get
 
+    # As a side test, switch glass doors to (opaque) doors.
+    model.getSubSurfaces.each do |sub|
+      next unless sub.subSurfaceType.downcase == "glassdoor"
+
+      expect(sub.setSubSurfaceType("Door")).to be true
+    end
+
     # Switching wall/roof edges from/to:
     #    - "parapet" PSI-factor 0.26 W/K•m
     #    - "roof"    PSI-factor 0.02 W/K•m !!
@@ -2880,6 +2892,7 @@ RSpec.describe TBD do
     n_edges_at_grade             = 0
     n_edges_as_balconies         = 0
     n_edges_as_balconysills      = 0
+    n_edges_as_balconydoorsills  = 0
     n_edges_as_concave_parapets  = 0
     n_edges_as_convex_parapets   = 0
     n_edges_as_concave_roofs     = 0
@@ -2914,6 +2927,9 @@ RSpec.describe TBD do
       n_edges_as_balconysills      += 1 if edge[:type] == :balconysill
       n_edges_as_balconysills      += 1 if edge[:type] == :balconysillconcave
       n_edges_as_balconysills      += 1 if edge[:type] == :balconysillconvex
+      n_edges_as_balconydoorsills  += 1 if edge[:type] == :balconydoorsill
+      n_edges_as_balconydoorsills  += 1 if edge[:type] == :balconydoorsillconcave
+      n_edges_as_balconydoorsills  += 1 if edge[:type] == :balconydoorsillconvex
       n_edges_as_concave_parapets  += 1 if edge[:type] == :parapetconcave
       n_edges_as_convex_parapets   += 1 if edge[:type] == :parapetconvex
       n_edges_as_concave_roofs     += 1 if edge[:type] == :roofconcave
@@ -2944,7 +2960,8 @@ RSpec.describe TBD do
 
     expect(n_edges_at_grade            ).to eq( 0)
     expect(n_edges_as_balconies        ).to eq( 2)
-    expect(n_edges_as_balconysills     ).to eq( 2) # (2x instances of GlassDoor)
+    expect(n_edges_as_balconysills     ).to eq( 0)
+    expect(n_edges_as_balconydoorsills ).to eq( 2) # ... no longer GlassDoors
     expect(n_edges_as_concave_parapets ).to eq( 0) #  1x if parapet (not roof)
     expect(n_edges_as_convex_parapets  ).to eq( 0) # 11x if parapet (not roof)
     expect(n_edges_as_concave_roofs    ).to eq( 1)
@@ -2953,19 +2970,42 @@ RSpec.describe TBD do
     expect(n_edges_as_concave_rimjoists).to eq( 5)
     expect(n_edges_as_convex_rimjoists ).to eq(18)
     expect(n_edges_as_fenestrations    ).to eq( 0)
-    expect(n_edges_as_heads            ).to eq( 2) # GlassDoor == fenestration
-    expect(n_edges_as_sills            ).to eq( 0) # (2x balconysills)
-    expect(n_edges_as_jambs            ).to eq( 4)
+    expect(n_edges_as_heads            ).to eq( 0)
+    expect(n_edges_as_sills            ).to eq( 0)
+    expect(n_edges_as_jambs            ).to eq( 0)
     expect(n_edges_as_concave_jambs    ).to eq( 0)
     expect(n_edges_as_convex_jambs     ).to eq( 0)
-    expect(n_edges_as_doorheads        ).to eq( 0)
-    expect(n_edges_as_doorjambs        ).to eq( 0)
-    expect(n_edges_as_doorsills        ).to eq( 0)
+    expect(n_edges_as_doorheads        ).to eq( 2) # GlassDoor != fenestration
+    expect(n_edges_as_doorjambs        ).to eq( 4) # GlassDoor != fenestration
+    expect(n_edges_as_doorsills        ).to eq( 0) # (2x balconydoorsills)
     expect(n_edges_as_skylightjambs    ).to eq( 1) # along 1" rooftop strip
     expect(n_edges_as_corners          ).to eq( 0)
     expect(n_edges_as_concave_corners  ).to eq( 4)
     expect(n_edges_as_convex_corners   ).to eq(12)
     expect(n_edges_as_transitions      ).to eq(10)
+
+    # Re-do, without changing door surface types.
+    file  = File.join(__dir__, "files/osms/in/loscrigno.osm")
+    path  = OpenStudio::Path.new(file)
+    model = translator.loadModel(path)
+    expect(model).to_not be_empty
+    model = model.get
+
+    argh = {option: "90.1.22|steel.m|default", parapet: false}
+
+    json     = TBD.process(model, argh)
+    expect(json).to be_a(Hash)
+    expect(json).to have_key(:io)
+    expect(json).to have_key(:surfaces)
+    io       = json[:io      ]
+    surfaces = json[:surfaces]
+    expect(TBD.status).to be_zero
+    expect(TBD.logs).to be_empty
+    expect(surfaces).to be_a Hash
+    expect(surfaces.size).to eq(31)
+    expect(io).to be_a(Hash)
+    expect(io).to have_key(:edges)
+    expect(io[:edges].size).to eq(77)
 
     #      roof PSI :  0.02 W/K•m
     # - parapet PSI :  0.26 W/K•m
