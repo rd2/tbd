@@ -26,7 +26,18 @@ TBD will log (and flash on screen if using the OpenStudio Application) the calcu
 An initial wall Uo of 0.162 W/m2•K is required to achieve an overall Ut of 0.210 W/m2•K for ALL wall constructions.
 ```
 
-The _uprating_ calculations are similar to [UA'](./ua.html "UA' assessments")  assessments, yet in reverse order. In any _UA_-type exercise (like the _uprating_ calculations), a significantly weaker component will have a disproportionate effect vs its area (as summarized in the very first paragraph of this [guide](../index.html "Thermal Bridging & Derating"), "In a nutshell ..."). For very efficient envelope designs (e.g. continuous outboard insulation, thermally-broken cladding clips, minimal fenestration, favourable façade aspect ratios), the degree of _uprating_ may be quite reasonable. It may however be very challenging (and onerous) to meet such ambitious __Ut__ targets when factoring-in weaker components (e.g., spandrels, poor detailing, lots of fenestration).
+The _uprating_ calculations are similar to [UA'](./ua.html "UA' assessments")  assessments, yet in reverse order. In any _UA_-type exercise (like these _uprating_ calculations), a significantly weaker component will have a disproportionate effect vs its area (as summarized in the very first paragraph of this [guide](../index.html "Thermal Bridging & Derating"), "In a nutshell ..."). The degree of _uprating_ may be quite reasonable for very efficient envelope designs, e.g.:
+
+- continuous outboard insulation
+- thermally-broken cladding clips
+- minimal fenestration
+- favourable façade aspect ratios
+
+Yet it may be very challenging (and onerous) to meet such ambitious __Ut__ targets when factoring-in weaker components, e.g.:
+
+- spandrels
+- poor detailing
+- lots of fenestration
 
 We strongly recommend to first investigate this feature while relying on [Apply Measures Now](./launch.html "Launching TBD as a process") feedback (ideally UNCHECKing the __Alter OpenStudio model__ option), to get a sense of how significant the _uprating_ calculations may end up altering your initial designs. In some cases, EnergyPlus' CTF convergence calculations may even fail with very thick (_uprated_) insulation layers !
 

@@ -2,7 +2,7 @@
 
 Many building energy codes offer traditional _prescriptive_ paths, as well as simulation-based _performance_ paths, as means to comply. _Trade-off_ paths are intermediates, where compliance can be assessed for a particular sub-domain like building envelope or interior lighting.
 
-Common trade-off solutions for building envelopes (at least in North America) are _UA_ trade-offs, whereby one or more _non-compliant_ envelope components (e.g. spandrel panels) can be compensated by one or more _improved_ components (e.g. roof insulation). Traditionally, _UA_ trade-offs are based on _total envelope heat loss_ (in W/K), as supported by [REScheck](https://www.energycodes.gov/rescheck):
+Common intermediate solutions for building envelopes (at least in North America) are _UA_ trade-offs, whereby one or more _non-compliant_ envelope components (e.g. spandrel panels) can be compensated by one or more _improved_ components (e.g. roof insulation). Traditionally, _UA_ trade-offs are based on _total envelope heat loss_ (in W/K), as supported for instance by [REScheck](https://www.energycodes.gov/rescheck):
 
 ```
 UA = ∑ (Uo • A)
@@ -22,7 +22,7 @@ If the total _UA_ of a _proposed_ envelope design is equal or inferior to the co
 
 ### _Major_ thermal bridging
 
-Québec's recent energy code (Section 3.3) expands on the concept by including _major_ thermal bridges in the mix:
+Québec's energy code (Section 3.3) expands on the concept by including _major_ thermal bridges in the mix:
 ```
 UA' = ∑ (Uo • A) + ∑ (psi • L) + ∑ (khi • n)
 ```
@@ -40,11 +40,11 @@ If the proposed total _UA'_ is equal or inferior to the reference total _UA'_, t
 TBD automatically processes what's required (inputs) to carry out _UA'_ assessments, as well as what's often needed to demonstrate compliance (outputs) for code authorities (see [TBD menu options](./settings.html "TBD settings")):
 
 __UA'__: checkbox enabling UA' assessments  
-__UA' reference__: vs which prescriptive requirements?
+__UA' reference__: vs which prescriptive ruleset?
 
 The __UA' reference__ pull-down options correspond to TBD's __Default thermal bridge sets__. If the "code (Quebec)" option is selected, then the reference prescriptive requirements include code-required _Uo_ factors, in addition to code-required _psi_ & _khi_ factors (see [Where does one get psi data?](./settings.html "TBD settings")). For all other UA' references, only the _psi_ & _khi_ factors differ between _proposed_ vs _reference_ cases. It's best to generate UA' assessments under the [Apply Measures Now](./launch.html "Launching TBD as a process") mode, while UNCHECKing the __Alter OpenStudio model__ option.
 
-Note that _UA'_ calculations will factor [uprated](./ut.html "Uprating") assemblies, if selected.
+Note that _UA'_ calculations will consider [uprated](./ut.html "Uprating") assemblies, if selected.
 
 ### Assessments
 
@@ -52,9 +52,9 @@ In addition to standard TBD feedback (see [Reporting](./reports.html "What TBD r
 
 ![UA Assessment](../assets/images/UA.png "UA Assessment")
 
-The __Summary__ is the key output to scrutinize. For both _heated_ and _semi-heated_ sections (if applicable), _UA'_ totals (in W/K) give a sense of how close (or far) one is to reaching selected targets. Here (a hypothetical warehouse variant), the proposed design is considerably off the mark for both _heated_ and _semi-heated_ sections. Results are further broken down into individual envelope components, such as walls, roofs, doors, windows, etc., and applicable thermal bridges (e.g. "trim" for all fenestration perimeters). This allows one to assess the relative impact of each item, where to concentrate future efforts, etc.
+The __Summary__ is the key output to scrutinize. For both _heated_ and _semi-heated_ sections (if applicable), _UA'_ totals (in W/K) give a sense of how close (or far) one is to reaching selected targets. Here (a hypothetical warehouse variant), the proposed design is considerably off the mark for both _heated_ and _semi-heated_ sections. Results are further broken down into individual envelope components, such as walls, roofs, doors, windows, etc., and applicable thermal bridges (e.g. "trim" for all fenestration, door and skylight perimeters). This allows one to assess the relative impact of each item, what to fix, etc.
 
-TBD does not report on elements that are not part of the building envelope. In this warehouse example, the _heated_ section is limited to a ground floor office - its ceiling connected to a storage space above. As the office ceiling is not a roof _per se_ i.e., not part of the building envelope, TBD only reports on the _semi-heated_ roof surfaces. Similarly, only thermal bridges identified by TBD in the OpenStudio model are part of the assessment e.g., no balconies here.
+TBD does not report on elements that are not part of the building envelope. In this warehouse example, the _heated_ section is limited to a ground floor office - its ceiling connected to a storage space above. As the office ceiling is not a roof _per se_ i.e., not part of the building envelope, TBD only reports on the _semi-heated_ roof surfaces. Similarly, only thermal bridges identified by TBD in the OpenStudio model are part of the assessment, e.g. no balconies here.
 
 The _UA'_ assessments are [MD](https://en.wikipedia.org/wiki/Markdown)-formatted, which can be rendered as HTML or even PDF, depending on the text editor or web browser.
 
