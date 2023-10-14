@@ -1,6 +1,6 @@
 # Thermal Bridging & Derating (TBD)  
 
-An [OpenStudio Measure](https://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/) that first autodetects _major_ thermal bridges (like balconies, parapets and corners) in an OpenStudio model (.osm), and then _derates_ outside-facing, opaque surface constructions (walls, roofs and exposed floors). It interacts with the [OpenStudio SDK](https://openstudio-sdk-documentation.s3.amazonaws.com/index.html) and relies on AutomaticMagic's [Topolys](https://github.com/automaticmagic/topolys) gem, as well as rd2's [OSut](https://rubygems.org/gems/osut/versions/0.2.7) gem.
+An [OpenStudio Measure](https://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/) that first autodetects _major_ thermal bridges (like balconies, parapets and corners) in an OpenStudio model (.osm), and then _derates_ outside-facing, opaque surface constructions (walls, roofs and exposed floors). It interacts with the [OpenStudio SDK](https://openstudio-sdk-documentation.s3.amazonaws.com/index.html) and relies on AutomaticMagic's [Topolys](https://github.com/automaticmagic/topolys) gem, as well as rd2's [OSut](https://rubygems.org/gems/osut) gem.
 
 ## Guide & Downloads
 
