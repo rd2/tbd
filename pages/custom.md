@@ -60,7 +60,7 @@ Notice how the "not bad" _psi_ factor set above is concise, more so than any TBD
 - missing "balconydoorsill" inherits from "balconysill"
 - misisng "balconysill" inherits from "balcony"
 
-It's important to explicitly list edge types, in custom _psi_ factor sets, to deactivate TBD's inheritance rules.
+It's important to explicitly list specific edge types (in custom _psi_ factor sets), to prevent TBD from applying these inheritance rules.
 
 ### Multiple custom _psi_ factor sets
 
@@ -183,7 +183,7 @@ Cantilevered beams, columns, rooftop support blocks, etc. that partially or enti
   ]
 }
 ```
-Here, the OpenStudio surface "exposed floor 1" will inherit __10x__ 0.7 W/K (= 7 W/K) + __4x__ 0.5 W/K (= 2 W/K) point conductances: an extra 9 W/K, in addition to the total W/K per meter from surrounding edges (i.e. linear thermal bridges) - automatically calculated by TBD.
+Here, the OpenStudio surface "exposed floor 1" will inherit __10x__ 0.7 W/K (= 7 W/K) + __4x__ 0.5 W/K (= 2 W/K) point conductances: an extra 9 W/K, in addition to the total W/K per meter from surrounding edges.
 
 ### Extended _shorthands_
 

@@ -29,7 +29,7 @@ TBD offers 2 checkboxes to autogenerate KIVA inputs (see [Settings](./settings.h
 
 The latter is recommended for most cases - OpenStudio often sets "Ground" as outside boundary conditions for lower floor surfaces by default. TBD also provides a __Purge existing KIVA inputs__ checkbox to ensure existing KIVA entries are first removed before adding new ones - EnergyPlus raises severe errors if duplicate KIVA entries are found.
 
-Once KIVA inputs are permanently added to an OpenStudio model, and maybe subsequently altered by hand if needed, users can then safely run EnergyPlus simulations - hopefully again with TBD handling _major_, above-grade thermal bridges.
+Once KIVA inputs are permanently added to an OpenStudio model, and maybe subsequently altered by hand if needed, users can then safely run OpenStudio/EnergyPlus simulations - hopefully again with TBD handling _major_, above-grade thermal bridges.
 
 One last (yet very important) point: when autogenerating KIVA inputs (to subsequently edit by hand) in _Apply Measures Now_ mode with the __Alter OpenStudio model__ option, users should ideally select the __Default thermal bridge set__ "(non thermal bridging)", which prevents TBD from _derating_ any above-grade surfaces. It is usually not desirable to permanently _derate_ opaque surfaces this way.
 

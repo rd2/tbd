@@ -2,7 +2,7 @@
 
 Many building energy codes offer traditional _prescriptive_ paths, as well as simulation-based _performance_ paths, as means to comply. _Trade-off_ paths are intermediates, where compliance can be assessed for a particular sub-domain like building envelope or interior lighting.
 
-Common intermediate solutions for building envelopes (at least in North America) are _UA_ trade-offs, whereby one or more _non-compliant_ envelope components (e.g. spandrel panels) can be compensated by one or more _improved_ components (e.g. roof insulation). Traditionally, _UA_ trade-offs are based on _total envelope heat loss_ (in W/K), as supported for instance by [REScheck](https://www.energycodes.gov/rescheck):
+Common intermediate solutions for building envelopes (at least in North America) are _UA_ trade-offs, whereby one or more _non-compliant_ envelope components (e.g. spandrel panels) may be compensated by one or more _improved_ components (e.g. roof insulation). Traditionally, _UA_ trade-offs are based on _total envelope heat loss_ (in W/K), as supported for instance by [REScheck](https://www.energycodes.gov/rescheck):
 
 ```
 UA = ∑ (Uo • A)
@@ -18,7 +18,7 @@ If the total _UA_ of a _proposed_ envelope design is equal or inferior to the co
 - time-delayed responses are not factored-in ...
 - ... so forget thermal mass, ground heat loss, solar, etc.
 - fenestration U-factors may be considered ...
-- ... while _proposed_ vs _reference_ fenestration areas remain equal/fixed
+- ... as long as _proposed_ vs _reference_ fenestration areas remain equal
 
 ### _Major_ thermal bridging
 
@@ -54,7 +54,7 @@ In addition to standard TBD feedback (see [Reporting](./reports.html "What TBD r
 
 The __Summary__ is the key output to scrutinize. For both _heated_ and _semi-heated_ sections (if applicable), _UA'_ totals (in W/K) give a sense of how close (or far) one is to reaching selected targets. Here (a hypothetical warehouse variant), the proposed design is considerably off the mark for both _heated_ and _semi-heated_ sections. Results are further broken down into individual envelope components, such as walls, roofs, doors, windows, etc., and applicable thermal bridges (e.g. "trim" for all fenestration, door and skylight perimeters). This allows one to assess the relative impact of each item, what to fix, etc.
 
-TBD does not report on elements that are not part of the building envelope. In this warehouse example, the _heated_ section is limited to a ground floor office - its ceiling connected to a storage space above. As the office ceiling is not a roof _per se_ i.e., not part of the building envelope, TBD only reports on the _semi-heated_ roof surfaces. Similarly, only thermal bridges identified by TBD in the OpenStudio model are part of the assessment, e.g. no balconies here.
+TBD does not report on elements that are not part of the building envelope. In this warehouse example, the _heated_ section is limited to a ground floor office - its ceiling connected to a _semi-heated_ storage space above. As the office ceiling is not a roof _per se_ i.e., not part of the building envelope, TBD only reports on the _semi-heated_ roof surfaces. Similarly, only thermal bridges identified by TBD in the OpenStudio model are part of the assessment, e.g. no balconies in the warehouse.
 
 The _UA'_ assessments are [MD](https://en.wikipedia.org/wiki/Markdown)-formatted, which can be rendered as HTML or even PDF, depending on the text editor or web browser.
 

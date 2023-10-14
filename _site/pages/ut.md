@@ -12,10 +12,10 @@ This presumption is consistent with typical building energy simulation workflows
 
 In some cases, building professionals may even choose (or are required) to achieve a maximum, area-weighted average __Ut__ for all exterior wall surfaces. It's the case for prescriptive requirements of the Canadian NECB 2017 and 2020 editions, e.g. a final wall area-weighted average __Ut__ of 0.210 W/m2.K (R27) for climate zone 7 (NECB 2017). Depending on the _extent_ of thermal bridging, the initial _clear-field_ __Uo__ factor for that single, common construction may need to be 0.160 (or much, much lower).
 
-So in addition to _derating_ construction __Uo__ factors (to final surface __Ut__ factors) for energy simulation purposes, TBD offers designers the option to first autogenerate required _clear-field_ __Uo__ factors (a process called _uprating_) to meet a given target, by reordering the above equation.
+So in addition to _derating_ construction __Uo__ factors (to final surface __Ut__ factors) for energy simulation purposes, TBD offers designers the option of first autogenerating required _clear-field_ __Uo__ factors (a process called _uprating_) to meet a given target, by reordering the above equation.
 
 ```
-Uo = Ut - ( ∑psi • L )/A + ( ∑khi • n )/A
+Uo = Ut - ( ∑psi • L )/A - ( ∑khi • n )/A
 ```
 
 _Uprating_ menu options (see [Settings](./settings.html "TBD settings")), are paired together for _walls_, _roofs_ and/or exposed _floors_ (let's make things easy here by limiting the discussion to walls). The default value assigned to the "Wall construction(s) to 'uprate'" pull-down menu option is "NONE", disabling any _uprating_ calculations for walls. TBD nonetheless pre-scans an OpenStudio model to retrieve referenced wall constructions in order of prevalence - referenced constructions covering a larger area are listed higher up in the pull-down list. Users can either limit _uprating_ calculations to one (1x) such referenced wall construction, or to "ALL wall constructions" in a building model. The latter is an all-encompassing solution, overriding previously set construction assignments (the most prevalent wall construction is nonetheless retained as the basis for subsequent _uprating_ - and then _derating_ - calculations). Users can also set the desired, area-weighted __Ut__ factor for selected walls (default factors are those of the NECB 2017 for climate zone 7).

@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=330c3d8a18bd1e7f0a69bdc73ea8cb7313ea30a0">
+    <link rel="stylesheet" href="/assets/css/style.css?v=0f9bd1c521b2f9709294295364dfd3c26b66f3ef">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -61,7 +61,7 @@
 
 <p>Many building energy codes offer traditional <em>prescriptive</em> paths, as well as simulation-based <em>performance</em> paths, as means to comply. <em>Trade-off</em> paths are intermediates, where compliance can be assessed for a particular sub-domain like building envelope or interior lighting.</p>
 
-<p>Common intermediate solutions for building envelopes (at least in North America) are <em>UA</em> trade-offs, whereby one or more <em>non-compliant</em> envelope components (e.g. spandrel panels) can be compensated by one or more <em>improved</em> components (e.g. roof insulation). Traditionally, <em>UA</em> trade-offs are based on <em>total envelope heat loss</em> (in W/K), as supported for instance by <a href="https://www.energycodes.gov/rescheck">REScheck</a>:</p>
+<p>Common intermediate solutions for building envelopes (at least in North America) are <em>UA</em> trade-offs, whereby one or more <em>non-compliant</em> envelope components (e.g. spandrel panels) may be compensated by one or more <em>improved</em> components (e.g. roof insulation). Traditionally, <em>UA</em> trade-offs are based on <em>total envelope heat loss</em> (in W/K), as supported for instance by <a href="https://www.energycodes.gov/rescheck">REScheck</a>:</p>
 
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>UA = ∑ (Uo • A)
 </code></pre></div></div>
@@ -77,7 +77,7 @@
   <li>time-delayed responses are not factored-in …</li>
   <li>… so forget thermal mass, ground heat loss, solar, etc.</li>
   <li>fenestration U-factors may be considered …</li>
-  <li>… while <em>proposed</em> vs <em>reference</em> fenestration areas remain equal/fixed</li>
+  <li>… as long as <em>proposed</em> vs <em>reference</em> fenestration areas remain equal</li>
 </ul>
 
 <h3 id="major-thermal-bridging"><em>Major</em> thermal bridging</h3>
@@ -113,7 +113,7 @@
 
 <p>The <strong>Summary</strong> is the key output to scrutinize. For both <em>heated</em> and <em>semi-heated</em> sections (if applicable), <em>UA’</em> totals (in W/K) give a sense of how close (or far) one is to reaching selected targets. Here (a hypothetical warehouse variant), the proposed design is considerably off the mark for both <em>heated</em> and <em>semi-heated</em> sections. Results are further broken down into individual envelope components, such as walls, roofs, doors, windows, etc., and applicable thermal bridges (e.g. “trim” for all fenestration, door and skylight perimeters). This allows one to assess the relative impact of each item, what to fix, etc.</p>
 
-<p>TBD does not report on elements that are not part of the building envelope. In this warehouse example, the <em>heated</em> section is limited to a ground floor office - its ceiling connected to a storage space above. As the office ceiling is not a roof <em>per se</em> i.e., not part of the building envelope, TBD only reports on the <em>semi-heated</em> roof surfaces. Similarly, only thermal bridges identified by TBD in the OpenStudio model are part of the assessment, e.g. no balconies here.</p>
+<p>TBD does not report on elements that are not part of the building envelope. In this warehouse example, the <em>heated</em> section is limited to a ground floor office - its ceiling connected to a <em>semi-heated</em> storage space above. As the office ceiling is not a roof <em>per se</em> i.e., not part of the building envelope, TBD only reports on the <em>semi-heated</em> roof surfaces. Similarly, only thermal bridges identified by TBD in the OpenStudio model are part of the assessment, e.g. no balconies in the warehouse.</p>
 
 <p>The <em>UA’</em> assessments are <a href="https://en.wikipedia.org/wiki/Markdown">MD</a>-formatted, which can be rendered as HTML or even PDF, depending on the text editor or web browser.</p>
 

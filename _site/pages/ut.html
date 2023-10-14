@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=330c3d8a18bd1e7f0a69bdc73ea8cb7313ea30a0">
+    <link rel="stylesheet" href="/assets/css/style.css?v=0f9bd1c521b2f9709294295364dfd3c26b66f3ef">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -70,9 +70,9 @@
 
 <p>In some cases, building professionals may even choose (or are required) to achieve a maximum, area-weighted average <strong>Ut</strong> for all exterior wall surfaces. It’s the case for prescriptive requirements of the Canadian NECB 2017 and 2020 editions, e.g. a final wall area-weighted average <strong>Ut</strong> of 0.210 W/m2.K (R27) for climate zone 7 (NECB 2017). Depending on the <em>extent</em> of thermal bridging, the initial <em>clear-field</em> <strong>Uo</strong> factor for that single, common construction may need to be 0.160 (or much, much lower).</p>
 
-<p>So in addition to <em>derating</em> construction <strong>Uo</strong> factors (to final surface <strong>Ut</strong> factors) for energy simulation purposes, TBD offers designers the option to first autogenerate required <em>clear-field</em> <strong>Uo</strong> factors (a process called <em>uprating</em>) to meet a given target, by reordering the above equation.</p>
+<p>So in addition to <em>derating</em> construction <strong>Uo</strong> factors (to final surface <strong>Ut</strong> factors) for energy simulation purposes, TBD offers designers the option of first autogenerating required <em>clear-field</em> <strong>Uo</strong> factors (a process called <em>uprating</em>) to meet a given target, by reordering the above equation.</p>
 
-<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Uo = Ut - ( ∑psi • L )/A + ( ∑khi • n )/A
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Uo = Ut - ( ∑psi • L )/A - ( ∑khi • n )/A
 </code></pre></div></div>
 
 <p><em>Uprating</em> menu options (see <a href="./settings.html" title="TBD settings">Settings</a>), are paired together for <em>walls</em>, <em>roofs</em> and/or exposed <em>floors</em> (let’s make things easy here by limiting the discussion to walls). The default value assigned to the “Wall construction(s) to ‘uprate’” pull-down menu option is “NONE”, disabling any <em>uprating</em> calculations for walls. TBD nonetheless pre-scans an OpenStudio model to retrieve referenced wall constructions in order of prevalence - referenced constructions covering a larger area are listed higher up in the pull-down list. Users can either limit <em>uprating</em> calculations to one (1x) such referenced wall construction, or to “ALL wall constructions” in a building model. The latter is an all-encompassing solution, overriding previously set construction assignments (the most prevalent wall construction is nonetheless retained as the basis for subsequent <em>uprating</em> - and then <em>derating</em> - calculations). Users can also set the desired, area-weighted <strong>Ut</strong> factor for selected walls (default factors are those of the NECB 2017 for climate zone 7).</p>
