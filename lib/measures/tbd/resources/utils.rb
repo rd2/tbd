@@ -2527,7 +2527,7 @@ module OSut
     return pts if pts.size < 2
     return mismatch("n non-collinears", n, Integer, mth, DBG, v) unless ok
 
-    # Alternative: evaluate cross product of vectors of 3x sequential points.
+    # Evaluate cross product of vectors of 3x sequential points.
     pts.each_with_index do |p2, i2|
       i1  = i2 - 1
       i3  = i2 + 1
@@ -2537,7 +2537,6 @@ module OSut
       v13 = p3 - p1
       v12 = p2 - p1
       next if v12.cross(v13).length < TOL
-      # next if OpenStudio.isPointOnLineBetweenPoints(p1, p3, p2, TOL) # v351
 
       a << p2
     end
@@ -3401,11 +3400,11 @@ module OSut
     roofs = space.surfaces # outdoor-facing roofs of the space
     clngs = space.surfaces # surface-facing ceilings of the space
 
-    roofs = roofs.select {|s| s.surfaceType.downcase == "roofceiling" }
-    roofs = roofs.select {|s| s.outsideBoundaryCondition.downcase == "outdoors" }
+    roofs = roofs.select {|s| s.surfaceType.downcase == "roofceiling"}
+    roofs = roofs.select {|s| s.outsideBoundaryCondition.downcase == "outdoors"}
 
-    clngs = clngs.select { |s| s.surfaceType.downcase == "roofceiling" }
-    clngs = clngs.select { |s| s.outsideBoundaryCondition.downcase == "surface" }
+    clngs = clngs.select {|s| s.surfaceType.downcase == "roofceiling"}
+    clngs = clngs.select {|s| s.outsideBoundaryCondition.downcase == "surface"}
 
     clngs.each do |ceiling|
       floor = ceiling.adjacentSurface
@@ -3416,8 +3415,8 @@ module OSut
 
       rufs = other.get.surfaces
 
-      rufs = rufs.select { |s| s.surfaceType.downcase == "roofceiling" }
-      rufs = rufs.select { |s| s.outsideBoundaryCondition.downcase == "outdoors" }
+      rufs = rufs.select {|s| s.surfaceType.downcase == "roofceiling"}
+      rufs = rufs.select {|s| s.outsideBoundaryCondition.downcase == "outdoors"}
       next if rufs.empty?
 
       # Only keep track of "other" roof(s) that "overlap" ceiling below.
