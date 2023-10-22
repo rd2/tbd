@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=38e46232490270e7351c9497a78de17c12d85907">
+    <link rel="stylesheet" href="/assets/css/style.css?v=32ec5c9bc0309d96bd848ecb537cf86f1a719ad4">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -50,8 +50,8 @@
         </header>
         <section id="downloads" class="clearfix">
           
-          <a href="https://github.com/rd2/tbd/releases/download/v3.2.3/tbd.zip" id="download-zip" class="button"><span>Download .zip</span></a>
-          <a href="https://github.com/rd2/tbd/releases/download/v3.2.3/tbd.tar.gz" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
+          <a href="https://github.com/rd2/tbd/releases/download/v3.3.0/tbd.zip" id="download-zip" class="button"><span>Download .zip</span></a>
+          <a href="https://github.com/rd2/tbd/releases/download/v3.3.0/tbd.tar.gz" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
           
 	
         </section>
@@ -59,13 +59,13 @@
         <section id="main_content">
           <h3 id="customization">Customization</h3>
 
-<p>TBD offers a pull-down menu list of prepackaged <em>psi</em> sets - key for newcomers, especially in the early design stages (see <a href="./settings.html" title="TBD settings">Settings</a>). What happens when design choices aren’t well represented by any of these prepackaged sets? TBD allows users to define multiple custom <em>psi</em> sets, refine them beyond the basic 7 TBD <em>shorthands</em>, and attribute them to different parts of a building model.</p>
+<p>TBD provides a pull-down menu list of built-in <em>psi</em> factor sets - key for newcomers, especially in the early design stages (see <a href="./settings.html" title="TBD settings">Settings</a>). What happens when design choices aren’t well represented by any of these built-in sets? TBD allows users to define multiple custom <em>psi</em> factor sets, refine them beyond the basic TBD <em>shorthands</em>, and attribute them to different parts of a building model.</p>
 
-<p>As detailed in the <a href="./reports.html" title="What TBD reports back">Reporting</a> section, a unique <em>tbd.out.json</em> output file is generated (or regenerated) for every TBD run, under an OpenStudio model’s <em>files</em> folder. If one drops a <em>tbd.json</em> file in the same <em>files</em> folder and CHECKS the <strong>Load ‘tbd.json’</strong> menu option, TBD will read in custom inputs defined in that file.</p>
+<p>As detailed in the <a href="./reports.html" title="What TBD reports back">Reporting</a> section, a unique <em>tbd.out.json</em> output file is generated (or regenerated) for every TBD run, under an OpenStudio model’s <em>files</em> folder. If one drops a <em>tbd.json</em> file in the same folder and CHECKS the <strong>Load ‘tbd.json’</strong> menu option, TBD will read in custom inputs defined in that file.</p>
 
-<h3 id="custom-building-psi-set">Custom building <em>psi</em> set</h3>
+<h3 id="custom-building-psi-factor-set">Custom building <em>psi</em> factor set</h3>
 
-<p>As a first example, consider the definition of a custom “building” <em>psi</em> set - instead of TBD’s pull-down menu options:</p>
+<p>As a first example, consider the definition of a custom “building” <em>psi</em> factor set (instead of built-in sets):</p>
 
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>{
   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
@@ -103,23 +103,34 @@
   <li>how this input should be JSON-formatted.</li>
 </ul>
 
-<p>Pretty much every compiled or assembled computer language has JSON functionality capable of reading in and validating JSON-formatted data. This ensures portability between machine architectures, computer languages and third-party software.</p>
-
-<p>Currently, designers are yet to have access to online tools or BIM-integrated features that would help with JSON formatting and validating of TBD custom inputs. In the meantime, one can copy the content of TBD’s <a href="https://github.com/rd2/tbd/blob/master/tbd.schema.json">schema</a> and paste it in the left-side window of this free, online JSON <a href="https://jsonschemalint.com/#!/version/draft-04/markup/json">Linter</a>. Then copy the example <em>tbd.json</em> content above, and paste in the right-side window:</p>
+<p>Pretty much every computer language has JSON functionality capable of reading and validating JSON-formatted data. This ensures portability between machine architectures, computer languages and third-party software. Currently, designers are yet to have access to online tools or BIM-integrated features that would help with JSON formatting and validating of TBD custom inputs. In the meantime, one can copy the content of TBD’s <a href="https://github.com/rd2/tbd/blob/master/tbd.schema.json">schema</a> and paste it in the left-side window of this free, online JSON <a href="https://jsonschemalint.com/#!/version/draft-04/markup/json">Linter</a>. Then copy the example <em>tbd.json</em> content above, and paste in the right-side window:</p>
 
 <p><img src="../assets/images/schema.png" alt="JSON Linter" title="JSON Linter" /></p>
 
 <p>… here, the Linter “Messages” inform us that everything is valid. Other times, they point to issues related to content, syntax or structure - which users can correct on the fly. Another option is to first generate a detailed <em>tbd.out.json</em> file (by CHECKING the <strong>Write ‘tbd.out.json’</strong> option), renaming it as <em>tbd.json</em>, and then customizing it directly. A combination of both options also works well.</p>
 
-<p><strong>PSIs</strong>: In order to refer to a custom <em>psi</em> set, one must first define the custom set itself. TBD JSON “psis” each require a unique identifier (e.g. “not bad”), and the expected TBD <em>shorthands</em> (e.g. “parapet”) with their custom <em>psi</em> factors (in W/K per meter). Note that the “joint” shorthand is optional: if one or more “transition” edges in a model are to become structural expansion “joints”, then the custom <em>psi</em> set should hold an additional “joint” entry.</p>
+<p><strong>PSIs</strong>: In order to refer to a custom <em>psi</em> factor set, one must first define the custom set itself. TBD JSON “psis” each require a unique identifier (e.g. “not bad”), and the expected TBD <em>shorthands</em> (e.g. “parapet”) with their custom <em>psi</em> factors (in W/K per meter). Note that the “joint” shorthand is optional: if one or more “transition” edges in a model are to become structural expansion “joints”, then the custom <em>psi</em> factor set should hold an additional “joint” entry.</p>
 
-<p><strong>BUILDING</strong>: TBD allows a single “building” JSON entry, where one simply refers to one of the previously defined <em>psi</em> sets. This overrides the pull-down <strong>Default thermal bridge set</strong> option.</p>
+<p><strong>BUILDING</strong>: TBD allows a single “building” JSON entry, where one simply refers to one of the previously defined <em>psi</em> factor sets. This overrides the pull-down <strong>Default thermal bridge set</strong> option.</p>
 
-<h3 id="multiple-custom-psi-sets">Multiple custom <em>psi</em> sets</h3>
+<h3 id="inheritance">Inheritance</h3>
 
-<p>OpenStudio allows users to define default construction sets for an entire building model, which means any new wall surface added to a model automatically inherits the default wall construction - very handy. OpenStudio also allows users to further refine the solution by allowing default construction sets per individual <em>building story</em> (e.g. ground floor surfaces vs the rest of the building), or on a <em>spacetype</em> basis (e.g. housing units vs common spaces), and so on … down to the individual surface.</p>
+<p>Notice how the “not bad” <em>psi</em> factor set above is concise, more so than any TBD <a href="./settings.html" title="TBD settings">built-in</a> set? TBD applies inheritance rules when custom sets have missing entries. For instance:</p>
 
-<p>TBD offers a mirror solution - custom <em>psi</em> sets:</p>
+<ul>
+  <li>missing “door” and “skylight” perimeter edge types inherit from “fenestration”</li>
+  <li>missing “roof” inherits from “parapet”</li>
+  <li>missing “balconydoorsill” inherits from “balconysill”</li>
+  <li>misisng “balconysill” inherits from “balcony”</li>
+</ul>
+
+<p>It’s important to explicitly list specific edge types (in custom <em>psi</em> factor sets), to prevent TBD from applying these inheritance rules.</p>
+
+<h3 id="multiple-custom-psi-factor-sets">Multiple custom <em>psi</em> factor sets</h3>
+
+<p>OpenStudio allows users to define a <em>default construction set</em> for an entire building model, which means any new wall surface (added to a model) automatically inherits the default set wall construction - very handy. OpenStudio also allows default construction sets per individual <em>building story</em> (e.g. ground floor surfaces vs the rest of the building), or on a <em>spacetype</em> basis (e.g. housing units vs common spaces), and so on … down to the individual surface.</p>
+
+<p>TBD offers a mirror solution - custom <em>psi</em> factor sets:</p>
 
 <ul>
   <li>for the OpenStudio building as a whole</li>
@@ -164,15 +175,15 @@
   ]
 }
 </code></pre></div></div>
-<p>Successfully linking custom <em>psi</em> sets and OpenStudio objects relies on their unique (case-sensitive) “id”: here, “Warehouse Office” and “Warehouse Fine” are unique <em>spacetype</em> object identifiers in one’s OpenStudio model.</p>
+<p>Successfully linking custom <em>psi</em> factor sets with OpenStudio objects relies on their unique (case-sensitive) <em>name</em> (or “id”): here, “Warehouse Office” and “Warehouse Fine” are unique <em>spacetype</em> object identifiers in one’s OpenStudio model.</p>
 
 <p>A few additional notes:</p>
 
 <ul>
-  <li>here, the “building” <em>psi</em> set refers to a TBD pull-down option</li>
-  <li>… therefore not necessary to define it as a custom <em>psi</em> set</li>
+  <li>here, the “building” <em>psi</em> factor set refers to a TBD pull-down option</li>
+  <li>… therefore not necessary to define it as a custom <em>psi</em> factor set</li>
   <li>… this nonetheless overrides any selected pull-down option</li>
-  <li>except for “building”, custom <em>psi</em> sets can be <em>partial</em></li>
+  <li>except for “building”, custom <em>psi</em> factor sets can be <em>partial</em></li>
   <li>e.g. all “fenestration” edges here inherit from the “building” set</li>
 </ul>
 
@@ -237,11 +248,12 @@
   ]
 }
 </code></pre></div></div>
-<p>Here, the OpenStudio surface “exposed floor 1” will inherit <strong>10x</strong> 0.7 W/K (= 7 W/K) + <strong>4x</strong> 0.5 W/K (= 2 W/K): an extra 9 W/K, in addition to the total W/K per meter from surrounding edges (i.e. linear thermal bridges) - automatically calculated by TBD.</p>
+<p>Here, the OpenStudio surface “exposed floor 1” will inherit <strong>10x</strong> 0.7 W/K (= 7 W/K) + <strong>4x</strong> 0.5 W/K (= 2 W/K) point conductances: an extra 9 W/K, in addition to the total W/K per meter from surrounding edges.</p>
 
 <h3 id="extended-shorthands">Extended <em>shorthands</em></h3>
 
-<p>If one carefully examines a detailed <em>tbd.out.json</em> file, one notices new or altered TBD <em>shorthands</em> for individual edges e.g., “jamb”, “sill” &amp; “head” instead of “fenestration”, as well as “concave” or “convex” variants e.g.:</p>
+<p>If one carefully examines a detailed <em>tbd.out.json</em> file, one notices new or altered TBD <em>shorthands</em> for individual edges, such as “jamb”, “sill” &amp; “head” instead of “fenestration”, as well as “concave” or “convex” variants, e.g.:</p>
+
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>{
   "psi": "poor (BETBG)",
   "type": "jamb",
@@ -276,7 +288,7 @@
 </code></pre></div></div>
 <p>Here, “type” designates one of the possible (extended) TBD <em>shorthands</em>. Although one may have simply relied on a general “fenestration” <em>psi</em> factor to start with, TBD will differentiate between fenestration “heads”, “jambs” and “sills”. In addition, TBD will add a “convex” or “concave” suffix to edges linking <em>envelope</em> surfaces that aren’t on the same 3D plane. A simple, rectangular building would have a minimum of 4 “convex” parapet edges, but a one-story extension to a 2-story building would (also) have at least one “concave” parapet edge.</p>
 
-<p>If one comes across published <em>psi</em> data that distinguishes between fenestration “heads”, “sills” and “jambs” (the BETBG does hold some examples), and/or differences between “convex” vs “concave” corners, then one could customize a <em>tbd.json</em> file as follows:</p>
+<p>If one comes across published <em>psi</em> factor data that distinguishes between fenestration “heads”, “sills” and “jambs” (the BETBG does hold some examples), and/or differences between “convex” vs “concave” corners, then one could customize a <em>tbd.json</em> file as follows:</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>{
   "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
   "description": "Enhanced, custom PSI set for a building",
@@ -306,7 +318,7 @@
 
 <h3 id="a-side-note-on-dimensioning">A side note on dimensioning</h3>
 
-<p>Envelope surfaces are usually modelled in OpenStudio based on <em>outer</em> dimensions (i.e. following the exterior cladding, as in ASHRAE 90.1 and Québec’s energy code), or on <em>inner</em> dimensions (i.e. following the interior finishing, as in the Canadian NECB). For most <em>flat</em> edges, this isn’t critical. But for <em>concave</em> or <em>convex</em> edges, adjustments to <em>psi</em> factors may be warranted if there is a mismatch in conventions between the OpenStudio model vs published <em>psi</em> data. For instance, BETBG data reflect an <em>inner</em> dimensioning convention, while ISO 14683 reports <em>psi</em> factors for both conventions. The following equation may be used to adjust BETBG <em>psi</em> factors for e.g., <em>convex</em> corners, when relying on <em>outer</em> dimensions in OpenStudio.</p>
+<p>Envelope surfaces are usually modelled in OpenStudio based on <em>outer</em> dimensions (i.e. following the exterior cladding, as in ASHRAE 90.1 and Québec’s energy code), or on <em>inner</em> dimensions (i.e. following the interior finishing, as in the Canadian NECB). For most <em>flat</em> edges, this isn’t critical. But for <em>concave</em> or <em>convex</em> edges, adjustments to <em>psi</em> factors may be warranted if there is a mismatch in conventions between the OpenStudio model vs published <em>psi</em> data. For instance, BETBG data reflect an <em>inner</em> dimensioning convention, while ISO 14683 reports <em>psi</em> factors for both conventions. The following equation may be used to adjust BETBG <em>psi</em> factors for <em>convex</em> corners for instance, when relying on <em>outer</em> dimensions in OpenStudio.</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>PSIe = PSIi + Uo * 2(Li - Le), where:
 
 PSIe = adjusted PSI (W/K per m), as TBD input
@@ -315,7 +327,7 @@ PSIi = published PSI factor (W/K per m)
   Li = from interior corner to "zone of influence" limits (m)
   Le = from exterior corner to "zone of influence" limits (m)
 </code></pre></div></div>
-<p>The <em>zone of influence</em> usually ranges between 1.0 to 1.2 meters. But the key parameter here is really the resulting wall thickness, and whether the sign is positive or negative - depending if it’s a <em>convex</em> or <em>concave</em> corner. In some cases, this may even produce negative <em>psi</em> factors - which TBD allows. The BETBG and ISO standards provide detailed discussions on the subject.</p>
+<p>The <em>zone of influence</em> usually ranges from 1.0 to 1.2 meters. But the key parameter here is really the resulting wall thickness, and whether the sign is positive or negative - depending on whether it’s a <em>convex</em> or <em>concave</em> corner. In some cases, this may even produce negative <em>psi</em> factors - which TBD allows. The BETBG and ISO standards provide detailed discussions on the subject.</p>
 
 <p><a href="../index.html" title="Thermal Bridging &amp; Derating">HOME</a></p>
 

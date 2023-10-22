@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=38e46232490270e7351c9497a78de17c12d85907">
+    <link rel="stylesheet" href="/assets/css/style.css?v=32ec5c9bc0309d96bd848ecb537cf86f1a719ad4">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -50,8 +50,8 @@
         </header>
         <section id="downloads" class="clearfix">
           
-          <a href="https://github.com/rd2/tbd/releases/download/v3.2.3/tbd.zip" id="download-zip" class="button"><span>Download .zip</span></a>
-          <a href="https://github.com/rd2/tbd/releases/download/v3.2.3/tbd.tar.gz" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
+          <a href="https://github.com/rd2/tbd/releases/download/v3.3.0/tbd.zip" id="download-zip" class="button"><span>Download .zip</span></a>
+          <a href="https://github.com/rd2/tbd/releases/download/v3.3.0/tbd.tar.gz" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
           
 	
         </section>
@@ -70,9 +70,9 @@
 
 <p>In some cases, building professionals may even choose (or are required) to achieve a maximum, area-weighted average <strong>Ut</strong> for all exterior wall surfaces. It’s the case for prescriptive requirements of the Canadian NECB 2017 and 2020 editions, e.g. a final wall area-weighted average <strong>Ut</strong> of 0.210 W/m2.K (R27) for climate zone 7 (NECB 2017). Depending on the <em>extent</em> of thermal bridging, the initial <em>clear-field</em> <strong>Uo</strong> factor for that single, common construction may need to be 0.160 (or much, much lower).</p>
 
-<p>So in addition to <em>derating</em> construction <strong>Uo</strong> factors (to final surface <strong>Ut</strong> factors) for energy simulation purposes, TBD offers designers the option to first autogenerate required <em>clear-field</em> <strong>Uo</strong> factors (a process called <em>uprating</em>) to meet a given target, by reordering the above equation.</p>
+<p>So in addition to <em>derating</em> construction <strong>Uo</strong> factors (to final surface <strong>Ut</strong> factors) for energy simulation purposes, TBD offers designers the option of first autogenerating required <em>clear-field</em> <strong>Uo</strong> factors (a process called <em>uprating</em>) to meet a given target, by reordering the above equation.</p>
 
-<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Uo = Ut - ( ∑psi • L )/A + ( ∑khi • n )/A
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Uo = Ut - ( ∑psi • L )/A - ( ∑khi • n )/A
 </code></pre></div></div>
 
 <p><em>Uprating</em> menu options (see <a href="./settings.html" title="TBD settings">Settings</a>), are paired together for <em>walls</em>, <em>roofs</em> and/or exposed <em>floors</em> (let’s make things easy here by limiting the discussion to walls). The default value assigned to the “Wall construction(s) to ‘uprate’” pull-down menu option is “NONE”, disabling any <em>uprating</em> calculations for walls. TBD nonetheless pre-scans an OpenStudio model to retrieve referenced wall constructions in order of prevalence - referenced constructions covering a larger area are listed higher up in the pull-down list. Users can either limit <em>uprating</em> calculations to one (1x) such referenced wall construction, or to “ALL wall constructions” in a building model. The latter is an all-encompassing solution, overriding previously set construction assignments (the most prevalent wall construction is nonetheless retained as the basis for subsequent <em>uprating</em> - and then <em>derating</em> - calculations). Users can also set the desired, area-weighted <strong>Ut</strong> factor for selected walls (default factors are those of the NECB 2017 for climate zone 7).</p>
@@ -82,7 +82,22 @@
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>An initial wall Uo of 0.162 W/m2•K is required to achieve an overall Ut of 0.210 W/m2•K for ALL wall constructions.
 </code></pre></div></div>
 
-<p>The <em>uprating</em> calculations are similar to <a href="./ua.html" title="UA' assessments">UA’</a>  assessments, yet in reverse order. In any <em>UA</em>-type exercise (like the <em>uprating</em> calculations), a significantly weaker component will have a disproportionate effect vs its area (as summarized in the very first paragraph of this <a href="../index.html" title="Thermal Bridging &amp; Derating">guide</a>, “In a nutshell …”). For very efficient envelope designs (e.g. continuous outboard insulation, thermally-broken cladding clips, minimal fenestration, favourable façade aspect ratios), the degree of <em>uprating</em> may be quite reasonable. It may however be very challenging (and onerous) to meet such ambitious <strong>Ut</strong> targets when factoring-in weaker components (e.g., spandrels, poor detailing, lots of fenestration).</p>
+<p>The <em>uprating</em> calculations are similar to <a href="./ua.html" title="UA' assessments">UA’</a>  assessments, yet in reverse order. In any <em>UA</em>-type exercise (like these <em>uprating</em> calculations), a significantly weaker component will have a disproportionate effect vs its area (as summarized in the very first paragraph of this <a href="../index.html" title="Thermal Bridging &amp; Derating">guide</a>, “In a nutshell …”). The degree of <em>uprating</em> may be quite reasonable for very efficient envelope designs, e.g.:</p>
+
+<ul>
+  <li>continuous outboard insulation</li>
+  <li>thermally-broken cladding clips</li>
+  <li>minimal fenestration</li>
+  <li>favourable façade aspect ratios</li>
+</ul>
+
+<p>Yet it may be very challenging (and onerous) to meet such ambitious <strong>Ut</strong> targets when factoring-in weaker components, e.g.:</p>
+
+<ul>
+  <li>spandrels</li>
+  <li>poor detailing</li>
+  <li>lots of fenestration</li>
+</ul>
 
 <p>We strongly recommend to first investigate this feature while relying on <a href="./launch.html" title="Launching TBD as a process">Apply Measures Now</a> feedback (ideally UNCHECKing the <strong>Alter OpenStudio model</strong> option), to get a sense of how significant the <em>uprating</em> calculations may end up altering your initial designs. In some cases, EnergyPlus’ CTF convergence calculations may even fail with very thick (<em>uprated</em>) insulation layers !</p>
 

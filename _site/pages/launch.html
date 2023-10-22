@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=38e46232490270e7351c9497a78de17c12d85907">
+    <link rel="stylesheet" href="/assets/css/style.css?v=32ec5c9bc0309d96bd848ecb537cf86f1a719ad4">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -50,8 +50,8 @@
         </header>
         <section id="downloads" class="clearfix">
           
-          <a href="https://github.com/rd2/tbd/releases/download/v3.2.3/tbd.zip" id="download-zip" class="button"><span>Download .zip</span></a>
-          <a href="https://github.com/rd2/tbd/releases/download/v3.2.3/tbd.tar.gz" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
+          <a href="https://github.com/rd2/tbd/releases/download/v3.3.0/tbd.zip" id="download-zip" class="button"><span>Download .zip</span></a>
+          <a href="https://github.com/rd2/tbd/releases/download/v3.3.0/tbd.tar.gz" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
           
 	
         </section>
@@ -61,7 +61,7 @@
 
 <p>OpenStudio users typically first need to specify where downloaded <em>measures</em> are stored on their workstation (<em>Preferences</em> &gt; <em>Change My Measures Directory</em>) - just download TBD in there (click on the <em>download</em> links at the top of the page, or download from GitHub or <a href="https://bcl.nrel.gov/dashboard" title="OpenStudio's Building Component Library">BCL</a> - search for “tbd” or “rd2”). Then in the <em>OpenStudio Application</em>, simply drag &amp; drop TBD in the <em>Measures</em> tab.</p>
 
-<p>As with other OpenStudio measures, TBD does not modify (by default) the original OpenStudio model (e.g. new <em>derated</em> constructions). OpenStudio instead makes a behind-the-scenes copy of the model, which is in turn modified by measures before simulation. Although the terminology may be at first confusing, leave the <strong>Alter OpenStudio model</strong> option CHECKED for EnergyPlus simulations (see <a href="./settings.html" title="TBD settings">menu options</a>). This checkbox option is really there for <em>Apply Measures Now</em> cases, as detailed below. Once the <strong>Default thermal bridge set</strong> is selected, save the model and run the simulation.</p>
+<p>As with other OpenStudio measures, by default TBD does not modify the original OpenStudio model (e.g. with new <em>derated</em> constructions). OpenStudio instead makes a behind-the-scenes copy of the model, which in turn is modified by measures before simulation. Although the terminology may be at first confusing, leave the <strong>Alter OpenStudio model</strong> option CHECKED for EnergyPlus simulations (see <a href="./settings.html" title="TBD settings">menu options</a>). This checkbox option is really there for <em>Apply Measures Now</em> cases, as detailed below. Once the <strong>Default thermal bridge set</strong> is selected, save the model and run the simulation.</p>
 
 <h3 id="apply-measures-now">Apply Measures Now</h3>
 
@@ -77,7 +77,7 @@
     <p><strong>UA’ reports</strong>: Similarly, TBD can generate at any moment <a href="./ua.html" title="UA' assessments">UA’</a> summaries (often admissible building energy code compliance paths). Same for <a href="./ut.html" title="Uprating">uprating</a> features.</p>
   </li>
   <li>
-    <p><strong>JSON output</strong>: TBD users can generate a complete, detailed list of every <em>major</em> thermal bridge in their OpenStudio model, which can be useful for automating cost estimation or simply for further <a href="./custom.html" title="TBD customization">customization</a>.</p>
+    <p><strong>JSON output</strong>: TBD users can generate a complete, detailed list of every <em>major</em> thermal bridge in their OpenStudio model, which may be useful for automating cost estimation or simply for further <a href="./custom.html" title="TBD customization">customization</a>.</p>
   </li>
 </ul>
 
@@ -89,7 +89,7 @@
 
 <p><img src="../assets/images/AMN2.png" alt="AMN Results" title="AMN Results" /></p>
 
-<p>If unsatisfied with the results (e.g., too costly to comply to NECB 2017 prescriptive roof requirements, wall detailing may need to be revised), then the user simply needs to <code class="language-plaintext highlighter-rouge">Back</code> out, tweak inputs again, then re-<code class="language-plaintext highlighter-rouge">Apply Measure</code>, reassess, and so on … Once satisfied with a <em>winning</em> combination of variables, press <code class="language-plaintext highlighter-rouge">Accept Changes</code>, then <code class="language-plaintext highlighter-rouge">save</code> the OpenStudio model to retrieve the newly-generated <strong>UA’</strong> and <strong>JSON</strong> files (see <a href="./reports.html" title="What TBD reports back">Reporting</a> to locate saved files). Take note of the <em>winning</em> combination of inputs - you’ll likely need to reapply these for EnergyPlus simulations down the line.</p>
+<p>If unsatisfied with the results (e.g. too costly to comply to NECB 2017 prescriptive roof requirements, wall detailing may need to be revised), then the user simply needs to <code class="language-plaintext highlighter-rouge">Back</code> out, tweak inputs again, then re-<code class="language-plaintext highlighter-rouge">Apply Measure</code>, reassess, and so on … Once satisfied with a <em>winning</em> combination of variables, press <code class="language-plaintext highlighter-rouge">Accept Changes</code>, then <code class="language-plaintext highlighter-rouge">save</code> the OpenStudio model to retrieve the newly-generated <strong>UA’</strong> and <strong>JSON</strong> files (see <a href="./reports.html" title="What TBD reports back">Reporting</a> to locate saved files). Take note of the <em>winning</em> combination of inputs - you’ll likely need to reapply these for EnergyPlus simulations down the line.</p>
 
 <p><strong>A word of caution</strong>. Older versions of the <em>OpenStudio Application</em> will NOT copy over such <code class="language-plaintext highlighter-rouge">.md</code> or <code class="language-plaintext highlighter-rouge">.json</code> files generated by <em>Apply Measures Now</em> … <strong>if</strong> these files already exist in the model <em>files</em> folder. If needed, simply rename or delete the existing files before opening the OpenStudio model.</p>
 

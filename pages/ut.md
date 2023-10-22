@@ -12,10 +12,10 @@ This presumption is consistent with typical building energy simulation workflows
 
 In some cases, building professionals may even choose (or are required) to achieve a maximum, area-weighted average __Ut__ for all exterior wall surfaces. It's the case for prescriptive requirements of the Canadian NECB 2017 and 2020 editions, e.g. a final wall area-weighted average __Ut__ of 0.210 W/m2.K (R27) for climate zone 7 (NECB 2017). Depending on the _extent_ of thermal bridging, the initial _clear-field_ __Uo__ factor for that single, common construction may need to be 0.160 (or much, much lower).
 
-So in addition to _derating_ construction __Uo__ factors (to final surface __Ut__ factors) for energy simulation purposes, TBD offers designers the option to first autogenerate required _clear-field_ __Uo__ factors (a process called _uprating_) to meet a given target, by reordering the above equation.
+So in addition to _derating_ construction __Uo__ factors (to final surface __Ut__ factors) for energy simulation purposes, TBD offers designers the option of first autogenerating required _clear-field_ __Uo__ factors (a process called _uprating_) to meet a given target, by reordering the above equation.
 
 ```
-Uo = Ut - ( ∑psi • L )/A + ( ∑khi • n )/A
+Uo = Ut - ( ∑psi • L )/A - ( ∑khi • n )/A
 ```
 
 _Uprating_ menu options (see [Settings](./settings.html "TBD settings")), are paired together for _walls_, _roofs_ and/or exposed _floors_ (let's make things easy here by limiting the discussion to walls). The default value assigned to the "Wall construction(s) to 'uprate'" pull-down menu option is "NONE", disabling any _uprating_ calculations for walls. TBD nonetheless pre-scans an OpenStudio model to retrieve referenced wall constructions in order of prevalence - referenced constructions covering a larger area are listed higher up in the pull-down list. Users can either limit _uprating_ calculations to one (1x) such referenced wall construction, or to "ALL wall constructions" in a building model. The latter is an all-encompassing solution, overriding previously set construction assignments (the most prevalent wall construction is nonetheless retained as the basis for subsequent _uprating_ - and then _derating_ - calculations). Users can also set the desired, area-weighted __Ut__ factor for selected walls (default factors are those of the NECB 2017 for climate zone 7).
@@ -26,7 +26,18 @@ TBD will log (and flash on screen if using the OpenStudio Application) the calcu
 An initial wall Uo of 0.162 W/m2•K is required to achieve an overall Ut of 0.210 W/m2•K for ALL wall constructions.
 ```
 
-The _uprating_ calculations are similar to [UA'](./ua.html "UA' assessments")  assessments, yet in reverse order. In any _UA_-type exercise (like the _uprating_ calculations), a significantly weaker component will have a disproportionate effect vs its area (as summarized in the very first paragraph of this [guide](../index.html "Thermal Bridging & Derating"), "In a nutshell ..."). For very efficient envelope designs (e.g. continuous outboard insulation, thermally-broken cladding clips, minimal fenestration, favourable façade aspect ratios), the degree of _uprating_ may be quite reasonable. It may however be very challenging (and onerous) to meet such ambitious __Ut__ targets when factoring-in weaker components (e.g., spandrels, poor detailing, lots of fenestration).
+The _uprating_ calculations are similar to [UA'](./ua.html "UA' assessments")  assessments, yet in reverse order. In any _UA_-type exercise (like these _uprating_ calculations), a significantly weaker component will have a disproportionate effect vs its area (as summarized in the very first paragraph of this [guide](../index.html "Thermal Bridging & Derating"), "In a nutshell ..."). The degree of _uprating_ may be quite reasonable for very efficient envelope designs, e.g.:
+
+- continuous outboard insulation
+- thermally-broken cladding clips
+- minimal fenestration
+- favourable façade aspect ratios
+
+Yet it may be very challenging (and onerous) to meet such ambitious __Ut__ targets when factoring-in weaker components, e.g.:
+
+- spandrels
+- poor detailing
+- lots of fenestration
 
 We strongly recommend to first investigate this feature while relying on [Apply Measures Now](./launch.html "Launching TBD as a process") feedback (ideally UNCHECKing the __Alter OpenStudio model__ option), to get a sense of how significant the _uprating_ calculations may end up altering your initial designs. In some cases, EnergyPlus' CTF convergence calculations may even fail with very thick (_uprated_) insulation layers !
 
