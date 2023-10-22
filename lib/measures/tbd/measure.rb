@@ -23,24 +23,42 @@
 require_relative "resources/tbd"
 
 class TBDMeasure < OpenStudio::Measure::ModelMeasure
+  ##
+  # Returns TBD Measure identifier.
+  #
+  # @return [String] TBD Measure identifier
   def name
     return "Thermal Bridging and Derating - TBD"
   end
 
+  ##
+  # Returns TBD Measure description.
+  #
+  # @return [String] TBD Measure description
   def description
     return "Derates opaque constructions from major thermal bridges."
   end
 
+  ##
+  # Returns TBD Measure modeler description.
+  #
+  # @return [String] TBD Measure modeler description
   def modeler_description
     return "Check out rd2.github.io/tbd"
   end
 
+  ##
+  # Returns processed/validated TBD Measure arguments.
+  #
+  # @param model [OpenStudio::Model::Model] a model
+  #
+  # @return [OpenStudio::Measure::OSArgumentVector] validated arguments
   def arguments(model = nil)
     args = OpenStudio::Measure::OSArgumentVector.new
 
     arg = "alter_model"
-    dsc = "For EnergyPlus simulations, leave CHECKED. For iterative "          \
-          "exploration with Apply Measures Now, UNCHECK to preserve "          \
+    dsc = "For EnergyPlus simulations, leave CHECKED. For iterative "\
+          "exploration with Apply Measures Now, UNCHECK to preserve "\
           "original OpenStudio model."
     alter = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
     alter.setDisplayName("Alter OpenStudio model (Apply Measures Now)")
@@ -48,17 +66,8 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     alter.setDefaultValue(true)
     args << alter
 
-    arg = "sub_tol"
-    dsc = "Proximity tolerance (e.g. 0.100 m) between subsurface edges, e.g. " \
-          "between near-adjacent window jambs."
-    sub_tol = OpenStudio::Measure::OSArgument.makeDoubleArgument(arg, false)
-    sub_tol.setDisplayName("Proximity tolerance (m)")
-    sub_tol.setDescription(dsc)
-    sub_tol.setDefaultValue(TBD::TOL)
-    args << sub_tol
-
     arg = "load_tbd_json"
-    dsc = "Loads existing 'tbd.json' file (under '/files'), may override "     \
+    dsc = "Loads existing 'tbd.json' file (under '/files'), may override "\
           "'default thermal bridge' set."
     load_tbd = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
     load_tbd.setDisplayName("Load 'tbd.json'")
@@ -71,7 +80,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     psi.set.keys.each { |k| chs << k.to_s }
 
     arg = "option"
-    dsc = "e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by " \
+    dsc = "e.g. '90.1.22|steel.m|unmitigated' (may be overridden by "\
           "'tbd.json' file)."
     option = OpenStudio::Measure::OSArgument.makeChoiceArgument(arg, chs, false)
     option.setDisplayName("Default thermal bridge set")
@@ -80,7 +89,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args << option
 
     arg = "write_tbd_json"
-    dsc = "Write out 'tbd.out.json' file e.g., to customize for subsequent "   \
+    dsc = "Write out 'tbd.out.json' file, e.g. to customize for subsequent "\
           "runs (edit, and place under '/files' as 'tbd.json')."
     write_tbd = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
     write_tbd.setDisplayName("Write 'tbd.out.json'")
@@ -88,19 +97,33 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     write_tbd.setDefaultValue(false)
     args << write_tbd
 
+    arg = "parapet"
+    dsc = "Leave CHECKED if wall-roof edge is considered a parapet or an "\
+          "overhang (see ASHRAE 90.1 2022 5.5.5.1 & A10)."
+    parapet = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
+    parapet.setDisplayName("Wall-roof edge as 'parapet'")
+    parapet.setDescription(dsc)
+    parapet.setDefaultValue(true)
+    args << parapet
+
     none = "NONE"
+
     all_walls = "ALL wall constructions"
     all_roofs = "ALL roof constructions"
     all_flors = "ALL floor constructions"
+
     walls = {c: {}}
     roofs = {c: {}}
     flors = {c: {}}
+
     walls[:c][none] = {a: 0}
     roofs[:c][none] = {a: 0}
     flors[:c][none] = {a: 0}
+
     walls[:c][all_walls] = {a: 100000000000000}
     roofs[:c][all_roofs] = {a: 100000000000000}
     flors[:c][all_flors] = {a: 100000000000000}
+
     walls[:chx] = OpenStudio::StringVector.new
     roofs[:chx] = OpenStudio::StringVector.new
     flors[:chx] = OpenStudio::StringVector.new
@@ -108,17 +131,21 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     if model
       model.getSurfaces.each do |s|
         type = s.surfaceType.downcase
-        next unless type == "wall" || type == "roofceiling" || type == "floor"
+        next unless ["wall", "roofceiling", "floor"].include?(type)
         next unless s.outsideBoundaryCondition.downcase == "outdoors"
-        next if s.construction.empty?
-        next if s.construction.get.to_LayeredConstruction.empty?
+        next     if s.construction.empty?
+        next     if s.construction.get.to_LayeredConstruction.empty?
+
         lc = s.construction.get.to_LayeredConstruction.get
         next if walls[:c].key?(lc.nameString)
         next if roofs[:c].key?(lc.nameString)
         next if flors[:c].key?(lc.nameString)
-        walls[:c][lc.nameString] = {a: lc.getNetArea} if type == "wall"
-        roofs[:c][lc.nameString] = {a: lc.getNetArea} if type == "roofceiling"
-        flors[:c][lc.nameString] = {a: lc.getNetArea} if type == "floor"
+
+        case type
+        when "wall"        then walls[:c][lc.nameString] = {a: lc.getNetArea}
+        when "roofceiling" then roofs[:c][lc.nameString] = {a: lc.getNetArea}
+        else                    flors[:c][lc.nameString] = {a: lc.getNetArea}
+        end
       end
 
       walls[:c] = walls[:c].sort_by{ |k,v| v[:a] }.reverse!.to_h
@@ -135,7 +162,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     end
 
     arg = "wall_option"
-    dsc = "Target 1x (or 'ALL') wall construction(s) to 'uprate', to achieve " \
+    dsc = "Target 1x (or 'ALL') wall construction(s) to 'uprate', to achieve "\
           "wall Ut target below."
     chx = walls[:chx]
     wall = OpenStudio::Measure::OSArgument.makeChoiceArgument(arg, chx, false)
@@ -145,7 +172,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args << wall
 
     arg = "roof_option"
-    dsc = "Target 1x (or 'ALL') roof construction(s) to 'uprate', to achieve " \
+    dsc = "Target 1x (or 'ALL') roof construction(s) to 'uprate', to achieve "\
           "roof Ut target below."
     chx = roofs[:chx]
     roof = OpenStudio::Measure::OSArgument.makeChoiceArgument(arg, chx, false)
@@ -155,8 +182,8 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args << roof
 
     arg = "floor_option"
-    dsc = "Target 1x (or 'ALL') floor construction(s) to 'uprate', to achieve "\
-          "floor Ut target below."
+    dsc = "Target 1x (or 'ALL') floor construction(s) to 'uprate', to"\
+          "achieve floor Ut target below."
     chx = flors[:chx]
     floor = OpenStudio::Measure::OSArgument.makeChoiceArgument(arg, chx, false)
     floor.setDisplayName("Floor construction(s) to 'uprate'")
@@ -165,7 +192,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args << floor
 
     arg = "wall_ut"
-    dsc = "Overall Ut target to meet for wall construction(s). Ignored if "    \
+    dsc = "Overall Ut target to meet for wall construction(s). Ignored if "\
           "previous wall 'uprate' option is set to 'NONE'."
     wall_ut = OpenStudio::Measure::OSArgument.makeDoubleArgument(arg, false)
     wall_ut.setDisplayName("Wall Ut target (W/m2•K)")
@@ -174,7 +201,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args << wall_ut
 
     arg = "roof_ut"
-    dsc = "Overall Ut target to meet for roof construction(s). Ignored if "    \
+    dsc = "Overall Ut target to meet for roof construction(s). Ignored if "\
           "previous roof 'uprate' option is set to 'NONE'."
     roof_ut = OpenStudio::Measure::OSArgument.makeDoubleArgument(arg, false)
     roof_ut.setDisplayName("Roof Ut target (W/m2•K)")
@@ -183,7 +210,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args << roof_ut
 
     arg = "floor_ut"
-    dsc = "Overall Ut target to meet for floor construction(s). Ignored if "   \
+    dsc = "Overall Ut target to meet for floor construction(s). Ignored if "\
           "previous floor 'uprate' option is set to 'NONE'."
     floor_ut = OpenStudio::Measure::OSArgument.makeDoubleArgument(arg, false)
     floor_ut.setDisplayName("Floor Ut target (W/m2•K)")
@@ -192,7 +219,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args << floor_ut
 
     arg = "gen_UA_report"
-    dsc = "Compare ∑U•A + ∑PSI•L + ∑KHI•n : 'Design' vs UA' reference (see "   \
+    dsc = "Compare ∑U•A + ∑PSI•L + ∑KHI•n : 'Design' vs UA' reference (see "\
           "pull-down option below)."
     gen_ua_report = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
     gen_ua_report.setDisplayName("Generate UA' report")
@@ -209,7 +236,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args << ua_ref
 
     arg = "gen_kiva"
-    dsc = "Generates Kiva settings & objects for surfaces with 'foundation' "  \
+    dsc = "Generates Kiva settings & objects for surfaces with 'foundation' "\
           "boundary conditions (not 'ground')."
     gen_kiva = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
     gen_kiva.setDisplayName("Generate Kiva inputs")
@@ -218,7 +245,7 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     args << gen_kiva
 
     arg = "gen_kiva_force"
-    dsc = "Overwrites 'ground' boundary conditions as 'foundation' before "    \
+    dsc = "Overwrites 'ground' boundary conditions as 'foundation' before "\
           "generating Kiva inputs (recommended)."
     kiva_force = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
     kiva_force.setDisplayName("Force-generate Kiva inputs")
@@ -226,28 +253,72 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     kiva_force.setDefaultValue(false)
     args << kiva_force
 
-    return args
+    arg = "reset_kiva"
+    dsc = "Purges KIVA entries from model before generating Kiva inputs."
+    reset_kiva = OpenStudio::Measure::OSArgument.makeBoolArgument(arg, false)
+    reset_kiva.setDisplayName("Purge existing KIVA inputs")
+    reset_kiva.setDescription(dsc)
+    reset_kiva.setDefaultValue(false)
+    args << reset_kiva
+
+    arg = "sub_tol"
+    dsc = "Proximity tolerance (e.g. 0.100 m) between subsurface edges, e.g. "\
+          "between near-adjacent window jambs."
+    sub_tol = OpenStudio::Measure::OSArgument.makeDoubleArgument(arg, false)
+    sub_tol.setDisplayName("Proximity tolerance (m)")
+    sub_tol.setDescription(dsc)
+    sub_tol.setDefaultValue(TBD::TOL)
+    args << sub_tol
+
+    args
   end
 
+  ##
+  # Runs the OpenStudio TBD Measure.
+  #
+  # @param mdl [OpenStudio::Model::Model] a model
+  # @param runner [OpenStudio::Measure::OSRunner] Measure runner
+  # @param [OpenStudio::Measure::OSArgumentVector] args Measure argument list
+  # @option args [Bool] :alter (true) irreversibly applies changes to the model
+  # @option args [Bool] :load_tbd (false) whether to load a TBD JSON input file
+  # @option args [#to_s] :option ("poor (BETBG)") selected PSI set
+  # @option args [Bool] :write_tbd_json (false) whether to output a JSON file
+  # @option args [Bool] :parapet (true) wall-roof edge as parapet
+  # @option args [#to_s] :wall_option wall(s) construction to uprate
+  # @option args [#to_s] :roof_option roof(s) construction to uprate
+  # @option args [#to_s] :floor_option floor(s) construction to uprate
+  # @option args [#to_f] :wall_ut (0.210) target wall Ut, in (W/m2•K)
+  # @option args [#to_f] :roof_ut (0.138) target roof Ut, in (W/m2•K)
+  # @option args [#to_f] :floor_ut (0.162) target floor Ut, in (W/m2•K)
+  # @option args [Bool] :gen_UA_report (false) whether to generate a UA' report
+  # @option args [#to_s] :ua_reference ("code (Quebec)") UA' ruleset
+  # @option args [Bool] :gen_kiva (false) whether to generate KIVA inputs
+  # @option args [Bool] :gen_kiva_force (false) whether to force KIVA inputs
+  # @option args [Bool] :reset_kiva (false) whether to first purge KIVA inputs
+  # @option args [#to_f] :sub_tol (OSut::TOL) proximity tolerance between edges
+  #
+  # @return [Bool] whether TBD Measure is successful
   def run(mdl, runner, args)
     super(mdl, runner, args)
 
     argh                 = {}
-    argh[:alter        ] = runner.getBoolArgumentValue("alter_model",      args)
-    argh[:sub_tol      ] = runner.getDoubleArgumentValue("sub_tol",        args)
-    argh[:load_tbd     ] = runner.getBoolArgumentValue("load_tbd_json",    args)
-    argh[:option       ] = runner.getStringArgumentValue("option",         args)
-    argh[:write_tbd    ] = runner.getBoolArgumentValue("write_tbd_json",   args)
-    argh[:wall_ut      ] = runner.getDoubleArgumentValue("wall_ut",        args)
-    argh[:roof_ut      ] = runner.getDoubleArgumentValue("roof_ut",        args)
-    argh[:floor_ut     ] = runner.getDoubleArgumentValue("floor_ut",       args)
-    argh[:wall_option  ] = runner.getStringArgumentValue("wall_option",    args)
-    argh[:roof_option  ] = runner.getStringArgumentValue("roof_option",    args)
-    argh[:floor_option ] = runner.getStringArgumentValue("floor_option",   args)
-    argh[:gen_ua       ] = runner.getBoolArgumentValue("gen_UA_report",    args)
-    argh[:ua_ref       ] = runner.getStringArgumentValue("ua_reference",   args)
-    argh[:gen_kiva     ] = runner.getBoolArgumentValue("gen_kiva",         args)
-    argh[:kiva_force   ] = runner.getBoolArgumentValue("gen_kiva_force",   args)
+    argh[:alter        ] = runner.getBoolArgumentValue("alter_model"   , args)
+    argh[:load_tbd     ] = runner.getBoolArgumentValue("load_tbd_json" , args)
+    argh[:option       ] = runner.getStringArgumentValue("option"      , args)
+    argh[:write_tbd    ] = runner.getBoolArgumentValue("write_tbd_json", args)
+    argh[:parapet      ] = runner.getBoolArgumentValue("parapet"       , args)
+    argh[:wall_ut      ] = runner.getDoubleArgumentValue("wall_ut"     , args)
+    argh[:roof_ut      ] = runner.getDoubleArgumentValue("roof_ut"     , args)
+    argh[:floor_ut     ] = runner.getDoubleArgumentValue("floor_ut"    , args)
+    argh[:wall_option  ] = runner.getStringArgumentValue("wall_option" , args)
+    argh[:roof_option  ] = runner.getStringArgumentValue("roof_option" , args)
+    argh[:floor_option ] = runner.getStringArgumentValue("floor_option", args)
+    argh[:gen_ua       ] = runner.getBoolArgumentValue("gen_UA_report" , args)
+    argh[:ua_ref       ] = runner.getStringArgumentValue("ua_reference", args)
+    argh[:gen_kiva     ] = runner.getBoolArgumentValue("gen_kiva"      , args)
+    argh[:kiva_force   ] = runner.getBoolArgumentValue("gen_kiva_force", args)
+    argh[:reset_kiva   ] = runner.getBoolArgumentValue("reset_kiva"    , args)
+    argh[:sub_tol      ] = runner.getDoubleArgumentValue("sub_tol"     , args)
 
     argh[:uprate_walls ] = argh[:wall_option ] != "NONE"
     argh[:uprate_roofs ] = argh[:roof_option ] != "NONE"
@@ -256,26 +327,26 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     return false unless runner.validateUserArguments(arguments(mdl), args)
 
     if argh[:wall_ut] < TBD::TOL
-      runner.registerError("Wall Ut must be greater than 0 W/m2•K - Halting")
+      runner.registerError("Wall Ut must be > 0 W/m2•K - Halting")
       return false
     elsif argh[:wall_ut] > 5.678 - TBD::TOL
-      runner.registerError("Wall Ut must be lower than 5.678 W/m2•K - Halting")
+      runner.registerError("Wall Ut must be < 5.678 W/m2•K - Halting")
       return false
     end
 
     if argh[:roof_ut] < TBD::TOL
-      runner.registerError("Roof Ut must be greater than 0 W/m2•K - Halting")
+      runner.registerError("Roof Ut must be > 0 W/m2•K - Halting")
       return false
     elsif argh[:roof_ut] > 5.678 - TBD::TOL
-      runner.registerError("Roof Ut must be lower than 5.678 W/m2•K - Halting")
+      runner.registerError("Roof Ut must be < 5.678 W/m2•K - Halting")
       return false
     end
 
     if argh[:floor_ut] < TBD::TOL
-      runner.registerError("Floor Ut must be greater than 0 W/m2•K - Halting")
+      runner.registerError("Floor Ut must be > 0 W/m2•K - Halting")
       return false
     elsif argh[:floor_ut] > 5.678 - TBD::TOL
-      runner.registerError("Floor Ut must be lower than 5.678 W/m2•K - Halting")
+      runner.registerError("Floor Ut must be < 5.678 W/m2•K - Halting")
       return false
     end
 
@@ -284,42 +355,59 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
     argh[:io_path    ] = nil
 
     if argh[:load_tbd]
-      argh[:io_path] = runner.workflow.findFile('tbd.json')
+      argh[:io_path] = runner.workflow.findFile("tbd.json")
 
       if argh[:io_path].empty?
         TBD.log(TBD::FTL, "Can't find 'tbd.json' - simulation halted")
         return TBD.exit(runner, argh)
       else
         argh[:io_path] = argh[:io_path].get.to_s
-        # TBD.log(TBD::INF, "Using inputs from #{argh[:io_path]}")  # debugging
-        # runner.registerInfo("Using inputs from #{argh[:io_path]}") # debugging
+        # TBD.log(TBD::INF, "Using inputs from #{argh[:io_path]}")   # debug
+        # runner.registerInfo("Using inputs from #{argh[:io_path]}") # debug
       end
     end
 
-    # Pre-validate ground-facing constructions for KIVA.
-    if argh[:kiva_force] || argh[:gen_kiva]
-      kva = true
+    kva = false
+    kva = true unless mdl.getSurfacePropertyExposedFoundationPerimeters.empty?
+    kva = true unless mdl.getFoundationKivas.empty?
 
+    # Purge existing KIVA objects from model.
+    if argh[:reset_kiva]
+      if kva
+        if argh[:gen_kiva]
+          TBD.resetKIVA(mdl, "Foundation")
+        else
+          TBD.resetKIVA(mdl, "Ground")
+        end
+
+        kva = false
+      end
+    end
+
+    kva = true if argh[:kiva_force] || argh[:gen_kiva]
+
+    # Pre-validate ground-facing constructions for KIVA.
+    if kva
       mdl.getSurfaces.each do |s|
-        id = s.nameString
+        id           = s.nameString
         construction = s.construction
         next unless s.isGroundSurface
 
         if construction.empty?
           runner.registerError("Invalid construction for KIVA (#{id})")
-          kva = false if kva
+          kva = false
         else
           construction = construction.get.to_LayeredConstruction
 
           if construction.empty?
             runner.registerError("KIVA requires layered constructions (#{id})")
-            kva = false if kva
+            kva = false
           else
             construction = construction.get
 
             unless TBD.standardOpaqueLayers?(construction)
               runner.registerError("KIVA requires standard materials (#{id})")
-              kva = false if kva
+              kva = false
             end
           end
         end
@@ -334,16 +422,17 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
 
       mdl.getSurfaces.each do |s|
         next unless s.isGroundSurface
+
         construction = s.construction.get
         s.setOutsideBoundaryCondition("Foundation")
         s.setConstruction(construction)
       end
     end
 
-    str = "temp_measure_manager.osm"
+    str  = "temp_measure_manager.osm"
     seed = runner.workflow.seedFile
     seed = File.basename(seed.get.to_s) unless seed.empty?
-    seed = "OpenStudio model" if seed.empty? || seed == str
+    seed = "OpenStudio model"               if seed.empty? || seed == str
     argh[:seed] = seed
 
     if argh[:alter]
@@ -353,15 +442,9 @@ class TBDMeasure < OpenStudio::Measure::ModelMeasure
       model.addObjects(mdl.toIdfFile.objects)
     end
 
-    argh[:version ]  = model.getVersion.versionIdentifier
-    tbd              = TBD.process(model, argh)
-    argh[:io      ]  = tbd[:io      ]
-    argh[:surfaces]  = tbd[:surfaces]
-    setpoints        = TBD.heatingTemperatureSetpoints?(model)
-    setpoints        = TBD.coolingTemperatureSetpoints?(model) || setpoints
-    argh[:setpoints] = setpoints
+    tbd = TBD.process(model, argh)
 
-    return TBD.exit(runner, argh)
+    TBD.exit(runner, argh)
   end
 end
 

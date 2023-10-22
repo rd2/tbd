@@ -1,0 +1,14 @@
+--exclude lib/measures/tbd/measure.rb
+--exclude lib/measures/tbd/resources/tbd.rb
+--exclude lib/measures/tbd/resources/psi.rb
+--exclude lib/measures/tbd/resources/geo.rb
+--exclude lib/measures/tbd/resources/ua.rb
+--exclude lib/measures/tbd/resources/model.rb
+--exclude lib/measures/tbd/resources/geometry.rb
+--exclude lib/measures/tbd/resources/transformation.rb
+--exclude lib/measures/tbd/resources/version.rb
+--exclude lib/measures/tbd/resources/utils.rb
+--exclude lib/measures/tbd/resources/oslog.rb
+--exclude lib/measures/tbd/tests/tbd_tests.rb
+--exclude lib/measures/tbd/LICENSE.md
+--exclude lib/measures/tbd/README.md

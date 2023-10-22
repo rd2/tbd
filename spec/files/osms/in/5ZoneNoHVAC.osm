@@ -811,12 +811,6 @@ OS:Construction,
   {dc7cc868-8241-43c9-8c61-bebd3fcd861d}; ! Layer 1
 
 OS:Construction,
-  {9682a96c-9b34-4d99-a3cd-69c9d07cf472}, ! Handle
-  Air Wall,                               ! Name
-  {ee3f3bac-2caa-43f8-8225-be8070b5a0cc}, ! Surface Rendering Name
-  {c153e719-1dbd-4eeb-976d-73d92bfd184f}; ! Layer 1
-
-OS:Construction,
   {bec28989-f033-4c43-8136-7188711452ed}, ! Handle
   CBECS 1980-2004 ExtRoof AtticFloor ClimateZone 1, ! Name
   {aa7b5b62-5f83-4d8b-badd-9f1966f804a7}, ! Surface Rendering Name
@@ -6323,10 +6317,6 @@ OS:Material:AirGap,
   000 F05 Ceiling air space resistance,   ! Name
   0.17999999999999999;                    ! Thermal Resistance
 
-OS:Material:AirWall,
-  {c153e719-1dbd-4eeb-976d-73d92bfd184f}, ! Handle
-  OS:Material:AirWall 1;                  ! Name
-
 OS:Material:NoMass,
   {6d48131d-e51a-45c6-9ef4-2f3111c0d744}, ! Handle
   CP02 CARPET PAD,                        ! Name
@@ -7132,13 +7122,6 @@ OS:Rendering:Color,
   129.54,                                 ! Rendering Red Value
   227.46,                                 ! Rendering Green Value
   198.084;                                ! Rendering Blue Value
-
-OS:Rendering:Color,
-  {ee3f3bac-2caa-43f8-8225-be8070b5a0cc}, ! Handle
-  Air Wall Color,                         ! Name
-  255.0,                                  ! Rendering Red Value
-  0.0,                                    ! Rendering Green Value
-  0.0;                                    ! Rendering Blue Value
 
 OS:Rendering:Color,
   {aa7b5b62-5f83-4d8b-badd-9f1966f804a7}, ! Handle
@@ -12529,10 +12512,6 @@ OS:StandardsInformation:Construction,
   {fde10f26-f314-4f94-b481-f54ca946e691}, !- Handle
   {967dc359-58c0-4935-a00f-c59bc49a8407}; !- Construction Name
 
-OS:StandardsInformation:Construction,
-  {ada82d95-c048-4f26-836c-d8a91ebcfebf}, !- Handle
-  {9682a96c-9b34-4d99-a3cd-69c9d07cf472}; !- Construction Name
-
 OS:StandardsInformation:Material,
   {dc93c24a-831b-4d6f-90bd-d7d57b39bce4}, !- Handle
   {96e6891f-9edc-4b0d-82bc-853a9559ed17}; !- Material Name
@@ -12892,10 +12871,6 @@ OS:StandardsInformation:Material,
 OS:StandardsInformation:Construction,
   {478ec70e-1845-487a-9a15-8490dc4f6789}, !- Handle
   {c0c8a043-d913-4d04-a9b9-c35530422810}; !- Construction Name
-
-OS:StandardsInformation:Material,
-  {9130aee6-abde-4a4a-be3f-56d278bf69ae}, !- Handle
-  {c153e719-1dbd-4eeb-976d-73d92bfd184f}; !- Material Name
 
 OS:StandardsInformation:Construction,
   {4b854260-29d2-485a-afdd-5bb8bf0dd768}, !- Handle

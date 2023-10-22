@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <measure>
-  <schema_version>3.0</schema_version>
+  <schema_version>3.1</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>30d7ee3a-8327-4a32-92fd-5cc0b9ab24b0</version_id>
-  <version_modified>20230516T180637Z</version_modified>
+  <version_id>80f7038a-762a-4f4d-81f4-f4e9daa64925</version_id>
+  <version_modified>2023-10-22T13:14:49Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -31,15 +31,6 @@
       </choices>
     </argument>
     <argument>
-      <name>sub_tol</name>
-      <display_name>Proximity tolerance (m)</display_name>
-      <description>Proximity tolerance (e.g. 0.100 m) between subsurface edges, e.g. between near-adjacent window jambs.</description>
-      <type>Double</type>
-      <required>false</required>
-      <model_dependent>false</model_dependent>
-      <default_value>0.01</default_value>
-    </argument>
-    <argument>
       <name>load_tbd_json</name>
       <display_name>Load 'tbd.json'</display_name>
       <description>Loads existing 'tbd.json' file (under '/files'), may override 'default thermal bridge' set.</description>
@@ -61,7 +52,7 @@
     <argument>
       <name>option</name>
       <display_name>Default thermal bridge set</display_name>
-      <description>e.g. 'poor', 'regular', 'efficient', 'code' (may be overridden by 'tbd.json' file).</description>
+      <description>e.g. '90.1.22|steel.m|unmitigated' (may be overridden by 'tbd.json' file).</description>
       <type>Choice</type>
       <required>false</required>
       <model_dependent>false</model_dependent>
@@ -96,6 +87,38 @@
           <display_name>uncompliant (Quebec)</display_name>
         </choice>
         <choice>
+          <value>90.1.22|steel.m|default</value>
+          <display_name>90.1.22|steel.m|default</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|steel.m|unmitigated</value>
+          <display_name>90.1.22|steel.m|unmitigated</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|mass.ex|default</value>
+          <display_name>90.1.22|mass.ex|default</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|mass.ex|unmitigated</value>
+          <display_name>90.1.22|mass.ex|unmitigated</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|mass.in|default</value>
+          <display_name>90.1.22|mass.in|default</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|mass.in|unmitigated</value>
+          <display_name>90.1.22|mass.in|unmitigated</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|wood.fr|default</value>
+          <display_name>90.1.22|wood.fr|default</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|wood.fr|unmitigated</value>
+          <display_name>90.1.22|wood.fr|unmitigated</display_name>
+        </choice>
+        <choice>
           <value>(non thermal bridging)</value>
           <display_name>(non thermal bridging)</display_name>
         </choice>
@@ -104,11 +127,30 @@
     <argument>
       <name>write_tbd_json</name>
       <display_name>Write 'tbd.out.json'</display_name>
-      <description>Write out 'tbd.out.json' file e.g., to customize for subsequent runs (edit, and place under '/files' as 'tbd.json').</description>
+      <description>Write out 'tbd.out.json' file, e.g. to customize for subsequent runs (edit, and place under '/files' as 'tbd.json').</description>
       <type>Boolean</type>
       <required>false</required>
       <model_dependent>false</model_dependent>
       <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>parapet</name>
+      <display_name>Wall-roof edge as 'parapet'</display_name>
+      <description>Leave CHECKED if wall-roof edge is considered a parapet or an overhang (see ASHRAE 90.1 2022 5.5.5.1 &amp; A10).</description>
+      <type>Boolean</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>true</default_value>
       <choices>
         <choice>
           <value>true</value>
@@ -161,7 +203,7 @@
     <argument>
       <name>floor_option</name>
       <display_name>Floor construction(s) to 'uprate'</display_name>
-      <description>Target 1x (or 'ALL') floor construction(s) to 'uprate', to achieve floor Ut target below.</description>
+      <description>Target 1x (or 'ALL') floor construction(s) to 'uprate', toachieve floor Ut target below.</description>
       <type>Choice</type>
       <required>false</required>
       <model_dependent>false</model_dependent>
@@ -261,6 +303,38 @@
           <display_name>uncompliant (Quebec)</display_name>
         </choice>
         <choice>
+          <value>90.1.22|steel.m|default</value>
+          <display_name>90.1.22|steel.m|default</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|steel.m|unmitigated</value>
+          <display_name>90.1.22|steel.m|unmitigated</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|mass.ex|default</value>
+          <display_name>90.1.22|mass.ex|default</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|mass.ex|unmitigated</value>
+          <display_name>90.1.22|mass.ex|unmitigated</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|mass.in|default</value>
+          <display_name>90.1.22|mass.in|default</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|mass.in|unmitigated</value>
+          <display_name>90.1.22|mass.in|unmitigated</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|wood.fr|default</value>
+          <display_name>90.1.22|wood.fr|default</display_name>
+        </choice>
+        <choice>
+          <value>90.1.22|wood.fr|unmitigated</value>
+          <display_name>90.1.22|wood.fr|unmitigated</display_name>
+        </choice>
+        <choice>
           <value>(non thermal bridging)</value>
           <display_name>(non thermal bridging)</display_name>
         </choice>
@@ -303,6 +377,34 @@
           <display_name>false</display_name>
         </choice>
       </choices>
+    </argument>
+    <argument>
+      <name>reset_kiva</name>
+      <display_name>Purge existing KIVA inputs</display_name>
+      <description>Purges KIVA entries from model before generating Kiva inputs.</description>
+      <type>Boolean</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>false</default_value>
+      <choices>
+        <choice>
+          <value>true</value>
+          <display_name>true</display_name>
+        </choice>
+        <choice>
+          <value>false</value>
+          <display_name>false</display_name>
+        </choice>
+      </choices>
+    </argument>
+    <argument>
+      <name>sub_tol</name>
+      <display_name>Proximity tolerance (m)</display_name>
+      <description>Proximity tolerance (e.g. 0.100 m) between subsurface edges, e.g. between near-adjacent window jambs.</description>
+      <type>Double</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>0.01</default_value>
     </argument>
   </arguments>
   <outputs />
@@ -359,52 +461,28 @@
   </attributes>
   <files>
     <file>
-      <filename>README.md.erb</filename>
-      <filetype>erb</filetype>
-      <usage_type>readmeerb</usage_type>
-      <checksum>703C9964</checksum>
-    </file>
-    <file>
-      <filename>tbd_full_PSI.json</filename>
-      <filetype>json</filetype>
-      <usage_type>test</usage_type>
-      <checksum>0AAEA490</checksum>
-    </file>
-    <file>
-      <filename>transformation.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>8EC912F6</checksum>
-    </file>
-    <file>
-      <filename>.gitkeep</filename>
-      <filetype>gitkeep</filetype>
-      <usage_type>doc</usage_type>
-      <checksum>32D70693</checksum>
-    </file>
-    <file>
-      <filename>geometry.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>D80E9AE6</checksum>
-    </file>
-    <file>
       <filename>LICENSE.md</filename>
       <filetype>md</filetype>
       <usage_type>license</usage_type>
       <checksum>A91E64A0</checksum>
     </file>
     <file>
-      <filename>oslog.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>E97617E3</checksum>
+      <filename>README.md</filename>
+      <filetype>md</filetype>
+      <usage_type>readme</usage_type>
+      <checksum>2A3B1D51</checksum>
     </file>
     <file>
-      <filename>tbd.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>A4E8433C</checksum>
+      <filename>README.md.erb</filename>
+      <filetype>erb</filetype>
+      <usage_type>readmeerb</usage_type>
+      <checksum>703C9964</checksum>
+    </file>
+    <file>
+      <filename>.gitkeep</filename>
+      <filetype>gitkeep</filetype>
+      <usage_type>doc</usage_type>
+      <checksum>32D70693</checksum>
     </file>
     <file>
       <version>
@@ -415,25 +493,19 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>44B11139</checksum>
+      <checksum>D1FC18B2</checksum>
     </file>
     <file>
-      <filename>tbd_tests.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>test</usage_type>
-      <checksum>58ED6635</checksum>
-    </file>
-    <file>
-      <filename>README.md</filename>
-      <filetype>md</filetype>
-      <usage_type>readme</usage_type>
-      <checksum>B836C43A</checksum>
-    </file>
-    <file>
-      <filename>psi.rb</filename>
+      <filename>geo.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>1045EF38</checksum>
+      <checksum>7A491A3B</checksum>
+    </file>
+    <file>
+      <filename>geometry.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>D80E9AE6</checksum>
     </file>
     <file>
       <filename>model.rb</filename>
@@ -442,28 +514,58 @@
       <checksum>8E9A76C7</checksum>
     </file>
     <file>
-      <filename>version.rb</filename>
+      <filename>oslog.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>A3BB982A</checksum>
+      <checksum>E4978588</checksum>
+    </file>
+    <file>
+      <filename>psi.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>0CBB060B</checksum>
+    </file>
+    <file>
+      <filename>tbd.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>A4E8433C</checksum>
+    </file>
+    <file>
+      <filename>transformation.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>8EC912F6</checksum>
     </file>
     <file>
       <filename>ua.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>EEFCA7DA</checksum>
+      <checksum>1AEE3C54</checksum>
     </file>
     <file>
       <filename>utils.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>C03764A5</checksum>
+      <checksum>7385DFE0</checksum>
     </file>
     <file>
-      <filename>geo.rb</filename>
+      <filename>version.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>5F84399F</checksum>
+      <checksum>925382B7</checksum>
+    </file>
+    <file>
+      <filename>tbd_full_PSI.json</filename>
+      <filetype>json</filetype>
+      <usage_type>test</usage_type>
+      <checksum>0AAEA490</checksum>
+    </file>
+    <file>
+      <filename>tbd_tests.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>85067AF6</checksum>
     </file>
   </files>
 </measure>

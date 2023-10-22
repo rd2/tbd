@@ -99,55 +99,159 @@
           "type": "number"
         },
         "parapet": {
-          "title": "Roof/wall edge PSI",
+          "title": "Parapet/overhang edge PSI",
           "type": "number"
         },
         "parapetconcave": {
-          "title": "Concave roof/wall edge PSI",
+          "title": "Concave parapet/overhang edge PSI",
           "type": "number"
         },
         "parapetconvex": {
-          "title": "Convex roof/wall edge PSI",
+          "title": "Convex parapet/overhang edge PSI",
+          "type": "number"
+        },
+        "roof": {
+          "title": "Roof/wall (other than parapet/overhang) edge PSI",
+          "type": "number"
+        },
+        "roofconcave": {
+          "title": "Concave (other than parapet/overhang) roof/wall edge PSI",
+          "type": "number"
+        },
+        "roofconvex": {
+          "title": "Convex (other than parapet/overhang) roof/wall edge PSI",
           "type": "number"
         },
         "fenestration": {
-          "title": "Window, door, skylight perimeter PSI",
+          "title": "Window or glazed door perimeter PSI",
           "type": "number"
         },
         "head": {
-          "title": "Aperture head/lintel PSI",
+          "title": "Window or glazed door header/lintel PSI",
           "type": "number"
         },
         "headconcave": {
-          "title": "Concave aperture head/lintel PSI",
+          "title": "Concave window or glazed door header/lintel PSI",
           "type": "number"
         },
         "headconvex": {
-          "title": "Convex aperture head/lintel PSI",
+          "title": "Convex window or glazed door header/lintel PSI",
           "type": "number"
         },
         "sill": {
-          "title": "Aperture sill/base PSI",
+          "title": "Window or glazed door sill/threshold PSI",
           "type": "number"
         },
         "sillconcave": {
-          "title": "Concave aperture sill/base PSI",
+          "title": "Concave window or glazed door sill/threshold PSI",
           "type": "number"
         },
         "sillconvex": {
-          "title": "Convex aperture sill/base PSI",
+          "title": "Convex window or glazed door sill/threshold PSI",
           "type": "number"
         },
         "jamb": {
-          "title": "Aperture jamb/side PSI",
+          "title": "Window or glazed door side jamb PSI",
           "type": "number"
         },
         "jambconcave": {
-          "title": "Concave aperture jamb/side PSI",
+          "title": "Concave window or glazed door side jamb PSI",
           "type": "number"
         },
         "jambconvex": {
-          "title": "Convex aperture jamb/side PSI",
+          "title": "Convex window or glazed door side jamb PSI",
+          "type": "number"
+        },
+        "door": {
+          "title": "Opaque door perimeter PSI",
+          "type": "number"
+        },
+        "doorhead": {
+          "title": "Opaque door header/lintel PSI",
+          "type": "number"
+        },
+        "doorheadconcave": {
+          "title": "Concave opaque door header/lintel PSI",
+          "type": "number"
+        },
+        "doorheadconvex": {
+          "title": "Convex opaque door header/lintel PSI",
+          "type": "number"
+        },
+        "doorsill": {
+          "title": "Opaque door sill/threshold PSI",
+          "type": "number"
+        },
+        "doorsillconcave": {
+          "title": "Concave opaque door sill/threshold PSI",
+          "type": "number"
+        },
+        "doorsillconvex": {
+          "title": "Convex opaque door sill/threshold PSI",
+          "type": "number"
+        },
+        "doorjamb": {
+          "title": "Opaque door side jamb PSI",
+          "type": "number"
+        },
+        "doorjambconcave": {
+          "title": "Concave opaque door side jamb PSI",
+          "type": "number"
+        },
+        "doorjambconvex": {
+          "title": "Convex opaque door side jamb PSI",
+          "type": "number"
+        },
+        "skylight": {
+          "title": "Skylight perimeter PSI",
+          "type": "number"
+        },
+        "skylighthead": {
+          "title": "Skylight header/lintel PSI",
+          "type": "number"
+        },
+        "skylightheadconcave": {
+          "title": "Concave skylight header/lintel PSI",
+          "type": "number"
+        },
+        "skylightheadconvex": {
+          "title": "Convex skylight header/lintel PSI",
+          "type": "number"
+        },
+        "skylightsill": {
+          "title": "Skylight sill/threshold PSI",
+          "type": "number"
+        },
+        "skylightsillconcave": {
+          "title": "Concave skylight sill/threshold PSI",
+          "type": "number"
+        },
+        "skylightsillconvex": {
+          "title": "Convex skylight sill/threshold PSI",
+          "type": "number"
+        },
+        "skylightjamb": {
+          "title": "Skylight side jamb PSI",
+          "type": "number"
+        },
+        "skylightjambconcave": {
+          "title": "Concave skylight side jamb PSI",
+          "type": "number"
+        },
+        "skylightjambconvex": {
+          "title": "Convex skylight side jamb PSI",
+          "type": "number"
+        },
+        "spandrel": {
+          "title": "Spandrel/other edge PSI",
+          "type": "number"
+        },
+        "spandrelconcave": {
+          "title": "Concave spandrel/other edge PSI",
+          "type": "number"
+        },
+        "spandrelconvex": {
+          "title": "Convex spandrel/other edge PSI",
           "type": "number"
         },
         "corner": {
@@ -174,6 +278,18 @@
           "title": "Convex floor/balcony edge PSI ",
           "type": "number"
         },
+        "balconysill": {
+          "title": "Floor/balcony/sill edge PSI ",
+          "type": "number"
+        },
+        "balconysillconcave": {
+          "title": "Concave floor/balcony/sill edge PSI ",
+          "type": "number"
+        },
+        "balconysillconvex": {
+          "title": "Convex floor/balcony/sill edge PSI ",
+          "type": "number"
+        },
         "party": {
           "title": "Party wall edge PSI",
           "type": "number"
@@ -194,7 +310,7 @@
           "title": "Concave floor/foundation edge PSI",
           "type": "number"
         },
-        "gradecovex": {
+        "gradeconvex": {
           "title": "Convex floor/foundation edge PSI",
           "type": "number"
         },
@@ -250,6 +366,9 @@
             "parapet",
             "parapetconcave",
             "parapetconvex",
+            "roof",
+            "roofconcave",
+            "roofconvex",
             "fenestration",
             "head",
             "headconcave",
@@ -260,12 +379,38 @@
             "jamb",
             "jambconcave",
             "jambconvex",
+            "door",
+            "doorhead",
+            "doorheadconcave",
+            "doorheadconvex",
+            "doorsill",
+            "doorsillconcave",
+            "doorsillconvex",
+            "doorjamb",
+            "doorjambconcave",
+            "doorjambconvex",
+            "skylight",
+            "skylighthead",
+            "skylightheadconcave",
+            "skylightheadconvex",
+            "skylightsill",
+            "skylightsillconcave",
+            "skylightsillconvex",
+            "skylightjamb",
+            "skylightjambconcave",
+            "skylightjambconvex",
+            "spandrel",
+            "spandrelconcave",
+            "spandrelconvex",
             "corner",
             "cornerconcave",
             "cornerconvex",
             "balcony",
             "balconyconcave",
             "balconyconvex",
+            "balconysill",
+            "balconysillconcave",
+            "balconysillconvex",
             "party",
             "partyconcave",
             "partyconvex",
@@ -355,6 +500,10 @@
           "title": "PSI-set identifier",
           "type": "string"
         },
+        "parapet": {
+          "title": "wall-roof edge as parapet",
+          "type": "boolean"
+        },
         "khis": {
           "title": "Surface-hosted point thermal bridges",
           "type": "array",
@@ -397,12 +546,16 @@
         "psi": {
           "title": "PSI-set identifier",
           "type": "string"
+        },
+        "parapet": {
+          "title": "wall-roof edge as parapet",
+          "type": "boolean"
         }
       },
       "additionalProperties": false,
+      "minProperties": 2,
       "required": [
-        "id",
-        "psi"
+        "id"
       ]
     },
     "SpaceType": {
@@ -416,12 +569,16 @@
         "psi": {
           "title": "PSI-set identifier",
           "type": "string"
+        },
+        "parapet": {
+          "title": "wall-roof edge as parapet",
+          "type": "boolean"
         }
       },
       "additionalProperties": false,
+      "minProperties": 2,
       "required": [
-        "id",
-        "psi"
+        "id"
       ]
     },
     "Story": {
@@ -435,12 +592,16 @@
         "psi": {
           "title": "PSI-set identifier",
           "type": "string"
+        },
+        "parapet": {
+          "title": "wall-roof edge as parapet",
+          "type": "boolean"
         }
       },
       "additionalProperties": false,
+      "minProperties": 2,
       "required": [
-        "id",
-        "psi"
+        "id"
       ]
     },
     "Building": {
@@ -450,9 +611,14 @@
         "psi": {
           "title": "PSI-set identifier",
           "type": "string"
+        },
+        "parapet": {
+          "title": "wall-roof edge as parapet",
+          "type": "boolean"
         }
       },
       "additionalProperties": false,
+      "minProperties": 1,
       "required": [
         "psi"
       ]
@@ -554,6 +720,9 @@
           "type": "string"
         },
         "corners": {
+          "type": "string"
+        },
+        "balconies": {
           "type": "string"
         },
         "grade": {
