@@ -784,7 +784,7 @@ RSpec.describe TBD do
     File.open(path_en, "w") { |file| file.puts en_ud_md }
     File.open(path_fr, "w") { |file| file.puts fr_ud_md }
   end
-  
+
   it "can work off of a cloned model" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     TBD.clean!
@@ -1968,6 +1968,152 @@ RSpec.describe TBD do
     end
 
     expect(attic.additionalProperties.resetFeature(key)).to be true
+
+    # -- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- -- #
+    # 5Zone_2 test case (as INDIRECTLYCONDITIONED plenum).
+    plenum_walls   = []
+    plnum_walls    = ["WALL-1PB", "WALL-1PF", "WALL-1PL", "WALL-1PR"]
+    other_ceilings = ["C1-1", "C2-1", "C3-1", "C4-1", "C5-1"]
+
+    file  = File.join(__dir__, "files/osms/in/5Zone_2.osm")
+    path  = OpenStudio::Path.new(file)
+    model = translator.loadModel(path)
+    expect(model).to_not be_empty
+    model = model.get
+
+    # The model has valid thermostats.
+    heated = TBD.heatingTemperatureSetpoints?(model)
+    cooled = TBD.coolingTemperatureSetpoints?(model)
+    expect(heated).to be true
+    expect(cooled).to be true
+
+    plnum = model.getSpaceByName("PLENUM-1")
+    expect(plnum).to_not be_empty
+    plnum = plnum.get
+
+    # The plenum is more akin to an UNCONDITIONED attic (no thermostat).
+    expect(TBD.plenum?(plnum)).to be false
+    expect(TBD.unconditioned?(plnum)).to be true
+    expect(TBD.setpoints(plnum)[:heating]).to be_nil
+    expect(TBD.setpoints(plnum)[:cooling]).to be_nil
+    expect(TBD.status).to be_zero
+
+    argh  = { option: "uncompliant (Quebec)" }
+
+    json     = TBD.process(model, argh)
+    expect(json).to be_a(Hash)
+    expect(json).to have_key(:io)
+    expect(json).to have_key(:surfaces)
+    io       = json[:io      ]
+    surfaces = json[:surfaces]
+    expect(TBD.status).to be_zero
+    expect(TBD.logs).to be_empty
+    expect(surfaces).to be_a(Hash)
+    expect(surfaces.size).to eq(40)
+    expect(io).to be_a(Hash)
+    expect(io).to have_key(:edges)
+
+    # Plenum "walls" are not derated.
+    plnum_walls.each do |s|
+      expect(surfaces).to have_key(s)
+      expect(surfaces[s][:deratable]).to be false
+    end
+
+    # "Other" ceilings (i.e. those of conditioned spaces, adjacent to plenum
+    # "floors") are like insulated attic ceilings, and therefore derated.
+    other_ceilings.each do |s|
+      expect(surfaces).to have_key(s)
+      expect(surfaces[s][:deratable]).to be true
+    end
+
+    # There are no above-grade "rimjoists" identified by TBD:
+    expect(io[:edges].count { |edge| edge[:type] == :rimjoist      }).to eq(0)
+    expect(io[:edges].count { |edge| edge[:type] == :gradeconvex   }).to eq(8)
+    expect(io[:edges].count { |edge| edge[:type] == :parapetconvex }).to eq(4)
+
+    # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
+    # Try again, yet first reset the plenum as INDIRECTLYCONDITIONED.
+    file  = File.join(__dir__, "files/osms/in/5Zone_2.osm")
+    path  = OpenStudio::Path.new(file)
+    model = translator.loadModel(path)
+    expect(model).to_not be_empty
+    model = model.get
+
+    plnum = model.getSpaceByName("PLENUM-1")
+    expect(plnum).to_not be_empty
+    plnum = plnum.get
+
+    key = "indirectlyconditioned"
+    val = "SPACE5-1"
+    expect(plnum.additionalProperties.setFeature(key, val)).to be true
+    expect(TBD.plenum?(plnum)).to be false
+    expect(TBD.unconditioned?(plnum)).to be false
+    expect(TBD.setpoints(plnum)[:heating]).to be_within(TOL).of(22.20)
+    expect(TBD.setpoints(plnum)[:cooling]).to be_within(TOL).of(23.90)
+    expect(TBD.status).to be_zero
+
+    argh  = { option: "uncompliant (Quebec)" }
+
+    json     = TBD.process(model, argh)
+    expect(json).to be_a(Hash)
+    expect(json).to have_key(:io)
+    expect(json).to have_key(:surfaces)
+    io       = json[:io      ]
+    surfaces = json[:surfaces]
+    expect(TBD.status).to be_zero
+    expect(TBD.logs).to be_empty
+    expect(surfaces).to be_a(Hash)
+    expect(surfaces.size).to eq(40)
+    expect(io).to be_a(Hash)
+    expect(io).to have_key(:edges)
+
+    # Plenum "walls" are now derated.
+    plnum_walls.each do |s|
+      expect(surfaces).to have_key(s)
+      expect(surfaces[s][:deratable]).to be true
+    end
+
+    # "Other" ceilings (i.e. those of conditioned spaces, adjacent to plenum
+    # "floors") are now like uninsulated suspended ceilings (no longer derated).
+    other_ceilings.each do |s|
+      expect(surfaces).to have_key(s)
+      expect(surfaces[s][:deratable]).to be false
+    end
+
+    # There are now above-grade "rimjoists", i.e. edge along suspended ceilings:
+    expect(io[:edges].count { |edge| edge[:type] == :rimjoist      }).to eq(4)
+    expect(io[:edges].count { |edge| edge[:type] == :gradeconvex   }).to eq(8)
+    expect(io[:edges].count { |edge| edge[:type] == :parapetconvex }).to eq(4)
+
+    io[:edges].each do |edge|
+      next unless edge[:type] == :rimjoist
+
+      plenum_wall = edge[:surfaces].select { |s| plnum_walls.include?(s) }
+      plenum_walls << plenum_wall.first
+    end
+
+    # Each of the :rimjoist edges is linked to 1x of the 4 plenum walls.
+    expect(plenum_walls.sort).to eq(plnum_walls.sort)
+
+    # There are (very) rare cases of INDIRECTLYCONDITIONED technical spaces
+    # (above occupied spaces) that have structural "floors" (not e.g. suspended
+    # ceiling tiles), supporting significant static and dynamic loads (e.g.
+    # Louis Kahn's Salk Institute). Yet for the vast majority of cases (e.g.
+    # return air plenums), we see simple suspended ceilings. Their perimeter
+    # edges do not thermally bridge (or derate) insulated building envelopes.
+    #
+    # We initially retained a laissez-faire approach with TBD regarding floors
+    # of INDIRECTLYCONDITIONED spaces (like plenums). Indeed, many (older?)
+    # OpenStudio models have plenum floors with reset surface types
+    # ("RoofCeiling"), which is sufficient for TBD to not tag such edges as
+    # "rimjoists", i.e. intermediate (structural) floor slabs. And TBD users
+    # could always override this default behaviour by specifying spacetype (or
+    # space) PSI factor sets (JSON inputs), with "rimjoists" of 0 W/K per meter.
+    #
+    # In hindsight, these workarounds imply additional steps for the vast
+    # majority of TBD users. The previous steps illustrate the current situation,
+    # which constitute the first step towards a revised solution (soonish).
+
 
     # -- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- -- #
     # The following variations of the 'FullServiceRestaurant' (v3.2.1) are
