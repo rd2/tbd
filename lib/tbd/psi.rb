@@ -156,6 +156,7 @@ module TBD
         rimjoist:        1.000000, # re: BETBG
         parapet:         0.800000, # re: BETBG
         roof:            0.800000, # same as parapet
+        ceiling:         0.000000, # e.g. suspended ceiling tiles
         fenestration:    0.500000, # re: BETBG
         door:            0.500000, # inferred, same as (vertical) fenestration
         skylight:        0.500000, # inferred, same as (vertical) fenestration
@@ -176,6 +177,7 @@ module TBD
         rimjoist:        0.500000, # re: BETBG
         parapet:         0.450000, # re: BETBG
         roof:            0.450000, # same as parapet
+        ceiling:         0.000000, # e.g. suspended ceiling tiles
         fenestration:    0.350000, # re: BETBG
         door:            0.350000, # inferred, same as (vertical) fenestration
         skylight:        0.350000, # inferred, same as (vertical) fenestration
@@ -196,6 +198,7 @@ module TBD
         rimjoist:        0.200000, # re: BETBG
         parapet:         0.200000, # re: BETBG
         roof:            0.200000, # same as parapet
+        ceiling:         0.000000, # e.g. suspended ceiling tiles
         fenestration:    0.199999, # re: BETBG
         door:            0.199999, # inferred, same as (vertical) fenestration
         skylight:        0.199999, # inferred, same as (vertical) fenestration
@@ -216,6 +219,7 @@ module TBD
         rimjoist:        0.615000, # Detail 1.2.1
         parapet:         1.000000, # Detail 1.3.2
         roof:            1.000000, # same as parapet
+        ceiling:         0.000000, # e.g. suspended ceiling tiles
         fenestration:    0.000000, # inferred, generally part of clear-field RSi
         door:            0.000000, # inferred, generally part of clear-field RSi
         skylight:        0.350000, # same as "regular (BETBG)"
@@ -236,6 +240,7 @@ module TBD
         rimjoist:        0.170000, # Detail 1.2.7
         parapet:         0.660000, # Detail 1.3.2
         roof:            0.660000, # same as parapet
+        ceiling:         0.000000, # e.g. suspended ceiling tiles
         fenestration:    0.000000, # inferred, generally part of clear-field RSi
         door:            0.000000, # inferred, generally part of clear-field RSi
         skylight:        0.350000, # same as "regular (BETBG)"
@@ -256,6 +261,7 @@ module TBD
         rimjoist:        0.300000, # re I1
         parapet:         0.325000, # re I1
         roof:            0.325000, # same as parapet
+        ceiling:         0.000000, # e.g. suspended ceiling tiles
         fenestration:    0.200000, # re I1
         door:            0.200000, # re I1
         skylight:        0.200000, # re I1
@@ -276,6 +282,7 @@ module TBD
         rimjoist:        0.850000, # re I1
         parapet:         0.800000, # re I1
         roof:            0.800000, # same as parapet
+        ceiling:         0.000000, # e.g. suspended ceiling tiles
         fenestration:    0.500000, # re I1
         door:            0.500000, # re I1
         skylight:        0.500000, # re I1
@@ -296,6 +303,7 @@ module TBD
         rimjoist:        0.307000, # "intermediate floor to wall intersection"
         parapet:         0.260000, # "parapet" edge
         roof:            0.020000, # (non-parapet) "roof" edge
+        ceiling:         0.000000, # e.g. suspended ceiling tiles
         fenestration:    0.194000, # "wall to vertical fenestration intersection"
         door:            0.000000, # (unspecified, defaults to 0)
         skylight:        0.000000, # (unspecified, defaults to 0)
@@ -316,6 +324,7 @@ module TBD
         rimjoist:        0.842000, # "intermediate floor to wall intersection"
         parapet:         0.500000, # "parapet" edge
         roof:            0.650000, # (non-parapet) "roof" edge
+        ceiling:         0.000000, # e.g. suspended ceiling tiles
         fenestration:    0.505000, # "wall to vertical fenestration intersection"
         door:            0.000000, # (unspecified, defaults to 0)
         skylight:        0.000000, # (unspecified, defaults to 0)
@@ -336,6 +345,7 @@ module TBD
         rimjoist:        0.205000, # "intermediate floor to wall intersection"
         parapet:         0.217000, # "parapet" edge
         roof:            0.150000, # (non-parapet) "roof" edge
+        ceiling:         0.000000, # e.g. suspended ceiling tiles
         fenestration:    0.226000, # "wall to vertical fenestration intersection"
         door:            0.000000, # (unspecified, defaults to 0)
         skylight:        0.000000, # (unspecified, defaults to 0)
@@ -356,6 +366,7 @@ module TBD
         rimjoist:        0.824000, # "intermediate floor to wall intersection"
         parapet:         0.412000, # "parapet" edge
         roof:            0.750000, # (non-parapet) "roof" edge
+        ceiling:         0.000000, # e.g. suspended ceiling tiles
         fenestration:    0.325000, # "wall to vertical fenestration intersection"
         door:            0.000000, # (unspecified, defaults to 0)
         skylight:        0.000000, # (unspecified, defaults to 0)
@@ -376,6 +387,7 @@ module TBD
         rimjoist:        0.495000, # "intermediate floor to wall intersection"
         parapet:         0.393000, # "parapet" edge
         roof:            0.150000, # (non-parapet) "roof" edge
+        ceiling:         0.000000, # e.g. suspended ceiling tiles
         fenestration:    0.143000, # "wall to vertical fenestration intersection"
         door:            0.000000, # (unspecified, defaults to 0)
         skylight:        0.000000, # (unspecified, defaults to 0)
@@ -396,6 +408,7 @@ module TBD
         rimjoist:        0.824000, # "intermediate floor to wall intersection"
         parapet:         0.884000, # "parapet" edge
         roof:            0.750000, # (non-parapet) "roof" edge
+        ceiling:         0.000000, # e.g. suspended ceiling tiles
         fenestration:    0.543000, # "wall to vertical fenestration intersection"
         door:            0.000000, # (unspecified, defaults to 0)
         skylight:        0.000000, # (unspecified, defaults to 0)
@@ -416,6 +429,7 @@ module TBD
         rimjoist:        0.084000, # "intermediate floor to wall intersection"
         parapet:         0.056000, # "parapet" edge
         roof:            0.020000, # (non-parapet) "roof" edge
+        ceiling:         0.000000, # e.g. suspended ceiling tiles
         fenestration:    0.171000, # "wall to vertical fenestration intersection"
         door:            0.000000, # (unspecified, defaults to 0)
         skylight:        0.000000, # (unspecified, defaults to 0)
@@ -436,6 +450,7 @@ module TBD
         rimjoist:        0.582000, # "intermediate floor to wall intersection"
         parapet:         0.056000, # "parapet" edge
         roof:            0.150000, # (non-parapet) "roof" edge
+        ceiling:         0.000000, # e.g. suspended ceiling tiles
         fenestration:    0.260000, # "wall to vertical fenestration intersection"
         door:            0.000000, # (unspecified, defaults to 0)
         skylight:        0.000000, # (unspecified, defaults to 0)
@@ -452,20 +467,22 @@ module TBD
 
       @set["(non thermal bridging)"] =
       {
-        rimjoist:     0.000000, # defaults to 0
-        parapet:      0.000000, # defaults to 0
-        roof:         0.000000, # defaults to 0
-        fenestration: 0.000000, # defaults to 0
-        door:         0.000000, # defaults to 0
-        skylight:     0.000000, # defaults to 0
-        spandrel:     0.000000, # defaults to 0
-        corner:       0.000000, # defaults to 0
-        balcony:      0.000000, # defaults to 0
-        balconysill:  0.000000, # defaults to 0
-        party:        0.000000, # defaults to 0
-        grade:        0.000000, # defaults to 0
-        joint:        0.000000, # defaults to 0
-        transition:   0.000000  # defaults to 0
+        rimjoist:        0.000000, # defaults to 0
+        parapet:         0.000000, # defaults to 0
+        roof:            0.000000, # defaults to 0
+        ceiling:         0.000000, # defaults to 0
+        fenestration:    0.000000, # defaults to 0
+        door:            0.000000, # defaults to 0
+        skylight:        0.000000, # defaults to 0
+        spandrel:        0.000000, # defaults to 0
+        corner:          0.000000, # defaults to 0
+        balcony:         0.000000, # defaults to 0
+        balconysill:     0.000000, # defaults to 0
+        balconydoorsill: 0.000000, # defaults to 0
+        party:           0.000000, # defaults to 0
+        grade:           0.000000, # defaults to 0
+        joint:           0.000000, # defaults to 0
+        transition:      0.000000  # defaults to 0
       }.freeze
 
       @set.keys.each { |k| self.gen(k) }
@@ -530,6 +547,9 @@ module TBD
       h[:roof                  ] = @set[id].key?(:roof)
       h[:roofconcave           ] = @set[id].key?(:roofconcave)
       h[:roofconvex            ] = @set[id].key?(:roofconvex)
+      h[:ceiling               ] = @set[id].key?(:ceiling)
+      h[:ceilingconcave        ] = @set[id].key?(:ceilingconcave)
+      h[:ceilingconvex         ] = @set[id].key?(:ceilingconvex)
       h[:grade                 ] = @set[id].key?(:grade)
       h[:gradeconcave          ] = @set[id].key?(:gradeconcave)
       h[:gradeconvex           ] = @set[id].key?(:gradeconvex)
@@ -562,6 +582,7 @@ module TBD
       v[:corner         ] = 0; v[:cornerconcave         ] = 0; v[:cornerconvex         ] = 0
       v[:parapet        ] = 0; v[:parapetconcave        ] = 0; v[:parapetconvex        ] = 0
       v[:roof           ] = 0; v[:roofconcave           ] = 0; v[:roofconvex           ] = 0
+      v[:ceiling        ] = 0; v[:ceilingconcave        ] = 0; v[:ceilingconvex        ] = 0
       v[:party          ] = 0; v[:partyconcave          ] = 0; v[:partyconvex          ] = 0
       v[:grade          ] = 0; v[:gradeconcave          ] = 0; v[:gradeconvex          ] = 0
       v[:balcony        ] = 0; v[:balconyconcave        ] = 0; v[:balconyconvex        ] = 0
@@ -697,6 +718,11 @@ module TBD
       v[:roofconvex            ] = @set[id][:roof                  ] if h[:roof                  ]
       v[:roofconcave           ] = @set[id][:roofconcave           ] if h[:roofconcave           ]
       v[:roofconvex            ] = @set[id][:roofconvex            ] if h[:roofconvex            ]
+      v[:ceiling               ] = @set[id][:ceiling               ] if h[:ceiling               ]
+      v[:ceilingconcave        ] = @set[id][:ceiling               ] if h[:ceiling               ]
+      v[:ceilingconvex         ] = @set[id][:ceiling               ] if h[:ceiling               ]
+      v[:ceilingconcave        ] = @set[id][:ceilingconcave        ] if h[:ceilingconcave        ]
+      v[:ceilingconvex         ] = @set[id][:ceilingconvex         ] if h[:ceilingconvex         ]
       v[:party                 ] = @set[id][:party                 ] if h[:party                 ]
       v[:partyconcave          ] = @set[id][:party                 ] if h[:party                 ]
       v[:partyconvex           ] = @set[id][:party                 ] if h[:party                 ]
@@ -764,6 +790,7 @@ module TBD
 
       max = [v[:roofconcave], v[:roofconvex]].max
       v[:roof] = max unless @has[:roof]
+
       @val[id] = v
 
       true
@@ -783,6 +810,9 @@ module TBD
     # @option set [#to_f] :roof roof-to-wall intersection
     # @option set [#to_f] :roofconcave basilaire variant
     # @option set [#to_f] :roofconvex typical
+    # @option set [#to_f] :ceiling intermediate (uninsulated) ceiling perimeter
+    # @option set [#to_f] :ceilingconcave cantilever variant
+    # @option set [#to_f] :ceilingconvex colonnade variant
     # @option set [#to_f] :fenestration head/sill/jamb interface
     # @option set [#to_f] :head (fenestrated) header interface
     # @option set [#to_f] :headconcave (fenestrated) basilaire variant
@@ -870,6 +900,9 @@ module TBD
       s[:roof                  ] = set[:roof                  ] if set.key?(:roof)
       s[:roofconcave           ] = set[:roofconcave           ] if set.key?(:roofconcave)
       s[:roofconvex            ] = set[:roofconvex            ] if set.key?(:roofconvex)
+      s[:ceiling               ] = set[:ceiling               ] if set.key?(:ceiling)
+      s[:ceilingconcave        ] = set[:ceilingconcave        ] if set.key?(:ceilingconcave)
+      s[:ceilingconvex         ] = set[:ceilingconvex         ] if set.key?(:ceilingconvex)
       s[:fenestration          ] = set[:fenestration          ] if set.key?(:fenestration)
       s[:head                  ] = set[:head                  ] if set.key?(:head)
       s[:headconcave           ] = set[:headconcave           ] if set.key?(:headconcave)
@@ -926,6 +959,7 @@ module TBD
 
       s[:joint                 ] = 0.000  unless set.key?(:joint)
       s[:transition            ] = 0.000  unless set.key?(:transition)
+      s[:ceiling               ] = 0.000  unless set.key?(:ceiling)
 
       @set[id] = s
       self.gen(id)
@@ -941,13 +975,13 @@ module TBD
     #
     # @param id [#to_s] PSI set identifier
     # @example intermediate floor slab intersection
-    #   shorthands("A901")
+    #   shorthands("90.1.22|steel.m|default")
     #
     # @return [Hash] has: Hash (Bool), val: Hash (PSI factors) see logs if empty
     def shorthands(id = "")
       mth = "TBD::#{__callee__}"
       sh  = { has: {}, val: {} }
-      id = trim(id)
+      id  = trim(id)
       return mismatch("set ID", id, String, mth, ERR, a)      if id.empty?
       return hashkey(id, @set , id,         mth, ERR, sh) unless @set.key?(id)
       return hashkey(id, @has , id,         mth, ERR, sh) unless @has.key?(id)
@@ -969,7 +1003,7 @@ module TBD
     def complete?(id = "")
       mth = "TBD::#{__callee__}"
       a   = false
-      id = trim(id)
+      id  = trim(id)
       return mismatch("set ID", id, String, mth, ERR, a)     if id.empty?
       return hashkey(id, @set , id,         mth, ERR, a) unless @set.key?(id)
       return hashkey(id, @has , id,         mth, ERR, a) unless @has.key?(id)
@@ -1853,9 +1887,6 @@ module TBD
 
         # Evaluate current set content before processing a new linked surface.
         is                    = {}
-        is[:head            ] = set.keys.to_s.include?("head")
-        is[:sill            ] = set.keys.to_s.include?("sill")
-        is[:jamb            ] = set.keys.to_s.include?("jamb")
         is[:doorhead        ] = set.keys.to_s.include?("doorhead")
         is[:doorsill        ] = set.keys.to_s.include?("doorsill")
         is[:doorjamb        ] = set.keys.to_s.include?("doorjamb")
@@ -1866,12 +1897,19 @@ module TBD
         is[:corner          ] = set.keys.to_s.include?("corner")
         is[:parapet         ] = set.keys.to_s.include?("parapet")
         is[:roof            ] = set.keys.to_s.include?("roof")
+        is[:ceiling         ] = set.keys.to_s.include?("ceiling")
         is[:party           ] = set.keys.to_s.include?("party")
         is[:grade           ] = set.keys.to_s.include?("grade")
         is[:balcony         ] = set.keys.to_s.include?("balcony")
         is[:balconysill     ] = set.keys.to_s.include?("balconysill")
         is[:balconydoorsill ] = set.keys.to_s.include?("balconydoorsill")
         is[:rimjoist        ] = set.keys.to_s.include?("rimjoist")
+
+        if is.empty?
+          is[:head] = set.keys.to_s.include?("head")
+          is[:sill] = set.keys.to_s.include?("sill")
+          is[:jamb] = set.keys.to_s.include?("jamb")
+        end
 
         # Label edge as ...
         #         :head,         :sill,         :jamb (vertical fenestration)
@@ -2092,6 +2130,41 @@ module TBD
            is[:corner       ] = true
         end
 
+        # Label edge as :ceiling if linked to:
+        #   +1 deratable surfaces
+        #   1x underatable CONDITIONED floor linked to an unoccupied space
+        #   1x adjacent CONDITIONED ceiling linked to an occupied space
+        edge[:surfaces].keys.each do |i|
+          break     if is[:ceiling]
+          break unless deratables.size > 0
+          break     if floors.key?(id)
+          next      if i == id
+          next  unless floors.key?(i)
+          next      if floors[i][:ground     ]
+          next  unless floors[i][:conditioned]
+          next      if floors[i][:occupied   ]
+
+          ceiling = floors[i][:boundary]
+          next  unless ceilings.key?(ceiling)
+          next  unless ceilings[ceiling][:conditioned]
+          next  unless ceilings[ceiling][:occupied   ]
+
+          other = deratables.first unless deratables.first == id
+          other = deratables.last  unless deratables.last  == id
+          other = id                   if deratables.size  == 1
+
+          s1      = edge[:surfaces][id]
+          s2      = edge[:surfaces][other]
+          concave = concave?(s1, s2)
+          convex  = convex?(s1, s2)
+          flat    = !concave && !convex
+
+          set[:ceiling       ] = shorts[:val][:ceiling       ] if flat
+          set[:ceilingconcave] = shorts[:val][:ceilingconcave] if concave
+          set[:ceilingconvex ] = shorts[:val][:ceilingconvex ] if convex
+           is[:ceiling       ] = true
+        end
+
         # Label edge as :parapet/:roof if linked to:
         #   1x deratable wall
         #   1x deratable ceiling
@@ -2172,22 +2245,23 @@ module TBD
            is[:grade       ] = true
         end
 
-        # Label edge as :rimjoist, :balcony, :balconysill or :balconydoorsill if linked to:
+        # Label edge as :rimjoist, :balcony, :balconysill or :balconydoorsill,
+        # if linked to:
         #   1x deratable surface
         #   1x CONDITIONED floor
         #   1x shade (optional)
         #   1x subsurface (optional)
-        #
-        # Despite referring to 'sill' or 'doorsill', a 'balconysill' or
-        # 'balconydoorsill' edge may instead link (rarer) cases of balcony and a
-        # fenestratio/door head. ASHRAE 90.1 2022 does not make the distinction
-        # between sill vs head when intermediatre floor, balcony and vertical
-        # fenestration meet. 'Sills' are simply the most common occurrence.
         balcony         = false
         balconysill     = false # vertical fenestration
         balconydoorsill = false # opaque door
 
+        # Despite referring to 'sill' or 'doorsill', a 'balconysill' or
+        # 'balconydoorsill' edge may instead link (rarer) cases of balcony and a
+        # fenestration/door head. ASHRAE 90.1 2022 does not make the distinction
+        # between sill vs head when intermediate floor, balcony and vertical
+        # fenestration meet. 'Sills' are simply the most common occurrence.
         edge[:surfaces].keys.each do |i|
+          break if is[:ceiling]
           break if balcony
           next  if i == id
 
@@ -2259,15 +2333,17 @@ module TBD
         end
 
         edge[:surfaces].keys.each do |i|
-          break     if is[:rimjoist   ] || is[:balcony        ] ||
-                       is[:balconysill] || is[:balconydoorsill]
+          break     if is[:ceiling        ]
+          break     if is[:rimjoist       ]
+          break     if is[:balcony        ]
+          break     if is[:balconysill    ]
+          break     if is[:balconydoorsill]
           break unless deratables.size > 0
           break     if floors.key?(id)
           next      if i == id
           next  unless floors.key?(i)
-          next  unless floors[i].key?(:conditioned)
-          next  unless floors[i][:conditioned]
           next      if floors[i][:ground     ]
+          next  unless floors[i][:conditioned]
 
           other = deratables.first unless deratables.first == id
           other = deratables.last  unless deratables.last  == id

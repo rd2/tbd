@@ -1619,6 +1619,7 @@ RSpec.describe TBD do
     expect(json).to have_key(:surfaces)
     io        = json[:io      ]
     surfaces  = json[:surfaces]
+    puts TBD.logs
     expect(TBD.status).to be_zero
 
     expect(argh).to have_key(:wall_uo)
@@ -2039,9 +2040,11 @@ RSpec.describe TBD do
     expect(model).to_not be_empty
     model = model.get
 
+    # Ensure the plenum is 'unoccupied', i.e. not part of the total floor area.
     plnum = model.getSpaceByName("PLENUM-1")
     expect(plnum).to_not be_empty
     plnum = plnum.get
+    expect(plnum.setPartofTotalFloorArea(false)).to be true
 
     key = "indirectlyconditioned"
     val = "SPACE5-1"
@@ -2080,20 +2083,12 @@ RSpec.describe TBD do
       expect(surfaces[s][:deratable]).to be false
     end
 
-    # There are now above-grade "rimjoists", i.e. edge along suspended ceilings:
-    expect(io[:edges].count { |edge| edge[:type] == :rimjoist      }).to eq(4)
+    # Prior to v3.4.0, plenum floors would have been tagged as "rimjoists". No
+    # longer the case ("ceilings" are caught earlier in the process).
+    expect(io[:edges].count { |edge| edge[:type] == :ceiling       }).to eq(4)
+    expect(io[:edges].count { |edge| edge[:type] == :rimjoist      }).to eq(0)
     expect(io[:edges].count { |edge| edge[:type] == :gradeconvex   }).to eq(8)
     expect(io[:edges].count { |edge| edge[:type] == :parapetconvex }).to eq(4)
-
-    io[:edges].each do |edge|
-      next unless edge[:type] == :rimjoist
-
-      plenum_wall = edge[:surfaces].select { |s| plnum_walls.include?(s) }
-      plenum_walls << plenum_wall.first
-    end
-
-    # Each of the :rimjoist edges is linked to 1x of the 4 plenum walls.
-    expect(plenum_walls.sort).to eq(plnum_walls.sort)
 
     # There are (very) rare cases of INDIRECTLYCONDITIONED technical spaces
     # (above occupied spaces) that have structural "floors" (not e.g. suspended
@@ -2102,17 +2097,29 @@ RSpec.describe TBD do
     # return air plenums), we see simple suspended ceilings. Their perimeter
     # edges do not thermally bridge (or derate) insulated building envelopes.
     #
-    # We initially retained a laissez-faire approach with TBD regarding floors
-    # of INDIRECTLYCONDITIONED spaces (like plenums). Indeed, many (older?)
-    # OpenStudio models have plenum floors with reset surface types
-    # ("RoofCeiling"), which is sufficient for TBD to not tag such edges as
-    # "rimjoists", i.e. intermediate (structural) floor slabs. And TBD users
-    # could always override this default behaviour by specifying spacetype (or
-    # space) PSI factor sets (JSON inputs), with "rimjoists" of 0 W/K per meter.
+    # Prior to v3.4.0, we initially retained a laissez-faire approach with TBD
+    # regarding floors of INDIRECTLYCONDITIONED spaces (like plenums). Indeed,
+    # many (older?) OpenStudio models have plenum floors with 'reset' surface
+    # types ("RoofCeiling"), which was sufficient for TBD to not tag such edges
+    # as "rimjoists", i.e. intermediate (structural) floor slabs. Sure, TBD
+    # users could always override this default behaviour by specifying spacetype
+    # -specific PSI factor sets (JSON inputs), with "rimjoists" of 0 W/K per
+    # meter. Yet these workarounds necessarily implied additional steps for the
+    # vast majority of TBD users. As of v3.4.0, the default automated TBD
+    # outcome is to tag plenum "floors" as "ceilings" (no additional steps).
     #
-    # In hindsight, these workarounds imply additional steps for the vast
-    # majority of TBD users. The previous steps illustrate the current situation,
-    # which constitute the first step towards a revised solution (soonish).
+    # The flip side is that additional consideration may be required for less
+    # common cases involving plenums. Take for instance underfloor air supply
+    # plenums. The carpeted floors building occupants actually walk on are not
+    # structural concrete slabs (the perimeter edges of which would constitute
+    # common thermal bridges, i.e. "rimjoists"). By default, TBD will now tag
+    # the raised floor as a structural "floor" (with associated thermal
+    # bridging) and instead tag the actual structural slab as "ceiling".
+    # Although this doesn't sound OK initially, this works out just fine for
+    # most cases: the "rimjoist" edge may not line up perfectly (vertically),
+    # but there remains only one per surface (a similar outcome to 'offset'
+    # masonry shelf angles). Users are always free to curtomize TBD (via
+    # JSON input) if needed.
 
 
     # -- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- -- #
@@ -3007,6 +3014,12 @@ RSpec.describe TBD do
     expect(model).to_not be_empty
     model = model.get
 
+    # Ensure the plenum is 'unoccupied', i.e. not part of the total floor area.
+    plnum = model.getSpaceByName("scrigno_plenum")
+    expect(plnum).to_not be_empty
+    plnum = plnum.get
+    expect(plnum.setPartofTotalFloorArea(false)).to be true
+
     # As a side test, switch glass doors to (opaque) doors.
     model.getSubSurfaces.each do |sub|
       next unless sub.subSurfaceType.downcase == "glassdoor"
@@ -3019,7 +3032,7 @@ RSpec.describe TBD do
     #    - "roof"    PSI-factor 0.02 W/K•m !!
     #
     # ... as per 90.1 2022 (non-"parapet" admisible thresholds are much lower).
-    argh = {option: "90.1.22|steel.m|default", parapet: false}
+    argh = { option: "90.1.22|steel.m|default", parapet: false }
 
     json     = TBD.process(model, argh)
     expect(json).to be_a(Hash)

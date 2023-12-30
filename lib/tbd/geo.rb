@@ -347,6 +347,7 @@ module TBD
 
     surf[:conditioned] = surf.key?(:heating) || surf.key?(:cooling)
     surf[:space      ] = space
+    surf[:occupied   ] = space.partofTotalFloorArea
     surf[:boundary   ] = facing
     surf[:ground     ] = surface.isGroundSurface
     surf[:type       ] = :floor
