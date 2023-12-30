@@ -1619,7 +1619,6 @@ RSpec.describe TBD do
     expect(json).to have_key(:surfaces)
     io        = json[:io      ]
     surfaces  = json[:surfaces]
-    puts TBD.logs
     expect(TBD.status).to be_zero
 
     expect(argh).to have_key(:wall_uo)
@@ -2055,7 +2054,10 @@ RSpec.describe TBD do
     expect(TBD.setpoints(plnum)[:cooling]).to be_within(TOL).of(23.90)
     expect(TBD.status).to be_zero
 
-    argh  = { option: "uncompliant (Quebec)" }
+    file = File.join(__dir__, "files/osms/out/z5.osm")
+    model.save(file, true)
+
+    argh = { option: "uncompliant (Quebec)" }
 
     json     = TBD.process(model, argh)
     expect(json).to be_a(Hash)
@@ -2120,6 +2122,58 @@ RSpec.describe TBD do
     # but there remains only one per surface (a similar outcome to 'offset'
     # masonry shelf angles). Users are always free to curtomize TBD (via
     # JSON input) if needed.
+
+    # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
+    # Test a custom non-0 "ceiling" PSI-factor.
+    file  = File.join(__dir__, "files/osms/out/z5.osm")
+    path  = OpenStudio::Path.new(file)
+    model = translator.loadModel(path)
+    expect(model).to_not be_empty
+    model = model.get
+
+    argh               = {}
+    argh[:option     ] = "uncompliant (Quebec)"
+    argh[:io_path    ] = File.join(__dir__, "../json/tbd_z5.json")
+    argh[:schema_path] = File.join(__dir__, "../tbd.schema.json")
+
+    json     = TBD.process(model, argh)
+    expect(json).to be_a(Hash)
+    expect(json).to have_key(:io)
+    expect(json).to have_key(:surfaces)
+    io       = json[:io      ]
+    surfaces = json[:surfaces]
+    expect(TBD.status).to be_zero
+    expect(TBD.logs).to be_empty
+    expect(surfaces).to be_a(Hash)
+    expect(surfaces.size).to eq(40)
+    expect(io).to be_a(Hash)
+    expect(io).to have_key(:edges)
+
+    # Plenum "walls" are (still) derated.
+    plnum_walls.each do |s|
+      expect(surfaces).to have_key(s)
+      expect(surfaces[s][:deratable]).to be true
+    end
+
+    # "Other" ceilings (i.e. those of conditioned spaces, adjacent to plenum
+    # "floors") are (still) no longer derated.
+    other_ceilings.each do |s|
+      expect(surfaces).to have_key(s)
+      expect(surfaces[s][:deratable]).to be false
+    end
+
+    io[:edges].select { |edge| edge[:type] == :ceiling }.each do |edge|
+      expect(edge[:psi]).to eq("salk")
+    end
+
+    expect(io[:edges].count { |edge| edge[:type] == :ceiling       }).to eq(4)
+    expect(io[:edges].count { |edge| edge[:type] == :rimjoist      }).to eq(0)
+    expect(io[:edges].count { |edge| edge[:type] == :gradeconvex   }).to eq(8)
+    expect(io[:edges].count { |edge| edge[:type] == :parapetconvex }).to eq(4)
+
+    out  = JSON.pretty_generate(io)
+    file = File.join(__dir__, "../json/tbd_z5.out.json")
+    File.open(file, "w") { |f| f.puts out }
 
 
     # -- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- -- #
@@ -2798,7 +2852,7 @@ RSpec.describe TBD do
     expect(model).to_not be_empty
     model = model.get
 
-    argh = {option: "90.1.22|steel.m|default"}
+    argh = { option: "90.1.22|steel.m|default" }
 
     json     = TBD.process(model, argh)
     expect(json).to be_a(Hash)

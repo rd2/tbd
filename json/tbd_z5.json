@@ -1,0 +1,12 @@
+{
+  "schema": "https://github.com/rd2/tbd/blob/master/tbd.schema.json",
+  "description": "testing TBD JSON for 5Zone (plenum)",
+  "psis": [{
+      "id": "salk",
+      "ceiling": 0.1
+  }],
+  "spaces": [{
+    "id": "PLENUM-1",
+    "psi": "salk"
+  }]
+}
