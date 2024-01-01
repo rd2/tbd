@@ -2,17 +2,17 @@
 
 OpenStudio users typically first need to specify where downloaded _measures_ are stored on their workstation (_Preferences_ > _Change My Measures Directory_) - just download TBD in there (click on the _download_ links at the top of the page, or download from GitHub or [BCL](https://bcl.nrel.gov/dashboard "OpenStudio's Building Component Library") - search for "tbd" or "rd2"). Then in the _OpenStudio Application_, simply drag & drop TBD in the _Measures_ tab.
 
-As with other OpenStudio measures, by default TBD does not modify the original OpenStudio model (e.g. with new _derated_ constructions). OpenStudio instead makes a behind-the-scenes copy of the model, which in turn is modified by measures before simulation. Although the terminology may be at first confusing, leave the __Alter OpenStudio model__ option CHECKED for EnergyPlus simulations (see [menu options](./settings.html "TBD settings")). This checkbox option is really there for _Apply Measures Now_ cases, as detailed below. Once the __Default thermal bridge set__ is selected, save the model and run the simulation.
+As with other OpenStudio measures, by default TBD does not modify the original OpenStudio model (e.g. with new _derated_ constructions). OpenStudio instead makes a behind-the-scenes copy of the model, which in turn is modified by measures before simulation. Although the terminology may be at first confusing, leave the __Alter OpenStudio model__ option CHECKED for EnergyPlus simulations (see [menu options](./settings.html#tbd-menu-options "TBD settings")). This checkbox option is really there for _Apply Measures Now_ cases, as detailed below. Once the __Default thermal bridge set__ is selected, save the model and run the simulation.
 
-### Apply Measures Now
+### [Apply Measures Now](#apply-measures-now)
 
-The original intent of an _Apply Measures Now_ feature in OpenStudio is to irreversibly alter a building model without the need to run an EnergyPlus simulation. For instance, the [KIVA](./kiva.html "KIVA support") options in TBD work best in _Apply Measures Now_ mode: best leave the __Alter OpenStudio model__ option CHECKED in such cases, while ideally relying on the default "(non thermal bridging)" set.
+The original intent of an _Apply Measures Now_ feature in OpenStudio is to irreversibly alter a building model without the need to run an EnergyPlus simulation. For instance, the [KIVA](./kiva.html#menu-options "KIVA support") options in TBD work best in _Apply Measures Now_ mode: best leave the __Alter OpenStudio model__ option CHECKED in such cases, while ideally relying on the default "(non thermal bridging)" set.
 
 However, there are _Apply Measures Now_ situations where permanent changes to an OpenStudio model aren't warranted or desirable, in which case it becomes critical to UNCHECK the __Alter OpenStudio model__ option:
 
-- __Iterative investigations__: Users may simply want to get a status report of how well they're managing thermal bridging in their projects. TBD provides the same user feedback (including errors & warnings) in either mode. Consult the [Reporting](./reports.html "What TBD reports back") section.
+- __Iterative investigations__: Users may simply want to get a status report of how well they're managing thermal bridging in their projects. TBD provides the same user feedback including [errors & warnings](./reports.html#errors-and-warnings "What TBD reports back"), in either mode.
 
-- __UA' reports__: Similarly, TBD can generate at any moment [UA'](./ua.html "UA' assessments") summaries (often admissible building energy code compliance paths). Same for [uprating](./ut.html "Uprating") features.
+- __UA' reports__: Similarly, TBD can generate at any moment [UA'](./ua.html#assessments "UA' assessments") summaries (often admissible building energy code compliance paths). Same for [uprating](./ut.html "Uprating") features.
 
 - __JSON output__: TBD users can generate a complete, detailed list of every _major_ thermal bridge in their OpenStudio model, which may be useful for automating cost estimation or simply for further [customization](./custom.html "TBD customization").
 

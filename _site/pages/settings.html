@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=32ec5c9bc0309d96bd848ecb537cf86f1a719ad4">
+    <link rel="stylesheet" href="/assets/css/style.css?v=a93721e7537fe5a2e9f1327a2f2706d0b38685a8">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -50,8 +50,8 @@
         </header>
         <section id="downloads" class="clearfix">
           
-          <a href="https://github.com/rd2/tbd/releases/download/v3.3.0/tbd.zip" id="download-zip" class="button"><span>Download .zip</span></a>
-          <a href="https://github.com/rd2/tbd/releases/download/v3.3.0/tbd.tar.gz" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
+          <a href="https://github.com/rd2/tbd/releases/download/v3.4.0/tbd.zip" id="download-zip" class="button"><span>Download .zip</span></a>
+          <a href="https://github.com/rd2/tbd/releases/download/v3.4.0/tbd.tar.gz" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
           
 	
         </section>
@@ -61,23 +61,23 @@
 
 <p>This section goes over the <em>bare bones minimum</em> of what’s needed to run TBD as an OpenStudio <em>Measure</em>, including minimal OpenStudio model requirements, optional OpenStudio <em>space conditioning</em> inputs, and finally TBD menu options. Experienced OpenStudio users should feel comfortable jumping right in. Newcomers to OpenStudio are encouraged to first check out official online documentation and tutorials for <a href="https://openstudio.net" title="OpenStudio">OpenStudio</a>, including the <a href="https://openstudiocoalition.org//" title="OpenStudio Application">OpenStudio Application</a> - more than useful!</p>
 
-<h3 id="context">Context</h3>
+<h3 id="context"><a href="#context">Context</a></h3>
 
 <p>OpenStudio construction details and geometry are required architectural inputs for TBD. <em>Complete</em> OpenStudio models also hold abstract variables like <em>thermal zones</em> and schedules, as well as electrical loads, lighting and HVAC systems. TBD works just fine with <em>complete</em> models, yet can also generate useful design feedback and metrics from <em>intermediate</em> or <em>partial</em> OpenStudio models.</p>
 
 <p>Why? Let’s start by venturing that there’s more than one way to approach building energy modelling. One obvious scenario is to hire competent energy modellers who take care of everything - they’re specialized and very good at what they do. Yet it has its drawbacks as a <em>centralized</em> solution. TBD works just as well within more <em>distributed</em> approaches, where specialists may contribute to the same collective energy model, yet on different parts (and at different design stages); ideally under supervisory versioning control (just like software development). Architectural professionals should be encouraged in maintaining geometry and construction parameters (including thermal bridging) of an OpenStudio model throughout the design process. Same goes for lighting consultants, estimators, LCA assessors, etc.</p>
 
-<p>In other cases, architects may simply wish to explore whether their designs comply with certain prescriptive envelope targets, which can be efficiently ascertained using OpenStudio &amp; TBD (without having to run a single energy simulation). If they’re unsuccessful in achieving for instance <a href="./ua.html" title="UA' assessments">UA’</a> trade-off targets, they can always seek to compensate by handing off the model to building energy modellers. For the latter, inheriting complete (and valid) <em>architectural</em> energy models this way can be a huge time saver. This fits in well within integrated design processes, while encouraging a healthy division of labour and fair distribution of professional liability. Let’s go over what TBD requires from a <em>minimal</em> OpenStudio model.</p>
+<p>In other cases, architects may simply wish to explore whether their designs comply with certain prescriptive envelope targets, which can be efficiently ascertained using OpenStudio &amp; TBD (without having to run a single energy simulation). If they’re unsuccessful in achieving for instance <a href="./ua.html#assessments" title="UA' assessments">UA’</a> trade-off targets, they can always seek to compensate by handing off the model to building energy modellers. For the latter, inheriting complete (and valid) <em>architectural</em> energy models this way can be a huge time saver. This fits in well within integrated design processes, while encouraging a healthy division of labour and fair distribution of professional liability. Let’s go over what TBD requires from a <em>minimal</em> OpenStudio model.</p>
 
-<h3 id="minimal-model-requirements">Minimal model requirements</h3>
+<h3 id="minimal-model-requirements"><a href="#minimal-model-requirements">Minimal model requirements</a></h3>
 
-<p><strong>Fully enclosed geometry</strong>: OpenStudio (and to a large extent EnergyPlus) work much better with <em>geometrically enclosed</em> models. This means no gaps between surfaces, no unintentional surface overlaps, no loosely intersecting edges, windows that properly fit within the limits of their parent (or <em>base</em>) wall, and so on. The example <a href="../index.html#:~:text=Warehouse" title="Thermal Bridging &amp; Derating">warehouse</a> is a good visual of what this all means. It’s worth underlining, as third-party design apps offer mixed results with <em>enclosed geometry</em> when generating BIM-to-BEM models. Despite built-in tolerances, TBD and Topolys can only do their job well if vertices, edges and surfaces are properly connected. Note that <em>partial</em> OpenStudio models are not required to hold ALL building surfaces - just those that comprise the <em>building envelope</em>, in addition to interior floor surfaces. If a building has cantilevered balconies for instance, it’s also a good idea to include those as <em>shading surfaces</em> (which must <em>align</em> with floor surfaces for TBD to autodetect).</p>
+<p><strong>Fully enclosed geometry</strong>: OpenStudio (and to a large extent EnergyPlus) work much better with <em>geometrically enclosed</em> models. This means no gaps between surfaces, no unintentional surface overlaps, no loosely intersecting edges, windows that properly fit within the limits of their parent (or <em>base</em>) wall, and so on. The example <a href="../index.html#warehouse" title="Thermal Bridging &amp; Derating">warehouse</a> is a good visual of what this all means. It’s worth underlining, as third-party design apps offer mixed results with <em>enclosed geometry</em> when generating BIM-to-BEM models. Despite built-in tolerances, TBD and Topolys can only do their job well if vertices, edges and surfaces are properly connected. Note that <em>partial</em> OpenStudio models are not required to hold ALL building surfaces - just those that comprise the <em>building envelope</em>, in addition to interior floor surfaces. If a building has cantilevered balconies for instance, it’s also a good idea to include those as <em>shading surfaces</em> (which must <em>align</em> with floor surfaces for TBD to autodetect).</p>
 
 <p><strong>Materials &amp; constructions</strong>: Geometry is not enough. TBD must also retrieve referenced materials and multilayered constructions for all <em>envelope</em> surfaces. The easiest way is via <em>Default Construction Sets</em>.</p>
 
 <p><strong>Boundary conditions</strong>: It’s important that the OpenStudio model reflects intended exposure to surrounding environmental conditions, including which surfaces face the exterior vs the interior, the ground, etc. TBD <em>derates</em> envelope walls, roofs and <em>exposed</em> floors. Windows, doors and skylights are never <em>derated</em>. Adiabatic and ground-facing (or <a href="./kiva.html" title="KIVA support">KIVA</a> foundation) surfaces are also never <em>derated</em>.</p>
 
-<h3 id="space-conditioning">Space conditioning</h3>
+<h3 id="space-conditioning"><a href="#space-conditioning">Space conditioning</a></h3>
 
 <p>TBD does require additional OpenStudio inputs <em>in some circumstances</em>. Spaces neither heated nor cooled (like attics and crawlspaces) are considered <em>unconditioned</em>: their outdoor-facing surfaces aren’t part of the <em>building envelope</em>, and therefore not targeted by TBD. On the other hand, outdoor-facing surfaces of <em>indirectly-conditioned</em> spaces (like plenums) are considered part of the <em>building envelope</em>, and therefore <em>derated</em>.  Here’s the underlying logic that guides TBD:</p>
 
@@ -89,18 +89,19 @@
 
 <p><em>Sections 2.3.2 to 2.3.4 of this PNNL <a href="https://www.pnnl.gov/main/publications/external/technical_reports/PNNL-26917.pdf" title="90.1-2016 Performance Rating Method Reference Manual">report</a> provide a good overview of space conditioning classification.</em></p>
 
-<h3 id="tbd-menu-options">TBD menu options</h3>
+<h3 id="tbd-menu-options"><a href="#tbd-menu-options">TBD menu options</a></h3>
 
 <p>Whether TBD is accessed from the <em>OpenStudio Application</em> Measures’ tab, through a <a href="https://nrel.github.io/OpenStudio-user-documentation/reference/command_line_interface/" title="OpenStudio CLI">CLI</a> <em>workflow</em>, or as a Ruby <a href="https://rubygems.org/gems/tbd">gem</a>, users have access to the same <strong>17</strong> menu options (“Inputs”, shown here with their default values):</p>
 
 <p><img src="../assets/images/TBD-inputs.png" alt="TBD Menu Options" title="TBD Menu Options" /></p>
 
-<p>“Proximity tolerance”, “JSON” input/output files, “Uprating” features, “UA’” reports and “KIVA” inputs are described in detail in the <a href="./subs.html" title="TBD fenestration options">Fenestration</a>, <a href="./custom.html" title="TBD customization">Customization</a>, <a href="./ut.html" title="Uprating">Uprating</a>, <a href="./ua.html" title="UA' assessments">UA’</a> and <a href="./kiva.html" title="KIVA support">KIVA</a> sections, respectively.</p>
+<p><em>The following menu options are described elsewhere: <a href="./subs.html#proximity-tolerances" title="TBD fenestration options">Proximity tolerance</a>, <a href="./custom.html" title="TBD customization">JSON</a> input/output files, <a href="./ut.html" title="Uprating">Uprating</a> features, <a href="./ua.html#assessments" title="UA' assessments">UA’</a> reports and <a href="./kiva.html" title="KIVA support">KIVA</a>.</em></p>
 
-<p>The <strong>Default thermal bridge set</strong> pull-down menu of built-in <em>psi</em> factors is often handy for newcomers, especially in the early design stages. Users can simply switch between default sets (and rerun the measure) to get a sense of how thermal bridging may affect energy simulation results. It’s easy, yet coarse as the entire building is treated uniformly (check the <a href="./custom.html" title="TBD customization">Customization</a> section on associating specific <em>psi</em> factors to different construction sets in a building). Each default set holds a list of common thermal bridge <em>shorthands</em> for each edge TBD identifies:</p>
+<p>The <strong>Default thermal bridge set</strong> pull-down menu of built-in <em>psi</em> factors is often handy for newcomers, especially in the early design stages. Users can simply switch between default sets (and rerun the measure) to get a sense of how thermal bridging may affect energy simulation results. It’s easy, yet coarse as the entire building is treated uniformly (check the <a href="./custom.html#managing-multiple-custom-psi-factor-sets" title="TBD customization">Customization</a> section on associating specific <em>psi</em> factors to different construction sets in a building). Each default set holds a list of common thermal bridge <em>shorthands</em> for each edge TBD identifies:</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>       "rimjoist" | intermediate floor/wall (or /sloped-roof) edge
         "parapet" | roof/wall parapet edge
            "roof" | (non-parapet) roof/wall edge
+        "ceiling" | between e.g. unoccupied plenum vs occupied space
    "fenestration" | vertical fenestration perimeter (e.g. glazed door)
            "door" | opaque door perimeter
        "skylight" | skylight perimeter
@@ -116,31 +117,33 @@
 </code></pre></div></div>
 <p>Users can switch from “<strong>parapet</strong>” to “<strong>roof</strong>” <em>psi</em> factors in a given set (as required by ASHRAE 90.1 2022), by unchecking the “<em>Wall-roof edge as ‘parapet’</em>” box.</p>
 
-<h3 id="tagging-rules">Tagging rules</h3>
+<h3 id="tagging-rules"><a href="#tagging-rules">Tagging rules</a></h3>
 
-<p>When the angle between 2 <em>exposed</em> surfaces exceeds 45° around an edge, TBD tags it either as a “<strong>corner</strong>” or a “<strong>parapet</strong>” (or a “<strong>roof</strong>”), depending on the situation. A <em>flatter</em> edge shared between 2 (somewhat) parallel <em>exposed</em> surfaces is instead tagged as a (mild) “<strong>transition</strong>”.  OpenStudio models can hold many such <em>flat</em> edges, which usually do not constitute <em>major</em> thermal bridges. For instance when they delineate plenum walls from those of the occupied space (above or below). In other cases, they’re simply artifacts of third-party software, e.g. tessellation. Every built-in set holds a “transition” <em>psi</em> factor of 0 W/K per meter. Whenever TBD is unable to clearly label an edge, it relies on “transition” as a fallback.</p>
+<p>When the angle between 2 <em>exposed</em> surfaces exceeds 45° around an edge, TBD tags it either as a “<strong>corner</strong>” or a “<strong>parapet</strong>” (or a “<strong>roof</strong>”), depending on the situation. A <em>flatter</em> edge shared between 2 (somewhat) parallel <em>exposed</em> surfaces is instead tagged as a (mild) “<strong>transition</strong>”.  OpenStudio models can hold many such <em>flat</em> edges, which usually do not constitute <em>major</em> thermal bridges (e.g. outcome of 3rd-party software tessellation). Every built-in set holds a “transition” <em>psi</em> factor of 0 W/K per meter. Whenever TBD is unable to clearly label an edge, it relies on “transition” as a fallback.</p>
 
-<p>Some <em>flat</em> edges aren’t mild “transitions” at all, like “<strong>spandrel</strong>” panel perimeters or expansion “<strong>joints</strong>” - definitely <em>major</em> thermal bridges. “Spandrel” edges along a neighbouring, non-spandrel wall surface are autodetected based on <a href="https://github.com/rd2/osut">OSut</a>’s <code class="language-plaintext highlighter-rouge">spandrel?</code> method. Yet in other cases (like expansion “joints”), TBD is unable to distinguish between “transition” and “joint” from OpenStudio geometry alone. The <a href="./custom.html" title="TBD customization">Customization</a> section illustrates how to reset “transition” edges into “joints” when needed.</p>
+<p>Some <em>flat</em> edges aren’t mild “transitions” at all, like “<strong>spandrel</strong>” panel perimeters or expansion “<strong>joints</strong>” - definitely <em>major</em> thermal bridges. “Spandrel” edges along a neighbouring, non-spandrel wall surface are autodetected based on <a href="https://github.com/rd2/osut">OSut</a>’s <code class="language-plaintext highlighter-rouge">spandrel?</code> method. Yet in other cases (like expansion “joints”), TBD is unable to distinguish between “transition” and “joint” from OpenStudio geometry alone. The <a href="./custom.html#custom-edges" title="TBD customization">Customization</a> section illustrates how to reset “transition” edges into “joints” when needed.</p>
 
 <p>TBD considers an edge as delineating a demising (or “<strong>party</strong>”) partition, when it links both:</p>
 
 <ul>
   <li>a single <em>exposed</em> surface</li>
-  <li>another surface referencing an <a href="https://bigladdersoftware.com/epx/docs/23-1/input-output-reference/group-advanced-surface-concepts.html#surfacepropertyothersidecoefficients">OtherSideCoefficients</a> object</li>
+  <li>another surface referencing an <a href="https://bigladdersoftware.com/epx/docs/23-2/input-output-reference/group-advanced-surface-concepts.html#surfacepropertyothersidecoefficients">OtherSideCoefficients</a> object</li>
 </ul>
 
 <p>If the latter instead faces adiabatic conditions or references <em>itself</em> (often used in conjunction with space multipliers), TBD usually maintains a “transition” tag (which can also be <a href="./custom.html" title="TBD customization">reset</a> if needed). In the 5-story building illustrated below, only 3 stories would need to be modelled (saving on simulation run times), as long as the intermediate story holds spaces and loads with multipliers (here, <strong>3x</strong>). Two groups of surfaces would need to be modelled as adiabatic:</p>
 
 <ul>
-  <li>ground-level &amp; intermediate level <strong>ceilings</strong></li>
-  <li>top-level &amp; intermediate level <strong>floors</strong></li>
+  <li>ground-level &amp; intermediate level “ceilings”</li>
+  <li>top-level &amp; intermediate level “floors”</li>
 </ul>
 
 <p><img src="../assets/images/stories.png" alt="Story Multipliers" title="TBD Menu Options" /></p>
 
 <p>Adiabatic ceilings are coloured here in pale green, while their perimeter “transition” edges are highlighted in blue. Edges along floor slab perimeters are maintained as “rimjoist” (or “grade”) thermal bridges, <em>derating</em> only connected walls above (not those below). This redistribution of “rimjoists” heat loss certainly changes surface-specific thermal bridging tallies, but building-wide tallies remain the same.</p>
 
-<h3 id="multiple-tags">Multiple tags?</h3>
+<p>Finally, perimeter edges of a suspended ceiling, typically separating an unoccupied (<em>indirectly-conditioned</em>) return air plenum from occupied (<em>directly-conditioned</em>) spaces below, are tagged as “<strong>ceiling</strong>” edges. They are differentiated from “roof” or “parapet” edges in that they typically do not consitute <em>major</em> thermal bridges (all built-in <em>psi</em> factor sets have “<strong>ceiling</strong>” values of 0 W/K per meter). These can also be customized for less common cases (e.g. underfloor supply air plenums).</p>
+
+<h3 id="multiple-tags"><a href="#multiple-tags">Multiple tags</a>?</h3>
 
 <p>What happens when an edge can be tagged with more than one label? For instance when an edge is shared between wall, door sill, intermediate floor, and balcony? Deterministic sorting is applied in most cases. Here, the edge is tagged as either “rimjoist”, “balcony”, “balconysill” or “balconydoorsill”, based on (true/false):</p>
 
@@ -152,7 +155,7 @@
 
 <p>What happens if glazed doors aren’t along a balcony (like French doors)? When sorting rules aren’t as clear, TBD labels an edge according to the candidate <em>psi</em> factor that represents the greatest heat loss. Consider a skylight aligned along a roof parapet. Both “skylight” and “parapet” edge types <em>could</em> apply. Yet if the skylight <em>psi</em> factor were 0.5 W/K per meter, while the “parapet” <em>psi</em> factor 0.8 W/K per meter, then the edge is tagged as a “parapet” thermal bridge. Such TBD rules are described in finer detail in the source code itself, which is publicly accessible and well documented: check for Ruby (.rb) files under the /lib folder of the TBD GitHub repository.</p>
 
-<h3 id="where-does-one-get-psi-data">Where does one get <em>psi</em> data?</h3>
+<h3 id="where-does-one-get-psi-data"><a href="#where-does-one-get-psi-data">Where does one get <em>psi</em> data</a>?</h3>
 
 <p>The <a href="https://www.bchydro.com/powersmart/business/programs/new-construction.html" title="Building Envelope Thermal Bridging Guide">BETBG</a> &amp; <a href="https://thermalenvelope.ca">thermalenvelope.ca</a> collections are great resources to start with. They rely in part on past research initiatives, like ASHRAE’s RP-1365 (which is also great), and are regularly updated. Building energy codes like ASHRAE 90.1 2022 and ISO standards are also relevant resources. TBD relies on all of these for its built-in <em>psi</em> factor sets (values in W/K per meter):</p>
 
@@ -160,6 +163,7 @@
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>       rimjoist | 1.000000
         parapet | 0.800000
            roof | 0.800000
+        ceiling | 0.000000
    fenestration | 0.500000
            door | 0.500000
        skylight | 0.500000
@@ -176,6 +180,7 @@ balconydoorsill | 1.000000
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>       rimjoist | 0.500000
         parapet | 0.450000
            roof | 0.450000
+        ceiling | 0.000000
    fenestration | 0.350000
            door | 0.350000
        skylight | 0.350000
@@ -192,6 +197,7 @@ balconydoorsill | 0.500000
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>       rimjoist | 0.200000
         parapet | 0.200000
            roof | 0.200000
+        ceiling | 0.000000
    fenestration | 0.199999
            door | 0.199999
        skylight | 0.199999
@@ -208,6 +214,7 @@ balconydoorsill | 0.200000
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>       rimjoist | 0.615000
         parapet | 1.000000
            roof | 1.000000
+        ceiling | 0.000000
    fenestration | 0.000000
            door | 0.000000
        skylight | 0.350000
@@ -224,6 +231,7 @@ balconydoorsill | 1.110000
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>       rimjoist | 0.170000
         parapet | 0.660000
            roof | 0.660000
+        ceiling | 0.000000
    fenestration | 0.000000
            door | 0.000000
        skylight | 0.350000
@@ -240,6 +248,7 @@ balconydoorsill | 0.400000
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>       rimjoist | 0.300000
         parapet | 0.325000
            roof | 0.325000
+        ceiling | 0.000000
    fenestration | 0.200000
            door | 0.200000
        skylight | 0.200000
@@ -256,6 +265,7 @@ balconydoorsill | 0.500000
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>       rimjoist | 0.850000
         parapet | 0.800000
            roof | 0.800000
+        ceiling | 0.000000
    fenestration | 0.500000
            door | 0.500000
        skylight | 0.500000
@@ -272,6 +282,7 @@ balconydoorsill | 1.000000
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>       rimjoist | 0.307000
         parapet | 0.260000
            roof | 0.020000
+        ceiling | 0.000000
    fenestration | 0.194000
            door | 0.000000
        skylight | 0.000000
@@ -288,6 +299,7 @@ balconydoorsill | 0.307000
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>       rimjoist | 0.842000
         parapet | 0.500000
            roof | 0.650000
+        ceiling | 0.000000
    fenestration | 0.505000
            door | 0.000000
        skylight | 0.000000
@@ -304,6 +316,7 @@ balconydoorsill | 0.842000
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>       rimjoist | 0.205000
         parapet | 0.217000
            roof | 0.150000
+        ceiling | 0.000000
    fenestration | 0.226000
            door | 0.000000
        skylight | 0.000000
@@ -320,6 +333,7 @@ balconydoorsill | 0.205000
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>       rimjoist | 0.824000
         parapet | 0.412000
            roof | 0.750000
+        ceiling | 0.000000
    fenestration | 0.325000
            door | 0.000000
        skylight | 0.000000
@@ -336,6 +350,7 @@ balconydoorsill | 0.824000
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>       rimjoist | 0.495000
         parapet | 0.393000
            roof | 0.150000
+        ceiling | 0.000000
    fenestration | 0.143000
            door | 0.000000
        skylight | 0.000000
@@ -352,6 +367,7 @@ balconydoorsill | 0.495000
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>       rimjoist | 0.824000
         parapet | 0.884000
            roof | 0.750000
+        ceiling | 0.000000
    fenestration | 0.543000
            door | 0.000000
        skylight | 0.000000
@@ -368,6 +384,7 @@ balconydoorsill | 0.824000
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>       rimjoist | 0.084000
         parapet | 0.056000
            roof | 0.020000
+        ceiling | 0.000000
    fenestration | 0.171000
            door | 0.000000
        skylight | 0.000000
@@ -384,6 +401,7 @@ balconydoorsill | 0.084000
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>       rimjoist | 0.582000
         parapet | 0.056000
            roof | 0.150000
+        ceiling | 0.000000
    fenestration | 0.260000
            door | 0.000000
        skylight | 0.000000
@@ -398,13 +416,13 @@ balconydoorsill | 0.582000
 </code></pre></div></div>
 <p>The “<strong>poor</strong>”, “<strong>regular</strong>” and “<strong>efficient</strong>” sets mirror those of the BETBG (laid out at the beginning of that document). They provide ballpark figures of <em>bottom-of-the-barrel</em> vs <em>high-performance</em> technologies. The basic vs high-performance (HP) “<strong>spandrel</strong>” sets provide a range of expected values for curtain/window wall technologies (also from the BETBG).</p>
 
-<p>TBD supports the Québec building energy “<strong>code</strong>”, which holds explicit requirements on <em>major</em> thermal bridging. When Québec professionals are unable to determine whether they comply to prescriptive requirements or are unsure which <em>psi</em> factors to use, they can fall back (entirely or partly) on the “<strong>uncompliant</strong>” set. Note that the “parapet” and “corner” values here may need to be corrected for exterior dimensioning of energy models, as per code requirements (see “<em>A side note on dimensioning</em>” at the end of the <a href="./custom.html" title="TBD customization">Customization</a> section).</p>
+<p>TBD supports the Québec building energy “<strong>code</strong>”, which holds explicit requirements on <em>major</em> thermal bridging. When Québec professionals are unable to determine whether they comply to prescriptive requirements or are unsure which <em>psi</em> factors to use, they can fall back (entirely or partly) on the “<strong>uncompliant</strong>” set. Note that the “parapet” and “corner” values here may need to be corrected for <a href="./custom.html#a-side-note-on-dimensioning" title="TBD customization">exterior dimensioning</a> of energy models, as per code requirements.</p>
 
 <p>ASHRAE “<strong>90.1 2022</strong>” (Table A10.1) <em>default</em> (<em>unmitigated</em>) and <em>unmitigated</em> sets are also included. Many edge types (like “corner”, “grade” and “door”) are unlisted in Table A10.1. Omitted edge types are addressed in requirement 5.5.5.5, which unfortunately cannot be easily automated. TBD nonetheless tracks omitted edges, while setting their <em>psi</em> factors to 0 W/K per meter (for both <em>mitigated</em> and corresponding <em>unmitigated</em> sets). Users can recover unlisted edges from the <em>tbd.out.json</em> output file (see <a href="./reports.html" title="What TBD reports back">Reporting</a>) for relevant 5.5.5.5 side calculations.</p>
 
 <p>Some ASHRAE <em>psi</em> factors are off by 1/100,000 of published values (e.g. “grade” at 0.000,001 W/K per meter, rather than 0). These slight adjustments provide deterministic sorting by prioritizing edge types (“grade” over “door”), when 2 or more applicable edge types have <em>psi</em> factors of 0 W/K per meter. Incrementing a <em>psi</em> factor by 1/100,000 has no effect on simulation results.</p>
 
-<p>Finally, there is also a “(<strong>non thermal bridging</strong>)” set where all <em>psi</em> factors are fixed at 0 W/K per meter - mainly used for quality control and debugging, but also key when autogenerating KIVA inputs or UA’ reports (see <a href="./launch.html" title="Launching TBD as a process">Apply Measures Now</a>).</p>
+<p>Finally, there is also a “(<strong>non thermal bridging</strong>)” set where all <em>psi</em> factors are fixed at 0 W/K per meter - mainly used for quality control and debugging, but also key when autogenerating KIVA inputs or UA’ reports (see <a href="./launch.html#apply-measures-now" title="Launching TBD as a process">Apply Measures Now</a>).</p>
 
 <p><a href="../index.html" title="Thermal Bridging &amp; Derating">HOME</a></p>
 

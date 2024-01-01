@@ -1,10 +1,10 @@
 ### Customization
 
-TBD provides a pull-down menu list of built-in _psi_ factor sets - key for newcomers, especially in the early design stages (see [Settings](./settings.html "TBD settings")). What happens when design choices aren't well represented by any of these built-in sets? TBD allows users to define multiple custom _psi_ factor sets, refine them beyond the basic TBD _shorthands_, and attribute them to different parts of a building model.
+TBD provides a pull-down menu list of [built-in](./settings.html#where-does-one-get-psi-data "TBD settings") _psi_ factor sets - key for newcomers, especially in the early design stages. What happens when design choices aren't well represented by any of these built-in sets? TBD allows users to define multiple custom _psi_ factor sets, refine them beyond the basic TBD _shorthands_, and attribute them to different parts of a building model.
 
 As detailed in the [Reporting](./reports.html "What TBD reports back") section, a unique _tbd.out.json_ output file is generated (or regenerated) for every TBD run, under an OpenStudio model's _files_ folder. If one drops a _tbd.json_ file in the same folder and CHECKS the __Load 'tbd.json'__ menu option, TBD will read in custom inputs defined in that file.
 
-### Custom building _psi_ factor set
+### [A custom building _psi_ factor set](#a-custom-building-psi-factor-set)
 
 As a first example, consider the definition of a custom "building" _psi_ factor set (instead of built-in sets):  
 
@@ -51,18 +51,18 @@ __PSIs__: In order to refer to a custom _psi_ factor set, one must first define 
 
 __BUILDING__: TBD allows a single "building" JSON entry, where one simply refers to one of the previously defined _psi_ factor sets. This overrides the pull-down __Default thermal bridge set__ option.
 
-### Inheritance
+### [Inheritance](#inheritance)
 
-Notice how the "not bad" _psi_ factor set above is concise, more so than any TBD [built-in](./settings.html "TBD settings") set? TBD applies inheritance rules when custom sets have missing entries. For instance:
+Notice how the "not bad" _psi_ factor set above is concise, more so than any TBD [built-in](./settings.html#where-does-one-get-psi-data "TBD settings") set? TBD applies inheritance rules when custom sets have missing entries. For instance:
 
 - missing "door" and "skylight" perimeter edge types inherit from "fenestration"
 - missing "roof" inherits from "parapet"
 - missing "balconydoorsill" inherits from "balconysill"
 - misisng "balconysill" inherits from "balcony"
 
-It's important to explicitly list specific edge types (in custom _psi_ factor sets), to prevent TBD from applying these inheritance rules.
+It's important to explicitly list specific edge types (in custom _psi_ factor sets), to prevent TBD from applying its default inheritance rules.
 
-### Multiple custom _psi_ factor sets
+### [Managing multiple custom _psi_ factor sets](#managing-multiple-custom-psi-factor-sets)
 
 OpenStudio allows users to define a _default construction set_ for an entire building model, which means any new wall surface (added to a model) automatically inherits the default set wall construction - very handy. OpenStudio also allows default construction sets per individual _building story_ (e.g. ground floor surfaces vs the rest of the building), or on a _spacetype_ basis (e.g. housing units vs common spaces), and so on ... down to the individual surface.
 
@@ -120,6 +120,8 @@ A few additional notes:
 - except for "building", custom _psi_ factor sets can be _partial_
 - e.g. all "fenestration" edges here inherit from the "building" set  
 
+### [Custom edges](#custom-edges)
+
 One can also customize individual edges (e.g. expansion "joints"), which do not have corresponding OpenStudio identified objects:
 ```
 {
@@ -146,7 +148,7 @@ One can also customize individual edges (e.g. expansion "joints"), which do not 
   ]
 }
 ```
-### _khi_ inputs
+### [_khi_ inputs](#khi-inputs)
 
 Cantilevered beams, columns, rooftop support blocks, etc. that partially or entirely traverse building envelope surfaces are best represented as point conductances, or _khi_ factors (in W/K per point). As there are no corresponding OpenStudio objects, TBD users must fall back onto custom surface attributes:
 ```
@@ -185,7 +187,7 @@ Cantilevered beams, columns, rooftop support blocks, etc. that partially or enti
 ```
 Here, the OpenStudio surface "exposed floor 1" will inherit __10x__ 0.7 W/K (= 7 W/K) + __4x__ 0.5 W/K (= 2 W/K) point conductances: an extra 9 W/K, in addition to the total W/K per meter from surrounding edges.
 
-### Extended _shorthands_
+### [Extended _shorthands_](#extended-shorthands)
 
 If one carefully examines a detailed _tbd.out.json_ file, one notices new or altered TBD _shorthands_ for individual edges, such as "jamb", "sill" & "head" instead of "fenestration", as well as "concave" or "convex" variants, e.g.:  
 
@@ -253,7 +255,7 @@ If one comes across published _psi_ factor data that distinguishes between fenes
 ```
 There are obviously many, many possible combinations. TBD's GitHub repository contains some additional [examples](https://github.com/rd2/tbd/tree/master/json), yet many more on TBD's dedicated test [repo](https://github.com/rd2/tbd_tests/tree/develop/json). Although this may at first seem complex and intimidating for the average designer or modeller, it remains similar to OpenStudio with regards to default construction sets: it can be very simple, and it only needs to be as complex as the actual design. With such freedom (with both OpenStudio and TBD inputs) comes responsibility - something users and modellers must carefully consider and plan out accordingly.
 
-### A side note on dimensioning
+### [A side note on dimensioning](#a-side-note-on-dimensioning)
 
 Envelope surfaces are usually modelled in OpenStudio based on _outer_ dimensions (i.e. following the exterior cladding, as in ASHRAE 90.1 and Québec's energy code), or on _inner_ dimensions (i.e. following the interior finishing, as in the Canadian NECB). For most _flat_ edges, this isn't critical. But for _concave_ or _convex_ edges, adjustments to _psi_ factors may be warranted if there is a mismatch in conventions between the OpenStudio model vs published _psi_ data. For instance, BETBG data reflect an _inner_ dimensioning convention, while ISO 14683 reports _psi_ factors for both conventions. The following equation may be used to adjust BETBG _psi_ factors for _convex_ corners for instance, when relying on _outer_ dimensions in OpenStudio.
 ```
@@ -265,6 +267,6 @@ PSIi = published PSI factor (W/K per m)
   Li = from interior corner to "zone of influence" limits (m)
   Le = from exterior corner to "zone of influence" limits (m)
 ```
-The _zone of influence_ usually ranges from 1.0 to 1.2 meters. But the key parameter here is really the resulting wall thickness, and whether the sign is positive or negative - depending on whether it's a _convex_ or _concave_ corner. In some cases, this may even produce negative _psi_ factors - which TBD allows. The BETBG and ISO standards provide detailed discussions on the subject.
+The "_zone of influence_" usually ranges from 1.0 to 1.2 meters. But the key parameter here is really the resulting wall thickness, and whether the sign is positive or negative - depending on whether it's a _convex_ or _concave_ corner. In some cases, this may even produce negative _psi_ factors - which TBD allows. The BETBG and ISO standards provide detailed discussions on the subject.
 
 [HOME](../index.html "Thermal Bridging & Derating")

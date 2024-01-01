@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=32ec5c9bc0309d96bd848ecb537cf86f1a719ad4">
+    <link rel="stylesheet" href="/assets/css/style.css?v=a93721e7537fe5a2e9f1327a2f2706d0b38685a8">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -50,8 +50,8 @@
         </header>
         <section id="downloads" class="clearfix">
           
-          <a href="https://github.com/rd2/tbd/releases/download/v3.3.0/tbd.zip" id="download-zip" class="button"><span>Download .zip</span></a>
-          <a href="https://github.com/rd2/tbd/releases/download/v3.3.0/tbd.tar.gz" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
+          <a href="https://github.com/rd2/tbd/releases/download/v3.4.0/tbd.zip" id="download-zip" class="button"><span>Download .zip</span></a>
+          <a href="https://github.com/rd2/tbd/releases/download/v3.4.0/tbd.tar.gz" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
           
 	
         </section>
@@ -59,7 +59,7 @@
         <section id="main_content">
           <h3 id="fenestration">Fenestration</h3>
 
-<p>There are a few things to keep in mind when it comes to <em>fenestration</em> (a sub class of OpenStudio <em>subsurfaces</em>). We focus here on windows and glass doors, including their <strong>rough opening</strong> in a <em>base</em> wall. Each <em>rough opening</em> typically requires additional framing along “<strong>sill</strong>”, “<strong>head</strong>” and “<strong>jamb</strong>” edges, with corresponding “<strong>fenestration</strong>” <em>psi</em> factors.</p>
+<p>There are a few things to keep in mind when it comes to <em>fenestration</em> (a sub class of OpenStudio <em>subsurfaces</em>). We focus here on <em>vertical fenestration</em> (i.e. windows and glass doors), including their <strong>rough opening</strong> in a <em>base</em> wall. Each <em>rough opening</em> typically requires additional wall framing along “<strong>sill</strong>”, “<strong>head</strong>” and “<strong>jamb</strong>” edges, with corresponding “<strong>fenestration</strong>” <em>psi</em> factors.</p>
 
 <p><strong>Figure 1A</strong> illustrates a residential entrance, complete with glazed door, (partial height) left and right sidelights, as well as a 3-section transom spanning the full width of the <em>rough opening</em>.</p>
 
@@ -71,7 +71,7 @@
 
 <ul>
   <li>
-    <p>Unless modelling a <em>tubular daylighting device</em> (<a href="https://bigladdersoftware.com/epx/docs/23-1/input-output-reference/group-daylighting.html#daylightingdevicetubular" title="Tubular Daylighting Device">TDD</a>), a fenestrated surface must <em>align</em> with its <em>base</em> surface, i.e. they both must share the same 3D plane equation and the <em>subsurface</em> must <em>fit</em> within <em>base</em> surface boundaries.</p>
+    <p>Unless modelling a <em>tubular daylighting device</em> (<a href="https://bigladdersoftware.com/epx/docs/23-2/input-output-reference/group-daylighting.html#daylightingdevicetubular" title="Tubular Daylighting Device">TDD</a>), a fenestrated surface must <em>align</em> with its <em>base</em> surface, i.e. they both must share the same 3D plane and the <em>subsurface</em> must <em>fit</em> within <em>base</em> surface boundaries.</p>
   </li>
   <li>
     <p>TBD tags fenestration perimeter edges (shared with its <em>base</em> surface) as either “<strong>head</strong>”, “<strong>sill</strong>” or “<strong>jamb</strong>” (depending on the situation, the door “sill” edge may later be overridden as a “grade” or “rimjoist” edge).</p>
@@ -84,9 +84,9 @@
   </li>
 </ul>
 
-<h3 id="frame--dividers">Frame &amp; Dividers</h3>
+<h3 id="frame-and-dividers"><a href="#frame-and-dividers">Frame and Dividers</a></h3>
 
-<p>OpenStudio (and EnergyPlus) users can optionally associate <a href="https://bigladdersoftware.com/epx/docs/23-1/input-output-reference/group-thermal-zone-description-geometry.html#windowpropertyframeanddivider" title="OpenStudio Frame and Dividers">frame &amp; divider</a> properties to most glazed <em>subsurfaces</em>. In a nutshell, this allows fenestration product frames (and dividers) to be modelled/simulated separately from glazing layers, in line with NFRC 100 rating procedures. This allows <em>inter alia</em> a more robust assessment of fenestration aspect ratios on energy performance (e.g. 1x larger fenestration product outperforming many narrower, smaller products). OpenStudio fenestration, with <em>frame &amp; divider</em> properties, requires 3D modelling of the glazing portion ONLY of each <em>subsurface</em> - not the <em>rough opening</em>, as illustrated in <strong>Figure 1C</strong> (same entrance design).</p>
+<p>OpenStudio (and EnergyPlus) users can optionally associate <a href="https://bigladdersoftware.com/epx/docs/23-2/input-output-reference/group-thermal-zone-description-geometry.html#windowpropertyframeanddivider" title="OpenStudio Frame and Dividers">frame &amp; divider</a> properties to most glazed <em>subsurfaces</em>. In a nutshell, this allows fenestration product frames (and dividers) to be modelled/simulated separately from glazing layers, in line with NFRC 100 rating procedures. This allows <em>inter alia</em> a more robust assessment of fenestration aspect ratios on energy performance (e.g. 1x larger fenestration product outperforming many narrower, smaller products). OpenStudio fenestration, with <em>frame &amp; divider</em> properties, requires 3D modelling of the glazing portion ONLY of each <em>subsurface</em> - not the <em>rough opening</em>, as illustrated in <strong>Figure 1C</strong> (same entrance design).</p>
 
 <p><img src="../assets/images/FD.png" alt="OpenStudio Frame &amp; Dividers" title="OpenStudio Frame &amp; Dividers" /></p>
 
@@ -96,7 +96,7 @@
 
 <p><em>Frame &amp; divider</em> properties also allow outside and inside <strong>reveals</strong> (i.e. <em>subsurface</em> setbacks with respect to exterior and/or interior surfaces), as illustrated in Figure 1A. In such cases, TBD considers “head”, “sill” and/or “jamb” <em>psi</em> factors to account for the effect of <em>reveals</em>.</p>
 
-<h3 id="proximity-tolerances">Proximity tolerances</h3>
+<h3 id="proximity-tolerances"><a href="#proximity-tolerances">Proximity tolerances</a></h3>
 
 <p>A shared edge between two <em>subsurfaces</em> at a corner (e.g. the single vertical edge highlighted in blue in <strong>Figure 2A</strong>) is also tagged by TBD as a (mild) “transition”. Again, any additional heat loss resulting from <em>corner mullions</em> should preferably be factored in NFRC fenestration rating procedures, and thus shouldn’t <em>derate</em> <em>base</em> wall constructions.</p>
 
@@ -112,7 +112,7 @@
 
 <p><img src="../assets/images/corner1.png" alt="Corner Windows" title="Corner Windows" /></p>
 
-<p>When such gaps exceed Topolys’ built-in tolerances (e.g. 25 mm in Figure 2B), TBD instead considers a nearby <em>subsurface</em> edge (e.g. along a corner) as a fenestration “jamb” edge, even though a 25 mm gap between jamb and corner edges makes little sense from a construction perspective. Such gaps often occur as modelling artefacts (often inadvertently) in either legacy OpenStudio models or in those imported from third-party applications. This automated switch, from (mild) “transition” to “jamb” edge types, necessarily means more heat loss from thermal bridging (vs Figure 2A). TBD provides users a <em>subsurface</em> <strong>proximity tolerance</strong> (see <a href="./settings.html" title="TBD settings">menu options</a>) as an optional means to override this default behaviour. If, for instance, a user sets a <em>proximity tolerance</em> of 50 mm (or rather 0.050 m), TBD ignores the aforementioned 25 mm gaps and sets the 2x <em>subsurface</em> jamb edges near the corner as (mild) “transitions” (both edges highlighted in blue in Figure 2B).</p>
+<p>When such gaps exceed Topolys’ built-in tolerances (e.g. 25 mm in Figure 2B), TBD instead considers a nearby <em>subsurface</em> edge (e.g. along a corner) as a fenestration “jamb” edge, even though a 25 mm gap between jamb and corner edges makes little sense from a construction perspective. Such gaps often occur as modelling artefacts (often inadvertently) in either legacy OpenStudio models or in those imported from third-party applications. This automated switch, from (mild) “transition” to “jamb” edge types, necessarily means more heat loss from thermal bridging (vs Figure 2A). TBD provides users a <em>subsurface</em> <strong>proximity tolerance</strong> (see <a href="./settings.html#tbd-menu-options" title="TBD settings">menu options</a>) as an optional means to override this default behaviour. If, for instance, a user sets a <em>proximity tolerance</em> of 50 mm (or rather 0.050 m), TBD ignores the aforementioned 25 mm gaps and sets the 2x <em>subsurface</em> jamb edges near the corner as (mild) “transitions” (both edges highlighted in blue in Figure 2B).</p>
 
 <p>This way, there is no difference when <em>derating</em> <em>base</em> wall surfaces, from fenestration perimeters alone, in either figures 2A or 2B. However, the <em>proximity tolerance</em> does not reset the corner edge (in red in Figure 2B) as a (mild) “transition”. The corner edge continues uninterrupted, spanning the full wall height - one should expect additional heat loss from the “corner” edge in Figure 2B (vs Figure 2A). This can be corrected by adjusting the “corner” <em>psi</em> factor in TBD - a practical (yet not perfect) option.</p>
 
@@ -122,9 +122,9 @@
 
 <p>This can be corrected in OpenStudio by splitting for instance the larger window into two smaller (yet <em>aligned</em>) windows (which adds a new horizontal “transition” edge in blue, shown in <strong>Figure 3B</strong>). If the gaps between both <em>upper</em> window jambs and corner edge are within the user-set <em>proximity tolerance</em>, then both <em>nearby</em> window jambs will also be reset as (mild) “transitions” (both vertical edges highlighted in blue in Figure 3B). Note that the corner edge continues uninterrupted, spanning the full wall height (in red in both figures 3A and 3B, just as in Figure 2B).</p>
 
-<h3 id="multipliers">Multipliers</h3>
+<h3 id="multipliers"><a href="#multipliers">Multipliers</a></h3>
 
-<p>Similar to the use of space multipliers (a proxy for story multipliers), discussed under <a href="./settings.html" title="TBD settings">tagging rules</a>, OpenStudio allows users to enable fenestration multipliers. For instance, a single OpenStudio window (with <strong>10x</strong> as a multiplier) will take less time to simulate then 10x windows. No doubt a practical feature, yet caution is warranted as it disables a number of options and casts doubt on solar and daylighting distribution within spaces. Regardless, TBD will process perimeter fenestration edges (as thermal bridges), while taking into consideration fenestration multipliers, e.g.</p>
+<p>Similar to the use of space multipliers (a proxy for story multipliers), discussed under <a href="./settings.html#tagging-rules" title="TBD settings">tagging rules</a>, OpenStudio allows users to enable fenestration multipliers. For instance, a single OpenStudio window (with <strong>10x</strong> as a multiplier) will take less time to simulate then 10x windows. No doubt a practical feature, yet caution is warranted as it disables a number of options and casts doubt on solar and daylighting distribution within spaces. Regardless, TBD will process perimeter fenestration edges (as thermal bridges), while taking into consideration fenestration multipliers, e.g.</p>
 
 <ul>
   <li>10x window “sill” thermal bridges</li>

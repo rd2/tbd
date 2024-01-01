@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=32ec5c9bc0309d96bd848ecb537cf86f1a719ad4">
+    <link rel="stylesheet" href="/assets/css/style.css?v=a93721e7537fe5a2e9f1327a2f2706d0b38685a8">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -50,8 +50,8 @@
         </header>
         <section id="downloads" class="clearfix">
           
-          <a href="https://github.com/rd2/tbd/releases/download/v3.3.0/tbd.zip" id="download-zip" class="button"><span>Download .zip</span></a>
-          <a href="https://github.com/rd2/tbd/releases/download/v3.3.0/tbd.tar.gz" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
+          <a href="https://github.com/rd2/tbd/releases/download/v3.4.0/tbd.zip" id="download-zip" class="button"><span>Download .zip</span></a>
+          <a href="https://github.com/rd2/tbd/releases/download/v3.4.0/tbd.tar.gz" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
           
 	
         </section>
@@ -80,7 +80,7 @@
   <li>… as long as <em>proposed</em> vs <em>reference</em> fenestration areas remain equal</li>
 </ul>
 
-<h3 id="major-thermal-bridging"><em>Major</em> thermal bridging</h3>
+<h3 id="major-thermal-bridging"><a href="#major-thermal-bridging"><em>Major</em> thermal bridging</a></h3>
 
 <p>Québec’s energy code (Section 3.3) expands on the concept by including <em>major</em> thermal bridges in the mix:</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>UA' = ∑ (Uo • A) + ∑ (psi • L) + ∑ (khi • n)
@@ -94,26 +94,28 @@
 
 <p>If the proposed total <em>UA’</em> is equal or inferior to the reference total <em>UA’</em>, then the proposed design complies.</p>
 
-<h3 id="ua-menu-options">UA’ menu options</h3>
+<h3 id="ua-menu-options"><a href="#ua-menu-options">UA’ menu options</a></h3>
 
-<p>TBD automatically processes what’s required (inputs) to carry out <em>UA’</em> assessments, as well as what’s often needed to demonstrate compliance (outputs) for code authorities (see <a href="./settings.html" title="TBD settings">TBD menu options</a>):</p>
+<p>TBD automatically processes what’s required (inputs) to carry out <em>UA’</em> assessments, as well as what’s often needed to demonstrate compliance (outputs) for code authorities. Related <a href="./settings.html#tbd-menu-options" title="TBD settings">TBD menu options</a>:</p>
 
-<p><strong>UA’</strong>: checkbox enabling UA’ assessments<br />
-<strong>UA’ reference</strong>: vs which prescriptive ruleset?</p>
+<ul>
+  <li><strong>UA’</strong>: checkbox enabling UA’ assessments</li>
+  <li><strong>UA’ reference</strong>: vs which prescriptive ruleset?</li>
+</ul>
 
-<p>The <strong>UA’ reference</strong> pull-down options correspond to TBD’s <strong>Default thermal bridge sets</strong>. If the “code (Quebec)” option is selected, then the reference prescriptive requirements include code-required <em>Uo</em> factors, in addition to code-required <em>psi</em> &amp; <em>khi</em> factors (see <a href="./settings.html" title="TBD settings">Where does one get psi data?</a>). For all other UA’ references, only the <em>psi</em> &amp; <em>khi</em> factors differ between <em>proposed</em> vs <em>reference</em> cases. It’s best to generate UA’ assessments under the <a href="./launch.html" title="Launching TBD as a process">Apply Measures Now</a> mode, while UNCHECKing the <strong>Alter OpenStudio model</strong> option.</p>
+<p>The <strong>UA’ reference</strong> pull-down options correspond to TBD’s <strong>Default thermal bridge sets</strong>. If the “code (Quebec)” option is selected, then the reference prescriptive requirements include code-required <em>Uo</em> factors, in addition to code-required <em>psi</em> &amp; <em>khi</em> <a href="./settings.html#where-does-one-get-psi-data" title="TBD settings">factors</a>. For all other UA’ references, only the <em>psi</em> &amp; <em>khi</em> factors differ between <em>proposed</em> vs <em>reference</em> cases. It’s best to generate UA’ assessments under the <a href="./launch.html#apply-measures-now" title="Launching TBD as a process">Apply Measures Now</a> mode, while UNCHECKing the <strong>Alter OpenStudio model</strong> option.</p>
 
 <p>Note that <em>UA’</em> calculations will consider <a href="./ut.html" title="Uprating">uprated</a> assemblies, if selected.</p>
 
-<h3 id="assessments">Assessments</h3>
+<h3 id="assessments"><a href="#assessments">Assessments</a></h3>
 
 <p>In addition to standard TBD feedback (see <a href="./reports.html" title="What TBD reports back">Reporting</a>), <em>UA’</em> assessments pop up in the <em>OpenStudio Application</em> runner messages, in the autogenerated <em>tbd.out.json</em> file, and in dedicated <em>UA’</em> reports (.md files, in both French and English):</p>
 
 <p><img src="../assets/images/UA.png" alt="UA Assessment" title="UA Assessment" /></p>
 
-<p>The <strong>Summary</strong> is the key output to scrutinize. For both <em>heated</em> and <em>semi-heated</em> sections (if applicable), <em>UA’</em> totals (in W/K) give a sense of how close (or far) one is to reaching selected targets. Here (a hypothetical warehouse variant), the proposed design is considerably off the mark for both <em>heated</em> and <em>semi-heated</em> sections. Results are further broken down into individual envelope components, such as walls, roofs, doors, windows, etc., and applicable thermal bridges (e.g. “trim” for all fenestration, door and skylight perimeters). This allows one to assess the relative impact of each item, what to fix, etc.</p>
+<p>The <strong>Summary</strong> is the key output to scrutinize. For both <em>heated</em> and <em>semi-heated</em> sections (if applicable), <em>UA’</em> totals (in W/K) give a sense of how close (or far) one is to reaching selected targets. Here (a hypothetical warehouse variant), the proposed design is considerably off the mark for both <em>heated</em> and <em>semi-heated</em> sections. Results are further broken down into individual envelope components, such as walls, roofs, doors, windows, etc., and applicable thermal bridges (e.g. “trim” for all fenestration, door and skylight perimeters). This allows one to assess the relative impact of each item, prioritize what to fix, etc.</p>
 
-<p>TBD does not report on elements that are not part of the building envelope. In this warehouse example, the <em>heated</em> section is limited to a ground floor office - its ceiling connected to a <em>semi-heated</em> storage space above. As the office ceiling is not a roof <em>per se</em> i.e., not part of the building envelope, TBD only reports on the <em>semi-heated</em> roof surfaces. Similarly, only thermal bridges identified by TBD in the OpenStudio model are part of the assessment, e.g. no balconies in the warehouse.</p>
+<p>TBD does not report on elements that are not part of the building envelope. In this warehouse example, the <em>heated</em> section is limited to a ground floor office - its ceiling connected to a <em>semi-heated</em> storage space above. As the office ceiling is not a roof <em>per se</em> i.e., not part of the building envelope, TBD only reports on <em>semi-heated</em> roof surfaces of the storage spaces. Similarly, only thermal bridges identified by TBD in the OpenStudio model are part of the assessment, e.g. no balconies in the warehouse.</p>
 
 <p>The <em>UA’</em> assessments are <a href="https://en.wikipedia.org/wiki/Markdown">MD</a>-formatted, which can be rendered as HTML or even PDF, depending on the text editor or web browser.</p>
 
