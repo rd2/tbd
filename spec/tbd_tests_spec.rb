@@ -784,7 +784,7 @@ RSpec.describe TBD do
     File.open(path_en, "w") { |file| file.puts en_ud_md }
     File.open(path_fr, "w") { |file| file.puts fr_ud_md }
   end
-  
+
   it "can work off of a cloned model" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     TBD.clean!
@@ -1970,6 +1970,213 @@ RSpec.describe TBD do
     expect(attic.additionalProperties.resetFeature(key)).to be true
 
     # -- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- -- #
+    # 5Zone_2 test case (as INDIRECTLYCONDITIONED plenum).
+    plenum_walls   = []
+    plnum_walls    = ["WALL-1PB", "WALL-1PF", "WALL-1PL", "WALL-1PR"]
+    other_ceilings = ["C1-1", "C2-1", "C3-1", "C4-1", "C5-1"]
+
+    file  = File.join(__dir__, "files/osms/in/5Zone_2.osm")
+    path  = OpenStudio::Path.new(file)
+    model = translator.loadModel(path)
+    expect(model).to_not be_empty
+    model = model.get
+
+    # The model has valid thermostats.
+    heated = TBD.heatingTemperatureSetpoints?(model)
+    cooled = TBD.coolingTemperatureSetpoints?(model)
+    expect(heated).to be true
+    expect(cooled).to be true
+
+    plnum = model.getSpaceByName("PLENUM-1")
+    expect(plnum).to_not be_empty
+    plnum = plnum.get
+
+    # The plenum is more akin to an UNCONDITIONED attic (no thermostat).
+    expect(TBD.plenum?(plnum)).to be false
+    expect(TBD.unconditioned?(plnum)).to be true
+    expect(TBD.setpoints(plnum)[:heating]).to be_nil
+    expect(TBD.setpoints(plnum)[:cooling]).to be_nil
+    expect(TBD.status).to be_zero
+
+    argh  = { option: "uncompliant (Quebec)" }
+
+    json     = TBD.process(model, argh)
+    expect(json).to be_a(Hash)
+    expect(json).to have_key(:io)
+    expect(json).to have_key(:surfaces)
+    io       = json[:io      ]
+    surfaces = json[:surfaces]
+    expect(TBD.status).to be_zero
+    expect(TBD.logs).to be_empty
+    expect(surfaces).to be_a(Hash)
+    expect(surfaces.size).to eq(40)
+    expect(io).to be_a(Hash)
+    expect(io).to have_key(:edges)
+
+    # Plenum "walls" are not derated.
+    plnum_walls.each do |s|
+      expect(surfaces).to have_key(s)
+      expect(surfaces[s][:deratable]).to be false
+    end
+
+    # "Other" ceilings (i.e. those of conditioned spaces, adjacent to plenum
+    # "floors") are like insulated attic ceilings, and therefore derated.
+    other_ceilings.each do |s|
+      expect(surfaces).to have_key(s)
+      expect(surfaces[s][:deratable]).to be true
+    end
+
+    # There are no above-grade "rimjoists" identified by TBD:
+    expect(io[:edges].count { |edge| edge[:type] == :rimjoist      }).to eq(0)
+    expect(io[:edges].count { |edge| edge[:type] == :gradeconvex   }).to eq(8)
+    expect(io[:edges].count { |edge| edge[:type] == :parapetconvex }).to eq(4)
+
+    # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
+    # Try again, yet first reset the plenum as INDIRECTLYCONDITIONED.
+    file  = File.join(__dir__, "files/osms/in/5Zone_2.osm")
+    path  = OpenStudio::Path.new(file)
+    model = translator.loadModel(path)
+    expect(model).to_not be_empty
+    model = model.get
+
+    # Ensure the plenum is 'unoccupied', i.e. not part of the total floor area.
+    plnum = model.getSpaceByName("PLENUM-1")
+    expect(plnum).to_not be_empty
+    plnum = plnum.get
+    expect(plnum.setPartofTotalFloorArea(false)).to be true
+
+    key = "indirectlyconditioned"
+    val = "SPACE5-1"
+    expect(plnum.additionalProperties.setFeature(key, val)).to be true
+    expect(TBD.plenum?(plnum)).to be false
+    expect(TBD.unconditioned?(plnum)).to be false
+    expect(TBD.setpoints(plnum)[:heating]).to be_within(TOL).of(22.20)
+    expect(TBD.setpoints(plnum)[:cooling]).to be_within(TOL).of(23.90)
+    expect(TBD.status).to be_zero
+
+    file = File.join(__dir__, "files/osms/out/z5.osm")
+    model.save(file, true)
+
+    argh = { option: "uncompliant (Quebec)" }
+
+    json     = TBD.process(model, argh)
+    expect(json).to be_a(Hash)
+    expect(json).to have_key(:io)
+    expect(json).to have_key(:surfaces)
+    io       = json[:io      ]
+    surfaces = json[:surfaces]
+    expect(TBD.status).to be_zero
+    expect(TBD.logs).to be_empty
+    expect(surfaces).to be_a(Hash)
+    expect(surfaces.size).to eq(40)
+    expect(io).to be_a(Hash)
+    expect(io).to have_key(:edges)
+
+    # Plenum "walls" are now derated.
+    plnum_walls.each do |s|
+      expect(surfaces).to have_key(s)
+      expect(surfaces[s][:deratable]).to be true
+    end
+
+    # "Other" ceilings (i.e. those of conditioned spaces, adjacent to plenum
+    # "floors") are now like uninsulated suspended ceilings (no longer derated).
+    other_ceilings.each do |s|
+      expect(surfaces).to have_key(s)
+      expect(surfaces[s][:deratable]).to be false
+    end
+
+    # Prior to v3.4.0, plenum floors would have been tagged as "rimjoists". No
+    # longer the case ("ceilings" are caught earlier in the process).
+    expect(io[:edges].count { |edge| edge[:type] == :ceiling       }).to eq(4)
+    expect(io[:edges].count { |edge| edge[:type] == :rimjoist      }).to eq(0)
+    expect(io[:edges].count { |edge| edge[:type] == :gradeconvex   }).to eq(8)
+    expect(io[:edges].count { |edge| edge[:type] == :parapetconvex }).to eq(4)
+
+    # There are (very) rare cases of INDIRECTLYCONDITIONED technical spaces
+    # (above occupied spaces) that have structural "floors" (not e.g. suspended
+    # ceiling tiles), supporting significant static and dynamic loads (e.g.
+    # Louis Kahn's Salk Institute). Yet for the vast majority of cases (e.g.
+    # return air plenums), we see simple suspended ceilings. Their perimeter
+    # edges do not thermally bridge (or derate) insulated building envelopes.
+    #
+    # Prior to v3.4.0, we initially retained a laissez-faire approach with TBD
+    # regarding floors of INDIRECTLYCONDITIONED spaces (like plenums). Indeed,
+    # many (older?) OpenStudio models have plenum floors with 'reset' surface
+    # types ("RoofCeiling"), which was sufficient for TBD to not tag such edges
+    # as "rimjoists", i.e. intermediate (structural) floor slabs. Sure, TBD
+    # users could always override this default behaviour by specifying spacetype
+    # -specific PSI factor sets (JSON inputs), with "rimjoists" of 0 W/K per
+    # meter. Yet these workarounds necessarily implied additional steps for the
+    # vast majority of TBD users. As of v3.4.0, the default automated TBD
+    # outcome is to tag plenum "floors" as "ceilings" (no additional steps).
+    #
+    # The flip side is that additional consideration may be required for less
+    # common cases involving plenums. Take for instance underfloor air supply
+    # plenums. The carpeted floors building occupants actually walk on are not
+    # structural concrete slabs (the perimeter edges of which would constitute
+    # common thermal bridges, i.e. "rimjoists"). By default, TBD will now tag
+    # the raised floor as a structural "floor" (with associated thermal
+    # bridging) and instead tag the actual structural slab as "ceiling".
+    # Although this doesn't sound OK initially, this works out just fine for
+    # most cases: the "rimjoist" edge may not line up perfectly (vertically),
+    # but there remains only one per surface (a similar outcome to 'offset'
+    # masonry shelf angles). Users are always free to curtomize TBD (via
+    # JSON input) if needed.
+
+    # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
+    # Test a custom non-0 "ceiling" PSI-factor.
+    file  = File.join(__dir__, "files/osms/out/z5.osm")
+    path  = OpenStudio::Path.new(file)
+    model = translator.loadModel(path)
+    expect(model).to_not be_empty
+    model = model.get
+
+    argh               = {}
+    argh[:option     ] = "uncompliant (Quebec)"
+    argh[:io_path    ] = File.join(__dir__, "../json/tbd_z5.json")
+    argh[:schema_path] = File.join(__dir__, "../tbd.schema.json")
+
+    json     = TBD.process(model, argh)
+    expect(json).to be_a(Hash)
+    expect(json).to have_key(:io)
+    expect(json).to have_key(:surfaces)
+    io       = json[:io      ]
+    surfaces = json[:surfaces]
+    expect(TBD.status).to be_zero
+    expect(TBD.logs).to be_empty
+    expect(surfaces).to be_a(Hash)
+    expect(surfaces.size).to eq(40)
+    expect(io).to be_a(Hash)
+    expect(io).to have_key(:edges)
+
+    # Plenum "walls" are (still) derated.
+    plnum_walls.each do |s|
+      expect(surfaces).to have_key(s)
+      expect(surfaces[s][:deratable]).to be true
+    end
+
+    # "Other" ceilings (i.e. those of conditioned spaces, adjacent to plenum
+    # "floors") are (still) no longer derated.
+    other_ceilings.each do |s|
+      expect(surfaces).to have_key(s)
+      expect(surfaces[s][:deratable]).to be false
+    end
+
+    io[:edges].select { |edge| edge[:type] == :ceiling }.each do |edge|
+      expect(edge[:psi]).to eq("salk")
+    end
+
+    expect(io[:edges].count { |edge| edge[:type] == :ceiling       }).to eq(4)
+    expect(io[:edges].count { |edge| edge[:type] == :rimjoist      }).to eq(0)
+    expect(io[:edges].count { |edge| edge[:type] == :gradeconvex   }).to eq(8)
+    expect(io[:edges].count { |edge| edge[:type] == :parapetconvex }).to eq(4)
+
+    out  = JSON.pretty_generate(io)
+    file = File.join(__dir__, "../json/tbd_z5.out.json")
+    File.open(file, "w") { |f| f.puts out }
+
+
+    # -- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- -- #
     # The following variations of the 'FullServiceRestaurant' (v3.2.1) are
     # snapshots of incremental development of the same model. For each step,
     # the tests illustrate how TBD ends up considering the unoccupied space
@@ -2645,7 +2852,7 @@ RSpec.describe TBD do
     expect(model).to_not be_empty
     model = model.get
 
-    argh = {option: "90.1.22|steel.m|default"}
+    argh = { option: "90.1.22|steel.m|default" }
 
     json     = TBD.process(model, argh)
     expect(json).to be_a(Hash)
@@ -2861,6 +3068,12 @@ RSpec.describe TBD do
     expect(model).to_not be_empty
     model = model.get
 
+    # Ensure the plenum is 'unoccupied', i.e. not part of the total floor area.
+    plnum = model.getSpaceByName("scrigno_plenum")
+    expect(plnum).to_not be_empty
+    plnum = plnum.get
+    expect(plnum.setPartofTotalFloorArea(false)).to be true
+
     # As a side test, switch glass doors to (opaque) doors.
     model.getSubSurfaces.each do |sub|
       next unless sub.subSurfaceType.downcase == "glassdoor"
@@ -2873,7 +3086,7 @@ RSpec.describe TBD do
     #    - "roof"    PSI-factor 0.02 W/K•m !!
     #
     # ... as per 90.1 2022 (non-"parapet" admisible thresholds are much lower).
-    argh = {option: "90.1.22|steel.m|default", parapet: false}
+    argh = { option: "90.1.22|steel.m|default", parapet: false }
 
     json     = TBD.process(model, argh)
     expect(json).to be_a(Hash)

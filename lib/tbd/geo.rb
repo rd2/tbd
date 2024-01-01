@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2020-2023 Denis Bourgeois & Dan Macumber
+# Copyright (c) 2020-2024 Denis Bourgeois & Dan Macumber
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -347,6 +347,7 @@ module TBD
 
     surf[:conditioned] = surf.key?(:heating) || surf.key?(:cooling)
     surf[:space      ] = space
+    surf[:occupied   ] = space.partofTotalFloorArea
     surf[:boundary   ] = facing
     surf[:ground     ] = surface.isGroundSurface
     surf[:type       ] = :floor

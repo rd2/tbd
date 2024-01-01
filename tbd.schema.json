@@ -122,6 +122,18 @@
           "title": "Convex (other than parapet/overhang) roof/wall edge PSI",
           "type": "number"
         },
+        "ceiling": {
+          "title": "Intermediate ceiling (not floor) edge PSI",
+          "type": "number"
+        },
+        "ceilingconcave": {
+          "title": "Concave intermediate ceiling (not floor) edge PSI",
+          "type": "number"
+        },
+        "ceilingconvex": {
+          "title": "Convex intermediate ceiling (not floor) edge PSI",
+          "type": "number"
+        },
         "fenestration": {
           "title": "Window or glazed door perimeter PSI",
           "type": "number"
@@ -369,6 +381,9 @@
             "roof",
             "roofconcave",
             "roofconvex",
+            "ceiling",
+            "ceilingconcave",
+            "ceilingconvex",
             "fenestration",
             "head",
             "headconcave",
