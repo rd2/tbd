@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>71c903f1-7abb-4a93-8d0e-80b87b889f82</version_id>
-  <version_modified>2023-12-31T20:48:11Z</version_modified>
+  <version_id>bd35a453-60b3-4329-9699-3c7e8e49b5bf</version_id>
+  <version_modified>2024-01-01T12:58:55Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -464,7 +464,7 @@
       <filename>LICENSE.md</filename>
       <filetype>md</filetype>
       <usage_type>license</usage_type>
-      <checksum>A91E64A0</checksum>
+      <checksum>5C9BFB50</checksum>
     </file>
     <file>
       <filename>README.md</filename>
@@ -493,13 +493,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>D1FC18B2</checksum>
+      <checksum>A472E915</checksum>
     </file>
     <file>
       <filename>geo.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>027EE129</checksum>
+      <checksum>1D9996A0</checksum>
     </file>
     <file>
       <filename>geometry.rb</filename>
@@ -523,13 +523,13 @@
       <filename>psi.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>3AA1B580</checksum>
+      <checksum>9B29CA06</checksum>
     </file>
     <file>
       <filename>tbd.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>A4E8433C</checksum>
+      <checksum>E8D38E59</checksum>
     </file>
     <file>
       <filename>transformation.rb</filename>
@@ -541,7 +541,7 @@
       <filename>ua.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>94F3A9C3</checksum>
+      <checksum>928C5E7B</checksum>
     </file>
     <file>
       <filename>utils.rb</filename>
@@ -565,7 +565,7 @@
       <filename>tbd_tests.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>85067AF6</checksum>
+      <checksum>2ECE06CA</checksum>
     </file>
   </files>
 </measure>
