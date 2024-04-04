@@ -251,7 +251,7 @@ module TBD
   #
   # @return [Topolys::Vector3D] true normal vector of s
   # @return [nil] if invalid input (see logs)
-  def trueNormal(s = nil, r = 0)
+  def truNormal(s = nil, r = 0)
     mth = "TBD::#{__callee__}"
     cl  = OpenStudio::Model::PlanarSurface
     return mismatch("surface", s, cl, mth)   unless s.is_a?(cl)
@@ -295,7 +295,7 @@ module TBD
     return   invalid("#{nom} transform", mth, 0, FTL) unless tr[:t] && tr[:r]
 
     t      = tr[:t]
-    n      = trueNormal(surface, tr[:r])
+    n      = truNormal(surface, tr[:r])
     return   invalid("#{nom} normal", mth, 0, FTL) unless n
 
     type   = surface.surfaceType.downcase

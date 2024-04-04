@@ -1603,7 +1603,7 @@ module TBD
 
       space   = group.space
       tr[:r] += space.get.directionofRelativeNorth unless space.empty?
-      n       = trueNormal(s, tr[:r])
+      n       = truNormal(s, tr[:r])
       log(FTL, "Can't process '#{id}' true normal (#{mth})") unless n
       return tbd                                             unless n
 
