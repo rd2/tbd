@@ -7647,20 +7647,6 @@ OS:Exterior:Lights,
   ,                                       !- Multiplier
   General;                                !- End-Use Subcategory
 
-OS:WeatherFile,
-  {2a877a71-2768-41da-a77e-945540ea5fea}, !- Handle
-  El Paso International Ap  Ut,           !- City
-  TX,                                     !- State Province Region
-  USA,                                    !- Country
-  TMY3,                                   !- Data Source
-  722700,                                 !- WMO Number
-  31,                                     !- Latitude {deg}
-  -106,                                   !- Longitude {deg}
-  -7,                                     !- Time Zone {hr}
-  1186,                                   !- Elevation {m}
-  file:///Users/denisbourgeois/Documents/projets/tbd/spec/test_suite_runs/SmallOffice_poor (BC Hydro)/000_Create DOE Prototype Building/extracted_files/weather/USA_TX_El.Paso.Intl.AP.722700_TMY3.epw, !- Url
-  CC705637;                               !- Checksum
-
 OS:Site:WaterMainsTemperature,
   {a35e14d9-5d4c-4890-9782-5ba38e0f2485}, !- Handle
   Correlation,                            !- Calculation Method
