@@ -3099,7 +3099,7 @@ module OSut
       p3  = pts[i3]
       v13 = p3 - p1
       v12 = p2 - p1
-      next if v12.cross(v13).length < TOL
+      next if v12.cross(v13).length < TOL2
 
       a << p2
     end

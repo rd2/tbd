@@ -285,18 +285,18 @@ module TBD
     surf   = {}
     subs   = {}
     fd     = false
-    return invalid("#{nom}",     mth, 1, FTL) if poly(surface).empty?
+    return invalid("#{nom}",     mth, 1, ERR) if poly(surface).empty?
     return empty("#{nom} space", mth,    ERR) if surface.space.empty?
 
     space  = surface.space.get
     stype  = space.spaceType
     story  = space.buildingStory
     tr     = transforms(space)
-    return   invalid("#{nom} transform", mth, 0, FTL) unless tr[:t] && tr[:r]
+    return   invalid("#{nom} transform", mth, 0, ERR) unless tr[:t] && tr[:r]
 
     t      = tr[:t]
     n      = truNormal(surface, tr[:r])
-    return   invalid("#{nom} normal", mth, 0, FTL) unless n
+    return   invalid("#{nom} normal", mth, 0, ERR) unless n
 
     type   = surface.surfaceType.downcase
     facing = surface.outsideBoundaryCondition
