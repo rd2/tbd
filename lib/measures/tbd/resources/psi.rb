@@ -1762,13 +1762,8 @@ module TBD
             farthest_V = origin_point_V if farther
           end
 
-          angle = reference_V.angle(farthest_V)
-
-          if angle.nil?
-            invalid("#{id}: duplicate vertices (or too narrow)", mth, 0, ERR, 0)
-            angle = 0
-          end
-
+          angle  = reference_V.angle(farthest_V)
+          angle  = 0 if angle.nil?
           adjust = false # adjust angle [180°, 360°] if necessary
 
           if vertical
