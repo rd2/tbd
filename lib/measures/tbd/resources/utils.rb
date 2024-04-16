@@ -61,14 +61,14 @@ module OSut
   #   - thickness                  :    0.1 m
   #   - thermal conductivity (k  ) :    0.1 W/m.K
   #   - density              (rho) :    0.1 kg/m3
-  #   - specific heat        (cp ) : 1400.0 J/kg.K
+  #   - specific heat        (cp ) : 1400.0 J/kg•K
   #
   #   https://s3.amazonaws.com/openstudio-sdk-documentation/cpp/
   #   OpenStudio-3.6.1-doc/model/html/
   #   classopenstudio_1_1model_1_1_standard_opaque_material.html
   #
   # ... apart from surface roughness, rarely would these material properties be
-  # suitable - and are therefore explicitely set below. On roughness:
+  # suitable - and are therefore explicitly set below. On roughness:
   #   - "Very Rough"    : stucco
   #   - "Rough"	        : brick
   #   - "Medium Rough"  : concrete
@@ -76,7 +76,7 @@ module OSut
   #   - "Smooth"        : smooth plaster
   #   - "Very Smooth"   : glass
 
-  # thermal mass categories (e.g. exterior cladding, interior finish, framing)
+  # Thermal mass categories (e.g. exterior cladding, interior finish, framing).
   @@mass = [
       :none, # token for 'no user selection', resort to defaults
      :light, # e.g. 16mm drywall interior
@@ -84,43 +84,42 @@ module OSut
      :heavy  # e.g. 200mm poured concrete
   ].freeze
 
-  # basic materials (StandardOpaqueMaterials only)
+  # Basic materials (StandardOpaqueMaterials only).
   @@mats = {
+    material: {}, # generic, e.g. lightweight cladding over furring, fibreboard
         sand: {},
     concrete: {},
        brick: {},
-    cladding: {}, # e.g. lightweight cladding over furring
-   sheathing: {}, # e.g. plywood
+     drywall: {}, # e.g. finished drywall, intermediate sheating
+     mineral: {}, # e.g. light, semi-rigid rock wool insulation
      polyiso: {}, # e.g. polyisocyanurate panel (or similar)
-   cellulose: {}, # e.g. blown, dry/stabilized fiber
-     mineral: {}, # e.g. semi-rigid rock wool insulation
-     drywall: {},
+   cellulose: {}, # e.g. blown, dry/stabilized fibre
         door: {}  # single composite material (45mm insulated steel door)
   }.freeze
 
-  # default inside+outside air film resistances (m2.K/W)
+  # default inside + outside air film resistances (m2.K/W)
   @@film = {
       shading: 0.000, # NA
-    partition: 0.000,
-         wall: 0.150,
-         roof: 0.140,
-        floor: 0.190,
-     basement: 0.120,
-         slab: 0.160,
-         door: 0.150,
-       window: 0.150, # ignored if SimpleGlazingMaterial
-     skylight: 0.140  # ignored if SimpleGlazingMaterial
+    partition: 0.150, # uninsulated wood- or steel-framed wall
+         wall: 0.150, # un/insulated wall
+         roof: 0.140, # un/insulated roof
+        floor: 0.190, # un/insulated (exposed) floor
+     basement: 0.120, # un/insulated basement wall
+         slab: 0.160, # un/insulated basement slab or slab-on-grade
+         door: 0.150, # standard, 45mm insulated steel (opaque) door
+       window: 0.150, # vertical fenestration, e.g. glazed doors, windows
+     skylight: 0.140  # e.g. domed 4' x 4' skylight
   }.freeze
 
   # default (~1980s) envelope Uo (W/m2•K), based on surface type
   @@uo = {
-      shading: 0.000, # N/A
-    partition: 0.000, # N/A
-         wall: 0.384, # rated Ro ~14.8 hr•ft2F/Btu
-         roof: 0.327, # rated Ro ~17.6 hr•ft2F/Btu
-        floor: 0.317, # rated Ro ~17.9 hr•ft2F/Btu (exposed floor)
-     basement: 0.000, # uninsulated
-         slab: 0.000, # uninsulated
+      shading: nil,   # N/A
+    partition: nil,   # N/A
+         wall: 0.384, # rated R14.8 hr•ft2F/Btu
+         roof: 0.327, # rated R17.6 hr•ft2F/Btu
+        floor: 0.317, # rated R17.9 hr•ft2F/Btu (exposed floor)
+     basement: nil,
+         slab: nil,
          door: 1.800, # insulated, unglazed steel door (single layer)
        window: 2.800, # e.g. patio doors (simple glazing)
      skylight: 3.500  # all skylight technologies
@@ -128,9 +127,9 @@ module OSut
 
   # Standard opaque materials, taken from a variety of sources (e.g. energy
   # codes, NREL's BCL). Material identifiers are symbols, e.g.:
-  #   - :brick
   #   - :sand
   #   - :concrete
+  #   - :brick
   #
   # Material properties remain largely constant between projects. What does
   # tend to vary (between projects) are thicknesses. Actual OpenStudio opaque
@@ -146,7 +145,12 @@ module OSut
   #   - solar                (sol) : 70%
   #   - visible              (vis) : 70%
   #
-  # These can also be explicitly set, here (e.g. a redundant 'sand' example):
+  # These can also be explicitly set (see :sand).
+  @@mats[:material ][:rgh] = "MediumSmooth"
+  @@mats[:material ][:k  ] =    0.115
+  @@mats[:material ][:rho] =  540.000
+  @@mats[:material ][:cp ] = 1200.000
+
   @@mats[:sand     ][:rgh] = "Rough"
   @@mats[:sand     ][:k  ] =    1.290
   @@mats[:sand     ][:rho] = 2240.000
@@ -165,14 +169,13 @@ module OSut
   @@mats[:brick    ][:rho] = 1600.000
   @@mats[:brick    ][:cp ] =  790.000
 
-  @@mats[:cladding ][:rgh] = "MediumSmooth"
-  @@mats[:cladding ][:k  ] =    0.115
-  @@mats[:cladding ][:rho] =  540.000
-  @@mats[:cladding ][:cp ] = 1200.000
+  @@mats[:drywall  ][:k  ] =    0.160
+  @@mats[:drywall  ][:rho] =  785.000
+  @@mats[:drywall  ][:cp ] = 1090.000
 
-  @@mats[:sheathing][:k  ] =    0.160
-  @@mats[:sheathing][:rho] =  545.000
-  @@mats[:sheathing][:cp ] = 1210.000
+  @@mats[:mineral  ][:k  ] =    0.050
+  @@mats[:mineral  ][:rho] =   19.000
+  @@mats[:mineral  ][:cp ] =  960.000
 
   @@mats[:polyiso  ][:k  ] =    0.025
   @@mats[:polyiso  ][:rho] =   25.000
@@ -183,27 +186,19 @@ module OSut
   @@mats[:cellulose][:rho] =   80.000
   @@mats[:cellulose][:cp ] =  835.000
 
-  @@mats[:mineral  ][:k  ] =    0.050
-  @@mats[:mineral  ][:rho] =   19.000
-  @@mats[:mineral  ][:cp ] =  960.000
-
-  @@mats[:drywall  ][:k  ] =    0.160
-  @@mats[:drywall  ][:rho] =  785.000
-  @@mats[:drywall  ][:cp ] = 1090.000
-
   @@mats[:door     ][:rgh] = "MediumSmooth"
   @@mats[:door     ][:k  ] =    0.080
   @@mats[:door     ][:rho] =  600.000
   @@mats[:door     ][:cp ] = 1000.000
 
   ##
-  # Generates an OpenStudio multilayered construction; materials if needed.
+  # Generates an OpenStudio multilayered construction, + materials if needed.
   #
   # @param model [OpenStudio::Model::Model] a model
   # @param [Hash] specs OpenStudio construction specifications
   # @option specs [#to_s] :id ("") construction identifier
   # @option specs [Symbol] :type (:wall), see @@uo
-  # @option specs [Numeric] :uo clear-field Uo, in W/m2.K, see @@uo
+  # @option specs [Numeric] :uo assembly clear-field Uo, in W/m2•K, see @@uo
   # @option specs [Symbol] :clad (:light) exterior cladding, see @@mass
   # @option specs [Symbol] :frame (:light) assembly framing, see @@mass
   # @option specs [Symbol] :finish (:light) interior finishing, see @@mass
@@ -217,18 +212,22 @@ module OSut
     return mismatch("model", model, cl1, mth) unless model.is_a?(cl1)
     return mismatch("specs", specs, cl2, mth) unless specs.is_a?(cl2)
 
-    specs[:id  ] = ""    unless specs.key?(:id  )
+    specs[:id] = "" unless specs.key?(:id)
+    id = trim(specs[:id])
+    id = "OSut|CON|#{specs[:type]}" if id.empty?
+
     specs[:type] = :wall unless specs.key?(:type)
     chk = @@uo.keys.include?(specs[:type])
     return invalid("surface type", mth, 2, ERR) unless chk
 
-    id = trim(specs[:id])
-    id = "OSut|CON|#{specs[:type]}"       if id.empty?
     specs[:uo] = @@uo[ specs[:type] ] unless specs.key?(:uo)
     u = specs[:uo]
-    return mismatch("#{id} Uo", u, Numeric, mth)  unless u.is_a?(Numeric)
-    return invalid("#{id} Uo (> 5.678)", mth, 2, ERR) if u > 5.678
-    return negative("#{id} Uo"         , mth,    ERR) if u < 0
+
+    if u
+      return mismatch("#{id} Uo", u, Numeric, mth)  unless u.is_a?(Numeric)
+      return invalid("#{id} Uo (> 5.678)", mth, 2, ERR) if u > 5.678
+      return negative("#{id} Uo"         , mth,    ERR) if u < 0
+    end
 
     # Optional specs. Log/reset if invalid.
     specs[:clad  ] = :light             unless specs.key?(:clad  ) # exterior
@@ -252,31 +251,41 @@ module OSut
 
     case specs[:type]
     when :shading
-      mt = :sheathing
+      mt = :material
       d  = 0.015
       a[:compo][:mat] = @@mats[mt]
       a[:compo][:d  ] = d
       a[:compo][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
     when :partition
-      d  = 0.015
-      mt = :drywall
-      a[:clad][:mat] = @@mats[mt]
-      a[:clad][:d  ] = d
-      a[:clad][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+      unless specs[:clad] == :none
+        d  = 0.015
+        mt = :drywall
+        a[:clad][:mat] = @@mats[mt]
+        a[:clad][:d  ] = d
+        a[:clad][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+      end
 
-      # TO DO: replace sheathing by mineral below a certain Uo factor. 
-      mt = :sheathing
+      d  = 0.015
+      d  = 0.100      if specs[:frame] == :medium
+      d  = 0.200      if specs[:frame] == :heavy
+      d  = 0.100      if u
+      mt = :concrete
+      mt = :material  if specs[:frame] == :light
+      mt = :mineral   if u
       a[:compo][:mat] = @@mats[mt]
       a[:compo][:d  ] = d
       a[:compo][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
 
-      mt = :drywall
-      a[:finish][:mat] = @@mats[mt]
-      a[:finish][:d  ] = d
-      a[:finish][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+      unless specs[:finish] == :none
+        d  = 0.015
+        mt = :drywall
+        a[:finish][:mat] = @@mats[mt]
+        a[:finish][:d  ] = d
+        a[:finish][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+      end
     when :wall
       unless specs[:clad] == :none
-        mt = :cladding
+        mt = :material
         mt = :brick    if specs[:clad] == :medium
         mt = :concrete if specs[:clad] == :heavy
         d  = 0.100
@@ -287,18 +296,22 @@ module OSut
       end
 
       mt = :drywall
-      mt = :polyiso   if specs[:frame] == :medium
-      mt = :mineral   if specs[:frame] == :heavy
+      mt = :mineral    if specs[:frame] == :medium
+      mt = :polyiso    if specs[:frame] == :heavy
       d  = 0.100
-      d  = 0.015      if specs[:frame] == :light
+      d  = 0.015       if specs[:frame] == :light
       a[:sheath][:mat] = @@mats[mt]
       a[:sheath][:d  ] = d
       a[:sheath][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
 
-      mt = :concrete
-      mt = :mineral   if specs[:frame] == :light
+      mt = :mineral
+      mt = :cellulose if specs[:frame] == :medium
+      mt = :concrete  if specs[:frame] == :heavy
+      mt = :material  unless u
       d  = 0.100
       d  = 0.200      if specs[:frame] == :heavy
+      d  = 0.015      unless u
+
       a[:compo][:mat] = @@mats[mt]
       a[:compo][:d  ] = d
       a[:compo][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
@@ -316,25 +329,21 @@ module OSut
     when :roof
       unless specs[:clad] == :none
         mt = :concrete
-        mt = :cladding if specs[:clad] == :light
+        mt = :material if specs[:clad] == :light
         d  = 0.015
         d  = 0.100     if specs[:clad] == :medium # e.g. terrace
         d  = 0.200     if specs[:clad] == :heavy  # e.g. parking garage
         a[:clad][:mat] = @@mats[mt]
         a[:clad][:d  ] = d
         a[:clad][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
-
-        mt = :sheathing
-        d  = 0.015
-        a[:sheath][:mat] = @@mats[mt]
-        a[:sheath][:d  ] = d
-        a[:sheath][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
       end
 
-      mt = :cellulose
+      mt = :mineral
       mt = :polyiso   if specs[:frame] == :medium
-      mt = :mineral   if specs[:frame] == :heavy
+      mt = :cellulose if specs[:frame] == :heavy
+      mt = :material  unless u
       d  = 0.100
+      d  = 0.015      unless u
       a[:compo][:mat] = @@mats[mt]
       a[:compo][:d  ] = d
       a[:compo][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
@@ -349,32 +358,28 @@ module OSut
         a[:finish][:d  ] = d
         a[:finish][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
       end
-    when :floor # exposed
+    when :floor
       unless specs[:clad] == :none
-        mt = :cladding
+        mt = :material
         d  = 0.015
         a[:clad][:mat] = @@mats[mt]
         a[:clad][:d  ] = d
         a[:clad][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
-
-        mt = :sheathing
-        d  = 0.015
-        a[:sheath][:mat] = @@mats[mt]
-        a[:sheath][:d  ] = d
-        a[:sheath][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
       end
 
-      mt = :cellulose
+      mt = :mineral
       mt = :polyiso   if specs[:frame] == :medium
-      mt = :mineral   if specs[:frame] == :heavy
-      d  = 0.100 # possibly an insulating layer to reset
+      mt = :cellulose if specs[:frame] == :heavy
+      mt = :material  unless u
+      d  = 0.100
+      d  = 0.015      unless u
       a[:compo][:mat] = @@mats[mt]
       a[:compo][:d  ] = d
       a[:compo][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
 
       unless specs[:finish] == :none
         mt = :concrete
-        mt = :sheathing if specs[:finish] == :light
+        mt = :material  if specs[:finish] == :light
         d  = 0.015
         d  = 0.100      if specs[:finish] == :medium
         d  = 0.200      if specs[:finish] == :heavy
@@ -382,7 +387,7 @@ module OSut
         a[:finish][:d  ] = d
         a[:finish][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
       end
-    when :slab # basement slab or slab-on-grade
+    when :slab
       mt = :sand
       d  = 0.100
       a[:clad][:mat] = @@mats[mt]
@@ -405,18 +410,18 @@ module OSut
       a[:compo][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
 
       unless specs[:finish] == :none
-        mt = :sheathing
+        mt = :material
         d  = 0.015
         a[:finish][:mat] = @@mats[mt]
         a[:finish][:d  ] = d
         a[:finish][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
       end
-    when :basement # wall
+    when :basement
       unless specs[:clad] == :none
         mt = :concrete
-        mt = :sheathing if specs[:clad] == :light
+        mt = :material if specs[:clad] == :light
         d  = 0.100
-        d  = 0.015      if specs[:clad] == :light
+        d  = 0.015     if specs[:clad] == :light
         a[:clad][:mat] = @@mats[mt]
         a[:clad][:d  ] = d
         a[:clad][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
@@ -453,16 +458,14 @@ module OSut
           a[:finish][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
         end
       end
-    when :door # opaque
-      # 45mm insulated (composite) steel door.
+    when :door
       mt = :door
       d  = 0.045
 
       a[:compo  ][:mat ] = @@mats[mt]
       a[:compo  ][:d   ] = d
       a[:compo  ][:id  ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
-    when :window # e.g. patio doors (simple glazing)
-      # SimpleGlazingMaterial.
+    when :window
       a[:glazing][:u   ]  = specs[:uo  ]
       a[:glazing][:shgc]  = 0.450
       a[:glazing][:shgc]  = specs[:shgc] if specs.key?(:shgc)
@@ -470,7 +473,6 @@ module OSut
       a[:glazing][:id  ] += "|U#{format('%.1f', a[:glazing][:u])}"
       a[:glazing][:id  ] += "|SHGC#{format('%d', a[:glazing][:shgc]*100)}"
     when :skylight
-      # SimpleGlazingMaterial.
       a[:glazing][:u   ] = specs[:uo  ]
       a[:glazing][:shgc] = 0.450
       a[:glazing][:shgc] = specs[:shgc] if specs.key?(:shgc)
@@ -530,7 +532,7 @@ module OSut
     # Adjust insulating layer thickness or conductivity to match requested Uo.
     unless glazed
       ro = 0
-      ro = 1 / specs[:uo] - @@film[ specs[:type] ] if specs[:uo] > 0
+      ro = 1 / specs[:uo] - @@film[ specs[:type] ] if specs[:uo]
 
       if specs[:type] == :door # 1x layer, adjust conductivity
         layer = c.getLayer(0).to_StandardOpaqueMaterial
@@ -5097,7 +5099,7 @@ module OSut
     (walls + roofs + floors).each do |surface|
       surface.subSurfaces.each do |sub|
         # All fenestrated subsurface types are considered, as user can set these
-        # explicitely (e.g. skylight in a wall) in OpenStudio.
+        # explicitly (e.g. skylight in a wall) in OpenStudio.
         return true if fenestration?(sub)
       end
     end
@@ -5954,7 +5956,7 @@ module OSut
     #
     # For the simple case below (steep 4-sided hip roof, UNENCLOSED ventilated
     # attic), 90.1 users typically choose between either:
-    #   1. modelling the ventilated attic explicitely, or
+    #   1. modelling the ventilated attic explicitly, or
     #   2. ignoring the ventilated attic altogether.
     #
     # If skylights were added to the model, option (1) would require one or more
@@ -7264,7 +7266,6 @@ module OSut
         end
       end
     end
-
 
     # New direct roof loop. No overlaps, so no need for relative space
     # coordinate adjustments.
