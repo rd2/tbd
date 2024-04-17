@@ -1598,14 +1598,14 @@ module TBD
       tr      = transforms(group)
       t       = tr[:t] if tr[:t] && tr[:r]
 
-      log(FTL, "Can't process '#{id}' transformation (#{mth})") unless t
-      return tbd                                                unless t
+      log(ERR, "Can't process '#{id}' transformation (#{mth})") unless t
+      next                                                      unless t
 
       space   = group.space
       tr[:r] += space.get.directionofRelativeNorth unless space.empty?
-      n       = trueNormal(s, tr[:r])
-      log(FTL, "Can't process '#{id}' true normal (#{mth})") unless n
-      return tbd                                             unless n
+      n       = truNormal(s, tr[:r])
+      log(ERR, "Can't process '#{id}' true normal (#{mth})") unless n
+      next                                                   unless n
 
       points = (t * s.vertices).map { |v| Topolys::Point3D.new(v.x, v.y, v.z) }
 
@@ -1695,14 +1695,10 @@ module TBD
       dx         = (origin.x - terminal.x).abs
       dy         = (origin.y - terminal.y).abs
       dz         = (origin.z - terminal.z).abs
-      horizontal = dz.abs < TOL
+      horizontal = dz < TOL
       vertical   = dx < TOL && dy < TOL
       edge_V     = terminal - origin
-
-      if edge_V.magnitude < TOL
-        invalid("1x edge length < TOL", mth, 0, ERROR)
-        next
-      end
+      next if edge_V.magnitude < TOL
 
       edge_plane = Topolys::Plane3D.new(origin, edge_V)
 
@@ -1766,10 +1762,8 @@ module TBD
             farthest_V = origin_point_V if farther
           end
 
-          angle = reference_V.angle(farthest_V)
-          invalid("#{id} polar angle", mth, 0, ERROR, 0) if angle.nil?
-          angle = 0                                      if angle.nil?
-
+          angle  = reference_V.angle(farthest_V)
+          angle  = 0 if angle.nil?
           adjust = false # adjust angle [180°, 360°] if necessary
 
           if vertical

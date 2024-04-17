@@ -26339,20 +26339,6 @@ OS:StandardsInformation:Construction,
   {416ef131-430b-4703-9053-c7c69d4f31a5}, !- Handle
   {3ceb8028-d88f-4a85-aee4-fa3ae3eda7ba}; !- Construction Name
 
-OS:WeatherFile,
-  {9a40d291-127d-4343-876a-246c71660725}, !- Handle
-  Quebec City,                            !- City
-  PQ,                                     !- State Province Region
-  CAN,                                    !- Country
-  WYEC2-B-04708,                          !- Data Source
-  717080,                                 !- WMO Number
-  46.8,                                   !- Latitude {deg}
-  -71.38,                                 !- Longitude {deg}
-  -5,                                     !- Time Zone {hr}
-  73,                                     !- Elevation {m}
-  file:CAN_PQ_Quebec.717140_CWEC.epw,     !- Url
-  A9D9AFB9;                               !- Checksum
-
 OS:SizingPeriod:DesignDay,
   {703abaa0-e611-4562-86a2-1a375890e1d0}, !- Handle
   Quebec City Ann Clg .4% Condns Enth=>MDB, !- Name

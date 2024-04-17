@@ -777,20 +777,6 @@ OS:ZoneHVAC:EquipmentList,
   Zone HVAC Equipment List 3,             !- Name
   {783a6fd7-6496-4e75-84cc-12b5a4635d04}; !- Thermal Zone
 
-OS:WeatherFile,
-  {591e076f-b1ff-4f98-9dd0-4f1873bc12ec}, !- Handle
-  Banff CS,                               !- City
-  AB,                                     !- State Province Region
-  CAN,                                    !- Country
-  CWEC2016,                               !- Data Source
-  711220,                                 !- WMO Number
-  51.193,                                 !- Latitude {deg}
-  -115.552,                               !- Longitude {deg}
-  -7,                                     !- Time Zone {hr}
-  1396.9,                                 !- Elevation {m}
-  /Users/denisbourgeois/Documents/projets/openstudio-standards/data/weather/CAN_AB_Banff.CS.711220_CWEC2016.epw, !- Url
-  6D1CA745;                               !- Checksum
-
 OS:Site:WaterMainsTemperature,
   {d4488da0-43af-4769-8758-7b0d3a753888}, !- Handle
   Correlation,                            !- Calculation Method

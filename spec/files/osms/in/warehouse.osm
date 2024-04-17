@@ -6862,20 +6862,6 @@ OS:Exterior:Lights,
   ,                                       !- Multiplier
   General;                                !- End-Use Subcategory
 
-OS:WeatherFile,
-  {52950113-279c-43ea-8ca5-eaa3e259f719}, !- Handle
-  El Paso International Ap  Ut,           !- City
-  TX,                                     !- State Province Region
-  USA,                                    !- Country
-  TMY3,                                   !- Data Source
-  722700,                                 !- WMO Number
-  31,                                     !- Latitude {deg}
-  -106,                                   !- Longitude {deg}
-  -7,                                     !- Time Zone {hr}
-  1186,                                   !- Elevation {m}
-  file:///Users/denisbourgeois/Documents/projets/tbd/spec/test_suite_runs/Warehouse_skip/000_Create DOE Prototype Building/extracted_files/weather/USA_TX_El.Paso.Intl.AP.722700_TMY3.epw, !- Url
-  CC705637;                               !- Checksum
-
 OS:Site:WaterMainsTemperature,
   {f339eb8f-5ea9-4997-92d7-b17696e0fc51}, !- Handle
   Correlation,                            !- Calculation Method
@@ -7119,4 +7105,3 @@ OS:Daylighting:Control,
   1,                                      !- Probability Lighting will be Reset When Needed in Manual Stepped Control
   ,                                       !- Number of Daylighting Views
   22;                                     !- Maximum Allowable Discomfort Glare Index
-
