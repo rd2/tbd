@@ -3308,9 +3308,9 @@ module TBD
     match2 = /files/.match(file_paths[1].to_s.strip)
     match  = match1 || match2
 
-    if file_paths.size >= 2 && File.exists?(file_paths[1].to_s.strip) && match
+    if file_paths.size >= 2 && File.exist?(file_paths[1].to_s.strip) && match
       out_dir = file_paths[1].to_s.strip
-    elsif !file_paths.empty? && File.exists?(file_paths.first.to_s.strip)
+    elsif !file_paths.empty? && File.exist?(file_paths.first.to_s.strip)
       out_dir = file_paths.first.to_s.strip
     end
 
