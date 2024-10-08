@@ -2,13 +2,13 @@ require "tbd"
 require "fileutils"
 
 RSpec.describe TBD do
-  TOL  = TBD::TOL
-  TOL2 = TBD::TOL2
-  DBG  = TBD::DBG
-  INF  = TBD::INF
-  WRN  = TBD::WRN
-  ERR  = TBD::ERR
-  FTL  = TBD::FTL
+  TOL  = TBD::TOL.dup
+  TOL2 = TBD::TOL2.dup
+  DBG  = TBD::DBG.dup
+  INF  = TBD::INF.dup
+  WRN  = TBD::WRN.dup
+  ERR  = TBD::ERR.dup
+  FTL  = TBD::FTL.dup
 
   it "can process JSON surface KHI entries" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
@@ -60,9 +60,9 @@ RSpec.describe TBD do
     expect(TBD.logs.size).to eq(1)
     expect(TBD.logs.first[:message]).to include("Missing 'point' key")
 
-
     # Valid JSON entries.
     TBD.clean!
+    
 
     file  = File.join(__dir__, "files/osms/in/seb.osm")
     path  = OpenStudio::Path.new(file)
@@ -98,6 +98,8 @@ RSpec.describe TBD do
 
       expect(surface[:heatloss]).to be_within(TOL).of(3.5)
     end
+
+    # SEB, round 2:
   end
 
   it "can process JSON surface KHI & PSI entries + building & edge" do
@@ -552,10 +554,10 @@ RSpec.describe TBD do
     expect(bloc1[:pro][:grade    ]).to be_within(0.1).of(  29.8)
     expect(bloc1[:pro][:other    ]).to be_within(0.1).of(   0.0)
 
-    bloc1_pro_UA = bloc1[:pro].values.reduce(:+)
-    bloc1_ref_UA = bloc1[:ref].values.reduce(:+)
-    bloc2_pro_UA = bloc2[:pro].values.reduce(:+)
-    bloc2_ref_UA = bloc2[:ref].values.reduce(:+)
+    bloc1_pro_UA = bloc1[:pro].values.sum
+    bloc1_ref_UA = bloc1[:ref].values.sum
+    bloc2_pro_UA = bloc2[:pro].values.sum
+    bloc2_ref_UA = bloc2[:ref].values.sum
 
     expect(bloc1_pro_UA).to be_within(0.1).of( 214.8)
     expect(bloc1_ref_UA).to be_within(0.1).of( 107.2)

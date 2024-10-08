@@ -2125,7 +2125,7 @@ module TBD
         end
 
         # Label edge as :ceiling if linked to:
-        #   +1 deratable surfaces
+        #   +1 deratable surface(s)
         #   1x underatable CONDITIONED floor linked to an unoccupied space
         #   1x adjacent CONDITIONED ceiling linked to an occupied space
         edge[:surfaces].keys.each do |i|
@@ -2139,9 +2139,9 @@ module TBD
           next      if floors[i][:occupied   ]
 
           ceiling = floors[i][:boundary]
-          next  unless ceilings.key?(ceiling)
-          next  unless ceilings[ceiling][:conditioned]
-          next  unless ceilings[ceiling][:occupied   ]
+          next unless ceilings.key?(ceiling)
+          next unless ceilings[ceiling][:conditioned]
+          next unless ceilings[ceiling][:occupied   ]
 
           other = deratables.first unless deratables.first == id
           other = deratables.last  unless deratables.last  == id
