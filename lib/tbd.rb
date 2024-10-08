@@ -35,7 +35,7 @@ begin # try to load from the Topolys gem
   require "oslg"
 rescue LoadError
   require_relative "oslg/oslog"
-  require_relative "osut/version"
+  require_relative "oslg/version"
 end
 
 begin # try to load from the Topolys gem
