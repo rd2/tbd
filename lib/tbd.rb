@@ -31,21 +31,21 @@ rescue LoadError
   require_relative "topolys/version"
 end
 
-begin # try to load from the Topolys gem
+begin # try to load from the OSlg gem
   require "oslg"
 rescue LoadError
   require_relative "oslg/oslog"
   require_relative "oslg/version"
 end
 
-begin # try to load from the Topolys gem
+begin # try to load from the OSut gem
   require "osut"
 rescue LoadError
   require_relative "osut/utils"
   require_relative "osut/version"
 end
 
-begin # try to load from the Topolys gem
+begin # try to load from the TBD gem
   require "tbd/psi"
   require "tbd/geo"
   require "tbd/ua"

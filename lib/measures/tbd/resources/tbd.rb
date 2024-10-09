@@ -40,16 +40,16 @@ require_relative "geo"
 require_relative "ua"
 
 module TBD
-  extend OSut         #                                     OpenStudio utilities
+  extend OSut            # OpenStudio utilities
 
-  TOL  = OSut::TOL
-  TOL2 = OSut::TOL2
-  DBG  = OSut::DEBUG  #   mainly to flag invalid arguments for devs (buggy code)
-  INF  = OSut::INFO   #           informs TBD user of measure success or failure
-  WRN  = OSut::WARN   # e.g. WARN users of 'iffy' .osm inputs (yet not critical)
-  ERR  = OSut::ERR    #                            e.g. flag invalid .osm inputs
-  FTL  = OSut::FATAL  #                     e.g. invalid TBD JSON format/entries
-  NS   = "nameString" #                   OpenStudio IdfObject nameString method
+  TOL  = OSut::TOL.dup   # default distance tolerance (m)
+  TOL2 = OSut::TOL2.dup  # default area tolerance (m2)
+  DBG  = OSut::DEBUG.dup # github.com/rd2/oslg
+  INF  = OSut::INFO.dup  # github.com/rd2/oslg
+  WRN  = OSut::WARN.dup  # github.com/rd2/oslg
+  ERR  = OSut::ERR.dup   # github.com/rd2/oslg
+  FTL  = OSut::FATAL.dup # github.com/rd2/oslg
+  NS   = OSut::NS.dup    # OpenStudio IdfObject nameString method
 
   extend TBD
 end

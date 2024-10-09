@@ -15,7 +15,7 @@ task :libraries do
 
   libs  = ["topolys", "osut", "oslg", "tbd"]
   files = {}
-  
+
   $:.each do |path|
     libs.each do |l|
       next unless path.include?(l)
