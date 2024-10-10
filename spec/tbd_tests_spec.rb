@@ -62,13 +62,89 @@ RSpec.describe TBD do
 
     # Valid JSON entries.
     TBD.clean!
-    
+    version = OpenStudio.openStudioVersion.split(".").join.to_i
 
+    # The v1.11.5 (2016) seb.osm, shipped with OpenStudio, holds (what would now
+    # be considered as deprecated) a definition of plenum floors (i.e. ceiling
+    # tiles) generating several warnings with more recent OpenStudio versions.
     file  = File.join(__dir__, "files/osms/in/seb.osm")
     path  = OpenStudio::Path.new(file)
     model = translator.loadModel(path)
     expect(model).to_not be_empty
     model = model.get
+
+    # "Shading Surface 4" is overlapping with a plenum exterior wall - delete.
+    sh4 = model.getShadingSurfaceByName("Shading Surface 4")
+    expect(sh4).to_not be_empty
+    sh4 = sh4.get
+    sh4.remove
+
+    plenum = model.getSpaceByName("Level 0 Ceiling Plenum")
+    expect(plenum).to_not be_empty
+    plenum = plenum.get
+
+    thzone = plenum.thermalZone
+    expect(thzone).to_not be_empty
+    thzone = thzone.get
+
+    # Before the fix.
+    unless version < 350
+      expect(plenum.isEnclosedVolume).to be true
+      expect(plenum.isVolumeDefaulted).to be true
+      expect(plenum.isVolumeAutocalculated).to be true
+    end
+
+    if version > 350 && version < 370
+      expect(plenum.volume.round(0)).to eq(234)
+    else
+      expect(plenum.volume.round(0)).to eq(0)
+    end
+
+    expect(thzone.isVolumeDefaulted).to be true
+    expect(thzone.isVolumeAutocalculated).to be true
+    expect(thzone.volume).to be_empty
+
+    plenum.surfaces.each do |s|
+      next if s.outsideBoundaryCondition.downcase == "outdoors"
+
+      # If a SEB plenum surface isn't facing outdoors, it's 1 of 4 "floor"
+      # surfaces (each facing a ceiling surface below).
+      adj = s.adjacentSurface
+      expect(adj).to_not be_empty
+      adj = adj.get
+      expect(adj.vertices.size).to eq(s.vertices.size)
+
+      # Same vertex sequence? Should be in reverse order.
+      adj.vertices.each_with_index do |vertex, i|
+        expect(TBD.same?(vertex, s.vertices.at(i))).to be true
+      end
+
+      expect(adj.surfaceType).to eq("RoofCeiling")
+      expect(s.surfaceType).to eq("RoofCeiling")
+      expect(s.setSurfaceType("Floor")).to be true
+      expect(s.setVertices(s.vertices.reverse)).to be true
+
+      # Vertices now in reverse order.
+      adj.vertices.reverse.each_with_index do |vertex, i|
+        expect(TBD.same?(vertex, s.vertices.at(i))).to be true
+      end
+    end
+
+    # After the fix.
+    unless version < 350
+      expect(plenum.isEnclosedVolume).to be true
+      expect(plenum.isVolumeDefaulted).to be true
+      expect(plenum.isVolumeAutocalculated).to be true
+    end
+
+    expect(plenum.volume.round(0)).to eq(50) # right answer
+    expect(thzone.isVolumeDefaulted).to be true
+    expect(thzone.isVolumeAutocalculated).to be true
+    expect(thzone.volume).to be_empty
+
+    file = File.join(__dir__, "files/osms/out/seb2.osm")
+    model.save(file, true)
+
 
     argh               = {}
     argh[:option     ] = "(non thermal bridging)"
@@ -98,8 +174,6 @@ RSpec.describe TBD do
 
       expect(surface[:heatloss]).to be_within(TOL).of(3.5)
     end
-
-    # SEB, round 2:
   end
 
   it "can process JSON surface KHI & PSI entries + building & edge" do
@@ -185,7 +259,7 @@ RSpec.describe TBD do
     TBD.clean!
 
     name  = "Entryway  Wall 5"
-    file  = File.join(__dir__, "files/osms/in/seb.osm")
+    file  = File.join(__dir__, "files/osms/out/seb2.osm")
     path  = OpenStudio::Path.new(file)
     model = translator.loadModel(path)
     expect(model).to_not be_empty
@@ -938,7 +1012,7 @@ RSpec.describe TBD do
     TBD.clean!
 
     # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
-    file  = File.join(__dir__, "files/osms/in/seb.osm")
+    file  = File.join(__dir__, "files/osms/out/seb2.osm")
     path  = OpenStudio::Path.new(file)
     model = translator.loadModel(path)
     expect(model).to_not be_empty
@@ -1060,7 +1134,7 @@ RSpec.describe TBD do
     expect(io).to be_a(Hash)
     expect(io).to have_key(:edges)
 
-    # 105x edges (-1x than the usual 106x for the seb.osm). The edge linking
+    # 105x edges (-1x than the usual 106x for the seb2.osm). The edge linking
     # "Open area 1 Floor" to "Openarea 1 Wall 5" used to be of type :grade. As
     # both slab and wall are now ground-facing, TBD ignores the edge altogether.
     expect(io[:edges].size).to eq(105)
@@ -1168,7 +1242,7 @@ RSpec.describe TBD do
     # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
     # Test initial model again.
     TBD.clean!
-    file  = File.join(__dir__, "files/osms/in/seb.osm")
+    file  = File.join(__dir__, "files/osms/out/seb2.osm")
     path  = OpenStudio::Path.new(file)
     model = translator.loadModel(path)
     expect(model).to_not be_empty
@@ -1750,7 +1824,7 @@ RSpec.describe TBD do
 
     input  = {}
     schema = "https://github.com/rd2/tbd/blob/master/tbd.schema.json"
-    file   = File.join(__dir__, "files/osms/in/seb.osm")
+    file   = File.join(__dir__, "files/osms/out/seb2.osm")
     path   = OpenStudio::Path.new(file)
     model  = translator.loadModel(path)
     expect(model).to_not be_empty
