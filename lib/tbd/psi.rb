@@ -1717,49 +1717,25 @@ module TBD
         t_model.wires.each do |wire|
           next unless surface[:wire] == wire.id # should be a unique match
 
-          normal     = tbd[:surfaces][id][:n]   if tbd[:surfaces].key?(id)
-          normal     = holes[id].attributes[:n] if holes.key?(id)
-          normal     = shades[id][:n]           if shades.key?(id)
-          farthest   = Topolys::Point3D.new(origin.x, origin.y, origin.z)
-          farthest_V = farthest - origin # zero magnitude, initially
-          inverted   = false
-          i_origin   = wire.points.index(origin)
-          i_terminal = wire.points.index(terminal)
-          i_last     = wire.points.size - 1
-
-          if i_terminal == 0
-            inverted = true unless i_origin == i_last
-          elsif i_origin == i_last
-            inverted = true unless i_terminal == 0
-          else
-            inverted = true unless i_terminal - i_origin == 1
-          end
+          normal       = tbd[:surfaces][id][:n]   if tbd[:surfaces].key?(id)
+          normal       = holes[id].attributes[:n] if holes.key?(id)
+          normal       = shades[id][:n]           if shades.key?(id)
+          farthest     = Topolys::Point3D.new(origin.x, origin.y, origin.z)
+          farthest_V   = farthest - origin # zero magnitude, initially
+          farthest_mag = 0
 
           wire.points.each do |point|
             next if point == origin
             next if point == terminal
 
-            point_on_plane    = edge_plane.project(point)
-            origin_point_V    = point_on_plane - origin
-            point_V_magnitude = origin_point_V.magnitude
-            next unless point_V_magnitude > TOL
+            point_on_plane = edge_plane.project(point)
+            origin_point_V = point_on_plane - origin
+            point_V_mag    = origin_point_V.magnitude
+            next unless point_V_mag > farthest_mag
 
-            # Generate a plane between origin, terminal & point. Only consider
-            # planes that share the same normal as wire.
-            if inverted
-              plane = Topolys::Plane3D.from_points(terminal, origin, point)
-            else
-              plane = Topolys::Plane3D.from_points(origin, terminal, point)
-            end
-
-            dnx = (normal.x - plane.normal.x).abs
-            dny = (normal.y - plane.normal.y).abs
-            dnz = (normal.z - plane.normal.z).abs
-            next unless dnx < TOL && dny < TOL && dnz < TOL
-
-            farther    = point_V_magnitude > farthest_V.magnitude
-            farthest   = point          if farther
-            farthest_V = origin_point_V if farther
+            farthest    = point
+            farthest_V  = origin_point_V
+            fathest_mag = point_V_mag
           end
 
           angle  = reference_V.angle(farthest_V)
@@ -2176,7 +2152,7 @@ module TBD
           concave = concave?(s1, s2)
           convex  = convex?(s1, s2)
           flat    = !concave && !convex
-
+          
           if argh[:parapet]
             set[:parapet       ] = shorts[:val][:parapet       ] if flat
             set[:parapetconcave] = shorts[:val][:parapetconcave] if concave
