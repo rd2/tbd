@@ -1731,6 +1731,7 @@ module TBD
             point_on_plane = edge_plane.project(point)
             origin_point_V = point_on_plane - origin
             point_V_mag    = origin_point_V.magnitude
+            next unless point_V_mag > TOL
             next unless point_V_mag > farthest_mag
 
             farthest    = point
@@ -2152,7 +2153,22 @@ module TBD
           concave = concave?(s1, s2)
           convex  = convex?(s1, s2)
           flat    = !concave && !convex
-          
+
+          # if (id == "Level0 Open area 1 Ceiling Plenum AbvClgPlnmWall 4" &&
+          #     i  == "Level 0 Open area 1 Ceiling Plenum RoofCeiling") ||
+          #    (i  == "Level0 Open area 1 Ceiling Plenum AbvClgPlnmWall 4" &&
+          #     id == "Level 0 Open area 1 Ceiling Plenum RoofCeiling")
+          #   puts
+          #   puts; puts "... #{id} vs #{i}"
+          #   puts "ANGLE: #{(s1[:angle] * 180 / Math::PI).round(2)} vs #{(s2[:angle] * 180 / Math::PI).round(2)}"
+          #   puts "POLAR: #{s1[:polar]} vs #{s2[:polar]}"
+          #   puts "NORMAL: #{s1[:normal]} vs #{s2[:normal]}"
+          #   puts
+          #   puts convex?(s1, s2)
+          #   puts "..."
+          #   puts
+          # end
+
           if argh[:parapet]
             set[:parapet       ] = shorts[:val][:parapet       ] if flat
             set[:parapetconcave] = shorts[:val][:parapetconcave] if concave
