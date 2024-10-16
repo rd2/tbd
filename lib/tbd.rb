@@ -31,21 +31,21 @@ rescue LoadError
   require_relative "topolys/version"
 end
 
-begin # try to load from the Topolys gem
+begin # try to load from the OSlg gem
   require "oslg"
 rescue LoadError
   require_relative "oslg/oslog"
-  require_relative "osut/version"
+  require_relative "oslg/version"
 end
 
-begin # try to load from the Topolys gem
+begin # try to load from the OSut gem
   require "osut"
 rescue LoadError
   require_relative "osut/utils"
   require_relative "osut/version"
 end
 
-begin # try to load from the Topolys gem
+begin # try to load from the TBD gem
   require "tbd/psi"
   require "tbd/geo"
   require "tbd/ua"
@@ -58,16 +58,16 @@ rescue LoadError
 end
 
 module TBD
-  extend OSut         # OpenStudio utilities
+  extend OSut            # OpenStudio utilities
 
-  TOL  = OSut::TOL    # default distance tolerance (m)
-  TOL2 = OSut::TOL2   # default area tolerance (m2)
-  DBG  = OSut::DEBUG  # github.com/rd2/oslg
-  INF  = OSut::INFO   # github.com/rd2/oslg
-  WRN  = OSut::WARN   # github.com/rd2/oslg
-  ERR  = OSut::ERR    # github.com/rd2/oslg
-  FTL  = OSut::FATAL  # github.com/rd2/oslg
-  NS   = "nameString" # OpenStudio IdfObject nameString method
+  TOL  = OSut::TOL.dup   # default distance tolerance (m)
+  TOL2 = OSut::TOL2.dup  # default area tolerance (m2)
+  DBG  = OSut::DEBUG.dup # github.com/rd2/oslg
+  INF  = OSut::INFO.dup  # github.com/rd2/oslg
+  WRN  = OSut::WARN.dup  # github.com/rd2/oslg
+  ERR  = OSut::ERR.dup   # github.com/rd2/oslg
+  FTL  = OSut::FATAL.dup # github.com/rd2/oslg
+  NS   = OSut::NS.dup    # OpenStudio IdfObject nameString method
 
   extend TBD
 end

@@ -799,8 +799,8 @@ module TBD
       blc.each do |b|
         bloc    = b1
         bloc    = b2 if b == :b2
-        pro_sum = bloc[:pro].values.reduce(:+)
-        ref_sum = bloc[:ref].values.reduce(:+)
+        pro_sum = bloc[:pro].values.sum
+        ref_sum = bloc[:ref].values.sum
 
         if pro_sum > TOL || ref_sum > TOL
           ratio = nil
@@ -1000,7 +1000,7 @@ module TBD
       model  = "* modèle : #{ua[:file]}"    if ua.key?(:file)  && lang == :fr
       model += " (v#{ua[:version]})"        if ua.key?(:version)
       report << model                   unless model.empty?
-      report << "* TBD : v3.4.2"
+      report << "* TBD : v3.4.3"
       report << "* date : #{ua[:date]}"
 
       if lang == :en

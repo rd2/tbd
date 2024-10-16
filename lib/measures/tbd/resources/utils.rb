@@ -34,20 +34,20 @@ module OSut
   # DEBUG for devs; WARN/ERROR for users (bad OS input), see OSlg
   extend OSlg
 
-  TOL  = 0.01         # default distance tolerance (m)
-  TOL2 = TOL * TOL    # default area tolerance (m2)
-  DBG  = OSlg::DEBUG  # see github.com/rd2/oslg
-  INF  = OSlg::INFO   # see github.com/rd2/oslg
-  WRN  = OSlg::WARN   # see github.com/rd2/oslg
-  ERR  = OSlg::ERROR  # see github.com/rd2/oslg
-  FTL  = OSlg::FATAL  # see github.com/rd2/oslg
-  NS   = "nameString" # OpenStudio object identifier method
+  TOL  = 0.01             # default distance tolerance (m)
+  TOL2 = TOL * TOL        # default area tolerance (m2)
+  DBG  = OSlg::DEBUG.dup  # see github.com/rd2/oslg
+  INF  = OSlg::INFO.dup   # see github.com/rd2/oslg
+  WRN  = OSlg::WARN.dup   # see github.com/rd2/oslg
+  ERR  = OSlg::ERROR.dup  # see github.com/rd2/oslg
+  FTL  = OSlg::FATAL.dup  # see github.com/rd2/oslg
+  NS   = "nameString"     # OpenStudio object identifier method
 
   HEAD = 2.032 # standard 80" door
   SILL = 0.762 # standard 30" window sill
 
   # General surface orientations (see facets method)
-  SIDZ = [:bottom, # e.g. ground-facing, exposed floros
+  SIDZ = [:bottom, # e.g. ground-facing, exposed floors
              :top, # e.g. roof/ceiling
            :north, # NORTH
             :east, # EAST
@@ -1924,7 +1924,7 @@ module OSut
     # isolation) to determine whether an UNOCCUPIED space should have its
     # envelope insulated ("plenum") or not ("attic").
     #
-    # In contrast to OpenStudio-Standards' "space_plenum?", this method
+    # In contrast to OpenStudio-Standards' "space_plenum?", the method below
     # strictly returns FALSE if a space is indeed "partofTotalFloorArea". It
     # also returns FALSE if the space is a vestibule. Otherwise, it needs more
     # information to determine if such an UNOCCUPIED space is indeed a
@@ -1933,7 +1933,7 @@ module OSut
     # CASE A: it includes the substring "plenum" (case insensitive) in its
     #         spaceType's name, or in the latter's standardsSpaceType string;
     #
-    # CASE B: "isPlenum" == TRUE in an OpenStudio model WITH HVAC airloops: OR
+    # CASE B: "isPlenum" == TRUE in an OpenStudio model WITH HVAC airloops; OR
     #
     # CASE C: its zone holds an 'inactive' thermostat (i.e. can't extract valid
     #         setpoints) in an OpenStudio model with setpoint temperatures.
@@ -2054,7 +2054,7 @@ module OSut
         res[:heating] = nil
         res[:cooling] = nil
       elsif cnd.downcase == "semiheated"
-        res[:heating] = 15.0 if res[:heating].nil?
+        res[:heating] = 14.0 if res[:heating].nil?
         res[:cooling] = nil
       elsif cnd.downcase.include?("conditioned")
         # "nonresconditioned", "resconditioned" or "indirectlyconditioned"
@@ -2088,6 +2088,60 @@ module OSut
     ok = setpoints(space)[:heating].nil? && setpoints(space)[:cooling].nil?
 
     ok
+  end
+
+  ##
+  # Validates whether a space can be considered as REFRIGERATED.
+  #
+  # @param space [OpenStudio::Model::Space] a space
+  #
+  # @return [Bool] whether space is considered REFRIGERATED
+  # @return [false] if invalid input (see logs)
+  def refrigerated?(space = nil)
+    mth = "OSut::#{__callee__}"
+    cl  = OpenStudio::Model::Space
+    tg0 = "refrigerated"
+    return mismatch("space", space, cl, mth, DBG, false) unless space.is_a?(cl)
+
+    # 1. First check OSut's REFRIGERATED status.
+    status = space.additionalProperties.getFeatureAsString(tg0)
+
+    unless status.empty?
+      status = status.get
+      return status if [true, false].include?(status)
+
+      log(ERR, "Unknown #{space.nameString} REFRIGERATED #{status} (#{mth})")
+    end
+
+    # 2. Else, compare design heating/cooling setpoints.
+    stps = setpoints(space)
+    return false unless stps[:heating].nil?
+    return false     if stps[:cooling].nil?
+    return true      if stps[:cooling] < 15
+
+    false
+  end
+
+  ##
+  # Validates whether a space can be considered as SEMIHEATED as per NECB 2020
+  # 1.2.1.2. 2): design heating setpoint < 15°C (and non-REFRIGERATED).
+  #
+  # @param space [OpenStudio::Model::Space] a space
+  #
+  # @return [Bool] whether space is considered SEMIHEATED
+  # @return [false] if invalid input (see logs)
+  def semiheated?(space = nil)
+    mth = "OSut::#{__callee__}"
+    cl  = OpenStudio::Model::Space
+    return mismatch("space", space, cl, mth, DBG, false) unless space.is_a?(cl)
+    return false if refrigerated?(space)
+
+    stps = setpoints(space)
+    return false unless stps[:cooling].nil?
+    return false     if stps[:heating].nil?
+    return true      if stps[:heating] < 15
+
+    false
   end
 
   ##
@@ -2256,9 +2310,9 @@ module OSut
   # ---- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---- #
   # This final set of utilities targets OpenStudio geometry. Many of the
   # following geometry methods rely on Boost as an OpenStudio dependency.
-  # As per Boost requirements, points (e.g. polygons) must first be 'aligned':
+  # As per Boost requirements, points (e.g. vertical polygon) must be 'aligned':
   #   - first rotated/tilted as to lay flat along XY plane (Z-axis ~= 0)
-  #   - initial Z-axis values are represented as Y-axis values
+  #   - initial Z-axis values now become Y-axis values
   #   - points with the lowest X-axis values are 'aligned' along X-axis (0)
   #   - points with the lowest Z-axis values are 'aligned' along Y-axis (0)
   #   - for several Boost methods, points must be clockwise in sequence
@@ -2945,8 +2999,15 @@ module OSut
     a1b2  = b2 - a1
     xa1b1 = a.cross(a1b1)
     xa1b2 = a.cross(a1b2)
+    xa1b1.normalize
+    xa1b2.normalize
+    xab.normalize
     return nil unless xab.cross(xa1b1).length.round(4) < TOL2
     return nil unless xab.cross(xa1b2).length.round(4) < TOL2
+
+    # Reset.
+    xa1b1 = a.cross(a1b1)
+    xa1b2 = a.cross(a1b2)
 
     # Both segment endpoints can't be 'behind' point.
     return nil if a.dot(a1b1) < 0 && a.dot(a1b2) < 0
@@ -3001,20 +3062,23 @@ module OSut
   end
 
   ##
-  # Determines if pre-'aligned' OpenStudio 3D points are listed clockwise.
+  # Validates whether OpenStudio 3D points are listed clockwise, assuming points
+  # have been pre-'aligned' - not just flattened along XY (i.e. Z = 0).
   #
-  # @param pts [OpenStudio::Point3dVector] 3D points
+  # @param pts [OpenStudio::Point3dVector] pre-aligned 3D points
   #
   # @return [Bool] whether sequence is clockwise
   # @return [false] if invalid input (see logs)
   def clockwise?(pts = nil)
     mth = "OSut::#{__callee__}"
     pts = to_p3Dv(pts)
-    n   = false
-    return invalid("3+ points"  , mth, 1, DBG, n)     if pts.size < 3
-    return invalid("flat points", mth, 1, DBG, n) unless xyz?(pts, :z)
+    return invalid("3+ points"  , mth, 1, DBG, false)     if pts.size < 3
+    return invalid("flat points", mth, 1, DBG, false) unless xyz?(pts, :z)
 
-    OpenStudio.pointInPolygon(pts.first, pts, TOL)
+    n = OpenStudio.getOutwardNormal(pts)
+    return invalid("polygon", mth, 1, DBG, false) if n.empty?
+
+    n.get.z > 0 ? false : true
   end
 
   ##
@@ -3144,8 +3208,8 @@ module OSut
   # polygon. In addition to basic OpenStudio polygon tests (e.g. all points
   # sharing the same 3D plane, non-self-intersecting), the method can
   # optionally check for convexity, or ensure uniqueness and/or non-collinearity.
-  # Returned vector can also be 'aligned', as well as in UpperLeftCorner (ULC)
-  # counterclockwise sequence, or in clockwise sequence.
+  # Returned vector can also be 'aligned', as well as in UpperLeftCorner (ULC),
+  # BottomLeftCorner (BLC), in clockwise (or counterclockwise) sequence.
   #
   # @param pts [Set<OpenStudio::Point3d>] 3D points
   # @param vx [Bool] whether to check for convexity
@@ -3162,7 +3226,7 @@ module OSut
     v   = OpenStudio::Point3dVector.new
     vx  = false unless [true, false].include?(vx)
     uq  = false unless [true, false].include?(uq)
-    co  = true  unless [true, false].include?(co)
+    co  = false unless [true, false].include?(co)
 
     # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
     # Exit if mismatched/invalid arguments.
@@ -3174,7 +3238,7 @@ module OSut
     # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
     # Minimum 3 points?
     p3 = getNonCollinears(pts, 3)
-    return empty("polygon", mth, ERR, v) if p3.size < 3
+    return empty("polygon (non-collinears < 3)", mth, ERR, v) if p3.size < 3
 
     # Coplanar?
     pln = OpenStudio::Plane.new(p3)
@@ -3273,7 +3337,7 @@ module OSut
     return mismatch("point", p0, cl, mth, DBG, false) unless p0.is_a?(cl)
 
     n = OpenStudio.getOutwardNormal(s)
-    return false if n.empty?
+    return invalid("plane/normal", mth, 2, DBG, false) if n.empty?
 
     n  = n.get
     pl = OpenStudio::Plane.new(s.first, n)
@@ -3299,23 +3363,21 @@ module OSut
       mpV = scalar(mid - p0, 1000)
       p1  = p0 + mpV
       ctr = 0
-      pts = []
 
       # Skip if ~collinear.
-      next if (mpV.cross(segment.last - segment.first).length).round(4) < TOL2
+      next if mpV.cross(segment.last - segment.first).length.round(4) < TOL2
 
       segments.each do |sg|
         intersect = getLineIntersection([p0, p1], sg)
         next unless intersect
 
-        # One of the polygon vertices?
+        # Skip test altogether if one of the polygon vertices.
         if holds?(s, intersect)
-          next if holds?(pts, intersect)
-
-          pts << intersect
+          ctr = 0
+          break
+        else
+          ctr += 1
         end
-
-        ctr += 1
       end
 
       next         if ctr.zero?
@@ -3334,56 +3396,88 @@ module OSut
   # @return [Bool] whether 2 polygons are parallel
   # @return [false] if invalid input (see logs)
   def parallel?(p1 = nil, p2 = nil)
-    p1  = poly(p1, false, true, false)
-    p2  = poly(p2, false, true, false)
+    p1 = poly(p1, false, true)
+    p2 = poly(p2, false, true)
     return false if p1.empty?
     return false if p2.empty?
 
-    p1 = getNonCollinears(p1, 3)
-    p2 = getNonCollinears(p2, 3)
-    return false if p1.empty?
-    return false if p2.empty?
+    n1 = OpenStudio.getOutwardNormal(p1)
+    n2 = OpenStudio.getOutwardNormal(p2)
+    return false if n1.empty?
+    return false if n2.empty?
 
-    pl1 = OpenStudio::Plane.new(p1)
-    pl2 = OpenStudio::Plane.new(p2)
-
-    pl1.outwardNormal.dot(pl2.outwardNormal).abs > 0.99
+    n1.get.dot(n2.get).abs > 0.99
   end
 
   ##
-  # Validates whether a polygon faces upwards.
+  # Validates whether a polygon can be considered a valid 'roof' surface, as per
+  # ASHRAE 90.1 & Canadian NECBs, i.e. outward normal within 60° from vertical
+  #
+  # @param pts [Set<OpenStudio::Point3d>] OpenStudio 3D points
+  #
+  # @return [Bool] if considered a roof surface
+  # @return [false] if invalid input (see logs)
+  def roof?(pts = nil)
+    ray = OpenStudio::Point3d.new(0,0,1) - OpenStudio::Point3d.new(0,0,0)
+    dut = Math.cos(60 * Math::PI / 180)
+    pts = poly(pts, false, true, true)
+    return false if pts.empty?
+
+    dot = ray.dot(OpenStudio.getOutwardNormal(pts).get)
+    return false if dot.round(2) <= 0
+    return true  if dot.round(2) == 1
+
+    dot.round(4) >= dut.round(4)
+  end
+
+  ##
+  # Validates whether a polygon faces upwards, harmonized with OpenStudio
+  # Utilities' "alignZPrime" function.
   #
   # @param pts [Set<OpenStudio::Point3d>] OpenStudio 3D points
   #
   # @return [Bool] if facing upwards
   # @return [false] if invalid input (see logs)
   def facingUp?(pts = nil)
-    up  = OpenStudio::Point3d.new(0,0,1) - OpenStudio::Point3d.new(0,0,0)
-    pts = poly(pts, false, true, false)
+    ray = OpenStudio::Point3d.new(0,0,1) - OpenStudio::Point3d.new(0,0,0)
+    pts = poly(pts, false, true, true)
     return false if pts.empty?
 
-    pts = getNonCollinears(pts, 3)
-    return false if pts.empty?
-
-    OpenStudio::Plane.new(pts).outwardNormal.dot(up) > 0.99
+    OpenStudio.getOutwardNormal(pts).get.dot(ray) > 0.99
   end
 
   ##
-  # Validates whether a polygon faces downwards.
+  # Validates whether a polygon faces downwards, harmonized with OpenStudio
+  # Utilities' "alignZPrime" function.
   #
   # @param pts [Set<OpenStudio::Point3d>] OpenStudio 3D points
   #
   # @return [Bool] if facing downwards
   # @return [false] if invalid input (see logs)
   def facingDown?(pts = nil)
-    lo  = OpenStudio::Point3d.new(0,0,-1) - OpenStudio::Point3d.new(0,0,0)
-    pts = poly(pts, false, true, false)
+    ray = OpenStudio::Point3d.new(0,0,-1) - OpenStudio::Point3d.new(0,0,0)
+    pts = poly(pts, false, true, true)
     return false if pts.empty?
 
-    pts = getNonCollinears(pts, 3)
-    return false if pts.empty?
+    OpenStudio.getOutwardNormal(pts).get.dot(ray) > 0.99
+  end
 
-    OpenStudio::Plane.new(pts).outwardNormal.dot(lo) > 0.99
+  ##
+  # Validates whether surface can be considered 'sloped' (i.e. not ~flat, as per
+  # OpenStudio Utilities' "alignZPrime"). A vertical polygon returns true.
+  #
+  # @param pts [Set<OpenStudio::Point3d>] OpenStudio 3D points
+  #
+  # @return [Bool] whether surface is sloped
+  # @return [false] if invalid input (see logs)
+  def sloped?(pts = nil)
+    mth = "OSut::#{__callee__}"
+    pts = poly(pts, false, true, true)
+    return false if pts.empty?
+    return false if facingUp?(pts)
+    return false if facingDown?(pts)
+
+    true
   end
 
   ##
@@ -3453,6 +3547,15 @@ module OSut
     return false if p2.empty?
 
     p1.each { |p0| return false unless pointWithinPolygon?(p0, p2) }
+
+    # Although p2 points may lie ALONG p1, none may lie entirely WITHIN p1.
+    p2.each { |p0| return false if pointWithinPolygon?(p0, p1, true) }
+
+    # p1 segment mid-points must not lie OUTSIDE of p2.
+    getSegments(p1).each do |sg|
+      mp = midpoint(sg.first, sg.last)
+      return false unless pointWithinPolygon?(mp, p2)
+    end
 
     entirely = false unless [true, false].include?(entirely)
     return true unless entirely
@@ -3600,7 +3703,7 @@ module OSut
     # The following +/- replicates the same solution, based on:
     #   https://stackoverflow.com/a/65832417
     p0 = p2.first
-    pl = OpenStudio::Plane.new(getNonCollinears(p2, 3))
+    pl = OpenStudio::Plane.new(p2)
     n  = pl.outwardNormal
     return face if n.dot(ray).abs < TOL
 
@@ -3962,6 +4065,8 @@ module OSut
     box << OpenStudio::Point3d.new(p1.x, p1.y, p1.z)
     box << OpenStudio::Point3d.new(p2.x, p2.y, p2.z)
     box << OpenStudio::Point3d.new(p3.x, p3.y, p3.z)
+    box = getNonCollinears(box, 4)
+    return bkp unless box.size == 4
 
     box = blc(box)
     return bkp unless rectangular?(box)
@@ -4007,6 +4112,9 @@ module OSut
     box << mpoints.first
     box << mpoints.last
     box << plane.project(mpoints.last)
+    box = getNonCollinears(box).to_a
+    return bkp unless box.size == 4
+
     box = clockwise?(box) ? blc(box.reverse) : blc(box)
     return bkp unless rectangular?(box)
     return bkp unless fits?(box, pts)
@@ -4071,6 +4179,7 @@ module OSut
         out = triadBox(OpenStudio::Point3dVector.new([m0, p1, p2]))
         next if out.empty?
         next unless fits?(out, pts)
+        next if fits?(pts, out)
 
         area = OpenStudio.getArea(out)
         next if area.empty?
@@ -4096,6 +4205,7 @@ module OSut
         out = triadBox(OpenStudio::Point3dVector.new([p0, p1, p2]))
         next if out.empty?
         next unless fits?(out, pts)
+        next if fits?(pts, out)
 
         area = OpenStudio.getArea(out)
         next if area.empty?
@@ -4128,6 +4238,7 @@ module OSut
         out = medialBox(OpenStudio::Point3dVector.new([p0, p1, p2]))
         next if out.empty?
         next unless fits?(out, pts)
+        next if fits?(pts, out)
 
         area = OpenStudio.getArea(box)
         next if area.empty?
@@ -4157,6 +4268,7 @@ module OSut
       out = medialBox(OpenStudio::Point3dVector.new([p0, p1, p2]))
       next if out.empty?
       next unless fits?(out, pts)
+      next if fits?(pts, out)
 
       area = OpenStudio.getArea(box)
       next if area.empty?
@@ -4191,6 +4303,7 @@ module OSut
           out = medialBox(OpenStudio::Point3dVector.new([p0, p1, p2]))
           next if out.empty?
           next unless fits?(out, pts)
+          next if fits?(pts, out)
 
           area = OpenStudio.getArea(out)
           next if area.empty?
@@ -4214,31 +4327,42 @@ module OSut
 
   ##
   # Generates re-'aligned' polygon vertices wrt main axis of symmetry of its
-  # largest bounded box. A Hash is returned with 6x key:value pairs ...
+  # largest bounded box. Input polygon vertex Z-axis values must equal 0, and be
+  # counterclockwise. A Hash is returned with 6x key:value pairs ...
   # set: realigned (cloned) polygon vertices, box: its bounded box (wrt to :set),
   # bbox: its bounding box, t: its translation transformation, r: its rotation
   # transformation, and o: the origin coordinates of its axis of rotation. First,
   # cloned polygon vertices are rotated so the longest axis of symmetry of its
   # bounded box lies parallel to the X-axis; :o being the midpoint of the narrow
-  # side (of the bounded box) nearest to grid origin (0,0,0). Once rotated,
+  # side (of the bounded box) nearest to grid origin (0,0,0). If the axis of
+  # symmetry of the bounded box is already parallel to the X-axis, then the
+  # rotation step is skipped (unless force == true). Whether rotated or not,
   # polygon vertices are then translated as to ensure one or more vertices are
   # aligned along the X-axis and one or more vertices are aligned along the
-  # Y-axis (no vertices with negative X or Y coordinate values). To unalign the
-  # returned set of vertices (or its bounded box, or its bounding box), first
-  # inverse the translation transformation, then inverse the rotation
+  # Y-axis (no vertices with negative X or Y coordinate values). To unalign
+  # the returned set of vertices (or its bounded box, or its bounding box),
+  # first inverse the translation transformation, then inverse the rotation
   # transformation.
   #
   # @param pts [Set<OpenStudio::Point3d>] OpenStudio 3D points
+  # @param force [Bool] whether to force rotation for aligned yet narrow boxes
   #
   # @return [Hash] :set, :box, :bbox, :t, :r & :o
   # @return [Hash] :set, :box, :bbox, :t, :r & :o (nil) if invalid (see logs)
-  def getRealignedFace(pts = nil)
+  def getRealignedFace(pts = nil, force = false)
     mth = "OSut::#{__callee__}"
     out = { set: nil, box: nil, bbox: nil, t: nil, r: nil, o: nil }
     pts = poly(pts, false, true)
     return out if pts.empty?
     return invalid("aligned plane", mth, 1, DBG, out) unless xyz?(pts, :z)
     return invalid("clockwise pts", mth, 1, DBG, out)     if clockwise?(pts)
+
+    # Optionally force rotation so bounded box ends up wider than taller.
+    # Strongly suggested for flat surfaces like roofs (see 'sloped?').
+    unless [true, false].include?(force)
+      log(DBG, "Ignoring force input (#{mth})")
+      force = false
+    end
 
     o   = OpenStudio::Point3d.new(0, 0, 0)
     w   = width(pts)
@@ -4263,7 +4387,6 @@ module OSut
     sgs = sgs.sort_by { |sg, s| s[:mo] }.first(2).to_h     if square?(box)
     sgs = sgs.sort_by { |sg, s| s[:l ] }.first(2).to_h unless square?(box)
     sgs = sgs.sort_by { |sg, s| s[:mo] }.first(2).to_h unless square?(box)
-
     sg0 = sgs.values[0]
     sg1 = sgs.values[1]
 
@@ -4283,6 +4406,13 @@ module OSut
     axis     = OpenStudio::Point3d.new(origin.x,     origin.y    , d) - origin
     angle    = OpenStudio::getAngle(right, seg)
     angle    = -angle if north.dot(seg) < 0
+
+    # Skip rotation if bounded box is already aligned along XY grid (albeit
+    # 'narrow'), i.e. if the angle is 90°.
+    if angle.round(3) == (Math::PI/2).round(3)
+      angle = 0 unless force
+    end
+
     r        = OpenStudio.createRotation(origin, axis, angle)
     pts      = to_p3Dv(r.inverse * pts)
     box      = to_p3Dv(r.inverse * box)
@@ -4291,13 +4421,13 @@ module OSut
     xy       = OpenStudio::Point3d.new(origin.x + dX, origin.y + dY, 0)
     origin2  = xy - origin
     t        = OpenStudio.createTranslation(origin2)
-    set      = t.inverse * pts
-    box      = t.inverse * box
+    set      = to_p3Dv(t.inverse * pts)
+    box      = to_p3Dv(t.inverse * box)
     bbox     = outline([set])
 
-    out[:set ] = set
-    out[:box ] = box
-    out[:bbox] = bbox
+    out[:set ] = blc(set)
+    out[:box ] = blc(box)
+    out[:bbox] = blc(bbox)
     out[:t   ] = t
     out[:r   ] = r
     out[:o   ] = origin
@@ -4309,14 +4439,21 @@ module OSut
   # Returns 'width' of a set of OpenStudio 3D points, once re/aligned.
   #
   # @param pts [Set<OpenStudio::Point3d>] 3D points, once re/aligned
+  # @param force [Bool] whether to force rotation of (narrow) bounded box
   #
-  # @return [Float] width along X-axis, once re/aligned
+  # @return [Float] width al©ong X-axis, once re/aligned
   # @return [0.0] if invalid inputs
-  def alignedWidth(pts = nil)
+  def alignedWidth(pts = nil, force = false)
+    mth = "OSut::#{__callee__}"
     pts = poly(pts, false, true, true, true)
     return 0 if pts.size < 2
 
-    pts = getRealignedFace(pts)[:set]
+    unless [true, false].include?(force)
+      log(DBG, "Ignoring force input (#{mth})")
+      force = false
+    end
+
+    pts = getRealignedFace(pts, force)[:set]
     return 0 if pts.size < 2
 
     pts.max_by(&:x).x - pts.min_by(&:x).x
@@ -4326,56 +4463,76 @@ module OSut
   # Returns 'height' of a set of OpenStudio 3D points, once re/aligned.
   #
   # @param pts [Set<OpenStudio::Point3d>] 3D points, once re/aligned
+  # @param force [Bool] whether to force rotation of (narrow) bounded box
   #
   # @return [Float] height along Y-axis, once re/aligned
   # @return [0.0] if invalid inputs
-  def alignedHeight(pts = nil)
-    pts   = pts = poly(pts, false, true, true, true)
+  def alignedHeight(pts = nil, force = false)
+    mth = "OSut::#{__callee__}"
+    pts = poly(pts, false, true, true, true)
     return 0 if pts.size < 2
 
-    pts = getRealignedFace(pts)[:set]
+    unless [true, false].include?(force)
+      log(DBG, "Ignoring force input (#{mth})")
+      force = false
+    end
+
+    pts = getRealignedFace(pts, force)[:set]
     return 0 if pts.size < 2
 
     pts.max_by(&:y).y - pts.min_by(&:y).y
   end
 
   ##
-  # Generates leader line anchors, linking polygon vertices to one or more sets
-  # (Hashes) of sequenced vertices. By default, the method seeks to link set
-  # :vtx (key) vertices (users can select another collection of vertices, e.g.
-  # tag == :box). The method minimally validates individual sets of vertices
-  # (e.g. coplanarity, non-self-intersecting, no inter-set conflicts). Potential
-  # leader lines cannot intersect each other, other 'tagged' set vertices or
-  # original polygon edges. For highly-articulated cases (e.g. a narrow polygon
-  # with multiple concavities, holding multiple sets), such leader line
-  # conflicts will surely occur. The method relies on a 'first-come-first-served'
-  # approach: sets without leader lines are ignored (check for set :void keys,
-  # see error logs). It is recommended to sort sets prior to calling the method.
+  # Identifies 'leader line anchors', i.e. specific 3D points of a (larger) set
+  # (e.g. delineating a larger, parent polygon), each anchor linking the BLC
+  # corner of one or more (smaller) subsets (free-floating within the parent)
+  # - see follow-up 'genInserts'. Subsets may hold several 'tagged' vertices
+  # (e.g. :box, :cbox). By default, the solution seeks to anchor subset :box
+  # vertices. Users can select other tags, e.g. tag == :cbox. The solution
+  # minimally validates individual subsets (e.g. no self-intersecting polygons,
+  # coplanarity, no inter-subset conflicts, must fit within larger set).
+  # Potential leader lines cannot intersect each other, similarly tagged subsets
+  # or (parent) polygon edges. For highly-articulated cases (e.g. a narrow
+  # parent polygon with multiple concavities, holding multiple subsets), such
+  # leader line conflicts are likely unavoidable. It is recommended to first
+  # sort subsets (e.g. areas), given the solution's 'first-come-first-served'
+  # policy. Subsets without valid leader lines are ultimately ignored (check
+  # for new set :void keys, see error logs). The larger set of points is
+  # expected to be in space coordinates - not building or site coordinates,
+  # while subset points are expected to 'fit?' in the larger set.
   #
-  # @param s [Set<OpenStudio::Point3d>] a larger (parent) set of points
-  # @param [Array<Hash>] set a collection of sequenced vertices
-  # @option [Symbol] tag sequence of set vertices to target
+  # @param s [Set<OpenStudio::Point3d>] a (larger) parent set of points
+  # @param [Array<Hash>] set a collection of (smaller) sequenced points
+  # @option [Symbol] tag sequence of subset vertices to target
   #
-  # @return [Integer] number of successfully-generated anchors (check logs)
-  def genAnchors(s = nil, set = [], tag = :vtx)
+  # @return [Integer] number of successfully anchored subsets (see logs)
+  def genAnchors(s = nil, set = [], tag = :box)
     mth = "OSut::#{__callee__}"
-    dZ  = nil
-    t   = nil
+    n   = 0
     id  = s.respond_to?(:nameString) ? "#{s.nameString}: " : ""
     pts = poly(s)
-    n   = 0
-    return n if pts.empty?
+    return invalid("#{id} polygon", mth, 1, DBG, n) if pts.empty?
     return mismatch("set", set, Array, mth, DBG, n) unless set.respond_to?(:to_a)
 
-    set = set.to_a
+    origin = OpenStudio::Point3d.new(0,0,0)
+    zenith = OpenStudio::Point3d.new(0,0,1)
+    ray    = zenith - origin
+    set    = set.to_a
 
-    # Validate individual sets. Purge surface-specific leader line anchors.
+    # Validate individual subsets. Purge surface-specific leader line anchors.
     set.each_with_index do |st, i|
-      str1 = id + "set ##{i+1}"
+      str1 = id + "subset ##{i+1}"
       str2 = str1 + " #{tag.to_s}"
       return mismatch(str1, st, Hash,  mth, DBG, n) unless st.respond_to?(:key?)
       return hashkey( str1, st,  tag,  mth, DBG, n) unless st.key?(tag)
       return empty("#{str2} vertices", mth, DBG, n) if st[tag].empty?
+
+      if st.key?(:out)
+        return hashkey( str1, st,   :t,  mth, DBG, n) unless st.key?(:t)
+        return hashkey( str1, st,  :ti,  mth, DBG, n) unless st.key?(:ti)
+        return hashkey( str1, st,  :t0,  mth, DBG, n) unless st.key?(:t0)
+      end
 
       stt = poly(st[tag])
       return invalid("#{str2} polygon", mth, 0, DBG, n) if stt.empty?
@@ -4391,32 +4548,52 @@ module OSut
       end
     end
 
-    if facingUp?(pts)
-      if xyz?(pts, :z)
-        dZ = 0
+    set.each_with_index do |st, i|
+      # When a subset already holds a leader line anchor (from an initial call
+      # to 'genAnchors'), it inherits key :out - a Hash holding (among others) a
+      # 'realigned' set of points (by default a 'realigned' :box). The latter is
+      # typically generated from an outdoor-facing roof (e.g. when called from
+      # 'lights'). Subsequent calls to 'genAnchors' may send (as first
+      # argument) a corresponding ceiling tile below (also from 'addSkylights').
+      # Roof vs ceiling may neither share alignment transformation nor space
+      # site transformation identities. All subsequent calls to 'genAnchors'
+      # shall recover the :out points, apply a succession of de/alignments and
+      # transformations in sync , and overwrite tagged points.
+      #
+      # Although 'genAnchors' and 'genInserts' have both been developed to
+      # support anchor insertions in other cases (e.g. bay window in a wall),
+      # variables and terminology here continue pertain to roofs, ceilings,
+      # skylights and wells - less abstract, simpler to follow.
+      if st.key?(:out)
+        ti   = st[:ti ] # unoccupied attic/plenum space site transformation
+        t0   = st[:t0 ] # occupied space site transformation
+        t    = st[:t  ] # initial alignment transformation of roof surface
+        o    = st[:out]
+        tpts = t0.inverse * (ti * (t * (o[:r] * (o[:t] * o[:set]))))
+        tpts = cast(tpts, pts, ray)
+
+        st[tag] = tpts
       else
-        dZ = pts.first.z
-        pts = flatten(pts).to_a
+        st[:t] = OpenStudio::Transformation.alignFace(pts) unless st.key?(:t)
+        tpts   = st[:t].inverse * st[tag]
+        o      = getRealignedFace(tpts, true)
+        tpts   = st[:t] * (o[:r] * (o[:t] * o[:set]))
+
+        st[:out] = o
+        st[tag ] = tpts
       end
-    else
-      t  = OpenStudio::Transformation.alignFace(pts)
-      pts = t.inverse * pts
     end
 
-    # Set leader lines anchors. Gather candidate leader line anchors; select
-    # anchor with shortest distance to first vertex of 'tagged' set.
+    # Identify candidate leader line anchors for each subset.
     set.each_with_index do |st, i|
       candidates = []
-      break if st[:ld].key?(s)
+      tpts = st[tag]
 
-      stt = dZ ? flatten(st[tag]).to_a : t.inverse * st[tag]
-      p1  = stt.first
+      pts.each do |pt|
+        ld = [pt, tpts.first]
+        nb = 0
 
-      pts.each_with_index do |pt, k|
-        ld  = [pt, p1]
-        nb  = 0
-
-        # Check for intersections between leader line and polygon edges.
+        # Check for intersections between leader line and larger polygon edges.
         getSegments(pts).each do |sg|
           break unless nb.zero?
           next if holds?(sg, pt)
@@ -4424,43 +4601,34 @@ module OSut
           nb += 1 if lineIntersects?(sg, ld)
         end
 
-        next unless nb.zero?
-
-        # Check for intersections between candidate leader line and other sets.
-        set.each_with_index do |other, j|
+        # Check for intersections between candidate leader line vs other subsets.
+        set.each do |other|
           break unless nb.zero?
-          next if i == j
+          next if st == other
 
-          ost = dZ ? flatten(other[tag]).to_a : t.inverse * other[tag]
-          sgj = getSegments(ost)
+          ost = other[tag]
 
-          sgj.each { |sg| nb += 1 if lineIntersects?(ld, sg) }
+          getSegments(ost).each { |sg| nb += 1 if lineIntersects?(ld, sg) }
         end
 
-        next unless nb.zero?
-
         # ... and previous leader lines (first come, first serve basis).
-        set.each_with_index do |other, j|
+        set.each do |other|
           break unless nb.zero?
-          next if i == j
+          next if st == other
+          next unless other.key?(:ld)
           next unless other[:ld].key?(s)
 
           ost = other[tag]
-          pj  = ost.first
-          old = other[:ld][s]
-          ldj = dZ ? flatten([ old, pj ]) : t.inverse * [ old, pj ]
+          pld = other[:ld][s]
+          next if same?(pld, pt)
 
-          unless same?(old, pt)
-            nb += 1 if lineIntersects?(ld, ldj)
-          end
+          nb += 1 if lineIntersects?(ld, [pld, ost.first])
         end
 
-        next unless nb.zero?
-
         # Finally, check for self-intersections.
-        getSegments(stt).each do |sg|
+        getSegments(tpts).each do |sg|
           break unless nb.zero?
-          next if holds?(sg, p1)
+          next if holds?(sg, tpts.first)
 
           nb += 1 if lineIntersects?(sg, ld)
           nb += 1 if (sg.first - sg.last).cross(ld.first - ld.last).length < TOL
@@ -4471,18 +4639,13 @@ module OSut
 
       if candidates.empty?
         str = id + "set ##{i+1}"
-        log(ERR, "#{str}: unable to anchor #{tag} leader line (#{mth})")
+        log(WRN, "#{str}: unable to anchor #{tag} leader line (#{mth})")
         st[:void] = true
       else
-        p0 = candidates.sort_by! { |pt| (pt - p1).length }.first
-
-        if dZ
-          st[:ld][s] = OpenStudio::Point3d.new(p0.x, p0.y, p0.z + dZ)
-        else
-          st[:ld][s] = t * p0
-        end
-
+        p0 = candidates.sort_by { |pt| (pt - tpts.first).length }.first
         n += 1
+
+        st[:ld][s] = p0
       end
     end
 
@@ -4490,17 +4653,19 @@ module OSut
   end
 
   ##
-  # Generates extended polygon vertices to circumscribe one or more sets
-  # (Hashes) of sequenced vertices. The method minimally validates individual
-  # sets of vertices (e.g. coplanarity, non-self-intersecting, no inter-set
-  # conflicts). Valid leader line anchors (set key :ld) need to be generated
-  # prior to calling the method (see genAnchors). By default, the method seeks
-  # to link leader line anchors to set :vtx (key) vertices (users can select
-  # another collection of vertices, e.g. tag == :box).
+  # Extends (larger) polygon vertices to circumscribe one or more (smaller)
+  # subsets of vertices, based on previously-generated 'leader line' anchors.
+  # The solution minimally validates individual subsets (e.g. no
+  # self-intersecting polygons, coplanarity, no inter-subset conflicts, must fit
+  # within larger set). Valid leader line anchors (set key :ld) need to be
+  # generated prior to calling the method - see 'genAnchors'. Subsets may hold
+  # several 'tag'ged vertices (e.g. :box, :vtx). By default, the solution
+  # seeks to anchor subset :vtx vertices. Users can select other tags, e.g.
+  # tag == :box).
   #
   # @param s [Set<OpenStudio::Point3d>] a larger (parent) set of points
-  # @param [Array<Hash>] set a collection of sequenced vertices
-  # @option set [Hash] :ld a collection of polygon-specific leader line anchors
+  # @param [Array<Hash>] set a collection of (smaller) sequenced vertices
+  # @option set [Hash] :ld a polygon-specific leader line anchors
   # @option [Symbol] tag sequence of set vertices to target
   #
   # @return [OpenStudio::Point3dVector] extended vertices (see logs if empty)
@@ -4519,8 +4684,9 @@ module OSut
 
     # Validate individual sets.
     set.each_with_index do |st, i|
-      str1 = id + "set ##{i+1}"
+      str1 = id + "subset ##{i+1}"
       str2 = str1 + " #{tag.to_s}"
+      next if st.key?(:void) && st[:void]
       return mismatch(str1, st,  Hash, mth, DBG, a) unless st.respond_to?(:key?)
       return hashkey( str1, st,   tag, mth, DBG, a) unless st.key?(tag)
       return empty("#{str2} vertices", mth, DBG, a) if st[tag].empty?
@@ -4540,7 +4706,8 @@ module OSut
       v << pt
 
       # Loop through each valid set; concatenate circumscribing vertices.
-      set.each_with_index do |st, i|
+      set.each do |st|
+        next if st.key?(:void) && st[:void]
         next unless same?(st[:ld][s], pt)
         next unless st.key?(tag)
 
@@ -4553,21 +4720,22 @@ module OSut
   end
 
   ##
-  # Generates arrays of rectangular polygon inserts within a larger polygon. If
-  # successful, each set inherits additional key:value pairs: namely :vtx
-  # (subset of polygon circumscribing vertices), and :vts (collection of
-  # indivudual polygon insert vertices). Valid leader line anchors (set key :ld)
-  # need to be generated prior to calling the method (see genAnchors, and
-  # genExtendedvertices).
+  # Generates (1D or 2D) arrays of (smaller) rectangular collection of points,
+  # (e.g. arrays of polygon inserts) from subset parameters, within a (larger)
+  # set (e.g. parent polygon). If successful, each subset inherits additional
+  # key:value pairs: namely :vtx (collection of circumscribing vertices), and
+  # :vts (collection of individual insert vertices). Valid leader line anchors
+  # (set key :ld) need to be generated prior to calling the solution
+  # - see 'genAnchors'.
   #
-  # @param s [Set<OpenStudio::Point3d>] a larger polygon
-  # @param [Array<Hash>] set a collection of polygon insert instructions
-  # @option set [Set<OpenStudio::Point3d>] :box bounding box of each collection
-  # @option set [Hash] :ld a collection of polygon-specific leader line anchors
+  # @param s [Set<OpenStudio::Point3d>] a larger (parent) set of points
+  # @param [Array<Hash>] set a collection of (smaller) sequenced vertices
+  # @option set [Set<OpenStudio::Point3d>] :box bounding box of each subset
+  # @option set [Hash] :ld a collection of leader line anchors
   # @option set [Integer] :rows (1) number of rows of inserts
   # @option set [Integer] :cols (1) number of columns of inserts
-  # @option set [Numeric] :w0 (1.4) width of individual inserts (wrt cols) min 0.4
-  # @option set [Numeric] :d0 (1.4) depth of individual inserts (wrt rows) min 0.4
+  # @option set [Numeric] :w0 width of individual inserts (wrt cols) min 0.4
+  # @option set [Numeric] :d0 depth of individual inserts (wrt rows) min 0.4
   # @option set [Numeric] :dX (0) optional left/right X-axis buffer
   # @option set [Numeric] :dY (0) optional top/bottom Y-axis buffer
   #
@@ -4587,10 +4755,12 @@ module OSut
 
     # Validate/reset individual set collections.
     set.each_with_index do |st, i|
-      str1 = id + "set ##{i+1}"
+      str1 = id + "subset ##{i+1}"
+      next if st.key?(:void) && st[:void]
       return mismatch(str1, st, Hash, mth, DBG, a) unless st.respond_to?(:key?)
       return hashkey( str1, st, :box, mth, DBG, a) unless st.key?(:box)
       return hashkey( str1, st,  :ld, mth, DBG, a) unless st.key?(:ld)
+      return hashkey( str1, st, :out, mth, DBG, a) unless st.key?(:out)
 
       str2 = str1 + " anchor"
       ld = st[:ld]
@@ -4599,7 +4769,7 @@ module OSut
       return mismatch(str2, ld[s], cl, mth, DBG, a) unless ld[s].is_a?(cl)
 
       # Ensure each set bounding box is safely within larger polygon boundaries.
-      # TO DO: In line with related addSkylights "TO DO", expand method to
+      # @todo: In line with related addSkylights' @todo, expand solution to
       #        safely handle 'side' cutouts (i.e. no need for leader lines). In
       #        so doing, boxes could eventually align along surface edges.
       str3 = str1 + " box"
@@ -4659,9 +4829,10 @@ module OSut
       end
     end
 
-    # Flag conflicts between set bounding boxes. TO DO: ease up for ridges.
+    # Flag conflicts between set bounding boxes. @todo: ease up for ridges.
     set.each_with_index do |st, i|
       bx = st[:box]
+      next if st.key?(:void) && st[:void]
 
       set.each_with_index do |other, j|
         next if i == j
@@ -4673,37 +4844,18 @@ module OSut
       end
     end
 
-    # Loop through each 'valid' set (i.e. linking a valid leader line anchor),
-    # generate set vertex array based on user-provided specs. Reset BLC vertex
-    # coordinates once completed.
+    t    = OpenStudio::Transformation.alignFace(pts)
+    rpts = t.inverse * pts
+
+    # Loop through each 'valid' subset (i.e. linking a valid leader line anchor),
+    # generate subset vertex array based on user-provided specs.
     set.each_with_index do |st, i|
-      str = id + "set ##{i+1}"
-      dZ  = nil
-      t   = nil
-      bx  = st[:box]
+      str = id + "subset ##{i+1}"
+      next if st.key?(:void) && st[:void]
 
-      if facingUp?(bx)
-        if xyz?(bx, :z)
-          dZ = 0
-        else
-          dZ = bx.first.z
-          bx = flatten(bx).to_a
-        end
-      else
-        t  = OpenStudio::Transformation.alignFace(bx)
-        bx = t.inverse * bx
-      end
-
-      o = getRealignedFace(bx)
-      next unless o[:set]
-
-      st[:out] = o
-      st[:bx ] = blc(o[:r] * (o[:t] * o[:set]))
-
-
+      o    = st[:out]
       vts  = {} # collection of individual (named) polygon insert vertices
       vtx  = [] # sequence of circumscribing polygon vertices
-
       bx   = o[:set]
       w    = width(bx)  # overall sandbox width
       d    = height(bx) # overall sandbox depth
@@ -4712,7 +4864,7 @@ module OSut
       cols = st[:cols]  # number of array columns
       rows = st[:rows]  # number of array rows
       x    = st[:w0  ]  # width of individual insert
-      y    = st[:d0  ]  # depth of indivual insert
+      y    = st[:d0  ]  # depth of individual insert
       gX   = 0          # gap between insert columns
       gY   = 0          # gap between insert rows
 
@@ -4790,15 +4942,7 @@ module OSut
           vec << OpenStudio::Point3d.new(xC + x, yC    , 0)
 
           # Store.
-          vtz = ulc(o[:r] * (o[:t] * vec))
-
-          if dZ
-            vz = OpenStudio::Point3dVector.new
-            vtz.each { |v| vz << OpenStudio::Point3d.new(v.x, v.y, v.z + dZ) }
-            vts[nom] = vz
-          else
-            vts[nom] = to_p3Dv(t * vtz)
-          end
+          vts[nom] = to_p3Dv(t * ulc(o[:r] * (o[:t] * vec)))
 
           # Add reverse vertices, circumscribing each insert.
           vec.reverse!
@@ -4814,18 +4958,8 @@ module OSut
         end
       end
 
-      vtx = o[:r] * (o[:t] * vtx)
-
-      if dZ
-        vz = OpenStudio::Point3dVector.new
-        vtx.each { |v| vz << OpenStudio::Point3d.new(v.x, v.y, v.z + dZ) }
-        vtx = vz
-      else
-        vtx = to_p3Dv(t * vtx)
-      end
-
       st[:vts] = vts
-      st[:vtx] = vtx
+      st[:vtx] = to_p3Dv(t * (o[:r] * (o[:t] * vtx)))
     end
 
     # Extended vertex sequence of the larger polygon.
@@ -4835,9 +4969,11 @@ module OSut
   ##
   # Returns an array of OpenStudio space surfaces or subsurfaces that match
   # criteria, e.g. exterior, north-east facing walls in hotel "lobby". Note that
-  # 'sides' rely on space coordinates (not absolute model coordinates). Also,
+  # 'sides' rely on space coordinates (not building or site coordinates). Also,
   # 'sides' are exclusive (not inclusive), e.g. walls strictly north-facing or
   # strictly east-facing would not be returned if 'sides' holds [:north, :east].
+  # No outside boundary condition filters if 'boundary' argument == "all". No
+  # surface type filters if 'type' argument == "all".
   #
   # @param spaces [Set<OpenStudio::Model::Space>] target spaces
   # @param boundary [#to_s] OpenStudio outside boundary condition
@@ -4845,7 +4981,7 @@ module OSut
   # @param sides [Set<Symbols>] direction keys, e.g. :north (see OSut::SIDZ)
   #
   # @return [Array<OpenStudio::Model::Surface>] surfaces (may be empty, no logs)
-  def facets(spaces = [], boundary = "Outdoors", type = "Wall", sides = [])
+  def facets(spaces = [], boundary = "all", type = "all", sides = [])
     spaces = spaces.is_a?(OpenStudio::Model::Space) ? [spaces] : spaces
     spaces = spaces.respond_to?(:to_a) ? spaces.to_a : []
     return [] if spaces.empty?
@@ -4859,8 +4995,8 @@ module OSut
     return [] if boundary.empty?
     return [] if type.empty?
 
-    # Filter sides. If sides is initially empty, return all surfaces of matching
-    # type and outside boundary condition.
+    # Filter sides. If 'sides' is initially empty, return all surfaces of
+    # matching type and outside boundary condition.
     unless sides.empty?
       sides = sides.select { |side| SIDZ.include?(side) }
       return [] if sides.empty?
@@ -4870,8 +5006,13 @@ module OSut
       return [] unless space.respond_to?(:setSpaceType)
 
       space.surfaces.each do |s|
-        next unless s.outsideBoundaryCondition.downcase == boundary
-        next unless s.surfaceType.downcase == type
+        unless boundary == "all"
+          next unless s.outsideBoundaryCondition.downcase == boundary
+        end
+
+        unless type == "all"
+          next unless s.surfaceType.downcase == type
+        end
 
         if sides.empty?
           faces << s
@@ -4891,13 +5032,15 @@ module OSut
 
     # SubSurfaces?
     spaces.each do |space|
-      break unless faces.empty?
-
       space.surfaces.each do |s|
-        next unless s.outsideBoundaryCondition.downcase == boundary
+        unless boundary == "all"
+          next unless s.outsideBoundaryCondition.downcase == boundary
+        end
 
         s.subSurfaces.each do |sub|
-          next unless sub.subSurfaceType.downcase == type
+          unless type == "all"
+            next unless sub.subSurfaceType.downcase == type
+          end
 
           if sides.empty?
             faces << sub
@@ -5012,7 +5155,9 @@ module OSut
   # Returns outdoor-facing, space-related roof surfaces. These include
   # outdoor-facing roofs of each space per se, as well as any outdoor-facing
   # roof surface of unoccupied spaces immediately above (e.g. plenums, attics)
-  # overlapping any of the ceiling surfaces of each space.
+  # overlapping any of the ceiling surfaces of each space. It does not include
+  # surfaces labelled as 'RoofCeiling', which do not comply with ASHRAE 90.1 or
+  # NECB tilt criteria - see 'roof?'.
   #
   # @param spaces [Set<OpenStudio::Model::Space>] target spaces
   #
@@ -5028,12 +5173,12 @@ module OSut
 
     # Space-specific outdoor-facing roof surfaces.
     roofs = facets(spaces, "Outdoors", "RoofCeiling")
+    roofs = roofs.select { |roof| roof?(roof) }
 
-    # Outdoor-facing roof surfaces of unoccupied plenums or attics above?
     spaces.each do |space|
-      # When multiple spaces are involved (e.g. plenums, attics), the target
+      # When unoccupied spaces are involved (e.g. plenums, attics), the target
       # space may not share the same local transformation as the space(s) above.
-      # Fetching local transformation.
+      # Fetching site transformation.
       t0 = transforms(space)
       next unless t0[:t]
 
@@ -5056,8 +5201,10 @@ module OSut
 
         ti = ti[:t]
 
-        # TO DO: recursive call for stacked spaces as atria (via AirBoundaries).
+        # @todo: recursive call for stacked spaces as atria (via AirBoundaries).
         facets(other, "Outdoors", "RoofCeiling").each do |ruf|
+          next unless roof?(ruf)
+
           rvi = ti * ruf.vertices
           cst = cast(cv0, rvi, up)
           next unless overlaps?(cst, rvi, false)
@@ -5128,11 +5275,13 @@ module OSut
   # @option subs [#to_f] :r_buffer gap between sub/array and right corner
   # @option subs [#to_f] :l_buffer gap between sub/array and left corner
   # @param clear [Bool] whether to remove current sub surfaces
+  # @param bound [Bool] whether to add subs wrt surface's bounded box
+  # @param realign [Bool] whether to first realign bounded box
   # @param bfr [#to_f] safety buffer, to maintain near other edges
   #
   # @return [Bool] whether addition is successful
   # @return [false] if invalid input (see logs)
-  def addSubs(s = nil, subs = [], clear = false, bfr = 0.005)
+  def addSubs(s = nil, subs = [], clear = false, bound = false, realign = false, bfr = 0.005)
     mth = "OSut::#{__callee__}"
     v   = OpenStudio.openStudioVersion.split(".").join.to_i
     cl1 = OpenStudio::Model::Surface
@@ -5144,21 +5293,45 @@ module OSut
 
     # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
     # Exit if mismatched or invalid argument classes.
-    return mismatch("surface",  s, cl2, mth, DBG, no) unless s.is_a?(cl1)
-    return mismatch("subs",  subs, cl3, mth, DBG, no) unless subs.is_a?(cl2)
+    sbs = subs.is_a?(cl3) ? [subs] : subs
+    sbs = sbs.respond_to?(:to_a) ? sbs.to_a : []
+    return mismatch("surface",  s, cl1, mth, DBG, no) unless s.is_a?(cl1)
+    return mismatch("subs",  subs, cl2, mth, DBG, no)     if sbs.empty?
     return empty("surface points",      mth, DBG, no)     if poly(s).empty?
 
-    # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
-    # Clear existing sub surfaces if requested.
-    nom = s.nameString
-    mdl = s.model
+    subs = sbs
+    nom  = s.nameString
+    mdl  = s.model
 
+    # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
+    # Purge existing sub surfaces?
     unless [true, false].include?(clear)
       log(WRN, "#{nom}: Keeping existing sub surfaces (#{mth})")
       clear = false
     end
 
     s.subSurfaces.map(&:remove) if clear
+
+    # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
+    # Add sub surfaces with respect to base surface's bounded box? This is
+    # often useful (in some cases necessary) with irregular or concave surfaces.
+    # If true, sub surface parameters (e.g. height, offset, centreline) no
+    # longer apply to the original surface 'bounding' box, but instead to its
+    # largest 'bounded' box. This can be combined with the 'realign' parameter.
+    unless [true, false].include?(bound)
+      log(WRN, "#{nom}: Ignoring bounded box (#{mth})")
+      bound = false
+    end
+
+    # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
+    # Force re-alignment of base surface (or its 'bounded' box)? False by
+    # default (ideal for vertical/tilted walls & sloped roofs). If set to true
+    # for a narrow wall for instance, an array of sub surfaces will be added
+    # from bottom to top (rather from left to right).
+    unless [true, false].include?(realign)
+      log(WRN, "#{nom}: Ignoring realignment (#{mth})")
+      realign = false
+    end
 
     # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
     # Ensure minimum safety buffer.
@@ -5192,15 +5365,21 @@ module OSut
     s0  = poly(s, false, false, false, t, :ulc)
     s00 = nil
 
-    if facingUp?(s) || facingDown?(s) # TODO: redundant check?
-      s00 = getRealignedFace(s0)
-      return false unless s00[:set]
+    # Adapt sandbox if user selects to 'bound' and/or 'realign'.
+    if bound
+      box = boundedBox(s0)
 
-      s0 = s00[:set]
+      if realign
+        s00 = getRealignedFace(box, true)
+        return invalid("bound realignment", mth, 0, DBG, false) unless s00[:set]
+      end
+    elsif realign
+      s00 = getRealignedFace(s0, false)
+      return invalid("unbound realignment", mth, 0, DBG, false) unless s00[:set]
     end
 
-    max_x = width(s0)
-    max_y = height(s0)
+    max_x = s00 ? width( s00[:set]) :  width(s0)
+    max_y = s00 ? height(s00[:set]) : height(s0)
     mid_x = max_x / 2
     mid_y = max_y / 2
 
@@ -5219,7 +5398,7 @@ module OSut
       sub[:type      ] = trim(sub[:type])
       sub[:id        ] = trim(sub[:id])
       sub[:type      ] = type                   if sub[:type].empty?
-      sub[:id        ] = "OSut|#{nom}|#{index}" if sub[:id  ].empty?
+      sub[:id        ] = "OSut:#{nom}:#{index}" if sub[:id  ].empty?
       sub[:count     ] = 1 unless sub[:count     ].respond_to?(:to_i)
       sub[:multiplier] = 1 unless sub[:multiplier].respond_to?(:to_i)
       sub[:count     ] = sub[:count     ].to_i
@@ -5271,8 +5450,10 @@ module OSut
         next if key == :frame
         next if key == :assembly
 
-        ok = value.respond_to?(:to_f)
-        return mismatch(key, value, Float, mth, DBG, no) unless ok
+        unless value.respond_to?(:to_f)
+          return mismatch(key, value, Float, mth, DBG, no)
+        end
+
         next if key == :centreline
 
         negative(key, mth, WRN) if value < 0
@@ -5329,27 +5510,27 @@ module OSut
       # Log/reset "height" if beyond min/max.
       if sub.key?(:height)
         unless sub[:height].between?(glass - TOL2, max_height + TOL2)
-          sub[:height] = glass      if sub[:height] < glass
-          sub[:height] = max_height if sub[:height] > max_height
-          log(WRN, "Reset '#{id}' height to #{sub[:height]} m (#{mth})")
+          log(WRN, "Reset '#{id}' height #{sub[:height].round(3)}m (#{mth})")
+          sub[:height] = sub[:height].clamp(glass, max_height)
+          log(WRN, "Height '#{id}' reset to #{sub[:height].round(3)}m (#{mth})")
         end
       end
 
       # Log/reset "head" height if beyond min/max.
       if sub.key?(:head)
         unless sub[:head].between?(min_head - TOL2, max_head + TOL2)
-          sub[:head] = max_head if sub[:head] > max_head
-          sub[:head] = min_head if sub[:head] < min_head
-          log(WRN, "Reset '#{id}' head height to #{sub[:head]} m (#{mth})")
+          log(WRN, "Reset '#{id}' head #{sub[:head].round(3)}m (#{mth})")
+          sub[:head] = sub[:head].clamp(min_head, max_head)
+          log(WRN, "Head '#{id}' reset to #{sub[:head].round(3)}m (#{mth})")
         end
       end
 
       # Log/reset "sill" height if beyond min/max.
       if sub.key?(:sill)
         unless sub[:sill].between?(min_sill - TOL2, max_sill + TOL2)
-          sub[:sill] = max_sill if sub[:sill] > max_sill
-          sub[:sill] = min_sill if sub[:sill] < min_sill
-          log(WRN, "Reset '#{id}' sill height to #{sub[:sill]} m (#{mth})")
+          log(WRN, "Reset '#{id}' sill #{sub[:sill].round(3)}m (#{mth})")
+          sub[:sill] = sub[:sill].clamp(min_sill, max_sill)
+          log(WRN, "Sill '#{id}' reset to #{sub[:sill].round(3)}m (#{mth})")
         end
       end
 
@@ -5368,8 +5549,9 @@ module OSut
           log(ERR, "Skip: invalid '#{id}' head/sill combo (#{mth})")
           next
         else
+          log(WRN, "(Re)set '#{id}' sill #{sub[:sill].round(3)}m (#{mth})")
           sub[:sill] = sill
-          log(WRN, "(Re)set '#{id}' sill height to #{sub[:sill]} m (#{mth})")
+          log(WRN, "Sill '#{id}' (re)set to #{sub[:sill].round(3)}m (#{mth})")
         end
       end
 
@@ -5379,7 +5561,8 @@ module OSut
         height = sub[:head] - sub[:sill]
 
         if sub.key?(:height) && (sub[:height] - height).abs > TOL2
-          log(WRN, "(Re)set '#{id}' height to #{height} m (#{mth})")
+          log(WRN, "(Re)set '#{id}' height #{sub[:height].round(3)}m (#{mth})")
+          log(WRN, "Height '#{id}' (re)set to #{height.round(3)}m (#{mth})")
         end
 
         sub[:height] = height
@@ -5400,9 +5583,10 @@ module OSut
               log(ERR, "Skip: invalid '#{id}' head/height combo (#{mth})")
               next
             else
+              log(WRN, "(Re)set '#{id}' height #{sub[:height].round(3)}m (#{mth})")
               sub[:sill  ] = sill
               sub[:height] = height
-              log(WRN, "(Re)set '#{id}' height to #{sub[:height]} m (#{mth})")
+              log(WRN, "Height '#{id}' re(set) #{sub[:height].round(3)}m (#{mth})")
             end
           else
             sub[:sill] = sill
@@ -5428,9 +5612,10 @@ module OSut
               log(ERR, "Skip: invalid '#{id}' sill/height combo (#{mth})")
               next
             else
+              log(WRN, "(Re)set '#{id}' height #{sub[:height].round(3)}m (#{mth})")
               sub[:head  ] = head
               sub[:height] = height
-              log(WRN, "(Re)set '#{id}' height to #{sub[:height]} m (#{mth})")
+              log(WRN, "Height '#{id}' reset to #{sub[:height].round(3)}m (#{mth})")
             end
           else
             sub[:head] = head
@@ -5459,9 +5644,9 @@ module OSut
       # Log/reset "width" if beyond min/max.
       if sub.key?(:width)
         unless sub[:width].between?(glass - TOL2, max_width + TOL2)
-          sub[:width] = glass     if sub[:width] < glass
-          sub[:width] = max_width if sub[:width] > max_width
-          log(WRN, "Reset '#{id}' width to #{sub[:width]} m (#{mth})")
+          log(WRN, "Reset '#{id}' width #{sub[:width].round(3)}m (#{mth})")
+          sub[:width] = sub[:width].clamp(glass, max_width)
+          log(WRN, "Width '#{id}' reset to #{sub[:width].round(3)}m (#{mth})")
         end
       end
 
@@ -5471,7 +5656,7 @@ module OSut
 
         if sub[:count] < 1
           sub[:count] = 1
-          log(WRN, "Reset '#{id}' count to #{sub[:count]} (#{mth})")
+          log(WRN, "Reset '#{id}' count to min 1 (#{mth})")
         end
       else
         sub[:count] = 1
@@ -5482,16 +5667,18 @@ module OSut
       # Log/reset if left-sided buffer under min jamb position.
       if sub.key?(:l_buffer)
         if sub[:l_buffer] < min_ljamb - TOL
+          log(WRN, "Reset '#{id}' left buffer #{sub[:l_buffer].round(3)}m (#{mth})")
           sub[:l_buffer] = min_ljamb
-          log(WRN, "Reset '#{id}' left buffer to #{sub[:l_buffer]} m (#{mth})")
+          log(WRN, "Left buffer '#{id}' reset to #{sub[:l_buffer].round(3)}m (#{mth})")
         end
       end
 
       # Log/reset if right-sided buffer beyond max jamb position.
       if sub.key?(:r_buffer)
         if sub[:r_buffer] > max_rjamb - TOL
+          log(WRN, "Reset '#{id}' right buffer #{sub[:r_buffer].round(3)}m (#{mth})")
           sub[:r_buffer] = min_rjamb
-          log(WRN, "Reset '#{id}' right buffer to #{sub[:r_buffer]} m (#{mth})")
+          log(WRN, "Right buffer '#{id}' reset to #{sub[:r_buffer].round(3)}m (#{mth})")
         end
       end
 
@@ -5511,15 +5698,15 @@ module OSut
           sub[:multiplier] = 0
           sub[:height    ] = 0 if sub.key?(:height)
           sub[:width     ] = 0 if sub.key?(:width)
-          log(ERR, "Skip: '#{id}' ratio ~0 (#{mth})")
+          log(ERR, "Skip: ratio ~0 (#{mth})")
           next
         end
 
         # Log/reset if "ratio" beyond min/max?
         unless sub[:ratio].between?(min, max)
-          sub[:ratio] = min if sub[:ratio] < min
-          sub[:ratio] = max if sub[:ratio] > max
-          log(WRN, "Reset ratio (min/max) to #{sub[:ratio]} (#{mth})")
+          log(WRN, "Reset ratio #{sub[:ratio].round(3)} (#{mth})")
+          sub[:ratio] = sub[:ratio].clamp(min, max)
+          log(WRN, "Ratio reset to #{sub[:ratio].round(3)} (#{mth})")
         end
 
         # Log/reset "count" unless 1.
@@ -5536,7 +5723,7 @@ module OSut
 
         if sub.key?(:l_buffer)
           if sub.key?(:centreline)
-            log(WRN, "Skip #{id} left buffer (vs centreline) (#{mth})")
+            log(WRN, "Skip '#{id}' left buffer (vs centreline) (#{mth})")
           else
             x0     = sub[:l_buffer] - frame
             xf     = x0 + w
@@ -5544,7 +5731,7 @@ module OSut
           end
         elsif sub.key?(:r_buffer)
           if sub.key?(:centreline)
-            log(WRN, "Skip #{id} right buffer (vs centreline) (#{mth})")
+            log(WRN, "Skip '#{id}' right buffer (vs centreline) (#{mth})")
           else
             xf     = max_x - sub[:r_buffer] + frame
             x0     = xf - w
@@ -5559,13 +5746,14 @@ module OSut
           sub[:multiplier] = 0
           sub[:height    ] = 0 if sub.key?(:height)
           sub[:width     ] = 0 if sub.key?(:width)
-          log(ERR, "Skip: invalid (ratio) width/centreline (#{mth})")
+          log(ERR, "Skip '#{id}': invalid (ratio) width/centreline (#{mth})")
           next
         end
 
         if sub.key?(:width) && (sub[:width] - width).abs > TOL
+          log(WRN, "Reset '#{id}' width (ratio) #{sub[:width].round(2)}m (#{mth})")
           sub[:width] = width
-          log(WRN, "Reset width (ratio) to #{sub[:width]} (#{mth})")
+          log(WRN, "Width (ratio) '#{id}' reset to #{sub[:width].round(2)}m (#{mth})")
         end
 
         sub[:width] = width unless sub.key?(:width)
@@ -5583,12 +5771,13 @@ module OSut
         width  = sub[:width] + frames
         gap    = (max_x - n * width) / (n + 1)
         gap    = sub[:offset] - width if sub.key?(:offset)
-        gap    = 0                    if gap < bfr
+        gap    = 0                    if gap < buffer
         offset = gap + width
 
         if sub.key?(:offset) && (offset - sub[:offset]).abs > TOL
+          log(WRN, "Reset '#{id}' sub offset #{sub[:offset].round(2)}m (#{mth})")
           sub[:offset] = offset
-          log(WRN, "Reset sub offset to #{sub[:offset]} m (#{mth})")
+          log(WRN, "Sub offset (#{id}) reset to #{sub[:offset].round(2)}m (#{mth})")
         end
 
         sub[:offset] = offset unless sub.key?(:offset)
@@ -5600,7 +5789,7 @@ module OSut
 
         if sub.key?(:l_buffer)
           if sub.key?(:centreline)
-            log(WRN, "Skip #{id} left buffer (vs centreline) (#{mth})")
+            log(WRN, "Skip '#{id}' left buffer (vs centreline) (#{mth})")
           else
             x0     = sub[:l_buffer] - frame
             xf     = x0 + w
@@ -5608,7 +5797,7 @@ module OSut
           end
         elsif sub.key?(:r_buffer)
           if sub.key?(:centreline)
-            log(WRN, "Skip #{id} right buffer (vs centreline) (#{mth})")
+            log(WRN, "Skip '#{id}' right buffer (vs centreline) (#{mth})")
           else
             xf     = max_x - sub[:r_buffer] + frame
             x0     = xf - w
@@ -5617,7 +5806,7 @@ module OSut
         end
 
         # Too wide?
-        if x0 < bfr - TOL2 || xf > max_x - bfr - TOL2
+        if x0 < buffer - TOL2 || xf > max_x - buffer - TOL2
           sub[:ratio     ] = 0 if sub.key?(:ratio)
           sub[:count     ] = 0
           sub[:multiplier] = 0
@@ -5633,10 +5822,9 @@ module OSut
 
       # Generate sub(s).
       sub[:count].times do |i|
-        name = "#{id}|#{i}"
+        name = "#{id}:#{i}"
         fr   = 0
         fr   = sub[:frame].frameWidth if sub[:frame]
-
         vec  = OpenStudio::Point3dVector.new
         vec << OpenStudio::Point3d.new(pos,               sub[:head], 0)
         vec << OpenStudio::Point3d.new(pos,               sub[:sill], 0)
@@ -5647,34 +5835,41 @@ module OSut
         # Log/skip if conflict between individual sub and base surface.
         vc = vec
         vc = offset(vc, fr, 300) if fr > 0
-        ok = fits?(vc, s)
 
-        log(ERR, "Skip '#{name}': won't fit in '#{nom}' (#{mth})") unless ok
-        break                                                      unless ok
+        unless fits?(vc, s)
+          log(ERR, "Skip '#{name}': won't fit in '#{nom}' (#{mth})")
+          break
+        end
 
         # Log/skip if conflicts with existing subs (even if same array).
+        conflict = false
+
         s.subSurfaces.each do |sb|
           nome = sb.nameString
           fd   = sb.windowPropertyFrameAndDivider
-          fr   = 0                     if fd.empty?
-          fr   = fd.get.frameWidth unless fd.empty?
+          fr   = fd.empty? ? 0 : fd.get.frameWidth
           vk   = sb.vertices
           vk   = offset(vk, fr, 300) if fr > 0
-          oops = overlaps?(vc, vk)
-          log(ERR, "Skip '#{name}': overlaps '#{nome}' (#{mth})") if oops
-          ok = false                                              if oops
-          break                                                   if oops
+
+          if overlaps?(vc, vk)
+            log(ERR, "Skip '#{name}': overlaps '#{nome}' (#{mth})")
+            conflict = true
+            break
+          end
         end
 
-        break unless ok
+        break if conflict
 
         sb = OpenStudio::Model::SubSurface.new(vec, mdl)
         sb.setName(name)
         sb.setSubSurfaceType(sub[:type])
-        sb.setConstruction(sub[:assembly])               if sub[:assembly]
-        ok = sb.allowWindowPropertyFrameAndDivider
-        sb.setWindowPropertyFrameAndDivider(sub[:frame]) if sub[:frame] && ok
-        sb.setMultiplier(sub[:multiplier])               if sub[:multiplier] > 1
+        sb.setConstruction(sub[:assembly]) if sub[:assembly]
+        sb.setMultiplier(sub[:multiplier]) if sub[:multiplier] > 1
+
+        if sub[:frame] && sb.allowWindowPropertyFrameAndDivider
+          sb.setWindowPropertyFrameAndDivider(sub[:frame])
+        end
+
         sb.setSurface(s)
 
         # Reset "pos" if array.
@@ -5686,31 +5881,14 @@ module OSut
   end
 
   ##
-  # Validates whether surface is considered a sloped roof (outdoor-facing,
-  # 10% < tilt < 90%).
-  #
-  # @param s [OpenStudio::Model::Surface] a model surface
-  #
-  # @return [Bool] whether surface is a sloped roof
-  # @return [false] if invalid input (see logs)
-  def slopedRoof?(s = nil)
-    mth = "OSut::#{__callee__}"
-    cl  = OpenStudio::Model::Surface
-    return mismatch("surface", s, cl, mth, DBG, false) unless s.is_a?(cl)
-
-    return false if facingUp?(s)
-    return false if facingDown?(s)
-
-    true
-  end
-
-  ##
   # Returns the "gross roof area" above selected conditioned, occupied spaces.
   # This includes all roof surfaces of indirectly-conditioned, unoccupied spaces
   # like plenums (if located above any of the selected spaces). This also
   # includes roof surfaces of unconditioned or unenclosed spaces like attics, if
   # vertically-overlapping any ceiling of occupied spaces below; attic roof
-  # sections above uninsulated soffits are excluded, for instance.
+  # sections above uninsulated soffits are excluded, for instance. It does not
+  # include surfaces labelled as 'RoofCeiling', which do not comply with ASHRAE
+  # 90.1 or NECB tilt criteria - see 'roof?'.
   def grossRoofArea(spaces = [])
     mth = "OSut::#{__callee__}"
     up  = OpenStudio::Point3d.new(0,0,1) - OpenStudio::Point3d.new(0,0,0)
@@ -5721,6 +5899,7 @@ module OSut
     spaces = spaces.respond_to?(:to_a) ? spaces.to_a : []
     spaces = spaces.select { |space| space.is_a?(OpenStudio::Model::Space) }
     spaces = spaces.select { |space| space.partofTotalFloorArea }
+    spaces = spaces.reject { |space| unconditioned?(space) }
     return invalid("spaces", mth, 1, DBG, 0) if spaces.empty?
 
     # The method is very similar to OpenStudio-Standards' :
@@ -5732,17 +5911,18 @@ module OSut
     #
     # ... yet differs with regards to attics with overhangs/soffits.
 
-    # Start with roof surfaces of occupied spaces.
+    # Start with roof surfaces of occupied, conditioned spaces.
     spaces.each do |space|
       facets(space, "Outdoors", "RoofCeiling").each do |roof|
         next if rfs.key?(roof)
+        next unless roof?(roof)
 
         rfs[roof] = {m2: roof.grossArea, m: space.multiplier}
       end
     end
 
     # Roof surfaces of unoccupied, conditioned spaces above (e.g. plenums)?
-    # TO DO: recursive call for stacked spaces as atria (via AirBoundaries).
+    # @todo: recursive call for stacked spaces as atria (via AirBoundaries).
     spaces.each do |space|
       facets(space, "Surface", "RoofCeiling").each do |ceiling|
         floor = ceiling.adjacentSurface
@@ -5757,6 +5937,7 @@ module OSut
 
         facets(other, "Outdoors", "RoofCeiling").each do |roof|
           next if rfs.key?(roof)
+          next unless roof?(roof)
 
           rfs[roof] = {m2: roof.grossArea, m: other.multiplier}
         end
@@ -5764,7 +5945,7 @@ module OSut
     end
 
     # Roof surfaces of unoccupied, unconditioned spaces above (e.g. attics)?
-    # TO DO: recursive call for stacked spaces as atria (via AirBoundaries).
+    # @todo: recursive call for stacked spaces as atria (via AirBoundaries).
     spaces.each do |space|
       # When taking overlaps into account, the target space may not share the
       # same local transformation as the space(s) above.
@@ -5792,6 +5973,8 @@ module OSut
         ti = ti[:t]
 
         facets(other, "Outdoors", "RoofCeiling").each do |roof|
+          next unless roof?(roof)
+
           rvi  = ti * roof.vertices
           cst  = cast(cv0, rvi, up)
           next if cst.empty?
@@ -5799,7 +5982,7 @@ module OSut
           # The overlap calculation fails for roof and ceiling surfaces with
           # previously-added leader lines.
           #
-          # TODO: revise approach for attics ONCE skylight wells have been added.
+          # @todo: revise approach for attics ONCE skylight wells have been added.
           olap = nil
           olap = overlap(cst, rvi, false)
           next if olap.empty?
@@ -5823,13 +6006,14 @@ module OSut
   end
 
   ##
-  # Identifies horizontal ridges between 2x sloped roof surfaces (same space).
-  # If successful, the returned Array holds 'ridge' Hashes. Each Hash holds: an
+  # Identifies horizontal ridges along 2x sloped (roof?) surfaces (same space).
+  # The concept of 'sloped' is harmonized with OpenStudio's "alignZPrime". If
+  # successful, the returned Array holds 'ridge' Hashes. Each Hash holds: an
   # :edge (OpenStudio::Point3dVector), the edge :length (Numeric), and :roofs
-  # (Array of 2x linked roof surfaces). Each roof surface may be linked to more
-  # than one horizontal ridge.
+  # (Array of 2x linked surfaces). Each surface may be linked to more than one
+  # horizontal ridge.
   #
-  # @param roofs [Array<OpenStudio::Model::Surface>] target roof surfaces
+  # @param roofs [Array<OpenStudio::Model::Surface>] target surfaces
   #
   # @return [Array] horizontal ridges (see logs if empty)
   def getHorizontalRidges(roofs = [])
@@ -5838,7 +6022,7 @@ module OSut
     return ridges unless roofs.is_a?(Array)
 
     roofs = roofs.select { |s| s.is_a?(OpenStudio::Model::Surface) }
-    roofs = roofs.select { |s| slopedRoof?(s) }
+    roofs = roofs.select { |s| sloped?(s) }
 
     roofs.each do |roof|
       maxZ = roof.vertices.max_by(&:z).z
@@ -5873,7 +6057,7 @@ module OSut
           next  unless ruf.space.get == space
 
           getSegments(ruf).each do |edg|
-            break if match
+            break    if match
             next unless same?(edge, edg) || same?(edge, edg.reverse)
 
             ridge[:roofs] << ruf
@@ -5888,48 +6072,178 @@ module OSut
   end
 
   ##
+  # Preselects ideal spaces to toplight, based on 'addSkylights' options and key
+  # building model geometry attributes. Can be called from within 'addSkylights'
+  # by setting :ration (opts key:value argument) to 'true' ('false' by default).
+  # Alternatively, the method can be called prior to 'addSkylights'. The set of
+  # filters stems from previous rounds of 'addSkylights' stress testing. It is
+  # intended as an option to prune away less ideal candidate spaces (irregular,
+  # smaller) in favour of (larger) candidates (notably with more suitable
+  # roof geometries). This is key when dealing with attic and plenums, where
+  # 'addSkylights' seeks to add skylight wells (relying on roof cut-outs and
+  # leader lines). Another check/outcome is whether to prioritize skylight
+  # allocation in already sidelit spaces - opts[:sidelit] may be reset to 'true'.
+  #
+  # @param spaces [Array<OpenStudio::Model::Space>] candidate(s) to toplight
+  # @param [Hash] opts requested skylight attributes (same as 'addSkylights')
+  # @option opts [#to_f] :size (1.22m) template skylight width/depth (min 0.4m)
+  #
+  # @return [Array<OpenStudio::Model::Space>] candidates (see logs if empty)
+  def toToplit(spaces = [], opts = {})
+    mth  = "OSut::#{__callee__}"
+    gap4 = 0.4  # minimum skylight 16" width/depth (excluding frame width)
+    w    = 1.22 # default 48" x 48" skylight base
+    w2   = w * w
+
+    # Validate skylight size, if provided.
+    if opts.key?(:size)
+      if opts[:size].respond_to?(:to_f)
+        w  = opts[:size].to_f
+        w2 = w * w
+        return invalid(size, mth, 0, ERR, []) if w.round(2) < gap4
+      else
+        return mismatch("size", opts[:size], Numeric, mth, DBG, [])
+      end
+    end
+
+    # Accept single 'OpenStudio::Model::Space' (vs an array of spaces). Filter.
+    #
+    # Whether individual spaces are UNCONDITIONED (e.g. attics, unheated areas)
+    # or flagged as NOT being part of the total floor area (e.g. unoccupied
+    # plenums), should of course reflect actual design intentions. It's up to
+    # modellers to correctly flag such cases - can't safely guess in lieu of
+    # design/modelling team.
+    #
+    # A friendly reminder: 'addSkylights' should be called separately for
+    # strictly SEMIHEATED spaces vs REGRIGERATED spaces vs all other CONDITIONED
+    # spaces, as per 90.1 and NECB requirements.
+    if spaces.respond_to?(:spaceType) || spaces.respond_to?(:to_a)
+      spaces = spaces.respond_to?(:to_a) ? spaces.to_a : [spaces]
+      spaces = spaces.select { |sp| sp.respond_to?(:spaceType) }
+      spaces = spaces.select { |sp| sp.partofTotalFloorArea }
+      spaces = spaces.reject { |sp| unconditioned?(sp) }
+      spaces = spaces.reject { |sp| vestibule?(sp) }
+      spaces = spaces.reject { |sp| getRoofs(sp).empty? }
+      spaces = spaces.reject { |sp| sp.floorArea < 4 * w2 }
+      spaces = spaces.sort_by(&:floorArea).reverse
+      return empty("spaces", mth, WRN, 0) if spaces.empty?
+    else
+      return mismatch("spaces", spaces, Array, mth, DBG, 0)
+    end
+
+    # Unfenestrated spaces have no windows, glazed doors or skylights. By
+    # default, 'addSkylights' will prioritize unfenestrated spaces (over all
+    # existing sidelit ones) and maximize skylight sizes towards achieving the
+    # required skylight area target. This concentrates skylights for instance in
+    # typical (large) core spaces, vs (narrower) perimeter spaces. However, for
+    # less conventional spatial layouts, this default approach can produce less
+    # optimal skylight distributions. A balance is needed to prioritize large
+    # unfenestrated spaces when appropriate on one hand, while excluding smaller
+    # unfenestrated ones on the other. Here, exclusion is based on the average
+    # floor area of spaces to toplight.
+    fm2  = spaces.sum(&:floorArea)
+    afm2 = fm2 / spaces.size
+
+    unfen = spaces.reject { |sp| daylit?(sp) }.sort_by(&:floorArea).reverse
+
+    # Target larger unfenestrated spaces, if sufficient in area.
+    if unfen.empty?
+      opts[:sidelit] = true
+    else
+      if spaces.size > unfen.size
+        ufm2  = unfen.sum(&:floorArea)
+        u0fm2 = unfen.first.floorArea
+
+        if ufm2 > 0.33 * fm2 && u0fm2 > 3 * afm2
+          unfen  = unfen.reject { |sp| sp.floorArea > 0.25 * afm2 }
+          spaces = spaces.reject { |sp| unfen.include?(sp) }
+        else
+          opts[:sidelit] = true
+        end
+      end
+    end
+
+    espaces = {}
+    rooms   = []
+    toits   = []
+
+    # Gather roof surfaces - possibly those of attics or plenums above.
+    spaces.each do |sp|
+      getRoofs(sp).each do |rf|
+        espaces[sp] = {roofs: []} unless espaces.key?(sp)
+        espaces[sp][:roofs] << rf unless espaces[sp][:roofs].include?(rf)
+      end
+    end
+
+    # Priortize larger spaces.
+    espaces = espaces.sort_by { |espace, _| espace.floorArea }.reverse
+
+    # Prioritize larger roof surfaces.
+    espaces.each do |_, datum|
+      datum[:roofs] = datum[:roofs].sort_by(&:grossArea).reverse
+    end
+
+    # Single out largest roof in largest space, key when dealing with shared
+    # attics or plenum roofs.
+    espaces.each do |espace, datum|
+      rfs = datum[:roofs].reject { |ruf| toits.include?(ruf) }
+      next if rfs.empty?
+
+      toits << rfs.sort { |ruf| ruf.grossArea }.reverse.first
+      rooms << espace
+    end
+
+    log(INF, "No ideal toplit candidates (#{mth})") if rooms.empty?
+
+    rooms
+  end
+
+  ##
   # Adds skylights to toplight selected OpenStudio (occupied, conditioned)
-  # spaces, based on requested skylight-to-roof (SRR%) options (max 10%). If the
-  # user selects 0% (0.0) as the :srr while keeping :clear as true, the method
-  # simply purges all pre-existing roof subsurfaces (whether glazed or not) of
-  # selected spaces, and exits while returning 0 (without logging an error or
-  # warning). Pre-toplit spaces are otherwise ignored. Boolean options :attic,
-  # :plenum, :sloped and :sidelit, further restrict candidate roof surfaces. If
-  # applicable, options :attic and :plenum add skylight wells. Option :patterns
-  # restricts preset skylight allocation strategies in order of preference; if
-  # left empty, all preset patterns are considered, also in order of preference
-  # (see examples).
+  # spaces, based on requested skylight area, or a skylight-to-roof ratio (SRR%).
+  # If the user selects 0m2 as the requested :area (or 0 as the requested :srr),
+  # while setting the option :clear as true, the method simply purges all
+  # pre-existing roof fenestrated subsurfaces of selected spaces, and exits while
+  # returning 0 (without logging an error or warning). Pre-existing skylight
+  # wells are not cleared however. Pre-toplit spaces are otherwise ignored.
+  # Boolean options :attic, :plenum, :sloped and :sidelit further restrict
+  # candidate spaces to toplight. If applicable, options :attic and :plenum add
+  # skylight wells. Option :patterns restricts preset skylight allocation
+  # layouts in order of preference; if left empty, all preset patterns are
+  # considered, also in order of preference (see examples).
   #
   # @param spaces [Array<OpenStudio::Model::Space>] space(s) to toplight
   # @param [Hash] opts requested skylight attributes
-  # @option opts [#to_f] :srr skylight-to-roof ratio (0.00, 0.10]
+  # @option opts [#to_f] :area overall skylight area
+  # @option opts [#to_f] :srr skylight-to-roof ratio (0.00, 0.90]
   # @option opts [#to_f] :size (1.22) template skylight width/depth (min 0.4m)
   # @option opts [#frameWidth] :frame (nil) OpenStudio Frame & Divider (optional)
   # @option opts [Bool] :clear (true) whether to first purge existing skylights
+  # @option opts [Bool] :ration (true) finer selection of candidates to toplight
   # @option opts [Bool] :sidelit (true) whether to consider sidelit spaces
   # @option opts [Bool] :sloped (true) whether to consider sloped roof surfaces
   # @option opts [Bool] :plenum (true) whether to consider plenum wells
   # @option opts [Bool] :attic (true) whether to consider attic wells
   # @option opts [Array<#to_s>] :patterns requested skylight allocation (3x)
-  # @example (a) consider 2D array of individual skylights, e.g. n(1.2m x 1.2m)
+  # @example (a) consider 2D array of individual skylights, e.g. n(1.22m x 1.22m)
   #   opts[:patterns] = ["array"]
   # @example (b) consider 'a', then array of 1x(size) x n(size) skylight strips
   #   opts[:patterns] = ["array", "strips"]
   #
-  # @return [Float] returns gross roof area if successful (see logs if 0 m2)
+  # @return [Float] returns gross roof area if successful (see logs if 0m2)
   def addSkyLights(spaces = [], opts = {})
     mth   = "OSut::#{__callee__}"
     clear = true
-    srr   = 0.0
+    srr   = nil
+    area  = nil
     frame = nil   # FrameAndDivider object
     f     = 0.0   # FrameAndDivider frame width
-    gap   = 0.1   # min 2" around well (2x), as well as max frame width
+    gap   = 0.1   # min 2" around well (2x == 4"), as well as max frame width
     gap2  = 0.2   # 2x gap
     gap4  = 0.4   # minimum skylight 16" width/depth (excluding frame width)
     bfr   = 0.005 # minimum array perimeter buffer (no wells)
     w     = 1.22  # default 48" x 48" skylight base
     w2    = w * w # m2
-
 
     # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
     # Excerpts of ASHRAE 90.1 2022 definitions:
@@ -5994,7 +6308,7 @@ module OSut
     # to exclude portions of any roof surface: all plenum roof surfaces (in
     # addition to soffit surfaces) would need to be insulated). The method takes
     # such circumstances into account, which requires vertically casting of
-    # surfaces ontoothers, as well as overlap calculations. If successful, the
+    # surfaces onto others, as well as overlap calculations. If successful, the
     # method returns the "GROSS ROOF AREA" (in m2), based on the above rationale.
     #
     # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
@@ -6014,7 +6328,7 @@ module OSut
     # instance, if the GROSS ROOF AREA were based on insulated ceiling surfaces,
     # there would be a topological disconnect between flat ceiling and sloped
     # skylights above. Should NECB users first 'project' (sloped) skylight rough
-    # openings onto flat ceilings when calculating %SRR? Without much needed
+    # openings onto flat ceilings when calculating SRR%? Without much needed
     # clarification, the (clearer) 90.1 rules equally apply here to NECB cases.
 
     # If skylight wells are indeed required, well wall edges are always vertical
@@ -6037,19 +6351,8 @@ module OSut
 
     mdl = spaces.first.model
 
-    # Exit if mismatched or invalid argument classes/keys.
+    # Exit if mismatched or invalid options.
     return mismatch("opts", opts, Hash, mth, DBG, 0) unless opts.is_a?(Hash)
-    return  hashkey( "srr", opts, :srr, mth, ERR, 0) unless opts.key?(:srr)
-
-    # Validate requested skylight-to-roof ratio.
-    if opts[:srr].respond_to?(:to_f)
-      srr = opts[:srr].to_f
-      log(WRN, "Resetting srr to 0% (#{mth})")  if srr < 0
-      log(WRN, "Resetting srr to 10% (#{mth})") if srr > 0.10
-      srr = srr.clamp(0.00, 0.10)
-    else
-      return mismatch("srr", opts[:srr], Numeric, mth, DBG, 0)
-    end
 
     # Validate Frame & Divider object, if provided.
     if opts.key?(:frame)
@@ -6085,6 +6388,27 @@ module OSut
     wl  = w0 + gap
     wl2 = wl * wl
 
+    # Validate requested skylight-to-roof ratio (or overall area).
+    if opts.key?(:area)
+      if opts[:area].respond_to?(:to_f)
+        area = opts[:area].to_f
+        log(WRN, "Area reset to 0.0m2 (#{mth})") if area < 0
+      else
+        return mismatch("area", opts[:area], Numeric, mth, DBG, 0)
+      end
+    elsif opts.key?(:srr)
+      if opts[:srr].respond_to?(:to_f)
+        srr = opts[:srr].to_f
+        log(WRN, "SRR (#{srr.round(2)}) reset to 0% (#{mth})")  if srr < 0
+        log(WRN, "SRR (#{srr.round(2)}) reset to 90% (#{mth})") if srr > 0.90
+        srr = srr.clamp(0.00, 0.10)
+      else
+        return mismatch("srr", opts[:srr], Numeric, mth, DBG, 0)
+      end
+    else
+      return hashkey("area", opts, :area, mth, ERR, 0)
+    end
+
     # Validate purge request, if provided.
     if opts.key?(:clear)
       clear = opts[:clear]
@@ -6095,35 +6419,97 @@ module OSut
       end
     end
 
+    # Purge if requested.
     getRoofs(spaces).each { |s| s.subSurfaces.map(&:remove) } if clear
 
     # Safely exit, e.g. if strictly called to purge existing roof subsurfaces.
-    return 0 if srr < TOL
+    return 0 if area && area.round(2) == 0
+    return 0 if srr  &&  srr.round(2) == 0
+
+    m2  = 0 # total existing skylight rough opening area
+    rm2 = grossRoofArea(spaces) # excludes e.g. overhangs
+
+    # Tally existing skylight rough opening areas.
+    spaces.each do |space|
+      m = space.multiplier
+
+      facets(space, "Outdoors", "RoofCeiling").each do |roof|
+        roof.subSurfaces.each do |sub|
+          next unless fenestration?(sub)
+
+          id  = sub.nameString
+          xm2 = sub.grossArea
+
+          if sub.allowWindowPropertyFrameAndDivider
+            unless sub.windowPropertyFrameAndDivider.empty?
+              fw   = sub.windowPropertyFrameAndDivider.get.frameWidth
+              vec  = offset(sub.vertices, fw, 300)
+              aire = OpenStudio.getArea(vec)
+
+              if aire.empty?
+                log(ERR, "Skipping '#{id}': invalid Frame&Divider (#{mth})")
+              else
+                xm2 = aire.get
+              end
+            end
+          end
+
+          m2 += xm2 * sub.multiplier * m
+        end
+      end
+    end
+
+    # Required skylight area to add.
+    sm2 = area ? area : rm2 * srr - m2
+
+    # Warn/skip if existing skylights exceed or ~roughly match targets.
+    if sm2.round(2) < w02.round(2)
+      if m2 > 0
+        log(INF, "Skipping: existing skylight area > request (#{mth})")
+        return rm2
+      else
+        log(INF, "Requested skylight area < min size (#{mth})")
+      end
+    elsif 0.9 * rm2.round(2) < sm2.round(2)
+      log(INF, "Skipping: requested skylight area > 90% of GRA (#{mth})")
+      return rm2
+    end
+
+    opts[:ration] = true unless opts.key?(:ration)
+
+    # By default, seek ideal candidate spaces/roofs. Bail out if unsuccessful.
+    unless opts[:ration] == false
+      spaces = toToplit(spaces, opts)
+      return rm2 if spaces.empty?
+    end
 
     # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
     # The method seeks to insert a skylight array within the largest rectangular
     # 'bounded box' that neatly 'fits' within a given roof surface. This equally
     # applies to any vertically-cast overlap between roof and plenum (or attic)
     # floor, which in turn generates skylight wells. Skylight arrays are
-    # inserted from left/right + top/bottom (as illustrated below), once a roof
-    # (or cast 3D overlap) is 'aligned' in 2D (possibly also 'realigned').
+    # inserted from left-to-right & top-to-bottom (as illustrated below), once a
+    # roof (or cast 3D overlap) is 'aligned' in 2D.
     #
     # Depending on geometric complexity (e.g. building/roof concavity,
     # triangulation), the total area of bounded boxes may be significantly less
     # than the calculated "GROSS ROOF AREA", which can make it challenging to
-    # attain the desired %SRR. If :patterns are left unaltered, the method will
-    # select patterns that maximize the likelihood of attaining the requested
-    # %SRR, to the detriment of spatial distribution of daylighting.
+    # attain the requested skylight area. If :patterns are left unaltered, the
+    # method will select those that maximize the likelihood of attaining the
+    # requested target, to the detriment of spatial daylighting distribution.
     #
-    # The default skylight module size is 1.2m x 1.2m (4' x 4'), which be
-    # overridden by the user, e.g. 2.4m x 2.4m (8' x 8').
+    # The default skylight module size is 1.22m x 1.22m (4' x 4'), which can be
+    # overridden by the user, e.g. 2.44m x 2.44m (8' x 8'). However, skylight
+    # sizes usually end up either contracted or inflated to exactly meet a
+    # request skylight area or SRR%,
     #
     # Preset skylight allocation patterns (in order of precedence):
+    #
     #    1. "array"
     #   _____________________
     #  |   _      _      _   |  - ?x columns ("cols") >= ?x rows (min 2x2)
-    #  |  |_|    |_|    |_|  |  - SRR ~5% (1.2m x 1.2m), as illustrated
-    #  |                     |  - SRR ~19% (2.4m x 2.4m)
+    #  |  |_|    |_|    |_|  |  - SRR ~5% (1.22m x 1.22m), as illustrated
+    #  |                     |  - SRR ~19% (2.44m x 2.44m)
     #  |   _      _      _   |  - +suitable for wide spaces (storage, retail)
     #  |  |_|    |_|    |_|  |  - ~1.4x height + skylight width 'ideal' rule
     #  |_____________________|  - better daylight distribution, many wells
@@ -6132,21 +6518,21 @@ module OSut
     #   _____________________
     #  |   _      _      _   |  - ?x columns (min 2), 1x row
     #  |  | |    | |    | |  |  - ~doubles %SRR ...
-    #  |  | |    | |    | |  |  - SRR ~10% (1.2m x ?1.2m), as illustrated
-    #  |  | |    | |    | |  |  - SRR ~19% (2.4m x ?1.2m)
+    #  |  | |    | |    | |  |  - SRR ~10% (1.22m x ?1.22m), as illustrated
+    #  |  | |    | |    | |  |  - SRR ~19% (2.44m x ?1.22m)
     #  |  |_|    |_|    |_|  |  - ~roof monitor layout
     #  |_____________________|  - fewer wells
     #
     #    3. "strip"
     #    ____________________
     #   |                    |  - 1x column, 1x row (min 1x)
-    #   |   ______________   |  - SRR ~11% (1.2m x ?1.2m)
-    #   |  | ............ |  |  - SRR ~22% (2.4m x ?1.2m), as illustrated
+    #   |   ______________   |  - SRR ~11% (1.22m x ?1.22m)
+    #   |  | ............ |  |  - SRR ~22% (2.44m x ?1.22m), as illustrated
     #   |  |______________|  |  - +suitable for elongated bounded boxes
     #   |                    |  - 1x well
     #   |____________________|
     #
-    #   TO-DO: Support strips/strip patterns along ridge of paired roof surfaces.
+    # @todo: Support strips/strip patterns along ridge of paired roof surfaces.
     layouts  = ["array", "strips", "strip"]
     patterns = []
 
@@ -6174,27 +6560,26 @@ module OSut
     #   - large roof surface areas (e.g. retail, classrooms ... not corridors)
     #   - not sidelit (favours core spaces)
     #   - having flat roofs (avoids sloped roofs)
-    #   - not under plenums, nor attics (avoids wells)
+    #   - neither under plenums, nor attics (avoids wells)
     #
     # This ideal (albeit stringent) set of conditions is "combo a".
     #
-    # If required %SRR has not yet been achieved, the method decrementally drops
-    # selection criteria and starts over, e.g.:
+    # If the requested skylight area has not yet been achieved (after initially
+    # applying "combo a"), the method decrementally drops selection criteria and
+    # starts over, e.g.:
     #   - then considers sidelit spaces
     #   - then considers sloped roofs
     #   - then considers skylight wells
     #
     # A maximum number of skylights are allocated to roof surfaces matching a
-    # given combo. Priority is always given to larger roof areas. If
-    # unsuccessful in meeting the required %SRR target, a single criterion is
-    # then dropped (e.g. b, then c, etc.), and the allocation process is
-    # relaunched. An error message is logged if the %SRR isn't ultimately met.
+    # given combo, all the while giving priority to larger roof areas. An error
+    # message is logged if the target isn't ultimately achieved.
     #
-    # Through filters, users may restrict candidate roof surfaces:
+    # Through filters, users may in advance restrict candidate roof surfaces:
     #   b. above occupied sidelit spaces ('false' restricts to core spaces)
     #   c. that are sloped ('false' restricts to flat roofs)
-    #   d. above indirectly conditioned spaces (e.g. plenums, uninsulated wells)
-    #   e. above unconditioned spaces (e.g. attics, insulated wells)
+    #   d. above INDIRECTLY CONDITIONED spaces (e.g. plenums, uninsulated wells)
+    #   e. above UNCONDITIONED spaces (e.g. attics, insulated wells)
     filters = ["a", "b", "bc", "bcd", "bcde"]
 
     # Prune filters, based on user-selected options.
@@ -6213,8 +6598,8 @@ module OSut
     filters.reject! { |f| f.empty? }
     filters.uniq!
 
-    # Remaining filters may be further reduced (after space/roof processing),
-    # depending on geometry, e.g.:
+    # Remaining filters may be further pruned automatically after space/roof
+    # processing, depending on geometry, e.g.:
     #  - if there are no sidelit spaces: filter "b" will be pruned away
     #  - if there are no sloped roofs  : filter "c" will be pruned away
     #  - if no plenums are identified  : filter "d" will be pruned away
@@ -6228,12 +6613,10 @@ module OSut
     attics   = {} # unoccupied UNCONDITIONED spaces above rooms
     ceilings = {} # of occupied CONDITIONED space (if plenums/attics)
 
-    # Select candidate 'rooms' to toplit - excludes plenums/attics.
+    # Candidate 'rooms' to toplit - excludes plenums/attics.
     spaces.each do |space|
-      next if unconditioned?(space)          # e.g. attic
-      next unless space.partofTotalFloorArea # occupied (not plenum)
+      id = space.nameString
 
-      # Already toplit?
       if daylit?(space, false, true, false)
         log(WRN, "#{id} is already toplit, skipping (#{mth})")
         next
@@ -6241,30 +6624,40 @@ module OSut
 
       # When unoccupied spaces are involved (e.g. plenums, attics), the occupied
       # space (to toplight) may not share the same local transformation as its
-      # unoccupied space(s) above. Fetching local transformation.
-      h  = 0
+      # unoccupied space(s) above. Fetching site transformation.
       t0 = transforms(space)
       next unless t0[:t]
 
-      toitures = facets(space, "Outdoors", "RoofCeiling")
-      plafonds = facets(space, "Surface", "RoofCeiling")
+      # Calculate space height.
+      hMIN  = 10000
+      hMAX  = 0
+      surfs = facets(space)
 
-      toitures.each { |surf| h = [h, surf.vertices.max_by(&:z).z].max }
-      plafonds.each { |surf| h = [h, surf.vertices.max_by(&:z).z].max }
+      surfs.each { |surf| hMAX = [hMAX, surf.vertices.max_by(&:z).z].max }
+      surfs.each { |surf| hMIN = [hMIN, surf.vertices.min_by(&:z).z].min }
+
+      h = hMAX - hMIN
+
+      unless h > 0
+        log(ERR, "#{id} height? #{hMIN.round(2)} vs #{hMAX.round(2)} (#{mth})")
+        next
+      end
 
       rooms[space]           = {}
-      rooms[space][:t      ] = t0[:t]
+      rooms[space][:t0     ] = t0[:t]
       rooms[space][:m      ] = space.multiplier
       rooms[space][:h      ] = h
-      rooms[space][:roofs  ] = toitures
+      rooms[space][:roofs  ] = facets(space, "Outdoors", "RoofCeiling")
       rooms[space][:sidelit] = daylit?(space, true, false, false)
 
       # Fetch and process room-specific outdoor-facing roof surfaces, the most
-      # basic 'set' to track:
-      #   - no skylight wells
+      # basic 'set' to track, e.g.:
+      #   - no skylight wells (i.e. no leader lines)
       #   - 1x skylight array per roof surface
-      #   - no need to preprocess space transformation
+      #   - no need to consider site transformation
       rooms[space][:roofs].each do |roof|
+        next unless roof?(roof)
+
         box = boundedBox(roof)
         next if box.empty?
 
@@ -6274,133 +6667,112 @@ module OSut
         bm2 = bm2.get
         next if bm2.round(2) < w02.round(2)
 
-        # Track if bounded box is significantly smaller than roof.
+        width = alignedWidth(box, true)
+        depth = alignedHeight(box, true)
+        next if width < wl * 3
+        next if depth < wl
+
+        # A set is 'tight' if the area of its bounded box is significantly
+        # smaller than that of its roof. A set is 'thin' if the depth of its
+        # bounded box is (too) narrow. If either is true, some geometry rules
+        # may be relaxed to maximize allocated skylight area. Neither apply to
+        # cases with skylight wells.
         tight = bm2 < roof.grossArea / 2 ? true : false
+        thin  = depth.round(2) < (1.5 * wl).round(2) ? true : false
 
         set           = {}
         set[:box    ] = box
         set[:bm2    ] = bm2
         set[:tight  ] = tight
+        set[:thin   ] = thin
         set[:roof   ] = roof
         set[:space  ] = space
+        set[:m      ] = space.multiplier
         set[:sidelit] = rooms[space][:sidelit]
-        set[:t      ] = rooms[space][:t      ]
-        set[:sloped ] = slopedRoof?(roof)
+        set[:t0     ] = rooms[space][:t0]
+        set[:t      ] = OpenStudio::Transformation.alignFace(roof.vertices)
         sets << set
       end
     end
 
     # Process outdoor-facing roof surfaces of plenums and attics above.
     rooms.each do |space, room|
-      t0    = room[:t]
-      toits = getRoofs(space)
-      rufs  = room.key?(:roofs) ? toits - room[:roofs] : toits
-      next if rufs.empty?
+      t0   = room[:t0]
+      rufs = getRoofs(space) - room[:roofs]
 
-      # Process room ceilings, as 1x or more are overlapping roofs above. Fetch
-      # vertically-cast overlaps.
       rufs.each do |ruf|
+        next unless roof?(ruf)
+
         espace = ruf.space
         next if espace.empty?
 
         espace = espace.get
         next if espace.partofTotalFloorArea
 
-        m  = espace.multiplier
+        m = espace.multiplier
+
+        if m != space.multiplier
+          log(ERR, "Skipping #{ruf.nameString} (multiplier mismatch) (#{mth})")
+          next
+        end
+
         ti = transforms(espace)
         next unless ti[:t]
 
-        ti  = ti[:t]
-        vtx = ruf.vertices
+        ti   = ti[:t]
+        rpts = ti * ruf.vertices
 
-        # Ensure BLC vertex sequence.
-        if facingUp?(vtx)
-          vtx = ti * vtx
-
-          if xyz?(vtx, :z)
-            vtx = blc(vtx)
-          else
-            dZ  = vtx.first.z
-            vtz = blc(flatten(vtx)).to_a
-            vtx = []
-
-            vtz.each { |v| vtx << OpenStudio::Point3d.new(v.x, v.y, v.z + dZ) }
-          end
-
-          ruf.setVertices(ti.inverse * vtx)
-        else
-          tr  = OpenStudio::Transformation.alignFace(vtx)
-          vtx = blc(tr.inverse * vtx)
-          ruf.setVertices(tr * vtx)
-        end
-
-        ri = ti * ruf.vertices
-
+        # Process occupied room ceilings, as 1x or more are overlapping roof
+        # surfaces above. Vertically cast, then fetch overlap.
         facets(space, "Surface", "RoofCeiling").each do |tile|
-          vtx = tile.vertices
-
-          # Ensure BLC vertex sequence.
-          if facingUp?(vtx)
-            vtx = t0 * vtx
-
-            if xyz?(vtx, :z)
-              vtx = blc(vtx)
-            else
-              dZ  = vtx.first.z
-              vtz = blc(flatten(vtx)).to_a
-              vtx = []
-
-              vtz.each { |v| vtx << OpenStudio::Point3d.new(v.x, v.y, v.z + dZ) }
-            end
-
-            vtx = t0.inverse * vtx
-          else
-            tr  = OpenStudio::Transformation.alignFace(vtx)
-            vtx = blc(tr.inverse * vtx)
-            vtx = tr * vtx
-          end
-
-          tile.setVertices(vtx)
-
-          ci0 = cast(t0 * tile.vertices, ri, ray)
+          tpts = t0 * tile.vertices
+          ci0  = cast(tpts, rpts, ray)
           next if ci0.empty?
 
-          olap = overlap(ri, ci0, false)
+          olap = overlap(rpts, ci0)
           next if olap.empty?
+
+          om2 = OpenStudio.getArea(olap)
+          next if om2.empty?
+
+          om2 = om2.get
+          next if om2.round(2) < w02.round(2)
 
           box = boundedBox(olap)
           next if box.empty?
 
           # Adding skylight wells (plenums/attics) is contingent to safely
-          # linking new base roof 'inserts' through leader lines. Currently,
-          # this requires an offset from main roof surface edges.
+          # linking new base roof 'inserts' (as well as new ceiling ones)
+          # through 'leader lines'. This requires an offset to ensure no
+          # conflicts with roof or (ceiling) tile edges.
           #
-          # TO DO: expand the method to factor in cases where simple 'side'
+          # @todo: Expand the method to factor in cases where simple 'side'
           #        cutouts can be supported (no need for leader lines), e.g.
           #        skylight strips along roof ridges.
           box = offset(box, -gap, 300)
-          box = poly(box, false, false, false, false, :blc)
           next if box.empty?
 
           bm2 = OpenStudio.getArea(box)
           next if bm2.empty?
 
           bm2 = bm2.get
-          next if bm2.round(2) < w02.round(2)
+          next if bm2.round(2) < wl2.round(2)
 
-          # Vertically-cast box onto ceiling below.
-          cbox = cast(box, t0 * tile.vertices, ray)
+          width = alignedWidth(box, true)
+          depth = alignedHeight(box, true)
+          next if width < wl * 3
+          next if depth < wl * 2
+
+          # Vertically cast box onto tile below.
+          cbox = cast(box, tpts, ray)
           next if cbox.empty?
 
           cm2 = OpenStudio.getArea(cbox)
           next if cm2.empty?
 
-          cm2 = cm2.get
-
-          # Track if bounded boxes are significantly smaller than either roof
-          # or ceiling.
-          tight = bm2 < ruf.grossArea  / 2 ? true : false
-          tight = cm2 < tile.grossArea / 2 ? true : tight
+          cm2  = cm2.get
+          box  = ti.inverse * box
+          cbox = t0.inverse * cbox
 
           unless ceilings.key?(tile)
             floor = tile.adjacentSurface
@@ -6411,10 +6783,6 @@ module OSut
             end
 
             floor = floor.get
-
-            # Ensure BLC vertex sequence.
-            vtx = t0 * vtx
-            floor.setVertices(ti.inverse * vtx.reverse)
 
             if floor.space.empty?
               log(ERR, "#{floor.nameString} space? (#{mth})")
@@ -6428,32 +6796,40 @@ module OSut
               next
             end
 
-            ceilings[tile]         = {}
-            ceilings[tile][:roofs] = []
-            ceilings[tile][:space] = space
-            ceilings[tile][:floor] = floor
+            ceilings[tile]          = {}
+            ceilings[tile][:roofs ] = []
+            ceilings[tile][:space ] = space
+            ceilings[tile][:floor ] = floor
           end
 
           ceilings[tile][:roofs] << ruf
 
-          # More detailed skylight set entries with suspended ceilings.
+          # Skylight set key:values are more detailed with suspended ceilings.
+          # The overlap (:olap) remains in 'transformed' site coordinates (with
+          # regards to the roof). The :box polygon reverts to attic/plenum space
+          # coordinates, while the :cbox polygon is reset with regards to the
+          # occupied space coordinates.
           set           = {}
           set[:olap   ] = olap
           set[:box    ] = box
           set[:cbox   ] = cbox
+          set[:om2    ] = om2
           set[:bm2    ] = bm2
           set[:cm2    ] = cm2
-          set[:tight  ] = tight
+          set[:tight  ] = false
+          set[:thin   ] = false
           set[:roof   ] = ruf
           set[:space  ] = space
+          set[:m      ] = space.multiplier
           set[:clng   ] = tile
-          set[:t      ] = t0
+          set[:t0     ] = t0
+          set[:ti     ] = ti
+          set[:t      ] = OpenStudio::Transformation.alignFace(ruf.vertices)
           set[:sidelit] = room[:sidelit]
-          set[:sloped ] = slopedRoof?(ruf)
 
           if unconditioned?(espace) # e.g. attic
             unless attics.key?(espace)
-              attics[espace] = {t: ti, m: m, bm2: 0, roofs: []}
+              attics[espace] = {ti: ti, m: m, bm2: 0, roofs: []}
             end
 
             attics[espace][:bm2  ] += bm2
@@ -6464,7 +6840,7 @@ module OSut
             ceilings[tile][:attic] = espace
           else # e.g. plenum
             unless plenums.key?(espace)
-              plenums[espace] = {t: ti, m: m, bm2: 0, roofs: []}
+              plenums[espace] = {ti: ti, m: m, bm2: 0, roofs: []}
             end
 
             plenums[espace][:bm2  ] += bm2
@@ -6481,21 +6857,20 @@ module OSut
       end
     end
 
-    # Ensure uniqueness of plenum roofs, and set GROSS ROOF AREA.
+    # Ensure uniqueness of plenum roofs.
     attics.values.each do |attic|
       attic[:roofs ].uniq!
-      attic[:ridges] = getHorizontalRidges(attic[:roofs]) # TO-DO
+      attic[:ridges] = getHorizontalRidges(attic[:roofs]) # @todo
     end
 
     plenums.values.each do |plenum|
       plenum[:roofs ].uniq!
-      # plenum[:m2    ] = plenum[:roofs].sum(&:grossArea)
-      plenum[:ridges] = getHorizontalRidges(plenum[:roofs]) # TO-DO
+      plenum[:ridges] = getHorizontalRidges(plenum[:roofs]) # @todo
     end
 
-    # Regardless of the selected skylight arrangement pattern, the current
-    # solution may only consider attic/plenum sets that can be successfully
-    # linked to leader line anchors, for both roof and ceiling surfaces.
+    # Regardless of the selected skylight arrangement pattern, the solution only
+    # considers attic/plenum sets that can be successfully linked to leader line
+    # anchors, for both roof and ceiling surfaces. First, attic/plenum roofs.
     [attics, plenums].each do |greniers|
       k = greniers == attics ? :attic : :plenum
 
@@ -6512,7 +6887,8 @@ module OSut
           sts = sts.select { |st| st[:roof] == roof }
           next if sts.empty?
 
-          sts = sts.sort_by { |st| st[:bm2] }
+          sts = sts.sort_by { |st| st[:bm2] }.reverse
+
           genAnchors(roof, sts, :box)
         end
       end
@@ -6527,7 +6903,7 @@ module OSut
       next unless ceiling.key?(k)
 
       space = ceiling[:space]
-      spce  = ceiling[k     ]
+      spce  = ceiling[k]
       next unless ceiling.key?(:roofs)
       next unless rooms.key?(space)
 
@@ -6553,108 +6929,72 @@ module OSut
 
       next if stz.empty?
 
+      stz = stz.sort_by { |st| st[:cm2] }.reverse
       genAnchors(tile, stz, :cbox)
     end
 
     # Delete voided sets.
     sets.reject! { |set| set.key?(:void) }
 
-    m2  = 0 # existing skylight rough opening area
-    rm2 = grossRoofArea(spaces)
+    return empty("sets", mth, WRN, rm2) if sets.empty?
 
-    # Tally existing skylight rough opening areas (%SRR calculations).
-    rooms.values.each do |room|
-      m = room[:m]
+    # Sort sets, from largest to smallest bounded box area.
+    sets = sets.sort_by { |st| st[:bm2] * st[:m] }.reverse
 
-      room[:roofs].each do |roof|
-        roof.subSurfaces.each do |sub|
-          next unless fenestration?(sub)
-
-          id  = sub.nameString
-          xm2 = sub.grossArea
-
-          if sub.allowWindowPropertyFrameAndDivider
-            unless sub.windowPropertyFrameAndDivider.empty?
-              fw   = sub.windowPropertyFrameAndDivider.get.frameWidth
-              vec  = offset(sub.vertices, fw, 300)
-              aire = OpenStudio.getArea(vec)
-
-              if aire.empty?
-                log(ERR, "Skipping '#{id}': invalid Frame&Divider (#{mth})")
-              else
-                xm2 = aire.get
-              end
-            end
-          end
-
-          m2 += xm2 * sub.multiplier * m
-        end
-      end
-    end
-
-    # Required skylight area to add.
-    sm2 = rm2 * srr - m2
-
-    # Skip if existing skylights exceed or ~roughly match requested %SRR.
-    if sm2.round(2) < w02.round(2)
-      log(INF, "Skipping: existing srr > requested srr (#{mth})")
-      return 0
-    end
-
-    # Any sidelit/sloped roofs being targeted?
-    #
-    # TODO: enable double-ridged, sloped roofs have double-sloped
-    #       skylights/wells (patterns "strip"/"strips").
+    # Any sidelit and/or sloped roofs being targeted?
+    # @todo: enable double-ridged, sloped roofs have double-sloped
+    #        skylights/wells (patterns "strip"/"strips").
     sidelit = sets.any? { |set| set[:sidelit] }
     sloped  = sets.any? { |set| set[:sloped ] }
 
+    # Average sandbox area + revised 'working' SRR%.
+    sbm2 = sets.map { |set| set[:bm2] }.reduce(:+)
+    avm2 = sbm2 / sets.size
+    srr2 = sm2 / sets.size / avm2
+
     # Precalculate skylight rows + cols, for each selected pattern. In the case
     # of 'cols x rows' arrays of skylights, the method initially overshoots
-    # with regards to ideal skylight placement, e.g.:
+    # with regards to 'ideal' skylight placement, e.g.:
     #
     #   aceee.org/files/proceedings/2004/data/papers/SS04_Panel3_Paper18.pdf
     #
-    # ... yet skylight areas are subsequently contracted to strictly meet SRR%.
+    # Skylight areas are subsequently contracted to strictly meet the target.
     sets.each_with_index do |set, i|
-      id     = "set #{i+1}"
-      well   = set.key?(:clng)
-      space  = set[:space]
+      thin   = set[:thin ]
       tight  = set[:tight]
       factor = tight ? 1.75 : 1.25
+      well   = set.key?(:clng)
+      space  = set[:space]
       room   = rooms[space]
       h      = room[:h]
-      t      = OpenStudio::Transformation.alignFace(set[:box])
-      abox   = poly(set[:box], false, false, false, t, :ulc)
-      obox   = getRealignedFace(abox)
-      next unless obox[:set]
+      width  = alignedWidth( set[:box], true)
+      depth  = alignedHeight(set[:box], true)
+      barea  = set.key?(:om2) ? set[:om2] : set[:bm2]
+      rtio   = barea / avm2
+      skym2  = srr2 * barea * rtio
 
-      width = width(obox[:set])
-      depth = height(obox[:set])
-      area  = width * depth
-      skym2 = srr * area
-
-      # Flag sets if too narrow/shallow to hold a single skylight.
+      # Flag set if too narrow/shallow to hold a single skylight.
       if well
         if width.round(2) < wl.round(2)
-          log(ERR, "#{id}: Too narrow")
+          log(WRN, "set #{i+1} well: Too narrow (#{mth})")
           set[:void] = true
           next
         end
 
         if depth.round(2) < wl.round(2)
-          log(ERR, "#{id}: Too shallow")
+          log(WRN, "set #{i+1} well: Too shallow (#{mth})")
           set[:void] = true
           next
         end
       else
         if width.round(2) < w0.round(2)
-          log(ERR, "#{id}: Too narrow")
+          log(WRN, "set #{i+1}: Too narrow (#{mth})")
           set[:void] = true
           next
         end
 
         if depth.round(2) < w0.round(2)
-          log(ERR, "#{id}: Too shallow")
+          log(WRN, "set #{i+1}: Too shallow (#{mth})")
           set[:void] = true
           next
         end
@@ -6667,8 +7007,8 @@ module OSut
         rows = 1
         wx   = w0
         wy   = w0
-        wxl  = wl
-        wyl  = wl
+        wxl  = well ? wl : nil
+        wyl  = well ? wl : nil
         dX   = nil
         dY   = nil
 
@@ -6676,31 +7016,26 @@ module OSut
         when "array" # min 2x cols x min 2x rows
           cols = 2
           rows = 2
+          next if thin
 
           if tight
             sp = 1.4 * h / 2
-            lx = well ? width - cols * wxl : width - cols * wx
-            ly = well ? depth - rows * wyl : depth - rows * wy
+            lx = width - cols * wx
+            ly = depth - rows * wy
             next if lx.round(2) < sp.round(2)
             next if ly.round(2) < sp.round(2)
 
-            if well
-              cols = ((width - wxl) / (wxl + sp)).round(2).to_i + 1
-              rows = ((depth - wyl) / (wyl + sp)).round(2).to_i + 1
-            else
-              cols = ((width - wx) / (wx + sp)).round(2).to_i + 1
-              rows = ((depth - wy) / (wy + sp)).round(2).to_i + 1
-            end
-
+            cols = ((width - wx) / (wx + sp)).round(2).to_i + 1
+            rows = ((depth - wy) / (wy + sp)).round(2).to_i + 1
             next if cols < 2
             next if rows < 2
 
-            dX = well ? 0.0 : bfr + f
-            dY = well ? 0.0 : bfr + f
+            dX = bfr + f
+            dY = bfr + f
           else
             sp = 1.4 * h
             lx = well ? (width - cols * wxl) / cols : (width - cols * wx) / cols
-            ly = well ? (depth - rows * wyl) / rows : (depth - rows * wy) / cols
+            ly = well ? (depth - rows * wyl) / rows : (depth - rows * wy) / rows
             next if lx.round(2) < sp.round(2)
             next if ly.round(2) < sp.round(2)
 
@@ -6715,246 +7050,238 @@ module OSut
             next if cols < 2
             next if rows < 2
 
-            ly = well ? (depth - rows * wyl) / rows : (depth - rows * wy) / cols
+            ly = well ? (depth - rows * wyl) / rows : (depth - rows * wy) / rows
             dY = ly / 2
           end
 
-          # Current skylight area. If undershooting, adjust skylight width/depth
-          # as well as reduce spacing. For geometrical constrained cases,
-          # undershooting means not reaching 1.75x the required SRR%. Otherwise,
-          # undershooting means not reaching 1.25x the required SRR%. Any
-          # consequent overshooting is later corrected.
-          tm2       = wx * cols * wy * rows
-          undershot = tm2.round(2) < factor * skym2.round(2) ? true : false
+          # Default allocated skylight area. If undershooting, inflate skylight
+          # width/depth (with reduced spacing). For geometrically-constrained
+          # cases, undershooting means not reaching 1.75x the required target.
+          # Otherwise, undershooting means not reaching 1.25x the required
+          # target. Any consequent overshooting is later corrected.
+          tm2 = wx * cols * wy * rows
 
-          # Inflate skylight width/depth (and reduce spacing) to reach SRR%.
-          if undershot
+          # Inflate skylight width/depth (and reduce spacing) to reach target.
+          if tm2.round(2) < factor * skym2.round(2)
             ratio2 = 1 + (factor * skym2 - tm2) / tm2
             ratio  = Math.sqrt(ratio2)
 
-            sp  = w
+            sp  = wl
             wx *= ratio
             wy *= ratio
-            wxl = wx + gap
-            wyl = wy + gap
+            wxl = wx + gap if well
+            wyl = wy + gap if well
 
             if tight
-              if well
-                lx = (width - cols * wxl) / (cols - 1)
-                ly = (depth - rows * wyl) / (rows - 1)
-              else
-                lx = (width - cols * wx) / (cols - 1)
-                ly = (depth - rows * wy) / (rows - 1)
-              end
-
+              lx = (width - 2 * (bfr + f) - cols * wx) / (cols - 1)
+              ly = (depth - 2 * (bfr + f) - rows * wy) / (rows - 1)
               lx = lx.round(2) < sp.round(2) ? sp : lx
               ly = ly.round(2) < sp.round(2) ? sp : ly
-
-              if well
-                wxl = (width - (cols - 1) * lx) / cols
-                wyl = (depth - (rows - 1) * ly) / rows
-                wx  = wxl - gap
-                wy  = wyl - gap
-              else
-                wx  = (width - (cols - 1) * lx) / cols
-                wy  = (depth - (rows - 1) * ly) / rows
-                wxl = wx + gap
-                wyl = wy + gap
-              end
+              wx = (width - 2 * (bfr + f) - (cols - 1) * lx) / cols
+              wy = (depth - 2 * (bfr + f) - (rows - 1) * ly) / rows
             else
               if well
-                lx = (width - cols * wxl) / cols
-                ly = (depth - rows * wyl) / rows
-              else
-                lx = (width - cols * wx) / cols
-                ly = (depth - rows * wy) / rows
-              end
-
-              lx = lx.round(2) < sp.round(2) ? sp : lx
-              ly = ly.round(2) < sp.round(2) ? sp : ly
-
-              if well
+                lx  = (width - cols * wxl) / cols
+                ly  = (depth - rows * wyl) / rows
+                lx  = lx.round(2) < sp.round(2) ? sp : lx
+                ly  = ly.round(2) < sp.round(2) ? sp : ly
                 wxl = (width - cols * lx) / cols
                 wyl = (depth - rows * ly) / rows
                 wx  = wxl - gap
                 wy  = wyl - gap
-                lx  = (width - cols * wxl) / cols
                 ly  = (depth - rows * wyl) / rows
               else
-                wx  = (width - cols * lx) / cols
-                wy  = (depth - rows * ly) / rows
-                wxl = wx + gap
-                wyl = wy + gap
                 lx  = (width - cols * wx) / cols
                 ly  = (depth - rows * wy) / rows
+                lx  = lx.round(2) < sp.round(2) ? sp : lx
+                ly  = ly.round(2) < sp.round(2) ? sp : ly
+                wx  = (width - cols * lx) / cols
+                wy  = (depth - rows * ly) / rows
+                ly  = (depth - rows * wy) / rows
               end
-            end
 
-            dY = ly / 2
+              dY = ly / 2
+            end
           end
         when "strips" # min 2x cols x 1x row
           cols = 2
 
           if tight
             sp = h / 2
-            lx = well ? width - cols * wxl : width - cols * wx
-            ly = well ? depth - wyl : depth - wy
+            dX = bfr + f
+            lx = width - cols * wx
             next if lx.round(2) < sp.round(2)
-            next if ly.round(2) < sp.round(2)
 
-            if well
-              cols = ((width - wxl) / (wxl + sp)).round(2).to_i + 1
-            else
-              cols = ((width - wx) / (wx + sp)).round(2).to_i + 1
-            end
-
+            cols = ((width - wx) / (wx + sp)).round(2).to_i + 1
             next if cols < 2
 
-            if well
-              wyl = depth - ly
-              wy  = wyl - gap
+            if thin
+              dY = bfr + f
+              wy = depth - 2 * dY
+              next if wy.round(2) < gap4
             else
-              wy  = depth - ly
-              wyl = wy + gap
-            end
+              ly = depth - wy
+              next if ly.round(2) < wl.round(2)
 
-            dX = well ? 0 : bfr + f
-            dY = ly / 2
+              dY = ly / 2
+            end
           else
             sp = h
-            lx = well ? (width - cols * wxl) / cols : (width - cols * wx) / cols
-            ly = well ? depth - wyl : depth - wy
-            next if lx.round(2) < sp.round(2)
-            next if ly.round(2) < w.round(2)
 
             if well
+              lx = (width - cols * wxl) / cols
+              next if lx.round(2) < sp.round(2)
+
               cols = (width / (wxl + sp)).round(2).to_i
+              next if cols < 2
+
+              ly = depth - wyl
+              dY = ly / 2
+              next if ly.round(2) < wl.round(2)
             else
+              lx = (width - cols * wx) / cols
+              next if lx.round(2) < sp.round(2)
+
               cols = (width / (wx + sp)).round(2).to_i
+              next if cols < 2
+
+              if thin
+                dY = bfr + f
+                wy = depth - 2 * dY
+                next if wy.round(2) < gap4
+              else
+                ly = depth - wy
+                next if ly.round(2) < wl.round(2)
+
+                dY = ly / 2
+              end
             end
-
-            next if cols < 2
-
-            if well
-              wyl = depth - ly
-              wy  = wyl - gap
-            else
-              wy  = depth - ly
-              wyl = wy + gap
-            end
-
-            dY = ly / 2
           end
 
-          tm2       = wx * cols * wy
-          undershot = tm2.round(2) < factor * skym2.round(2) ? true : false
+          tm2 = wx * cols * wy
 
-          # Inflate skylight width (and reduce spacing) to reach SRR%.
-          if undershot
+          # Inflate skylight depth to reach target.
+          if tm2.round(2) < factor * skym2.round(2)
+            sp = wl
+
+            # Skip if already thin.
+            unless thin
+              ratio2 = 1 + (factor * skym2 - tm2) / tm2
+
+              wy *= ratio2
+
+              if well
+                wyl = wy + gap
+                ly  = depth - wyl
+                ly  = ly.round(2) < sp.round(2) ? sp : ly
+                wyl = depth - ly
+                wy  = wyl - gap
+              else
+                ly = depth - wy
+                ly = ly.round(2) < sp.round(2) ? sp : ly
+                wy = depth - ly
+              end
+
+              dY = ly / 2
+            end
+          end
+
+          tm2 = wx * cols * wy
+
+          # Inflate skylight width (and reduce spacing) to reach target.
+          if tm2.round(2) < factor * skym2.round(2)
             ratio2 = 1 + (factor * skym2 - tm2) / tm2
 
-            sp  = w
             wx *= ratio2
-            wxl = wx + gap
+            wxl = wx + gap if well
 
             if tight
-              if well
-                lx = (width - cols * wxl) / (cols - 1)
-              else
-                lx = (width - cols * wx) / (cols - 1)
-              end
-
+              lx = (width - 2 * (bfr + f) - cols * wx) / (cols - 1)
               lx = lx.round(2) < sp.round(2) ? sp : lx
-
-              if well
-                wxl = (width - (cols - 1) * lx) / cols
-                wx  = wxl - gap
-              else
-                wx  = (width - (cols - 1) * lx) / cols
-                wxl = wx + gap
-              end
+              wx = (width - 2 * (bfr + f) - (cols - 1) * lx) / cols
             else
               if well
-                lx = (width - cols * wxl) / cols
-              else
-                lx = (width - cols * wx) / cols
-              end
-
-              lx  = lx.round(2) < sp.round(2) ? sp : lx
-
-              if well
+                lx  = (width - cols * wxl) / cols
+                lx  = lx.round(2) < sp.round(2) ? sp : lx
                 wxl = (width - cols * lx) / cols
                 wx  = wxl - gap
-                lx  = (width - cols * wxl) / cols
               else
-                wx  = (width - cols * lx) / cols
-                wxl = wx + gap
                 lx  = (width - cols * wx) / cols
+                lx  = lx.round(2) < sp.round(2) ? sp : lx
+                wx  = (width - cols * lx) / cols
               end
             end
           end
         else # "strip" 1 (long?) row x 1 column
-          sp = w
-          lx = well ? width - wxl : width - wx
-          ly = well ? depth - wyl : depth - wy
-
           if tight
-            next if lx.round(2) < sp.round(2)
-            next if ly.round(2) < sp.round(2)
+            sp = gap4
+            dX = bfr + f
+            wx = width - 2 * dX
+            next if wx.round(2) < sp.round(2)
 
-            if well
-              wxl = width - lx
-              wyl = depth - ly
-              wx  = wxl - gap
-              wy  = wyl - gap
+            if thin
+              dY = bfr + f
+              wy = depth - 2 * dY
+              next if wy.round(2) < sp.round(2)
             else
-              wx  = width - lx
-              wy  = depth - ly
-              wxl = wx + gap
-              wyl = wy + gap
+              ly = depth - wy
+              dY = ly / 2
+              next if ly.round(2) < sp.round(2)
             end
-
-            dX = well ? 0.0 : bfr + f
-            dY = ly / 2
           else
+            sp = wl
+            lx = well ? width - wxl : width - wx
+            ly = well ? depth - wyl : depth - wy
+            dY = ly / 2
             next if lx.round(2) < sp.round(2)
             next if ly.round(2) < sp.round(2)
-
-            if well
-              wxl = width - lx
-              wyl = depth - ly
-              wx  = wxl - gap
-              wy  = wyl - gap
-            else
-              wx  = width - lx
-              wy  = depth - ly
-              wxl = wx + gap
-              wyl = wy + gap
-            end
-
-            dY = ly / 2
           end
 
-          tm2       = wx * wy
-          undershot = tm2.round(2) < factor * skym2.round(2) ? true : false
+          tm2 = wx * wy
 
-          # Inflate skylight depth to reach SRR%.
-          if undershot
-            ratio2 = 1 + (factor * skym2 - tm2) / tm2
+          # Inflate skylight width (and reduce spacing) to reach target.
+          if tm2.round(2) < factor * skym2.round(2)
+            unless tight
+              ratio2 = 1 + (factor * skym2 - tm2) / tm2
 
-            sp  = w
-            wy *= ratio2
-            wyl = wy + gap
+              wx *= ratio2
 
-            ly  = well ? depth - wy : depth - wyl
-            ly  = ly.round(2) < sp.round(2) ? sp : lx
+              if well
+                wxl = wx + gap
+                lx  = width - wxl
+                lx  = lx.round(2) < sp.round(2) ? sp : lx
+                wxl = width - lx
+                wx  = wxl - gap
+              else
+                lx  = width - wx
+                lx  = lx.round(2) < sp.round(2) ? sp : lx
+                wx  = width - lx
+              end
+            end
+          end
 
-            if well
-              wyl = depth - ly
-              wy  = wyl - gap
-            else
-              wy  = depth - ly
-              wyl = wy + gap
+          tm2 = wx * wy
+
+          # Inflate skylight depth to reach target. Skip if already tight thin.
+          if tm2.round(2) < factor * skym2.round(2)
+            unless thin
+              ratio2 = 1 + (factor * skym2 - tm2) / tm2
+
+              wy *= ratio2
+
+              if well
+                wyl = wy + gap
+                ly  = depth - wyl
+                ly  = ly.round(2) < sp.round(2) ? sp : ly
+                wyl = depth - ly
+                wy  = wyl - gap
+              else
+                ly = depth - wy
+                ly = ly.round(2) < sp.round(2) ? sp : ly
+                wy = depth - ly
+              end
+
+              dY = ly / 2
             end
           end
         end
@@ -6972,10 +7299,13 @@ module OSut
 
         set[pattern] = st
       end
+
+      set[:void] = true unless patterns.any? { |k| set.key?(k) }
     end
 
     # Delete voided sets.
     sets.reject! { |set| set.key?(:void) }
+    return empty("sets (2)", mth, WRN, rm2) if sets.empty?
 
     # Final reset of filters.
     filters.map! { |f| f.include?("b") ? f.delete("b") : f } unless sidelit
@@ -6986,15 +7316,15 @@ module OSut
     filters.reject! { |f| f.empty? }
     filters.uniq!
 
-    # Initialize skylight area tally.
+    # Initialize skylight area tally (to increment).
     skm2 = 0
 
     # Assign skylight pattern.
-    filters.each_with_index do |filter, i|
+    filters.each do |filter|
       next if skm2.round(2) >= sm2.round(2)
 
+      dm2 = sm2 - skm2 # differential (remaining skylight area to meet).
       sts = sets
-      sts = sts.sort_by { |st| st[:bm2] }.reverse!
       sts = sts.reject  { |st| st.key?(:pattern) }
 
       if filter.include?("a")
@@ -7029,33 +7359,49 @@ module OSut
 
           fpm2[pattern] = {m2: 0, tight: false} unless fpm2.key?(pattern)
 
-          fpm2[pattern][:m2   ] += wx * wy * cols * rows
-          fpm2[pattern][:tight] = st[:tight] ? true : false
+          fpm2[pattern][:m2   ] += st[:m] * wx * wy * cols * rows
+          fpm2[pattern][:tight] = true if st[:tight]
         end
       end
 
       pattern = nil
       next if fpm2.empty?
 
-      fpm2 = fpm2.sort_by { |_, fm2| fm2[:m2] }.to_h
-
-      # Select suitable pattern, often overshooting. Favour array unless
-      # geometrically constrainted.
+      # Favour (large) arrays if meeting residual target, unless constrained.
       if fpm2.keys.include?("array")
-        if (fpm2["array"][:m2]).round(2) >= sm2.round(2)
+        if fpm2["array"][:m2].round(2) >= dm2.round(2)
           pattern = "array" unless fpm2[:tight]
         end
       end
 
       unless pattern
-        if fpm2.values.first[:m2].round(2) >= sm2.round(2)
-          pattern = fpm2.keys.first
-        elsif fpm2.values.last[:m2].round(2) <= sm2.round(2)
-          pattern = fpm2.keys.last
-        else
-          fpm2.keep_if { |_, fm2| fm2[:m2].round(2) >= sm2.round(2) }
+        fpm2   = fpm2.sort_by { |_, fm2| fm2[:m2] }.to_h
+        min_m2 = fpm2.values.first[:m2]
+        max_m2 = fpm2.values.last[:m2]
 
-          pattern = fpm2.keys.first
+        if min_m2.round(2) >= dm2.round(2)
+          # If not large array, then retain pattern generating smallest skylight
+          # area if ALL patterns >= residual target (deterministic sorting).
+          fpm2.keep_if { |_, fm2| fm2[:m2].round(2) == min_m2.round(2) }
+
+          if fpm2.keys.include?("array")
+            pattern = "array"
+          elsif fpm2.keys.include?("strips")
+            pattern = "strips"
+          else fpm2.keys.include?("strip")
+            pattern = "strip"
+          end
+        else
+          # Pick pattern offering greatest skylight area (deterministic sorting).
+          fpm2.keep_if { |_, fm2| fm2[:m2].round(2) == max_m2.round(2) }
+
+          if fpm2.keys.include?("strip")
+            pattern = "strip"
+          elsif fpm2.keys.include?("strips")
+            pattern = "strips"
+          else fpm2.keys.include?("array")
+            pattern = "array"
+          end
         end
       end
 
@@ -7086,55 +7432,162 @@ module OSut
       end
     end
 
-    # Skylight size contraction if overshot (e.g. -13.2% if overshot by +13.2%).
-    # This is applied on a surface/pattern basis; individual skylight sizes may
-    # vary from one surface to the next, depending on respective patterns.
+    # Delete incomplete sets (same as rejected if 'voided').
+    sets.reject! { |set| set.key?(:void) }
+    sets.select! { |set| set.key?(:pattern) }
+    return empty("sets (3)", mth, WRN, rm2) if sets.empty?
+
+    # Skylight size contraction if overshot (e.g. scale down by -13% if > +13%).
+    # Applied on a surface/pattern basis: individual skylight sizes may vary
+    # from one surface to the next, depending on respective patterns.
+
+    # First, skip whole sets altogether if their total m2 < (skm2 - sm2). Only
+    # considered if significant discrepancies vs average set skylight m2.
+    sbm2 = 0
+
+    sets.each do |set|
+      sbm2 += set[:cols] * set[:w] * set[:rows] * set[:d] * set[:m]
+    end
+
+    avm2 = sbm2 / sets.size
+
     if skm2.round(2) > sm2.round(2)
-      ratio2 = 1 - (skm2 - sm2) / skm2
-      ratio  = Math.sqrt(ratio2)
-      skm2  *= ratio2
+      sets.reverse.each do |set|
+        break unless skm2.round(2) > sm2.round(2)
 
-      sets.each do |set|
-        next if set.key?(:void)
-        next unless set.key?(:pattern)
+        stm2 = set[:cols] * set[:w] * set[:rows] * set[:d] * set[:m]
+        next unless stm2 < 0.75 * avm2
+        next unless stm2.round(2) < (skm2 - sm2).round(2)
 
-        pattern = set[:pattern]
-        next unless set.key?(pattern)
-
-        case pattern
-        when "array" # equally adjust both width and depth
-          xr  = set[:w] * ratio
-          yr  = set[:d] * ratio
-          dyr = set[:d] - yr
-
-          set[:w ]  = xr
-          set[:d ]  = yr
-          set[:w0]  = set[:w] + gap
-          set[:d0]  = set[:d] + gap
-          set[:dY] += dyr / 2
-        when "strips" # adjust depth
-          xr2 = set[:w] * ratio2
-
-          set[:w ]  = xr2
-          set[:w0]  = set[:w] + gap
-        else # "strip", adjust width
-          yr2 = set[:d] * ratio2
-          dyr = set[:d] - yr2
-
-          set[:d ]  = yr2
-          set[:d0]  = set[:w] + gap
-          set[:dY] += dyr / 2
-        end
+        skm2 -= stm2
+        set[:void] = true
       end
     end
 
-    # Generate skylight well roofs for attics & plenums.
+    sets.reject! { |set| set.key?(:void) }
+    return empty("sets (4)", mth, WRN, rm2) if sets.empty?
+
+    # Size contraction: round 1: low-hanging fruit.
+    if skm2.round(2) > sm2.round(2)
+      ratio2 = 1 - (skm2 - sm2) / skm2
+      ratio  = Math.sqrt(ratio2)
+
+      sets.each do |set|
+        am2 = set[:cols] * set[:w] * set[:rows] * set[:d] * set[:m]
+        xr  = set[:w]
+        yr  = set[:d]
+
+        if xr > w0
+          xr = xr * ratio < w0 ? w0 : xr * ratio
+        end
+
+        if yr > w0
+          yr = yr * ratio < w0 ? w0 : yr * ratio
+        end
+
+        xm2 = set[:cols] * xr * set[:rows] * yr * set[:m]
+        next if xm2.round(2) == am2.round(2)
+
+        set[:dY] += (set[:d] - yr) / 2
+        set[:dX] += (set[:w] - xr) / 2 if set.key?(:dX)
+        set[:w ]  = xr
+        set[:d ]  = yr
+        set[:w0]  = set[:w] + gap
+        set[:d0]  = set[:d] + gap
+
+        skm2 -= (am2 - xm2)
+      end
+    end
+
+    # Size contraction: round 2: prioritize larger sets.
+    adm2 = 0
+
+    sets.each_with_index do |set, i|
+      next if set[:w].round(2) <= w0
+      next if set[:d].round(2) <= w0
+
+      adm2 += set[:cols] * set[:w] * set[:rows] * set[:d] * set[:m]
+    end
+
+    if skm2.round(2) > sm2.round(2) && adm2.round(2) > sm2.round(2)
+      ratio2 = 1 - (adm2 - sm2) / adm2
+      ratio  = Math.sqrt(ratio2)
+
+      sets.each do |set|
+        next if set[:w].round(2) <= w0
+        next if set[:d].round(2) <= w0
+
+        am2 = set[:cols] * set[:w] * set[:rows] * set[:d] * set[:m]
+        xr  = set[:w]
+        yr  = set[:d]
+
+        if xr > w0
+          xr = xr * ratio < w0 ? w0 : xr * ratio
+        end
+
+        if yr > w0
+          yr = yr * ratio < w0 ? w0 : yr * ratio
+        end
+
+        xm2 = set[:cols] * xr * set[:rows] * yr * set[:m]
+        next if xm2.round(2) == am2.round(2)
+
+        set[:dY] += (set[:d] - yr) / 2
+        set[:dX] += (set[:w] - xr) / 2 if set.key?(:dX)
+        set[:w ]  = xr
+        set[:d ]  = yr
+        set[:w0]  = set[:w] + gap
+        set[:d0]  = set[:d] + gap
+
+        skm2 -= (am2 - xm2)
+        adm2 -= (am2 - xm2)
+      end
+    end
+
+    # Size contraction: round 3: Resort to sizes < requested w0.
+    if skm2.round(2) > sm2.round(2)
+      ratio2 = 1 - (skm2 - sm2) / skm2
+      ratio  = Math.sqrt(ratio2)
+
+      sets.each do |set|
+        break unless skm2.round(2) > sm2.round(2)
+
+        am2 = set[:cols] * set[:w] * set[:rows] * set[:d] * set[:m]
+        xr  = set[:w]
+        yr  = set[:d]
+
+        if xr > gap4
+          xr = xr * ratio < gap4 ? gap4 : xr * ratio
+        end
+
+        if yr > gap4
+          yr = yr * ratio < gap4 ? gap4 : yr * ratio
+        end
+
+        xm2 = set[:cols] * xr * set[:rows] * yr * set[:m]
+        next if xm2.round(2) == am2.round(2)
+
+        set[:dY] += (set[:d] - yr) / 2
+        set[:dX] += (set[:w] - xr) / 2 if set.key?(:dX)
+        set[:w ]  = xr
+        set[:d ]  = yr
+        set[:w0]  = set[:w] + gap
+        set[:d0]  = set[:d] + gap
+
+        skm2 -= (am2 - xm2)
+      end
+    end
+
+    # Log warning if unable to entirely contract skylight dimensions.
+    if skm2.round(2) > sm2.round(2)
+      log(WRN, "Skylights slightly oversized (#{mth})")
+    end
+
+    # Generate skylight well vertices for roofs, attics & plenums.
     [attics, plenums].each do |greniers|
       k = greniers == attics ? :attic : :plenum
 
       greniers.each do |spce, grenier|
-        ti = grenier[:t]
-
         grenier[:roofs].each do |roof|
           sts = sets
           sts = sts.select { |st| st.key?(k) }
@@ -7150,15 +7603,15 @@ module OSut
           sts = sts.select { |st| st[:ld].key?(roof) }
           next if sts.empty?
 
-          # If successful, 'genInserts' returns extended roof surface vertices,
-          # including leader lines to support cutouts. The final selection is
+          # If successful, 'genInserts' returns extended ROOF surface vertices,
+          # including leader lines to support cutouts. The method also generates
+          # new roof inserts. See key:value pair :vts. The FINAL go/no-go is
           # contingent to successfully inserting corresponding room ceiling
-          # inserts (vis-à-vis attic/plenum floor below). The method also
-          # generates new roof inserts. See key:value pair :vts.
+          # inserts (vis-à-vis attic/plenum floor below).
           vz = genInserts(roof, sts)
-          next if vz.empty? # TODO log error if empty
+          next if vz.empty?
 
-          roof.setVertices(ti.inverse * vz)
+          roof.setVertices(vz)
         end
       end
     end
@@ -7178,14 +7631,15 @@ module OSut
 
       room    = rooms[space]
       grenier = greniers[spce]
-      ti      = grenier[:t]
-      t0      = room[:t]
+      ti      = grenier[:ti]
+      t0      = room[:t0]
       stz     = []
 
       ceiling[:roofs].each do |roof|
         sts = sets
 
         sts = sts.select { |st| st.key?(k) }
+        sts = sts.select { |st| st.key?(:pattern) }
         sts = sts.select { |st| st.key?(:clng) }
         sts = sts.select { |st| st.key?(:cm2) }
         sts = sts.select { |st| st.key?(:roof) }
@@ -7206,10 +7660,66 @@ module OSut
 
       next if stz.empty?
 
+      # Add new roof inserts & skylights for the (now) toplit space.
+      stz.each_with_index do |st, i|
+        sub         = {}
+        sub[:type ] = "Skylight"
+        sub[:frame] = frame if frame
+        sub[:sill ] = gap / 2
+
+        st[:vts].each do |id, vt|
+          roof = OpenStudio::Model::Surface.new(t0.inverse * (ti * vt), mdl)
+          roof.setSpace(space)
+          roof.setName("#{id}:#{space.nameString}")
+
+          # Generate well walls.
+          vX = cast(roof, tile, ray)
+          s0 = getSegments(t0 * roof.vertices)
+          sX = getSegments(t0 * vX)
+
+          s0.each_with_index do |sg, j|
+            sg0 = sg.to_a
+            sgX = sX[j].to_a
+            vec = OpenStudio::Point3dVector.new
+            vec << sg0.first
+            vec << sg0.last
+            vec << sgX.last
+            vec << sgX.first
+
+            v_grenier = ti.inverse * vec
+            v_room    = (t0.inverse * vec).to_a.reverse
+
+            grenier_wall = OpenStudio::Model::Surface.new(v_grenier, mdl)
+            grenier_wall.setSpace(spce)
+            grenier_wall.setName("#{id}:#{i}:#{j}:#{spce.nameString}")
+
+            room_wall = OpenStudio::Model::Surface.new(v_room, mdl)
+            room_wall.setSpace(space)
+            room_wall.setName("#{id}:#{i}:#{j}:#{space.nameString}")
+
+            grenier_wall.setAdjacentSurface(room_wall)
+            room_wall.setAdjacentSurface(grenier_wall)
+          end
+
+          # Add individual skylights. Independently of the set layout (rows x
+          # cols), individual roof inserts may be deeper than wider (or
+          # vice-versa). Adapt skylight width vs depth accordingly.
+          if st[:d].round(2) > st[:w].round(2)
+            sub[:width ] = st[:d] - f2
+            sub[:height] = st[:w] - f2
+          else
+            sub[:width ] = st[:w] - f2
+            sub[:height] = st[:d] - f2
+          end
+
+          sub[:id] = roof.nameString
+          addSubs(roof, sub, false, true, true)
+        end
+      end
+
       # Vertically-cast set roof :vtx onto ceiling.
       stz.each do |st|
-        cvtx = cast(ti * st[:vtx], t0 * tile.vertices, ray)
-        st[:cvtx] = t0.inverse * cvtx
+        st[:cvtx] = t0.inverse * cast(ti * st[:vtx], t0 * tile.vertices, ray)
       end
 
       # Extended ceiling vertices.
@@ -7217,93 +7727,42 @@ module OSut
       next if vertices.empty?
 
       # Reset ceiling and adjacent floor vertices.
-      tile.setVertices(t0.inverse * vertices)
-      floor.setVertices(ti.inverse * vertices.to_a.reverse)
-
-      # Add new roof inserts & skylights for the (now) toplit space.
-      stz.each_with_index do |st, i|
-        sub          = {}
-        sub[:type  ] = "Skylight"
-        sub[:width ] = st[:w] - f2
-        sub[:height] = st[:d] - f2
-        sub[:sill  ] = gap / 2
-        sub[:frame ] = frame if frame
-
-        st[:vts].each do |id, vt|
-          roof = OpenStudio::Model::Surface.new(t0.inverse * vt, mdl)
-          roof.setSpace(space)
-          roof.setName("#{i}:#{id}:#{space.nameString}")
-
-          # Generate well walls.
-          v0 = roof.vertices
-          vX = cast(roof, tile, ray)
-          s0 = getSegments(v0)
-          sX = getSegments(vX)
-
-          s0.each_with_index do |sg, j|
-            sg0 = sg.to_a
-            sgX = sX[j].to_a
-            vec  = OpenStudio::Point3dVector.new
-            vec << sg0.first
-            vec << sg0.last
-            vec << sgX.last
-            vec << sgX.first
-
-            grenier_wall = OpenStudio::Model::Surface.new(vec, mdl)
-            grenier_wall.setSpace(spce)
-            grenier_wall.setName("#{id}:#{j}:#{spce.nameString}")
-
-            room_wall = OpenStudio::Model::Surface.new(vec.to_a.reverse, mdl)
-            room_wall.setSpace(space)
-            room_wall.setName("#{id}:#{j}:#{space.nameString}")
-
-            grenier_wall.setAdjacentSurface(room_wall)
-            room_wall.setAdjacentSurface(grenier_wall)
-          end
-
-          # Add individual skylights.
-          addSubs(roof, [sub])
-        end
-      end
+      tile.setVertices(vertices)
+      floor.setVertices(ti.inverse * (t0 * vertices).to_a.reverse)
     end
 
-    # New direct roof loop. No overlaps, so no need for relative space
-    # coordinate adjustments.
+    # Loop through 'direct' roof surfaces of rooms to toplit (no attics or
+    # plenums). No overlaps, so no relative space coordinate adjustments.
     rooms.each do |space, room|
       room[:roofs].each do |roof|
-        sets.each_with_index do |set, i|
-          next     if set.key?(:clng)
-          next unless set.key?(:box)
-          next unless set.key?(:roof)
-          next unless set.key?(:cols)
-          next unless set.key?(:rows)
-          next unless set.key?(:d)
-          next unless set.key?(:w)
-          next unless set.key?(:tight)
-          next unless set[:roof] == roof
+        sets.each_with_index do |st, i|
+          next unless st.key?(:roof)
+          next unless st[:roof] == roof
+          next     if st.key?(:clng)
+          next unless st.key?(:box)
+          next unless st.key?(:cols)
+          next unless st.key?(:rows)
+          next unless st.key?(:d)
+          next unless st.key?(:w)
+          next unless st.key?(:dY)
 
-          tight = set[:tight]
+          w1 = st[:w ] - f2
+          d1 = st[:d ] - f2
+          dY = st[:dY]
 
-          d1 = set[:d] - f2
-          w1 = set[:w] - f2
-
-          # Y-axis 'height' of the roof, once re/aligned.
-          # TODO: retrieve st[:out], +efficient
-          y  = alignedHeight(set[:box])
-          dY = set[:dY] if set[:dY]
-
-          set[:rows].times.each do |j|
+          st[:rows].times.each do |j|
             sub            = {}
             sub[:type    ] = "Skylight"
-            sub[:count   ] = set[:cols]
+            sub[:count   ] = st[:cols]
             sub[:width   ] = w1
             sub[:height  ] = d1
             sub[:frame   ] = frame if frame
-            sub[:id      ] = "set #{i+1}:#{j+1}"
+            sub[:id      ] = "#{roof.nameString}:#{i}:#{j}"
             sub[:sill    ] = dY + j * (2 * dY + d1)
-            sub[:r_buffer] = set[:dX] if set[:dX]
-            sub[:l_buffer] = set[:dX] if set[:dX]
-            addSubs(roof, [sub])
+            sub[:r_buffer] = st[:dX] if st[:dX]
+            sub[:l_buffer] = st[:dX] if st[:dX]
+
+            addSubs(roof, sub, false, true, true)
           end
         end
       end

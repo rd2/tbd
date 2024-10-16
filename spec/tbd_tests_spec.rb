@@ -2,13 +2,13 @@ require "tbd"
 require "fileutils"
 
 RSpec.describe TBD do
-  TOL  = TBD::TOL
-  TOL2 = TBD::TOL2
-  DBG  = TBD::DBG
-  INF  = TBD::INF
-  WRN  = TBD::WRN
-  ERR  = TBD::ERR
-  FTL  = TBD::FTL
+  TOL  = TBD::TOL.dup
+  TOL2 = TBD::TOL2.dup
+  DBG  = TBD::DBG.dup
+  INF  = TBD::INF.dup
+  WRN  = TBD::WRN.dup
+  ERR  = TBD::ERR.dup
+  FTL  = TBD::FTL.dup
 
   it "can process JSON surface KHI entries" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
@@ -60,15 +60,91 @@ RSpec.describe TBD do
     expect(TBD.logs.size).to eq(1)
     expect(TBD.logs.first[:message]).to include("Missing 'point' key")
 
-
     # Valid JSON entries.
     TBD.clean!
+    version = OpenStudio.openStudioVersion.split(".").join.to_i
 
+    # The v1.11.5 (2016) seb.osm, shipped with OpenStudio, holds (what would now
+    # be considered as deprecated) a definition of plenum floors (i.e. ceiling
+    # tiles) generating several warnings with more recent OpenStudio versions.
     file  = File.join(__dir__, "files/osms/in/seb.osm")
     path  = OpenStudio::Path.new(file)
     model = translator.loadModel(path)
     expect(model).to_not be_empty
     model = model.get
+
+    # "Shading Surface 4" is overlapping with a plenum exterior wall - delete.
+    sh4 = model.getShadingSurfaceByName("Shading Surface 4")
+    expect(sh4).to_not be_empty
+    sh4 = sh4.get
+    sh4.remove
+
+    plenum = model.getSpaceByName("Level 0 Ceiling Plenum")
+    expect(plenum).to_not be_empty
+    plenum = plenum.get
+
+    thzone = plenum.thermalZone
+    expect(thzone).to_not be_empty
+    thzone = thzone.get
+
+    # Before the fix.
+    unless version < 350
+      expect(plenum.isEnclosedVolume).to be true
+      expect(plenum.isVolumeDefaulted).to be true
+      expect(plenum.isVolumeAutocalculated).to be true
+    end
+
+    if version > 350 && version < 370
+      expect(plenum.volume.round(0)).to eq(234)
+    else
+      expect(plenum.volume.round(0)).to eq(0)
+    end
+
+    expect(thzone.isVolumeDefaulted).to be true
+    expect(thzone.isVolumeAutocalculated).to be true
+    expect(thzone.volume).to be_empty
+
+    plenum.surfaces.each do |s|
+      next if s.outsideBoundaryCondition.downcase == "outdoors"
+
+      # If a SEB plenum surface isn't facing outdoors, it's 1 of 4 "floor"
+      # surfaces (each facing a ceiling surface below).
+      adj = s.adjacentSurface
+      expect(adj).to_not be_empty
+      adj = adj.get
+      expect(adj.vertices.size).to eq(s.vertices.size)
+
+      # Same vertex sequence? Should be in reverse order.
+      adj.vertices.each_with_index do |vertex, i|
+        expect(TBD.same?(vertex, s.vertices.at(i))).to be true
+      end
+
+      expect(adj.surfaceType).to eq("RoofCeiling")
+      expect(s.surfaceType).to eq("RoofCeiling")
+      expect(s.setSurfaceType("Floor")).to be true
+      expect(s.setVertices(s.vertices.reverse)).to be true
+
+      # Vertices now in reverse order.
+      adj.vertices.reverse.each_with_index do |vertex, i|
+        expect(TBD.same?(vertex, s.vertices.at(i))).to be true
+      end
+    end
+
+    # After the fix.
+    unless version < 350
+      expect(plenum.isEnclosedVolume).to be true
+      expect(plenum.isVolumeDefaulted).to be true
+      expect(plenum.isVolumeAutocalculated).to be true
+    end
+
+    expect(plenum.volume.round(0)).to eq(50) # right answer
+    expect(thzone.isVolumeDefaulted).to be true
+    expect(thzone.isVolumeAutocalculated).to be true
+    expect(thzone.volume).to be_empty
+
+    file = File.join(__dir__, "files/osms/out/seb2.osm")
+    model.save(file, true)
+
 
     argh               = {}
     argh[:option     ] = "(non thermal bridging)"
@@ -98,6 +174,29 @@ RSpec.describe TBD do
 
       expect(surface[:heatloss]).to be_within(TOL).of(3.5)
     end
+
+    # Retrieve :parapet edges along the "Open Area" plenum.
+    open = model.getSpaceByName("Open area 1")
+    expect(open).to_not be_empty
+    open = open.get
+
+    open_roofs = TBD.getRoofs(open)
+    expect(open_roofs.size).to eq(1)
+    open_roof  = open_roofs.first
+    roof_id    = open_roof.nameString
+    expect(roof_id).to eq("Level 0 Open area 1 Ceiling Plenum RoofCeiling")
+
+    # There are only 2 types of edges along the "Open Area" plenum roof:
+    #   1. (5x) convex :parapet edges, and
+    #   2. (5x) transition edges (shared with neighbouring flat roof surfaces).
+    roof_edges  = io[:edges].select { |edg| edg[:surfaces].include?(roof_id) }
+    parapets    = roof_edges.select { |edg| edg[:type] == :parapetconvex }
+    transitions = roof_edges.select { |edg| edg[:type] == :transition }
+    expect(parapets.size).to eq(5)
+    expect(transitions.size).to eq(5)
+    expect(roof_edges.size).to eq(parapets.size + transitions.size)
+
+    roof_edges.each { |edg| expect(edg[:surfaces].size).to eq(2) }
   end
 
   it "can process JSON surface KHI & PSI entries + building & edge" do
@@ -183,7 +282,7 @@ RSpec.describe TBD do
     TBD.clean!
 
     name  = "Entryway  Wall 5"
-    file  = File.join(__dir__, "files/osms/in/seb.osm")
+    file  = File.join(__dir__, "files/osms/out/seb2.osm")
     path  = OpenStudio::Path.new(file)
     model = translator.loadModel(path)
     expect(model).to_not be_empty
@@ -552,10 +651,10 @@ RSpec.describe TBD do
     expect(bloc1[:pro][:grade    ]).to be_within(0.1).of(  29.8)
     expect(bloc1[:pro][:other    ]).to be_within(0.1).of(   0.0)
 
-    bloc1_pro_UA = bloc1[:pro].values.reduce(:+)
-    bloc1_ref_UA = bloc1[:ref].values.reduce(:+)
-    bloc2_pro_UA = bloc2[:pro].values.reduce(:+)
-    bloc2_ref_UA = bloc2[:ref].values.reduce(:+)
+    bloc1_pro_UA = bloc1[:pro].values.sum
+    bloc1_ref_UA = bloc1[:ref].values.sum
+    bloc2_pro_UA = bloc2[:pro].values.sum
+    bloc2_ref_UA = bloc2[:ref].values.sum
 
     expect(bloc1_pro_UA).to be_within(0.1).of( 214.8)
     expect(bloc1_ref_UA).to be_within(0.1).of( 107.2)
@@ -936,7 +1035,7 @@ RSpec.describe TBD do
     TBD.clean!
 
     # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
-    file  = File.join(__dir__, "files/osms/in/seb.osm")
+    file  = File.join(__dir__, "files/osms/out/seb2.osm")
     path  = OpenStudio::Path.new(file)
     model = translator.loadModel(path)
     expect(model).to_not be_empty
@@ -1058,7 +1157,7 @@ RSpec.describe TBD do
     expect(io).to be_a(Hash)
     expect(io).to have_key(:edges)
 
-    # 105x edges (-1x than the usual 106x for the seb.osm). The edge linking
+    # 105x edges (-1x than the usual 106x for the seb2.osm). The edge linking
     # "Open area 1 Floor" to "Openarea 1 Wall 5" used to be of type :grade. As
     # both slab and wall are now ground-facing, TBD ignores the edge altogether.
     expect(io[:edges].size).to eq(105)
@@ -1166,7 +1265,7 @@ RSpec.describe TBD do
     # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
     # Test initial model again.
     TBD.clean!
-    file  = File.join(__dir__, "files/osms/in/seb.osm")
+    file  = File.join(__dir__, "files/osms/out/seb2.osm")
     path  = OpenStudio::Path.new(file)
     model = translator.loadModel(path)
     expect(model).to_not be_empty
@@ -1748,7 +1847,7 @@ RSpec.describe TBD do
 
     input  = {}
     schema = "https://github.com/rd2/tbd/blob/master/tbd.schema.json"
-    file   = File.join(__dir__, "files/osms/in/seb.osm")
+    file   = File.join(__dir__, "files/osms/out/seb2.osm")
     path   = OpenStudio::Path.new(file)
     model  = translator.loadModel(path)
     expect(model).to_not be_empty
@@ -2176,7 +2275,7 @@ RSpec.describe TBD do
     File.open(file, "w") { |f| f.puts out }
 
 
-    # -- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- -- #
+    # --- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- --- #
     # The following variations of the 'FullServiceRestaurant' (v3.2.1) are
     # snapshots of incremental development of the same model. For each step,
     # the tests illustrate how TBD ends up considering the unoccupied space
@@ -2755,6 +2854,153 @@ RSpec.describe TBD do
 
       expect(area).to be_within(TOL).of(569.50)
     end
+
+    # --- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- --- #
+    # Add skylight (+ skylight well) to corrected SEB model.
+    TBD.clean!
+    file  = File.join(__dir__, "files/osms/out/seb2.osm")
+    path  = OpenStudio::Path.new(file)
+    model = translator.loadModel(path)
+    expect(model).to_not be_empty
+    model = model.get
+
+    entry   = model.getSpaceByName("Entry way 1")
+    office  = model.getSpaceByName("Small office 1")
+    open    = model.getSpaceByName("Open area 1")
+    utility = model.getSpaceByName("Utility 1")
+    plenum  = model.getSpaceByName("Level 0 Ceiling Plenum")
+    expect(entry).to_not be_empty
+    expect(office).to_not be_empty
+    expect(open).to_not be_empty
+    expect(utility).to_not be_empty
+    expect(plenum).to_not be_empty
+    entry   = entry.get
+    office  = office.get
+    open    = open.get
+    utility = utility.get
+    plenum  = plenum.get
+    expect(plenum.partofTotalFloorArea).to be false
+    expect(TBD.unconditioned?(plenum)).to be false
+
+    open_roofs = TBD.getRoofs(open)
+    expect(open_roofs.size).to eq(1)
+    open_roof = open_roofs.first
+    roof_id   = open_roof.nameString
+    expect(roof_id).to eq("Level 0 Open area 1 Ceiling Plenum RoofCeiling")
+
+    srr = 0.05
+    gra = TBD.grossRoofArea(model.getSpaces)
+    tm2 = srr * gra
+    rm2 = TBD.addSkyLights(model.getSpaces, {area: tm2})
+    puts TBD.logs unless TBD.logs.empty?
+    expect(TBD.status).to be_zero
+    expect(rm2.round(2)).to eq(gra.round(2))
+
+    entry_skies   = TBD.facets(entry, "Outdoors", "Skylight")
+    office_skies  = TBD.facets(office, "Outdoors", "Skylight")
+    utility_skies = TBD.facets(utility, "Outdoors", "Skylight")
+    open_skies    = TBD.facets(open, "Outdoors", "Skylight")
+
+    expect(entry_skies).to be_empty
+    expect(office_skies).to be_empty
+    expect(utility_skies).to be_empty
+    expect(open_skies.size).to eq(1)
+    open_sky = open_skies.first
+    sky_id   = open_sky.nameString
+    expect(sky_id).to eq("0:0:0:Open area 1:0")
+
+    skm2 = open_sky.grossArea
+    expect((skm2 / rm2).round(2)).to eq(srr)
+
+    # Assign construction to new skylights.
+    construction = TBD.genConstruction(model, {type: :skylight, uo: 2.8})
+    expect(open_sky.setConstruction(construction)).to be true
+    puts TBD.logs unless TBD.logs.empty?
+    expect(TBD.status).to be_zero
+
+    file = File.join(__dir__, "files/osms/out/seb2_sky.osm")
+    model.save(file, true)
+
+    open_well  = open_sky.surface
+    expect(open_well).to_not be_empty
+    open_well  = open_well.get
+    expect(open_well.surfaceType.downcase).to eq("roofceiling")
+    well_id    = open_well.nameString
+    expect(well_id).to eq("0:0:0:Open area 1")
+
+    argh               = {}
+    argh[:option     ] = "regular (BETBG)"
+    argh[:schema_path] = File.join(__dir__, "../tbd.schema.json")
+
+    json     = TBD.process(model, argh)
+    expect(json).to be_a(Hash)
+    expect(json).to have_key(:io)
+    expect(json).to have_key(:surfaces)
+    io       = json[:io      ]
+    surfaces = json[:surfaces]
+    expect(TBD.status).to be_zero
+    expect(TBD.logs).to be_empty
+    expect(surfaces).to be_a(Hash)
+    expect(surfaces.size).to eq(65) # ! 56 before skylight/well/leader lines
+    expect(io).to be_a(Hash)
+    expect(io).to have_key(:edges)
+    expect(io[:edges].size).to eq(115) # ! 106 before skylight/well/leader lines
+
+    # Extra 9 edges:
+    #   - 4x new "skylightjamb" edges
+    #   - 4x new "transition" edges around well
+    #   - 1x "transition" edge along leader line, required for well cutout.
+    sky_jambs = io[:edges].select { |ed| ed[:surfaces].include?(sky_id) }
+    expect(sky_jambs.size).to eq(4)
+
+    sky_jambs.each do |edg|
+      expect(edg[:surfaces].size).to eq(2)
+      expect(edg[:surfaces]).to include(well_id)
+      expect(edg[:type]).to eq(:skylightjamb)
+    end
+
+    roof_edges  = io[:edges].select { |ed| ed[:surfaces].include?(roof_id) }
+    parapets    = roof_edges.select { |ed| ed[:type] == :parapetconvex }
+    transitions = roof_edges.select { |ed| ed[:type] == :transition }
+    expect(parapets.size).to eq(5)
+    expect(transitions.size).to eq(10)
+    expect(roof_edges.size).to eq(parapets.size + transitions.size)
+
+    parapets.each { |edg| expect(edg[:surfaces].size).to eq(2) }
+
+    t1x = transitions.select { |edg| edg[:surfaces].size == 1 }
+    t2x = transitions.select { |edg| edg[:surfaces].size == 2 }
+    t4x = transitions.select { |edg| edg[:surfaces].size == 4 }
+    expect(t1x.size).to eq(1) # leader line
+    expect(t2x.size).to eq(5) # see "can process JSON surface KHI entries"
+    expect(t4x.size).to eq(4) # around skylight well
+
+    expect(transitions.size).to eq(t1x.size + t2x.size + t4x.size)
+
+    # Skylight well cutout leader line backtracks onto itself.
+    t1x = t1x.first
+    expect(t1x[:surfaces]).to include(roof_id)
+
+    t4x.each do |edg|
+      expect(edg[:surfaces].size).to eq(4)
+      expect(edg[:surfaces]).to include(roof_id) # roof with cutout
+      expect(edg[:surfaces]).to include(well_id) # new base surface for skylight
+
+      edg[:surfaces].each do |s|
+        next if s == roof_id
+        next if s == well_id
+
+        expect(s).to include("0:0:0:0:")
+        # e.g.:
+        # ... Level 0 Open area 1 Ceiling Plenum RoofCeiling (i.e. roof_id)
+        # ... 0:0:0:Open area 1 (i.e. well_id)
+        # ... 0:0:0:0:3:Level 0 Ceiling Plenum (i.e. well wall, plenum side)
+        # ... 0:0:0:0:3:Open area 1 (i.e. adjacent well wall, open area side)
+      end
+    end
+
+    puts TBD.logs unless TBD.logs.empty?
+    expect(TBD.status).to be_zero
   end
 
   it "can factor in negative PSI-factors (JSON input)" do
