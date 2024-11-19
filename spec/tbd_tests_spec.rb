@@ -1253,8 +1253,8 @@ RSpec.describe TBD do
     #   expect(oa15.setWindExposure("NoWind")).to be true
     #   expect(oa15.setSunExposure("NoSun")).to be true
     #
-    # Alas, both "exposures" can reset in the saved OSM. One solution is to
-    # first set the 'wall height above grade' value to 0:
+    # Alas, both "exposures" end up being reset in the saved OSM. One solution
+    # is to first set the 'wall height above grade' value to 0. Works.
     kf = model.getFoundationKivas.first
     expect(kf.isWallHeightAboveGradeDefaulted).to be true
     expect(kf.wallHeightAboveGrade.round(1)).to eq(0.2)
@@ -1290,7 +1290,7 @@ RSpec.describe TBD do
     model.save(file, true)
 
 
-    # # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
+    # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
     # Test initial model again.
     TBD.clean!
     file  = File.join(__dir__, "files/osms/out/seb2.osm")

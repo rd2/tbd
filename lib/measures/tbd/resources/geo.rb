@@ -833,8 +833,12 @@ module TBD
         next unless floors[id][:boundary].downcase == "foundation"
         next     if floors[id].key?(:kiva)
 
-        floors[id][:kiva   ] = :slab # initially slabs-on-grade
-        floors[id][:exposed] = 0.0   # slab-on-grade or walkout perimeter
+        # Initially set as slab-on-grade. Track 'exposed foundation perimeter'.
+        #   - outdoor wall/slab-on-grade edge lengths
+        #   - outdoor wall/basement slab walkout edge lengths
+        #   - basement wall/basement slab edge lengths
+        floors[id][:kiva   ] = :slab
+        floors[id][:exposed] = 0.0
 
         # Loop around current edge.
         edge[:surfaces].keys.each do |i|
