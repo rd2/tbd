@@ -1034,7 +1034,7 @@ RSpec.describe TBD do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     TBD.clean!
 
-    # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
+    --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
     file  = File.join(__dir__, "files/osms/out/seb2.osm")
     path  = OpenStudio::Path.new(file)
     model = translator.loadModel(path)
@@ -1109,6 +1109,7 @@ RSpec.describe TBD do
     file = File.join(__dir__, "files/osms/out/seb_KIVA.osm")
     model.save(file, true)
 
+
     # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
     # Re-open for testing.
     path  = OpenStudio::Path.new(file)
@@ -1182,6 +1183,7 @@ RSpec.describe TBD do
     file = File.join(__dir__, "files/osms/out/seb_KIVA2.osm")
     model.save(file, true)
 
+
     # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
     # Try again. First, purge existing KIVA objects in model.
     TBD.clean!
@@ -1237,6 +1239,31 @@ RSpec.describe TBD do
     expect(model.getSurfacePropertyExposedFoundationPerimeters.size).to eq(1)
     expect(model.getFoundationKivas.size).to eq(1) # !4 ... previously purged
 
+    # By default, KIVA foundation objects have a 200mm 'wall height above grade'
+    # value, i.e. a top, 8-in section exposed to outdoor air. This seems to
+    # generate the following EnergyPlus warning:
+    #
+    #   ** Warning ** BuildingSurface:Detailed="OPENAREA 1 WALL 5", Sun Exposure="SUNEXPOSED".
+    #   **   ~~~   ** ..This surface is not exposed to External Environment.  Sun exposure has no effect.
+    #
+    # Initial attempts to get rid of the warning include resetting both wind and
+    # sun exposure AFTER setting boundary conditions to "Foundation", e.g.
+    #
+    #   expect(oa15.setOutsideBoundaryCondition("Foundation")).to be true
+    #   expect(oa15.setWindExposure("NoWind")).to be true
+    #   expect(oa15.setSunExposure("NoSun")).to be true
+    #
+    # Alas, both "exposures" can reset in the saved OSM. One solution is to
+    # first set the 'wall height above grade' value to 0:
+    kf = model.getFoundationKivas.first
+    expect(kf.isWallHeightAboveGradeDefaulted).to be true
+    expect(kf.wallHeightAboveGrade.round(1)).to eq(0.2)
+    expect(kf.setWallHeightAboveGrade(0)).to be true
+    expect(kf.isWallHeightAboveGradeDefaulted).to be false
+    expect(kf.wallHeightAboveGrade.round).to eq(0)
+    expect(oa15.setWindExposure("NoWind")).to be true
+    expect(oa15.setSunExposure("NoSun")).to be true
+
     found_floor = false
     found_wall  = false
 
@@ -1248,7 +1275,7 @@ RSpec.describe TBD do
       if id == "Open area 1 Floor"
         expect(surface[:kiva]).to eq(:basement)
         expect(surface).to have_key(:exposed)
-        expect(surface[:exposed]).to be_within(TOL).of(8.70) # 12.6 - 3.9
+        expect(surface[:exposed]).to be_within(TOL).of(12.59) # not 8.70
         found_floor = true
       else
         expect(surface[:kiva]).to eq("Open area 1 Floor")
@@ -1262,7 +1289,8 @@ RSpec.describe TBD do
     file = File.join(__dir__, "files/osms/out/seb_KIVA3.osm")
     model.save(file, true)
 
-    # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
+
+    # # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
     # Test initial model again.
     TBD.clean!
     file  = File.join(__dir__, "files/osms/out/seb2.osm")
@@ -1330,6 +1358,7 @@ RSpec.describe TBD do
     file = File.join(__dir__, "files/osms/out/seb_KIVA4.osm")
     model.save(file, true)
 
+
     # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
     # Recover KIVA-populated model and re- set/gen KIVA.
     argh              = {}
@@ -1387,11 +1416,12 @@ RSpec.describe TBD do
     file = File.join(__dir__, "files/osms/out/seb_KIVA5.osm")
     model.save(file, true)
 
+
     # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
     # Recover KIVA-populated model and re-gen KIVA ... WITHOUT resetting KIVA.
     TBD.clean!
-    argh              = {}
-    argh[:option   ] = "(non thermal bridging)"
+    argh            = {}
+    argh[:option  ] = "(non thermal bridging)"
     argh[:gen_kiva] = true
 
     json     = TBD.process(model, argh)
