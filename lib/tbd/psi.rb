@@ -1678,8 +1678,8 @@ module TBD
     # around edge with respect to a reference vector (perpendicular to the
     # edge), +clockwise as one is looking in the opposite position of the edge
     # vector. For instance, a vertical edge has a reference vector pointing
-    # North - surfaces eastward of the edge are (0°,180°], while surfaces
-    # westward of the edge are (180°,360°].
+    # North - surfaces eastward of the edge are (0deg,180deg], while surfaces
+    # westward of the edge are (180deg,360deg].
     #
     # Much of the following code is of a topological nature, and should ideally
     # (or eventually) become available functionality offered by Topolys. Topolys
@@ -1741,7 +1741,7 @@ module TBD
 
           angle  = reference_V.angle(farthest_V)
           angle  = 0 if angle.nil?
-          adjust = false # adjust angle [180°, 360°] if necessary
+          adjust = false # adjust angle [180deg, 360deg] if necessary
 
           if vertical
             adjust = true if east.dot(farthest_V) < -TOL

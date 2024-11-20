@@ -422,8 +422,8 @@ module TBD
   # @param [Hash] s TBD surfaces (keys: Openstudio surface names)
   # @option s [Bool] :deratable whether surface is deratable, s[][:deratable]
   # @option s [:wall, :ceiling, :floor] :type TBD surface type
-  # @option s [#to_f] :heating applicable heating setpoint temperature in °C
-  # @option s [#to_f] :cooling applicable cooling setpoint temperature in °C
+  # @option s [#to_f] :heating applicable heating setpoint temperature in C
+  # @option s [#to_f] :cooling applicable cooling setpoint temperature in C
   # @option s [Hash] :windows TBD surface-specific windows e.g. s[][:windows]
   # @option s [Hash] :doors TBD surface-specific doors
   # @option s [Hash] :skylights TBD surface-specific skylights
@@ -466,7 +466,7 @@ module TBD
       ref = 1 / 5.46
       ref = 1 / 3.60 if surface[:type] == :wall
 
-      # Adjust for lower heating setpoint (assumes -25°C design conditions).
+      # Adjust for lower heating setpoint (assumes -25C design conditions).
       ref *= 43 / (heating + 25) if heating < 18 && cooling > 40
 
       surface[:ref] = ref
@@ -628,8 +628,8 @@ module TBD
     end
 
     # Set up 2x heating setpoint (HSTP) "blocks" (or bins):
-    #   bloc1: spaces/zones with HSTP >= 18°C
-    #   bloc2: spaces/zones with HSTP < 18°C
+    #   bloc1: spaces/zones with HSTP >= 18C
+    #   bloc2: spaces/zones with HSTP < 18C
     #   (ref: 2021 Quebec energy code 3.3. UA' trade-off methodology)
     #   (... can be extended in the future to cover other standards)
     #

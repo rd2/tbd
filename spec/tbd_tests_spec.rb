@@ -441,8 +441,8 @@ RSpec.describe TBD do
 
     argh[:io][:description] = "test"
     # Set up 2x heating setpoint (HSTP) "blocks":
-    #   bloc1: spaces/zones with HSTP >= 18°C
-    #   bloc2: spaces/zones with HSTP < 18°C
+    #   bloc1: spaces/zones with HSTP >= 18C
+    #   bloc2: spaces/zones with HSTP < 18C
     #   (ref: 2021 Quebec energy code 3.3. UA' trade-off methodology)
     #   ... could be generalized in the future e.g., more blocks, user-set HSTP.
     #
@@ -1202,9 +1202,22 @@ RSpec.describe TBD do
     expect(foundation).to_not be_empty
     foundation = foundation.get
 
+    # Fetch all outdoor-facing walls of the Open Area space.
+    oa13 = model.getSurfaceByName("Openarea 1 Wall 3") # X.XXm wide
+    oa14 = model.getSurfaceByName("Openarea 1 Wall 4") # X.XXm wide
     oa15 = model.getSurfaceByName("Openarea 1 Wall 5") # 3.89m wide
+    oa16 = model.getSurfaceByName("Openarea 1 Wall 6") # 2.45m wide
+    oa17 = model.getSurfaceByName("Openarea 1 Wall 7") # 1.82m wide
+    expect(oa13).to_not be_empty
+    expect(oa14).to_not be_empty
     expect(oa15).to_not be_empty
+    expect(oa16).to_not be_empty
+    expect(oa17).to_not be_empty
+    oa13 = oa13.get
+    oa14 = oa14.get
     oa15 = oa15.get
+    oa16 = oa16.get
+    oa17 = oa17.get
 
     construction = oa15.construction.get
     expect(oa15.setOutsideBoundaryCondition("Foundation")).to be true
