@@ -10,7 +10,7 @@ In OpenStudio, this 5-section entrance would be greatly simplified, and modelled
 
 ![OpenStudio Entrance](../assets/images/os_entrance.png "OpenStudio Entrance")  
 
-- Unless modelling a _tubular daylighting device_ ([TDD](https://bigladdersoftware.com/epx/docs/23-2/input-output-reference/group-daylighting.html#daylightingdevicetubular "Tubular Daylighting Device")), a fenestrated surface must _align_ with its _base_ surface, i.e. they both must share the same 3D plane and the _subsurface_ must _fit_ within _base_ surface boundaries.
+- Unless modelling a _tubular daylighting device_ ([TDD](https://bigladdersoftware.com/epx/docs/24-1/input-output-reference/group-daylighting.html#daylightingdevicetubular "Tubular Daylighting Device")), a fenestrated surface must _align_ with its _base_ surface, i.e. they both must share the same 3D plane and the _subsurface_ must _fit_ within _base_ surface boundaries.
 
 - TBD tags fenestration perimeter edges (shared with its _base_ surface) as either "__head__", "__sill__" or "__jamb__" (depending on the situation, the door "sill" edge may later be overridden as a "grade" or "rimjoist" edge).
 
@@ -20,7 +20,7 @@ In OpenStudio, this 5-section entrance would be greatly simplified, and modelled
 
 ### [Frame and Dividers](#frame-and-dividers)
 
-OpenStudio (and EnergyPlus) users can optionally associate [frame & divider](https://bigladdersoftware.com/epx/docs/23-2/input-output-reference/group-thermal-zone-description-geometry.html#windowpropertyframeanddivider "OpenStudio Frame and Dividers") properties to most glazed _subsurfaces_. In a nutshell, this allows fenestration product frames (and dividers) to be modelled/simulated separately from glazing layers, in line with NFRC 100 rating procedures. This allows _inter alia_ a more robust assessment of fenestration aspect ratios on energy performance (e.g. 1x larger fenestration product outperforming many narrower, smaller products). OpenStudio fenestration, with _frame & divider_ properties, requires 3D modelling of the glazing portion ONLY of each _subsurface_ - not the _rough opening_, as illustrated in __Figure 1C__ (same entrance design).
+OpenStudio (and EnergyPlus) users can optionally associate [frame & divider](https://bigladdersoftware.com/epx/docs/24-1/input-output-reference/group-thermal-zone-description-geometry.html#windowpropertyframeanddivider "OpenStudio Frame and Dividers") properties to most glazed _subsurfaces_. In a nutshell, this allows fenestration product frames (and dividers) to be modelled/simulated separately from glazing layers, in line with NFRC 100 rating procedures. This allows _inter alia_ a more robust assessment of fenestration aspect ratios on energy performance (e.g. 1x larger fenestration product outperforming many narrower, smaller products). OpenStudio fenestration, with _frame & divider_ properties, requires 3D modelling of the glazing portion ONLY of each _subsurface_ - not the _rough opening_, as illustrated in __Figure 1C__ (same entrance design).
 
 ![OpenStudio Frame & Dividers](../assets/images/FD.png "OpenStudio Frame & Dividers")
 

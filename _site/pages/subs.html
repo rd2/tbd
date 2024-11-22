@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=96703afaaa518f19ee098a07677344291e9fc420">
+    <link rel="stylesheet" href="/assets/css/style.css?v=870febd2b583b3fff3f0737972620bcd6754eb4a">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -50,8 +50,8 @@
         </header>
         <section id="downloads" class="clearfix">
           
-          <a href="https://github.com/rd2/tbd/releases/download/v3.4.3/tbd.zip" id="download-zip" class="button"><span>Download .zip</span></a>
-          <a href="https://github.com/rd2/tbd/releases/download/v3.4.3/tbd.tar.gz" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
+          <a href="https://github.com/rd2/tbd/releases/download/v3.4.4/tbd.zip" id="download-zip" class="button"><span>Download .zip</span></a>
+          <a href="https://github.com/rd2/tbd/releases/download/v3.4.4/tbd.tar.gz" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
           
 	
         </section>
@@ -71,7 +71,7 @@
 
 <ul>
   <li>
-    <p>Unless modelling a <em>tubular daylighting device</em> (<a href="https://bigladdersoftware.com/epx/docs/23-2/input-output-reference/group-daylighting.html#daylightingdevicetubular" title="Tubular Daylighting Device">TDD</a>), a fenestrated surface must <em>align</em> with its <em>base</em> surface, i.e. they both must share the same 3D plane and the <em>subsurface</em> must <em>fit</em> within <em>base</em> surface boundaries.</p>
+    <p>Unless modelling a <em>tubular daylighting device</em> (<a href="https://bigladdersoftware.com/epx/docs/24-1/input-output-reference/group-daylighting.html#daylightingdevicetubular" title="Tubular Daylighting Device">TDD</a>), a fenestrated surface must <em>align</em> with its <em>base</em> surface, i.e. they both must share the same 3D plane and the <em>subsurface</em> must <em>fit</em> within <em>base</em> surface boundaries.</p>
   </li>
   <li>
     <p>TBD tags fenestration perimeter edges (shared with its <em>base</em> surface) as either “<strong>head</strong>”, “<strong>sill</strong>” or “<strong>jamb</strong>” (depending on the situation, the door “sill” edge may later be overridden as a “grade” or “rimjoist” edge).</p>
@@ -86,7 +86,7 @@
 
 <h3 id="frame-and-dividers"><a href="#frame-and-dividers">Frame and Dividers</a></h3>
 
-<p>OpenStudio (and EnergyPlus) users can optionally associate <a href="https://bigladdersoftware.com/epx/docs/23-2/input-output-reference/group-thermal-zone-description-geometry.html#windowpropertyframeanddivider" title="OpenStudio Frame and Dividers">frame &amp; divider</a> properties to most glazed <em>subsurfaces</em>. In a nutshell, this allows fenestration product frames (and dividers) to be modelled/simulated separately from glazing layers, in line with NFRC 100 rating procedures. This allows <em>inter alia</em> a more robust assessment of fenestration aspect ratios on energy performance (e.g. 1x larger fenestration product outperforming many narrower, smaller products). OpenStudio fenestration, with <em>frame &amp; divider</em> properties, requires 3D modelling of the glazing portion ONLY of each <em>subsurface</em> - not the <em>rough opening</em>, as illustrated in <strong>Figure 1C</strong> (same entrance design).</p>
+<p>OpenStudio (and EnergyPlus) users can optionally associate <a href="https://bigladdersoftware.com/epx/docs/24-1/input-output-reference/group-thermal-zone-description-geometry.html#windowpropertyframeanddivider" title="OpenStudio Frame and Dividers">frame &amp; divider</a> properties to most glazed <em>subsurfaces</em>. In a nutshell, this allows fenestration product frames (and dividers) to be modelled/simulated separately from glazing layers, in line with NFRC 100 rating procedures. This allows <em>inter alia</em> a more robust assessment of fenestration aspect ratios on energy performance (e.g. 1x larger fenestration product outperforming many narrower, smaller products). OpenStudio fenestration, with <em>frame &amp; divider</em> properties, requires 3D modelling of the glazing portion ONLY of each <em>subsurface</em> - not the <em>rough opening</em>, as illustrated in <strong>Figure 1C</strong> (same entrance design).</p>
 
 <p><img src="../assets/images/FD.png" alt="OpenStudio Frame &amp; Dividers" title="OpenStudio Frame &amp; Dividers" /></p>
 
