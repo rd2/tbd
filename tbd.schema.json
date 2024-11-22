@@ -267,15 +267,15 @@
           "type": "number"
         },
         "corner": {
-          "title": "Any wall corner [0°,135°) or (225°,360°] PSI",
+          "title": "Any wall corner [0deg,135deg) or (225deg,360deg] PSI",
           "type": "number"
         },
         "cornerconcave": {
-          "title": "Concave wall corner [0°,135°) PSI",
+          "title": "Concave wall corner [0deg,135deg) PSI",
           "type": "number"
         },
         "cornerconvex": {
-          "title": "Convex wall corner (225°,360°] PSI",
+          "title": "Convex wall corner (225deg,360deg] PSI",
           "type": "number"
         },
         "balcony": {
@@ -655,12 +655,12 @@
           "type": "object",
           "properties": {
             "bloc1": {
-              "title": "heating setpoints >= 18°C",
+              "title": "heating setpoints >= 18C",
               "type": "object",
               "$ref": "#/definitions/UaBlock"
             },
             "bloc2": {
-              "title": "heating setpoints < 18°C",
+              "title": "heating setpoints < 18C",
               "type": "object",
               "$ref": "#/definitions/UaBlock"
             }

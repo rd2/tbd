@@ -722,15 +722,10 @@ module TBD
       kva = true unless surface.surfacePropertyExposedFoundationPerimeter.empty?
       surface.resetAdjacentFoundation
       surface.resetSurfacePropertyExposedFoundationPerimeter
-      next unless surface.isGroundSurface
       next     if surface.outsideBoundaryCondition.capitalize == boundary
+      next unless surface.outsideBoundaryCondition.capitalize == "Foundation"
 
-      lc = surface.construction.empty? ? nil : surface.construction.get
       surface.setOutsideBoundaryCondition(boundary)
-      next if boundary == "Ground"
-      next if lc.nil?
-
-      surface.setConstruction(lc) if surface.construction.empty?
     end
 
     perimeters = model.getSurfacePropertyExposedFoundationPerimeters
@@ -834,11 +829,16 @@ module TBD
     edges.each do |code1, edge|
       edge[:surfaces].keys.each do |id|
         next unless floors.key?(id)
+
         next unless floors[id][:boundary].downcase == "foundation"
         next     if floors[id].key?(:kiva)
 
-        floors[id][:kiva   ] = :slab # initially slabs-on-grade
-        floors[id][:exposed] = 0.0   # slab-on-grade or walkout perimeter
+        # Initially set as slab-on-grade. Track 'exposed foundation perimeter'.
+        #   - outdoor wall/slab-on-grade edge lengths
+        #   - outdoor wall/basement slab walkout edge lengths
+        #   - basement wall/basement slab edge lengths
+        floors[id][:kiva   ] = :slab
+        floors[id][:exposed] = 0.0
 
         # Loop around current edge.
         edge[:surfaces].keys.each do |i|
@@ -847,8 +847,9 @@ module TBD
           next unless walls[i][:boundary].downcase == "foundation"
           next     if walls[i].key?(:kiva)
 
-          floors[id][:kiva] = :basement
-          walls[i  ][:kiva] = id
+          floors[id][:kiva   ]  = :basement
+          floors[id][:exposed] += edge[:length]
+          walls[i  ][:kiva   ]  = id
         end
 
         # Loop around current edge.
@@ -862,7 +863,7 @@ module TBD
 
         # Loop around other floor edges.
         edges.each do |code2, e|
-          next if code1 == code2 #  skip - same edge
+          next if code1 == code2 # skip - same edge
 
           e[:surfaces].keys.each do |i|
             next unless i == id # good - same floor
@@ -873,8 +874,9 @@ module TBD
               next unless walls[ii][:boundary].downcase == "foundation"
               next     if walls[ii].key?(:kiva)
 
-              floors[id][:kiva] = :basement
-              walls[ii ][:kiva] = id
+              floors[id][:kiva   ]  = :basement
+              walls[ii ][:kiva   ]  = id
+              floors[id][:exposed] += e[:length]
             end
 
             e[:surfaces].keys.each do |ii|
@@ -889,6 +891,7 @@ module TBD
 
         foundation = OpenStudio::Model::FoundationKiva.new(model)
         foundation.setName("KIVA Foundation Floor #{id}")
+
         floor = model.getSurfaceByName(id)
         kiva  = false if floor.empty?
         next          if floor.empty?

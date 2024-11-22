@@ -441,8 +441,8 @@ RSpec.describe TBD do
 
     argh[:io][:description] = "test"
     # Set up 2x heating setpoint (HSTP) "blocks":
-    #   bloc1: spaces/zones with HSTP >= 18°C
-    #   bloc2: spaces/zones with HSTP < 18°C
+    #   bloc1: spaces/zones with HSTP >= 18C
+    #   bloc2: spaces/zones with HSTP < 18C
     #   (ref: 2021 Quebec energy code 3.3. UA' trade-off methodology)
     #   ... could be generalized in the future e.g., more blocks, user-set HSTP.
     #
@@ -1041,6 +1041,45 @@ RSpec.describe TBD do
     expect(model).to_not be_empty
     model = model.get
 
+    # Fetch all 5 outdoor-facing walls of the Open Area space.
+    oa13ID = "Openarea 1 Wall 3"
+    oa14ID = "Openarea 1 Wall 4"
+    oa15ID = "Openarea 1 Wall 5"
+    oa16ID = "Openarea 1 Wall 6"
+    oa17ID = "Openarea 1 Wall 7"
+    oaIDs  = [oa13ID, oa14ID, oa15ID, oa16ID, oa17ID]
+
+    oa13 = model.getSurfaceByName(oa13ID)
+    oa14 = model.getSurfaceByName(oa14ID)
+    oa15 = model.getSurfaceByName(oa15ID)
+    oa16 = model.getSurfaceByName(oa16ID)
+    oa17 = model.getSurfaceByName(oa17ID)
+    expect(oa13).to_not be_empty
+    expect(oa14).to_not be_empty
+    expect(oa15).to_not be_empty
+    expect(oa16).to_not be_empty
+    expect(oa17).to_not be_empty
+    oa13 = oa13.get
+    oa14 = oa14.get
+    oa15 = oa15.get
+    oa16 = oa16.get
+    oa17 = oa17.get
+
+    woa13 = TBD.alignedWidth(oa13)
+    woa14 = TBD.alignedWidth(oa14)
+    woa15 = TBD.alignedWidth(oa15)
+    woa16 = TBD.alignedWidth(oa16)
+    woa17 = TBD.alignedWidth(oa17)
+    expect(woa13.round(2)).to eq(2.29)
+    expect(woa14.round(2)).to eq(2.14)
+    expect(woa15.round(2)).to eq(3.89)
+    expect(woa16.round(2)).to eq(2.45)
+    expect(woa17.round(2)).to eq(1.82)
+
+    # Assert 'exposed perimeter' of the Open Area space.
+    exp = woa13 + woa14 + woa15 + woa16 + woa17
+    expect(exp.round(2)).to eq(12.59)
+
     # For continuous insulation and/or finishings, OpenStudio/EnergyPlus/Kiva
     # offer 2x solutions :
     #
@@ -1103,11 +1142,12 @@ RSpec.describe TBD do
     expect(oa1f.setConstruction(construction)).to be true
 
     arg = "TotalExposedPerimeter"
-    per = oa1f.createSurfacePropertyExposedFoundationPerimeter(arg, 12.59)
+    per = oa1f.createSurfacePropertyExposedFoundationPerimeter(arg, exp)
     expect(per).to_not be_empty
 
     file = File.join(__dir__, "files/osms/out/seb_KIVA.osm")
     model.save(file, true)
+
 
     # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
     # Re-open for testing.
@@ -1125,7 +1165,7 @@ RSpec.describe TBD do
     expect(foundation).to_not be_empty
     foundation = foundation.get
 
-    oa15 = model.getSurfaceByName("Openarea 1 Wall 5") # 3.89m wide
+    oa15 = model.getSurfaceByName(oa15ID)
     expect(oa15).to_not be_empty
     oa15 = oa15.get
 
@@ -1182,14 +1222,20 @@ RSpec.describe TBD do
     file = File.join(__dir__, "files/osms/out/seb_KIVA2.osm")
     model.save(file, true)
 
+
     # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
-    # Try again. First, purge existing KIVA objects in model.
+    # Try again, yet by first purging existing KIVA objects in the model.
     TBD.clean!
     file  = File.join(__dir__, "files/osms/out/seb_KIVA.osm")
     path  = OpenStudio::Path.new(file)
     model = translator.loadModel(path)
     expect(model).to_not be_empty
     model = model.get
+
+    kfs = model.getFoundationKivas
+    expect(kfs).to_not be_empty
+    expect(kfs.size).to eq(4)
+    expect(model.foundationKivaSettings).to be_empty
 
     oa1f = model.getSurfaceByName("Open area 1 Floor")
     expect(oa1f).to_not be_empty
@@ -1198,69 +1244,121 @@ RSpec.describe TBD do
     expect(oa1f.outsideBoundaryCondition.downcase).to eq("foundation")
     foundation = oa1f.adjacentFoundation
     expect(foundation).to_not be_empty
-    foundation = foundation.get
 
-    oa15 = model.getSurfaceByName("Openarea 1 Wall 5") # 3.89m wide
-    expect(oa15).to_not be_empty
-    oa15 = oa15.get
+    srfIDs = ["Open area 1 Floor"]
 
-    construction = oa15.construction.get
-    expect(oa15.setOutsideBoundaryCondition("Foundation")).to be true
-    expect(oa15.setAdjacentFoundation(foundation)).to be true
-    expect(oa15.setConstruction(construction)).to be true
+    # Incrementally change Open Area outdoor-facing walls to foundation-facing,
+    # and ensure KIVA reset works. Exposed perimeter should remain the same.
+    oaIDs.each_with_index do |oaID, i|
+      i3 = i + 3
 
-    kfs = model.getFoundationKivas
-    expect(kfs).to_not be_empty
-    expect(kfs.size).to eq(4)
-    expect(model.foundationKivaSettings).to be_empty
+      oa1f = model.getSurfaceByName("Open area 1 Floor")
+      expect(oa1f).to_not be_empty
+      oa1f = oa1f.get
 
-    argh              = {}
-    argh[:option    ] = "poor (BETBG)"
-    argh[:gen_kiva  ] = true
-    argh[:reset_kiva] = true
+      expect(oa1f.outsideBoundaryCondition.downcase).to eq("foundation")
+      foundation = oa1f.adjacentFoundation
+      expect(foundation).to_not be_empty
 
-    json     = TBD.process(model, argh)
-    expect(json).to be_a(Hash)
-    expect(json).to have_key(:io)
-    expect(json).to have_key(:surfaces)
-    io       = json[:io      ]
-    surfaces = json[:surfaces]
-    expect(TBD.info?).to be true
-    expect(TBD.logs.size).to eq(1)
-    expect(TBD.logs.first[:message]).to include("Purged KIVA objects from ")
-    expect(surfaces).to be_a(Hash)
-    expect(surfaces.size).to eq(56)
-    expect(io).to be_a(Hash)
-    expect(io).to have_key(:edges)
-    expect(io[:edges].size).to eq(105)
-    expect(model.foundationKivaSettings).to_not be_empty
-    expect(model.getSurfacePropertyExposedFoundationPerimeters.size).to eq(1)
-    expect(model.getFoundationKivas.size).to eq(1) # !4 ... previously purged
+      oaWALL = model.getSurfaceByName(oaID)
+      expect(oaWALL).to_not be_empty
+      oaWALL = oaWALL.get
 
-    found_floor = false
-    found_wall  = false
+      construction = oaWALL.construction.get
+      expect(oaWALL.outsideBoundaryCondition.downcase).to eq("outdoors")
+      expect(oaWALL.setOutsideBoundaryCondition("Foundation")).to be true
+      expect(oaWALL.setConstruction(construction)).to be true
 
-    surfaces.each do |id, surface|
-      next unless surface.key?(:kiva)
+      srfIDs << oaID
 
-      expect(id).to eq("Open area 1 Floor").or eq("Openarea 1 Wall 5")
+      argh              = {}
+      argh[:option    ] = "(non thermal bridging)"
+      argh[:gen_kiva  ] = true
+      argh[:reset_kiva] = true
 
-      if id == "Open area 1 Floor"
-        expect(surface[:kiva]).to eq(:basement)
-        expect(surface).to have_key(:exposed)
-        expect(surface[:exposed]).to be_within(TOL).of(8.70) # 12.6 - 3.9
-        found_floor = true
-      else
-        expect(surface[:kiva]).to eq("Open area 1 Floor")
-        found_wall = true
+      json     = TBD.process(model, argh)
+      expect(json).to be_a(Hash)
+      expect(json).to have_key(:io)
+      expect(json).to have_key(:surfaces)
+      io       = json[:io      ]
+      surfaces = json[:surfaces]
+      expect(TBD.info?).to be true
+      expect(TBD.logs.size).to eq(i + 1)
+
+      TBD.logs.each do |lg|
+        expect(lg[:message]).to include("Purged KIVA objects from ")
       end
-    end
 
-    expect(found_floor).to be true
-    expect(found_wall).to be true
+      expect(surfaces).to be_a(Hash)
+      expect(surfaces.size).to eq(56)
+      expect(io).to be_a(Hash)
+      expect(io).to have_key(:edges)
+      expect(io[:edges].size).to eq(105 - 2 * i)
+      expect(model.foundationKivaSettings).to_not be_empty
+      expect(model.getSurfacePropertyExposedFoundationPerimeters.size).to eq(1)
+      expect(model.getFoundationKivas.size).to eq(1) # !4 ... previously purged
+
+      perimeter = model.getSurfacePropertyExposedFoundationPerimeters.first
+      expect(perimeter.totalExposedPerimeter).to_not be_empty
+      expect(perimeter.totalExposedPerimeter.get.round(2)).to eq(exp.round(2))
+
+      # By default, KIVA foundation objects have a 200mm 'wall height above
+      # grade' value, i.e. a top, 8-in section exposed to outdoor air. This
+      # seems to generate the following EnergyPlus warning:
+      #
+      #   ** Warning ** BuildingSurface:Detailed="OPENAREA 1 WALL 5", Sun Exposure="SUNEXPOSED".
+      #   **   ~~~   ** ..This surface is not exposed to External Environment.  Sun exposure has no effect.
+      #
+      # Initial attempts to get rid of the warning include resetting both wind
+      # and sun exposure AFTER setting boundary conditions to "Foundation", e.g.
+      #
+      #   expect(wall.setOutsideBoundaryCondition("Foundation")).to be true
+      #   expect(wall.setWindExposure("NoWind")).to be true
+      #   expect(wall.setSunExposure("NoSun")).to be true
+      #
+      # Alas, both "exposures" end up being reset in the saved OSM. One solution
+      # is to first set the 'wall height above grade' value to 0. Works.
+      kf  = model.getFoundationKivas.first
+      expect(kf.isWallHeightAboveGradeDefaulted).to be true
+      expect(kf.wallHeightAboveGrade.round(1)).to eq(0.2)
+      expect(kf.setWallHeightAboveGrade(0)).to be true
+      expect(kf.isWallHeightAboveGradeDefaulted).to be false
+      expect(kf.wallHeightAboveGrade.round).to eq(0)
+
+      ewalls = TBD.facets(model.getSpaces, "foundation", "wall")
+      expect(ewalls.size).to eq(i + 1)
+
+      ewalls.each do |wall|
+        expect(wall.setWindExposure("NoWind")).to be true
+        expect(wall.setSunExposure("NoSun")).to be true
+      end
+
+      found_floor = false
+      found_walls = false
+
+      surfaces.each do |id, surface|
+        next unless surface.key?(:kiva)
+
+        expect(srfIDs).to include(id)
+
+        if id == "Open area 1 Floor"
+          expect(surface[:kiva]).to eq(:basement)
+          expect(surface).to have_key(:exposed)
+          expect(surface[:exposed]).to be_within(TOL).of(exp)
+          found_floor = true
+        else
+          expect(surface[:kiva]).to eq("Open area 1 Floor")
+          found_walls = true
+        end
+      end
+
+      expect(found_floor).to be true
+      expect(found_walls).to be true
+    end
 
     file = File.join(__dir__, "files/osms/out/seb_KIVA3.osm")
     model.save(file, true)
+
 
     # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
     # Test initial model again.
@@ -1330,6 +1428,7 @@ RSpec.describe TBD do
     file = File.join(__dir__, "files/osms/out/seb_KIVA4.osm")
     model.save(file, true)
 
+
     # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
     # Recover KIVA-populated model and re- set/gen KIVA.
     argh              = {}
@@ -1387,11 +1486,12 @@ RSpec.describe TBD do
     file = File.join(__dir__, "files/osms/out/seb_KIVA5.osm")
     model.save(file, true)
 
+
     # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
     # Recover KIVA-populated model and re-gen KIVA ... WITHOUT resetting KIVA.
     TBD.clean!
-    argh              = {}
-    argh[:option   ] = "(non thermal bridging)"
+    argh            = {}
+    argh[:option  ] = "(non thermal bridging)"
     argh[:gen_kiva] = true
 
     json     = TBD.process(model, argh)
