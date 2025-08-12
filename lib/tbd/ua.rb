@@ -1000,7 +1000,7 @@ module TBD
       model  = "* modèle : #{ua[:file]}"    if ua.key?(:file)  && lang == :fr
       model += " (v#{ua[:version]})"        if ua.key?(:version)
       report << model                   unless model.empty?
-      report << "* TBD : v3.4.4"
+      report << "* TBD : v3.4.5"
       report << "* date : #{ua[:date]}"
 
       if lang == :en

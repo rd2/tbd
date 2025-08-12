@@ -1,6 +1,6 @@
 # BSD 3-Clause License
 #
-# Copyright (c) 2022-2024, Denis Bourgeois
+# Copyright (c) 2022-2025, Denis Bourgeois
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -102,9 +102,9 @@ module OSlg
   end
 
   ##
-  # Returns whether current status is WARN.
+  # Returns whether current status is WARNING.
   #
-  # @return [Bool] whether current log status is WARN
+  # @return [Bool] whether current log status is WARNING
   def warn?
     @@status == WARN
   end
@@ -159,19 +159,20 @@ module OSlg
   end
 
   ##
-  # Converts object to String and trims if necessary.
+  # Converts object to String, trims if requested.
   #
   # @param txt [#to_s] a stringable object
-  # @param length [#to_i] maximum return string length
+  # @param len [Numeric] requested maximum string length (optional)
   #
-  # @return [String] a trimmed message string (empty unless stringable)
-  def trim(txt = "", length = 60)
-    length = 60 unless length.respond_to?(:to_i)
-    length = length.to_i if length.respond_to?(:to_i)
+  # @return [String] a (trimmed) string (empty unless stringable)
+  def trim(txt = "", len = nil)
     return "" unless txt.respond_to?(:to_s)
 
     txt = txt.to_s.strip
-    txt = txt[0...length] + " ..." if txt.length > length
+
+    if len.is_a?(Numeric)
+      txt = txt[0...len.to_i] + " ..." if txt.length > len.to_i
+    end
 
     txt
   end
@@ -193,21 +194,28 @@ module OSlg
   end
 
   ##
-  # Logs a new entry, if provided arguments are valid.
+  # Logs a new entry. Overall log status is raised if new level is greater
+  # than current level (e.g. FATAL > ERROR). Candidate log entry is ignored and
+  # status remains unchanged if the new level cannot be converted to an integer,
+  # if not an OSlg constant (once converted), or if new level is below the
+  # current log level. Relies on OSlg method 'trim()': candidate log message is
+  # ignored and status unchanged if message is not a valid string.
   #
   # @param lvl [#to_i] DEBUG, INFO, WARN, ERROR or FATAL
   # @param message [#to_s] user-provided log message
+  # @param len [Numeric] maximum log message length (optional)
   #
   # @example A user warning
   #   log(WARN, "Surface area < 100cm2")
   #
   # @return [DEBUG, INFO, WARN, ERROR, FATAL] updated/current status
-  def log(lvl = DEBUG, message = "")
+  def log(lvl = DEBUG, message = "", len = nil)
     return @@status unless lvl.respond_to?(:to_i)
     return @@status unless message.respond_to?(:to_s)
 
     lvl = lvl.to_i
-    message = message.to_s
+    message = trim(message, len)
+    return @@status if message.empty?
     return @@status if lvl < DEBUG
     return @@status if lvl > FATAL
     return @@status if lvl < @@level
@@ -220,19 +228,24 @@ module OSlg
 
   ##
   # Logs template 'invalid object' message, if provided arguments are valid.
+  # Relies on OSlg method 'log()': first check out its own operation, exit
+  # conditions and module side effects. Candidate log entry is ignored and
+  # status remains unchanged if 'ord' cannot be converted to an integer.
+  # Argument 'ord' is ignored unless > 0.
   #
   # @param id [#to_s] 'invalid object' identifier
   # @param mth [#to_s] calling method identifier
   # @param ord [#to_i] calling method argument order number of obj (optional)
   # @param lvl [#to_i] DEBUG, INFO, WARN, ERROR or FATAL (optional)
   # @param res what to return (optional)
+  # @param len [Numeric] maximum log message length (optional)
   #
   # @example An invalid argument, logging a FATAL error, returning FALSE
   #   return invalid("area", "sum", 0, FATAL, false) if area > 1000000
   #
   # @return user-provided object
   # @return [nil] if user hasn't provided an object to return
-  def invalid(id = "", mth = "", ord = 0, lvl = DEBUG, res = nil)
+  def invalid(id = "", mth = "", ord = 0, lvl = DEBUG, res = nil, len = nil)
     return res unless id.respond_to?(:to_s)
     return res unless mth.respond_to?(:to_s)
     return res unless ord.respond_to?(:to_i)
@@ -250,7 +263,7 @@ module OSlg
     msg = "Invalid '#{id}' "
     msg += "arg ##{ord} " if ord > 0
     msg += "(#{mth})"
-    log(lvl, msg)
+    log(lvl, msg, len)
 
     res
   end
@@ -266,13 +279,14 @@ module OSlg
   # @param mth [#to_s] calling method identifier (optional)
   # @param lvl [#to_i] DEBUG, INFO, WARN, ERROR or FATAL (optional)
   # @param res what to return (optional)
+  # @param len [Numeric] maximum log message length (optional)
   #
   # @example A mismatched argument instance/class
   #   mismatch("area", area, Float, "sum") unless area.is_a?(Numeric)
   #
   # @return user-provided object
   # @return [nil] if user hasn't provided an object to return
-  def mismatch(id = "", obj = nil, cl = nil, mth = "", lvl = DEBUG, res = nil)
+  def mismatch(id = "", obj = nil, cl = nil, mth = "", lvl = DEBUG, res = nil, len = nil)
     return res unless id.respond_to?(:to_s)
     return res unless mth.respond_to?(:to_s)
     return res unless cl.is_a?(Class)
@@ -287,7 +301,7 @@ module OSlg
     return res if lvl < DEBUG
     return res if lvl > FATAL
 
-    log(lvl, "'#{id}' #{obj.class}? expecting #{cl} (#{mth})")
+    log(lvl, "'#{id}' #{obj.class}? expecting #{cl} (#{mth})", len)
 
     res
   end
@@ -302,13 +316,14 @@ module OSlg
   # @param mth [#to_s] calling method identifier
   # @param lvl [#to_i] DEBUG, INFO, WARN, ERROR or FATAL (optional)
   # @param res what to return (optional)
+  # @param len [Numeric] maximum log message length (optional)
   #
   # @example A missing Hash key
   #   hashkey("floor area", floor, :area, "sum") unless floor.key?(:area)
   #
   # @return user-provided object
   # @return [nil] if user hasn't provided an object to return
-  def hashkey(id = "", hsh = {}, key = "", mth = "", lvl = DEBUG, res = nil)
+  def hashkey(id = "", hsh = {}, key = "", mth = "", lvl = DEBUG, res = nil, len = nil)
     return res unless id.respond_to?(:to_s)
     return res unless hsh.is_a?(Hash)
     return res if hsh.key?(key)
@@ -323,7 +338,7 @@ module OSlg
     return res if lvl < DEBUG
     return res if lvl > FATAL
 
-    log(lvl, "Missing '#{key}' key in '#{id}' Hash (#{mth})")
+    log(lvl, "Missing '#{key}' key in '#{id}' Hash (#{mth})", len)
 
     res
   end
@@ -335,13 +350,14 @@ module OSlg
   # @param mth [#to_s] calling method identifier
   # @param lvl [#to_i] DEBUG, INFO, WARN, ERROR or FATAL (optional)
   # @param res what to return (optional)
+  # @param len [Numeric] maximum log message length (optional)
   #
   # @example An uninitialized variable, logging an ERROR, returning FALSE
   #   empty("zone", "conditioned?", FATAL, false) if space.thermalZone.empty?
   #
   # @return user-provided object
   # @return [nil] if user hasn't provided an object to return
-  def empty(id = "", mth = "", lvl = DEBUG, res = nil)
+  def empty(id = "", mth = "", lvl = DEBUG, res = nil, len = nil)
     return res unless id.respond_to?(:to_s)
     return res unless mth.respond_to?(:to_s)
     return res unless lvl.respond_to?(:to_i)
@@ -354,7 +370,7 @@ module OSlg
     return res if lvl < DEBUG
     return res if lvl > FATAL
 
-    log(lvl, "Empty '#{id}' (#{mth})")
+    log(lvl, "Empty '#{id}' (#{mth})", len)
 
     res
   end
@@ -366,13 +382,14 @@ module OSlg
   # @param mth [#to_s] calling method identifier
   # @param lvl [#to_i] DEBUG, INFO, WARN, ERROR or FATAL (optional)
   # @param res what to return (optional)
+  # @param len [Numeric] maximum log message length (optional)
   #
   # @example A near-zero variable
   #   zero("floor area", "sum") if floor[:area].abs < TOL
   #
   # @return user-provided object
   # @return [nil] if user hasn't provided an object to return
-  def zero(id = "", mth = "", lvl = DEBUG, res = nil)
+  def zero(id = "", mth = "", lvl = DEBUG, res = nil, len = nil)
     return res unless id.respond_to?(:to_s)
     return res unless mth.respond_to?(:to_s)
     return res unless lvl.respond_to?(:to_i)
@@ -386,7 +403,7 @@ module OSlg
     return res if lvl < DEBUG
     return res if lvl > FATAL
 
-    log(lvl, "Zero '#{id}' (#{mth})")
+    log(lvl, "Zero '#{id}' (#{mth})", len)
 
     res
   end
@@ -398,13 +415,14 @@ module OSlg
   # @param mth [String] calling method identifier
   # @param lvl [Integer] DEBUG, INFO, WARN, ERROR or FATAL (optional)
   # @param res [Object] what to return (optional)
+  # @param len [Numeric] maximum log message length (optional)
   #
   # @example A negative variable
   #   negative("floor area", "sum") if floor[:area] < 0
   #
   # @return user-provided object
   # @return [nil] if user hasn't provided an object to return
-  def negative(id = "", mth = "", lvl = DEBUG, res = nil)
+  def negative(id = "", mth = "", lvl = DEBUG, res = nil, len = nil)
     return res unless id.respond_to?(:to_s)
     return res unless mth.respond_to?(:to_s)
     return res unless lvl.respond_to?(:to_i)
@@ -417,7 +435,7 @@ module OSlg
     return res if lvl < DEBUG
     return res if lvl > FATAL
 
-    log(lvl, "Negative '#{id}' (#{mth})")
+    log(lvl, "Negative '#{id}' (#{mth})", len)
 
     res
   end

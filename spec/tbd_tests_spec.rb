@@ -180,7 +180,7 @@ RSpec.describe TBD do
     expect(open).to_not be_empty
     open = open.get
 
-    open_roofs = TBD.getRoofs(open)
+    open_roofs = TBD.roofs(open)
     expect(open_roofs.size).to eq(1)
     open_roof  = open_roofs.first
     roof_id    = open_roof.nameString
@@ -2982,7 +2982,7 @@ RSpec.describe TBD do
     expect(plenum.partofTotalFloorArea).to be false
     expect(TBD.unconditioned?(plenum)).to be false
 
-    open_roofs = TBD.getRoofs(open)
+    open_roofs = TBD.roofs(open)
     expect(open_roofs.size).to eq(1)
     open_roof = open_roofs.first
     roof_id   = open_roof.nameString
