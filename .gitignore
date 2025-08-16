@@ -1,5 +1,6 @@
 /Gemfile.lock
 /.ruby-version
+.rspec_status
 /.bundle/
 /gems
 /coverage/
