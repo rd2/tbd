@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>70223737-c3ea-4df0-8506-67083c92fb6e</version_id>
-  <version_modified>2024-11-20T20:02:15Z</version_modified>
+  <version_id>7a2d773a-7a50-4c69-aa1f-93ed796e9ace</version_id>
+  <version_modified>2025-08-15T13:39:31Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -464,7 +464,7 @@
       <filename>LICENSE.md</filename>
       <filetype>md</filetype>
       <usage_type>license</usage_type>
-      <checksum>5C9BFB50</checksum>
+      <checksum>3EBCA5DB</checksum>
     </file>
     <file>
       <filename>README.md</filename>
@@ -493,13 +493,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>A472E915</checksum>
+      <checksum>3FBDA0C2</checksum>
     </file>
     <file>
       <filename>geo.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>9FAC0CDC</checksum>
+      <checksum>EF3BA8F7</checksum>
     </file>
     <file>
       <filename>geometry.rb</filename>
@@ -517,19 +517,19 @@
       <filename>oslog.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>8CD57B9A</checksum>
+      <checksum>586805C4</checksum>
     </file>
     <file>
       <filename>psi.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>4B7F3586</checksum>
+      <checksum>71AED953</checksum>
     </file>
     <file>
       <filename>tbd.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>FCCCAE84</checksum>
+      <checksum>9E26251E</checksum>
     </file>
     <file>
       <filename>transformation.rb</filename>
@@ -541,13 +541,13 @@
       <filename>ua.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>626D3BE0</checksum>
+      <checksum>022F6D10</checksum>
     </file>
     <file>
       <filename>utils.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>CBC3935D</checksum>
+      <checksum>3CD8019A</checksum>
     </file>
     <file>
       <filename>version.rb</filename>
@@ -565,7 +565,7 @@
       <filename>tbd_tests.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>2ECE06CA</checksum>
+      <checksum>9C76CD98</checksum>
     </file>
   </files>
 </measure>

@@ -37,11 +37,11 @@ bundler -v
 gem install bundler -v 2.1
 ```
 
-Install OpenStudio [3.8.0](https://github.com/NREL/OpenStudio/releases/tag/v3.8.0), or the OpenStudioApplication [1.8.0](https://github.com/openstudiocoalition/OpenStudioApplication/releases/tag/v1.8.0).
+Install OpenStudio [3.10.0](https://github.com/NREL/OpenStudio/releases/tag/v3.10.0), or the OpenStudioApplication [1.10.0](https://github.com/openstudiocoalition/OpenStudioApplication/releases/tag/v1.10.0).
 
 Create a new file ```C:\Ruby32-x64\lib\ruby\site_ruby\openstudio.rb``` (path may be different depending on the environment), and edit it so it _points_ to your new OpenStudio installation:
 ```
-require 'C:\openstudio-3.8.0\Ruby\openstudio.rb'
+require 'C:\openstudio-3.10.0\Ruby\openstudio.rb'
 ```
 
 Verify your OpenStudio and Ruby configuration:
@@ -89,16 +89,16 @@ bundler -v
 gem install bundler -v 2.4.10
 ```
 
-Install OpenStudio [3.8.0](https://github.com/NREL/OpenStudio/releases/tag/v3.8.0), or the OpenStudio Application [1.8.0](https://github.com/openstudiocoalition/OpenStudioApplication/releases/tag/v1.8.0).
+Install OpenStudio [3.10.0](https://github.com/NREL/OpenStudio/releases/tag/v3.10.0), or the OpenStudio Application [1.10.0](https://github.com/openstudiocoalition/OpenStudioApplication/releases/tag/v1.10.0).
 
 Create a new file ```~/.rbenv/versions/3.2.2/lib/ruby/site_ruby/openstudio.rb``` (path may be different depending on the environment), and edit it so it _points_ to your new OpenStudio installation:
 ```
-require '/Applications/OpenStudio-3.8.0/Ruby/openstudio.rb'
+require '/Applications/OpenStudio-3.10.0/Ruby/openstudio.rb'
 ```
 
 Verify your local OpenStudio and Ruby configuration:
 ```
-cd ~/Documents/sandbox380
+cd ~/Documents/sandbox310
 ruby -e "require 'openstudio'" -e "puts OpenStudio::Model::Model.new"
 ```
 
@@ -121,14 +121,14 @@ bundle exec rake
 
 Install [Docker](https://docs.docker.com/desktop/#download-and-install).
 
-Pull the OpenStudio v3.8.0 Docker image:
+Pull the OpenStudio v3.10.0 Docker image:
 ```
-docker pull nrel/openstudio:3.8.0
+docker pull nrel/openstudio:3.10.0
 ```
 
 In the root repository:
 ```
-docker run --name test --rm -d -t -v ${PWD}:/work -w /work nrel/openstudio:3.8.0
+docker run --name test --rm -d -t -v ${PWD}:/work -w /work nrel/openstudio:3.10.0
 docker exec -t test bundle update
 docker exec -t test bundle exec rake
 docker kill test
