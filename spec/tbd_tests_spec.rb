@@ -1934,21 +1934,14 @@ RSpec.describe TBD do
     # layer thickness limit, harmonizing with EnergyPlus:
     #
     #   https://github.com/NREL/OpenStudio/pull/4622
-    if OpenStudio.openStudioVersion.split(".").join.to_i < 350
-      expect(TBD.error?).to be true
-      expect(TBD.logs).to_not be_empty
-      expect(TBD.logs.size).to eq(2)
-
-      expect(TBD.logs.first[:message]).to include("Invalid")
-      expect(TBD.logs.first[:message]).to include("Can't uprate ")
-      expect(TBD.logs.last[:message ]).to include("Unable to uprate")
-
-      expect(argh).to_not have_key(:wall_uo)
-    else
-      expect(TBD.status).to be_zero
-      expect(argh).to have_key(:wall_uo)
-      expect(argh[:wall_uo]).to be_within(0.0001).of(UMIN) # RSi 100 (R568)
-    end
+    #
+    # This didn't mean EnergyPlus wouldn't halt a simulation due to invalid CTF
+    # calculations - happens with very thick materials. Recent 2025 TBD changes
+    # have removed this check. Users of pre-v3.5.X OpenStudio should expect
+    # OS-generated simulation failures when uprating (extremes cases). Achtung!
+    expect(TBD.status).to be_zero
+    expect(argh).to have_key(:wall_uo)
+    expect(argh[:wall_uo]).to be_within(0.0001).of(UMIN) # RSi 100 (R568)
   end
 
   it "can test Hash inputs" do
