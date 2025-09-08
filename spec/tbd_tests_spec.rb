@@ -1942,6 +1942,37 @@ RSpec.describe TBD do
     expect(TBD.status).to be_zero
     expect(argh).to have_key(:wall_uo)
     expect(argh[:wall_uo]).to be_within(0.0001).of(UMIN) # RSi 100 (R568)
+
+    nb = 0
+
+    model.getSurfaces.each do |s|
+      next unless s.surfaceType.downcase == "wall"
+
+      c = s.construction
+      expect(c).to_not be_empty
+      c = c.get.to_LayeredConstruction
+      next if c.empty?
+
+      c = c.get
+      next unless c.nameString.include?("c tbd")
+
+      lyr = TBD.insulatingLayer(c)
+      expect(lyr).to be_a(Hash)
+      expect(lyr).to have_key(:type)
+      expect(lyr).to have_key(:index)
+      expect(lyr).to have_key(:r)
+      expect(lyr[:type]).to eq(:standard)
+      expect(lyr[:index]).to be_between(0, c.numLayers)
+      insul = c.getLayer(lyr[:index])
+      insul = insul.to_StandardOpaqueMaterial
+      expect(insul).to_not be_empty
+      insul = insul.get
+      expect(insul.thickness).to be_within(TOL).of(1.00)
+
+      nb += 1
+    end
+
+    expect(nb).to eq(4)
   end
 
   it "can test Hash inputs" do
