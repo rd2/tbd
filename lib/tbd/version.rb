@@ -21,5 +21,5 @@
 # SOFTWARE.
 
 module TBD
-  VERSION = "3.4.5".freeze
+  VERSION = "3.5.0".freeze
 end

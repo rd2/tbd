@@ -3,8 +3,8 @@
   <schema_version>3.1</schema_version>
   <name>tbd_measure</name>
   <uid>8890787b-8c25-4dc8-8641-b6be1b6c2357</uid>
-  <version_id>7a2d773a-7a50-4c69-aa1f-93ed796e9ace</version_id>
-  <version_modified>2025-08-15T13:39:31Z</version_modified>
+  <version_id>5d5e3c2e-6930-46ab-881d-6a1a08a397d4</version_id>
+  <version_modified>2025-09-08T15:51:30Z</version_modified>
   <xml_checksum>99772807</xml_checksum>
   <class_name>TBDMeasure</class_name>
   <display_name>Thermal Bridging and Derating - TBD</display_name>
@@ -499,7 +499,7 @@
       <filename>geo.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>EF3BA8F7</checksum>
+      <checksum>5AB24CFB</checksum>
     </file>
     <file>
       <filename>geometry.rb</filename>
@@ -523,7 +523,7 @@
       <filename>psi.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>71AED953</checksum>
+      <checksum>3FF80606</checksum>
     </file>
     <file>
       <filename>tbd.rb</filename>
@@ -541,13 +541,13 @@
       <filename>ua.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>022F6D10</checksum>
+      <checksum>DA25EEA2</checksum>
     </file>
     <file>
       <filename>utils.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>3CD8019A</checksum>
+      <checksum>6940D006</checksum>
     </file>
     <file>
       <filename>version.rb</filename>

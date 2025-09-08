@@ -57,8 +57,8 @@ module TBD
     return invalid("#{id} layer index", mth, 3, ERR, res) unless lyr[:index]
     return zero("#{id}: heatloss"     , mth,    WRN, res) unless hloss > TOL
     return zero("#{id}: films"        , mth,    WRN, res) unless film  > TOL
-    return zero("#{id}: Ut"           , mth,    WRN, res) unless ut    > TOL
-    return invalid("#{id}: Ut"        , mth, 6, WRN, res) unless ut    < 5.678
+    return zero("#{id}: Ut"           , mth,    WRN, res) unless ut    > UMIN
+    return invalid("#{id}: Ut"        , mth, 6, WRN, res) unless ut    < UMAX
     return zero("#{id}: net area (m2)", mth,    ERR, res) unless area  > TOL
 
     # First, calculate initial layer RSi to initially meet Ut target.
@@ -71,56 +71,51 @@ module TBD
     u_psi  = hloss / area        # from psi+khi
     new_u -= u_psi               # uprated layer USi to counter psi+khi
     new_r  = 1 / new_u           # uprated layer RSi to counter psi+khi
-    return zero("#{id}: new Rsi", mth, ERR, res) unless new_r > 0.001
+    return zero("#{id}: new Rsi", mth, ERR, res) unless new_r > RMIN
 
     if lyr[:type] == :massless
-      m     = lc.getLayer(lyr[:index]).to_MasslessOpaqueMaterial
-      return  invalid("#{id} massless layer?", mth, 0, DBG, res) if m.empty?
+      m = lc.getLayer(lyr[:index]).to_MasslessOpaqueMaterial
+      return invalid("#{id} massless layer?", mth, 0, DBG, res) if m.empty?
 
-      m     = m.get.clone(model).to_MasslessOpaqueMaterial.get
-              m.setName("#{id} uprated")
-      new_r = 0.001                      unless new_r > 0.001
-      loss  = (new_u - 1 / new_r) * area unless new_r > 0.001
-              m.setThermalResistance(new_r)
-    else # type == :standard
-      m     = lc.getLayer(lyr[:index]).to_StandardOpaqueMaterial
-      return  invalid("#{id} standard layer?", mth, 0, DBG, res) if m.empty?
+      m = m.get.clone(model).to_MasslessOpaqueMaterial.get
+      m.setName("#{id} uprated")
 
-      m     = m.get.clone(model).to_StandardOpaqueMaterial.get
-              m.setName("#{id} uprated")
-      k     = m.thermalConductivity
+      new_r = RMIN                       unless new_r > RMIN
+      loss  = (new_u - 1 / new_r) * area unless new_r > RMIN
 
-      if new_r > 0.001
-        d   = new_r * k
+      unless m.setThermalResistance(new_r)
+        return invalid("Can't uprate #{id}: RSi#{new_r.round(2)}", mth, 0, DBG, res)
+      end
+    else
+      m = lc.getLayer(lyr[:index]).to_StandardOpaqueMaterial
+      return invalid("#{id} standard layer?", mth, 0, DBG, res) if m.empty?
 
-        unless d > 0.003
-          d    = 0.003
-          k    = d / new_r
-          k    = 3.0                    unless k < 3.0
-          loss = (new_u - k / d) * area unless k < 3.0
-        end
-      else # new_r < 0.001 m2•K/W
-        d    = 0.001 * k
-        d    = 0.003     unless d > 0.003
-        k    = d / 0.001 unless d > 0.003
-        loss = (new_u - k / d) * area
+      m = m.get.clone(model).to_StandardOpaqueMaterial.get
+      m.setName("#{id} uprated")
+
+      d = m.thickness
+      k = (d / new_r).clamp(KMIN, KMAX)
+      d = (k * new_r).clamp(DMIN, DMAX)
+
+      loss = (new_u - k / d) * area unless d / k > RMIN
+
+      unless m.setThermalConductivity(k)
+        return invalid("Can't uprate #{id}: K#{k.round(3)}", mth, 0, DBG, res)
       end
 
-      if m.setThickness(d)
-        m.setThermalConductivity(k)
-      else
-        return invalid("Can't uprate #{id}: #{d} > 3m", mth, 0, ERR, res)
+      unless m.setThickness(d)
+        return invalid("Can't uprate #{id}: #{(d*1000).to_i}mm", mth, 0, DBG, res)
       end
     end
 
-    return invalid("Can't ID insulating layer", mth, 0, ERR, res) unless m
+    return invalid("Can't ID insulating layer", mth, 0, DBG, res) unless m
 
     lc.setLayer(lyr[:index], m)
     uo = 1 / rsi(lc, film)
 
     if loss > TOL
       h_loss = format "%.3f", loss
-      return invalid("Can't assign #{h_loss} W/K to #{id}", mth, 0, ERR, res)
+      return invalid("Can't assign #{h_loss} W/K to #{id}", mth, 0, DBG, res)
     end
 
     res[:uo] = uo
@@ -1000,7 +995,7 @@ module TBD
       model  = "* modèle : #{ua[:file]}"    if ua.key?(:file)  && lang == :fr
       model += " (v#{ua[:version]})"        if ua.key?(:version)
       report << model                   unless model.empty?
-      report << "* TBD : v3.4.5"
+      report << "* TBD : v3.5.0"
       report << "* date : #{ua[:date]}"
 
       if lang == :en

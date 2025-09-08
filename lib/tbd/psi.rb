@@ -1355,103 +1355,103 @@ module TBD
   ##
   # Thermally derates insulating material within construction.
   #
-  # @param id [#to_s] surface identifier
+  # @param id [#to_sym] surface identifier
   # @param [Hash] s TBD surface parameters
-  # @option s [#to_f] :heatloss heat loss from major thermal bridging, in W/K
-  # @option s [#to_f] :net surface net area, in m2
+  # @option s [Numeric] :heatloss heat loss from major thermal bridging, in W/K
+  # @option s [Numeric] :net surface net area, in m2
   # @option s [:massless, :standard] :ltype indexed layer type
-  # @option s [#to_i] :index deratable construction layer index
-  # @option s [#to_f] :r deratable layer Rsi-factor, in m2•K/W
+  # @option s [Integer] :index deratable construction layer index
+  # @option s [Numeric] :r deratable layer Rsi-factor, in m2•K/W
   # @param lc [OpenStudio::Model::LayeredConstruction] a layered construction
   #
-  # @return [OpenStudio::Model::Material] derated (cloned) material
+  # @return [OpenStudio::Model::OpaqueMaterial] derated (cloned) material
   # @return [nil] if invalid input (see logs)
   def derate(id = "", s = {}, lc = nil)
     mth = "TBD::#{__callee__}"
     m   = nil
-    id  = trim(id)
     kys = [:heatloss, :net, :ltype, :index, :r]
-    ck1 = s.is_a?(Hash)
-    ck2 = lc.is_a?(OpenStudio::Model::LayeredConstruction)
-    return mismatch("id"                , id, cl6, mth)     if id.empty?
-    return mismatch("#{id} surface"     , s , cl1, mth) unless ck1
-    return mismatch("#{id} construction", lc, cl2, mth) unless ck2
+    cl  = OpenStudio::Model::LayeredConstruction
+    return mismatch("lc", lc, cl, mth) unless lc.respond_to?(NS)
+    return mismatch("id", id, String, mth) unless id.respond_to?(:to_sym)
 
-    kys.each do |k|
-      tag = "#{id} #{k}"
-      return hashkey(tag, s, k, mth, ERR) unless s.key?(k)
+    id  = trim(id)
+    nom = lc.nameString
+    return invalid("id", mth, 1) if id.empty?
+    return mismatch(nom, lc, cl, mth) unless lc.is_a?(cl)
+    return mismatch("#{nom} surface", s, Hash, mth) unless s.is_a?(Hash)
 
-      case k
-      when :heatloss
-        return mismatch(tag, s[k], Numeric, mth) unless s[k].respond_to?(:to_f)
-        return zero(tag, mth, WRN)                   if s[k].to_f.abs < 0.001
-      when :net, :r
-        return mismatch(tag, s[k], Numeric, mth) unless s[k].respond_to?(:to_f)
-        return negative(tag, mth, 2, ERR)            if s[k].to_f < 0
-        return zero(tag, mth, WRN)                   if s[k].to_f.abs < 0.001
-      when :index
-        return mismatch(tag, s[k], Numeric, mth) unless s[k].respond_to?(:to_i)
-        return negative(tag, mth, 2, ERR)            if s[k].to_f < 0
-      else # :ltype
-        next if [:massless, :standard].include?(s[k])
-        return invalid(tag, mth, 2, ERR)
-      end
-    end
-
-    if lc.nameString.downcase.include?(" tbd")
-      log(WRN, "Won't derate '#{id}': tagged as derated (#{mth})")
+    if nom.downcase.include?(" tbd")
+      log(WRN, "Won't derate '#{nom}': tagged as derated (#{mth})")
       return m
     end
 
+    kys.each do |k|
+      tag = "#{id} #{k}"
+      return hashkey(tag, s, k, mth) unless s.key?(k)
+
+      case k
+      when :ltype
+        next if [:massless, :standard].include?(s[k])
+        return invalid(tag, mth, 2)
+      when :index
+        return mismatch(tag, s[k], Integer, mth) unless s[k].is_a?(Integer)
+        return invalid(tag, mth, 2) unless s[k].between?(0, lc.numLayers - 1)
+      else
+        return mismatch(tag, s[k], Numeric, mth) unless s[k].is_a?(Numeric)
+        next if k == :heatloss
+        
+        return negative(tag, mth, 2) if s[k] < 0
+        return zero(tag, mth) if s[k].abs < 0.001
+      end
+    end
+
     model = lc.model
-    ltype = s[:ltype   ]
-    index = s[:index   ].to_i
-    net   = s[:net     ].to_f
-    r     = s[:r       ].to_f
-    u     = s[:heatloss].to_f / net
+    ltype = s[:ltype]
+    index = s[:index]
+    net   = s[:net]
+    r     = s[:r]
+    u     = s[:heatloss] / net
     loss  = 0
-    de_u  = 1 / r + u # derated U
-    de_r  = 1 / de_u  # derated R
+    de_u  = 1 / r + u # derated insulating material U
+    de_r  = 1 / de_u  # derated insulating material R
 
     if ltype == :massless
-      m    = lc.getLayer(index).to_MasslessOpaqueMaterial
+      m = lc.getLayer(index).to_MasslessOpaqueMaterial
       return invalid("#{id} massless layer?", mth, 0) if m.empty?
-      m    = m.get
-      up   = ""
-      up   = "uprated " if m.nameString.downcase.include?(" uprated")
-      m    = m.clone(model).to_MasslessOpaqueMaterial.get
-             m.setName("#{id} #{up}m tbd")
-      de_r = 0.001                   unless de_r > 0.001
-      loss = (de_u - 1 / de_r) * net unless de_r > 0.001
-             m.setThermalResistance(de_r)
+
+      m  = m.get
+      up = m.nameString.downcase.include?(" uprated") ? "uprated " : ""
+      m  = m.clone(model).to_MasslessOpaqueMaterial.get
+      m.setName("#{id} #{up}m tbd")
+
+      de_r = RMIN                    unless de_r > RMIN
+      loss = (de_u - 1 / de_r) * net unless de_r > RMIN
+
+      unless m.setThermalResistance(de_r)
+        return invalid("Can't derate #{id}: RSi#{de_r.round(2)}", mth)
+      end
     else
-      m    = lc.getLayer(index).to_StandardOpaqueMaterial
+      m = lc.getLayer(index).to_StandardOpaqueMaterial
       return invalid("#{id} standard layer?", mth, 0) if m.empty?
-      m    = m.get
-      up   = ""
-      up   = "uprated " if m.nameString.downcase.include?(" uprated")
-      m    = m.clone(model).to_StandardOpaqueMaterial.get
-             m.setName("#{id} #{up}m tbd")
-      k    = m.thermalConductivity
 
-      if de_r > 0.001
-        d  = de_r * k
+      m  = m.get
+      up = m.nameString.downcase.include?(" uprated") ? "uprated " : ""
+      m  = m.clone(model).to_StandardOpaqueMaterial.get
+      m.setName("#{id} #{up}m tbd")
 
-        unless d > 0.003
-          d    = 0.003
-          k    = d / de_r
-          k    = 3                    unless k < 3
-          loss = (de_u - k / d) * net unless k < 3
-        end
-      else # de_r < 0.001 m2•K/W
-        d    = 0.001 * k
-        d    = 0.003                  unless d > 0.003
-        k    = d / 0.001              unless d > 0.003
-        loss = (de_u - k / d) * net
+      d  = m.thickness
+      k  = (d / de_r).clamp(KMIN, KMAX)
+      d  = (k * de_r).clamp(DMIN, DMAX)
+
+      loss = (de_u - k / d) * net unless d / k > RMIN
+
+      unless m.setThermalConductivity(k)
+        return invalid("Can't derate #{id}: K#{k.round(3)}", mth)
       end
 
-      m.setThickness(d)
-      m.setThermalConductivity(k)
+      unless m.setThickness(d)
+        return invalid("Can't derate #{id}: #{(d*1000).to_i}mm", mth)
+      end
     end
 
     if m && loss > TOL
@@ -2939,12 +2939,12 @@ module TBD
     up = argh[:uprate_walls] || argh[:uprate_roofs] || argh[:uprate_floors]
     uprate(model, tbd[:surfaces], argh) if up
 
-    # Derated (cloned) constructions are unique to each deratable surface.
-    # Unique construction names are prefixed with the surface name,
-    # and suffixed with " tbd", indicating that the construction is
-    # henceforth thermally derated. The " tbd" expression is also key in
-    # avoiding inadvertent derating - TBD will not derate constructions
-    # (or rather layered materials) having " tbd" in their OpenStudio name.
+    # A derated (cloned) construction and (cloned) insulating layer are unique
+    # to each deratable surface. Unique construction and material names are
+    # prefixed with the surface name, and suffixed with " tbd", indicating that
+    # the construction is henceforth thermally derated. The " tbd" expression
+    # is also key in avoiding inadvertent sequential derating - TBD will not
+    # derate a construction/material pair having " tbd" in their OpenStudio name.
     tbd[:surfaces].each do |id, surface|
       next unless surface.key?(:construction)
       next unless surface.key?(:index)

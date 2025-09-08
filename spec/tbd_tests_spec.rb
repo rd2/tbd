@@ -9,6 +9,14 @@ RSpec.describe TBD do
   WRN  = TBD::WRN.dup
   ERR  = TBD::ERR.dup
   FTL  = TBD::FTL.dup
+  DMIN = TBD::DMIN.dup
+  DMAX = TBD::DMAX.dup
+  KMIN = TBD::KMIN.dup
+  KMAX = TBD::KMAX.dup
+  UMAX = TBD::UMAX.dup
+  UMIN = TBD::UMIN.dup
+  RMIN = TBD::RMIN.dup
+  RMAX = TBD::RMAX.dup
 
   it "can process JSON surface KHI entries" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
@@ -1703,8 +1711,8 @@ RSpec.describe TBD do
     # linear thermal bridges is very high given the limited exposed (gross)
     # area. If area-weighted, derating the insulation layer of the referenced
     # wall construction above would entail factoring in this extra thermal
-    # conductance of ~0.309 W/m2•K (84.6/273.6), which would reduce the
-    # insulation thickness quite significantly.
+    # conductance of ~0.309 W/m2•K (84.6/273.6), which would increase the
+    # insulation conductivity quite significantly.
     #
     #   Ut = Uo + ( ∑psi • L )/A
     #
@@ -1757,7 +1765,9 @@ RSpec.describe TBD do
     #
     # The method exits with an ERROR in 2x cases:
     #   - calculated Uo is negative, i.e. ( ∑psi • L )/A > 0.277
-    #   - calculated layer r violates E+ material constraints (e.g. too thin)
+    #   - calculated layer r violates E+ material constraints, e.g.
+    #     - too conductive
+    #     - too thin
 
     # -- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- -- #
     # Retrying the previous example, yet requesting uprating calculations:
@@ -1846,10 +1856,10 @@ RSpec.describe TBD do
       insul = insul.get
       expect(insul.nameString).to include(" uprated m tbd")
 
-      expect(insul.thermalConductivity).to be_within(0.0001).of(0.0432)
-      th1 = (insul.thickness - 0.191).abs < 0.001 # derated layer Rsi 4.42
-      th2 = (insul.thickness - 0.186).abs < 0.001 # derated layer Rsi 4.31
-      expect(th1 || th2).to be true # depending if 'short' or 'long' walls
+      k1 = (insul.thermalConductivity - 0.0261).round(4) == 0
+      k2 = (insul.thermalConductivity - 0.0253).round(4) == 0
+      expect(k1 || k2).to be true
+      expect(insul.thickness).to be_within(0.0001).of(0.1120)
     end
 
     walls.each do |wall|
@@ -1937,7 +1947,7 @@ RSpec.describe TBD do
     else
       expect(TBD.status).to be_zero
       expect(argh).to have_key(:wall_uo)
-      expect(argh[:wall_uo]).to be_within(0.0001).of(0.0089) # RSi 112 (R638)
+      expect(argh[:wall_uo]).to be_within(0.0001).of(UMIN) # RSi 100 (R568)
     end
   end
 

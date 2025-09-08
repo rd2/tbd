@@ -31,20 +31,26 @@
 require "openstudio"
 
 module OSut
-  # DEBUG for devs; WARN/ERROR for users (bad OS input), see OSlg
   extend OSlg
 
-  TOL  = 0.01             # default distance tolerance (m)
-  TOL2 = TOL * TOL        # default area tolerance (m2)
-  DBG  = OSlg::DEBUG.dup  # see github.com/rd2/oslg
-  INF  = OSlg::INFO.dup   # see github.com/rd2/oslg
-  WRN  = OSlg::WARN.dup   # see github.com/rd2/oslg
-  ERR  = OSlg::ERROR.dup  # see github.com/rd2/oslg
-  FTL  = OSlg::FATAL.dup  # see github.com/rd2/oslg
-  NS   = "nameString"     # OpenStudio object identifier method
-
-  HEAD = 2.032 # standard 80" door
-  SILL = 0.762 # standard 30" window sill
+  DBG  = OSlg::DEBUG.dup # see github.com/rd2/oslg
+  INF  = OSlg::INFO.dup  # see github.com/rd2/oslg
+  WRN  = OSlg::WARN.dup  # see github.com/rd2/oslg
+  ERR  = OSlg::ERROR.dup # see github.com/rd2/oslg
+  FTL  = OSlg::FATAL.dup # see github.com/rd2/oslg
+  NS   = "nameString"    # OpenStudio object identifier method
+  TOL  = 0.01            # default distance tolerance (m)
+  TOL2 = TOL * TOL       # default area tolerance (m2)
+  HEAD = 2.032           # standard 80" door
+  SILL = 0.762           # standard 30" window sill
+  DMIN = 0.010           # min. insulating material thickness
+  DMAX = 1.000           # max. insulating material thickness
+  KMIN = 0.010           # min. insulating material thermal conductivity
+  KMAX = 2.000           # max. insulating material thermal conductivity
+  UMAX = KMAX / DMIN     # material USi upper limit, 200.000
+  UMIN = KMIN / DMAX     # material USi lower limit,   0.010
+  RMIN = 1.0 / UMAX      # material RSi lower limit,   0.005 (or R-IP   0.03)
+  RMAX = 1.0 / UMIN      # material RSi upper limit, 100.000 (or R-IP 567.80)
 
   # General surface orientations (see facets method)
   SIDZ = [:bottom, # e.g. ground-facing, exposed floors
@@ -192,6 +198,388 @@ module OSut
   @@mats[:door     ][:cp ] = 1000.000
 
   ##
+  # Validates if every material in a layered construction is standard & opaque.
+  #
+  # @param lc [OpenStudio::LayeredConstruction] a layered construction
+  #
+  # @return [Bool] whether all layers are valid
+  # @return [false] if invalid input (see logs)
+  def standardOpaqueLayers?(lc = nil)
+    mth = "OSut::#{__callee__}"
+    cl  = OpenStudio::Model::LayeredConstruction
+    return invalid("lc", mth, 1, DBG, false) unless lc.respond_to?(NS)
+    return mismatch(lc.nameString, lc, cl, mth, DBG, false) unless lc.is_a?(cl)
+
+    lc.layers.each { |m| return false if m.to_StandardOpaqueMaterial.empty? }
+
+    true
+  end
+
+  ##
+  # Returns total (standard opaque) layered construction thickness (m).
+  #
+  # @param lc [OpenStudio::LayeredConstruction] a layered construction
+  #
+  # @return [Float] construction thickness
+  # @return [0.0] if invalid input (see logs)
+  def thickness(lc = nil)
+    mth = "OSut::#{__callee__}"
+    cl  = OpenStudio::Model::LayeredConstruction
+    return invalid("lc", mth, 1, DBG, 0.0) unless lc.respond_to?(NS)
+    return mismatch(lc.nameString, lc, cl, mth, DBG, 0.0) unless lc.is_a?(cl)
+
+    unless standardOpaqueLayers?(lc)
+      log(ERR, "#{lc.nameString} holds non-StandardOpaqueMaterial(s) (#{mth})")
+      return 0.0
+    end
+
+    thickness = 0.0
+
+    lc.layers.each { |m| thickness += m.thickness }
+
+    thickness
+  end
+
+  ##
+  # Returns total air film resistance of a fenestrated construction (m2•K/W)
+  #
+  # @param usi [Numeric] a fenestrated construction's U-factor (W/m2•K)
+  #
+  # @return [Float] total air film resistances
+  # @return [0.1216] if invalid input (see logs)
+  def glazingAirFilmRSi(usi = 5.85)
+    # The sum of thermal resistances of calculated exterior and interior film
+    # coefficients under standard winter conditions are taken from:
+    #
+    #   https://bigladdersoftware.com/epx/docs/9-6/engineering-reference/
+    #   window-calculation-module.html#simple-window-model
+    #
+    # These remain acceptable approximations for flat windows, yet likely
+    # unsuitable for subsurfaces with curved or projecting shapes like domed
+    # skylights. The solution here is considered an adequate fix for reporting.
+    #
+    # For U-factors above 8.0 W/m2•K (or invalid input), the function returns
+    # 0.1216 m2•K/W, which corresponds to a construction with a single glass
+    # layer thickness of 2mm & k = ~0.6 W/m.K.
+    #
+    # The EnergyPlus Engineering calculations were designed for vertical
+    # windows - not horizontal, slanted or domed surfaces - use with caution.
+    mth = "OSut::#{__callee__}"
+    cl  = Numeric
+    return mismatch("usi", usi, cl, mth,    DBG, 0.1216)  unless usi.is_a?(cl)
+    return invalid("usi",           mth, 1, WRN, 0.1216)      if usi > 8.0
+    return negative("usi",          mth,    WRN, 0.1216)      if usi < 0
+    return zero("usi",              mth,    WRN, 0.1216)      if usi.abs < TOL
+
+    rsi = 1 / (0.025342 * usi + 29.163853) # exterior film, next interior film
+    return rsi + 1 / (0.359073 * Math.log(usi) + 6.949915) if usi < 5.85
+    return rsi + 1 / (1.788041 * usi - 2.886625)
+  end
+
+  ##
+  # Returns a construction's 'standard calc' thermal resistance (m2•K/W), which
+  # includes air film resistances. It excludes insulating effects of shades,
+  # screens, etc. in the case of fenestrated constructions.
+  #
+  # @param lc [OpenStudio::Model::LayeredConstruction] a layered construction
+  # @param film [Numeric] thermal resistance of surface air films (m2•K/W)
+  # @param t [Numeric] gas temperature (°C) (optional)
+  #
+  # @return [Float] layered construction's thermal resistance
+  # @return [0.0] if invalid input (see logs)
+  def rsi(lc = nil, film = 0.0, t = 0.0)
+    # This is adapted from BTAP's Material Module "get_conductance" (P. Lopez)
+    #
+    #   https://github.com/NREL/OpenStudio-Prototype-Buildings/blob/
+    #   c3d5021d8b7aef43e560544699fb5c559e6b721d/lib/btap/measures/
+    #   btap_equest_converter/envelope.rb#L122
+    mth = "OSut::#{__callee__}"
+    cl1 = OpenStudio::Model::LayeredConstruction
+    cl2 = Numeric
+    return invalid("lc", mth, 1, DBG, 0.0) unless lc.respond_to?(NS)
+    return mismatch(lc.nameString, lc, cl1, mth, DBG, 0.0) unless lc.is_a?(cl1)
+    return mismatch("film", film, cl2, mth, DBG, 0.0) unless film.is_a?(cl2)
+    return mismatch("temp K",  t, cl2, mth, DBG, 0.0) unless t.is_a?(cl2)
+
+    t += 273.0 # °C to K
+    return negative("temp K", mth, ERR, 0.0) if t < 0
+    return negative("film",   mth, ERR, 0.0) if film < 0
+
+    rsi = film
+
+    lc.layers.each do |m|
+      # Fenestration materials first.
+      empty = m.to_SimpleGlazing.empty?
+      return 1 / m.to_SimpleGlazing.get.uFactor                     unless empty
+
+      empty = m.to_StandardGlazing.empty?
+      rsi += m.to_StandardGlazing.get.thermalResistance             unless empty
+      empty = m.to_RefractionExtinctionGlazing.empty?
+      rsi += m.to_RefractionExtinctionGlazing.get.thermalResistance unless empty
+      empty = m.to_Gas.empty?
+      rsi += m.to_Gas.get.getThermalResistance(t)                   unless empty
+      empty = m.to_GasMixture.empty?
+      rsi += m.to_GasMixture.get.getThermalResistance(t)            unless empty
+
+      # Opaque materials next.
+      empty = m.to_StandardOpaqueMaterial.empty?
+      rsi += m.to_StandardOpaqueMaterial.get.thermalResistance      unless empty
+      empty = m.to_MasslessOpaqueMaterial.empty?
+      rsi += m.to_MasslessOpaqueMaterial.get.thermalResistance      unless empty
+      empty = m.to_RoofVegetation.empty?
+      rsi += m.to_RoofVegetation.get.thermalResistance              unless empty
+      empty = m.to_AirGap.empty?
+      rsi += m.to_AirGap.get.thermalResistance                      unless empty
+    end
+
+    rsi
+  end
+
+  ##
+  # Identifies a layered construction's (opaque) insulating layer. The method
+  # returns a 3-keyed hash :index, the insulating layer index [0, n layers)
+  # within the layered construction; :type, either :standard or :massless; and
+  # :r, material thermal resistance in m2•K/W.
+  #
+  # @param lc [OpenStudio::Model::LayeredConstruction] a layered construction
+  #
+  # @return [Hash] index: (Integer), type: (Symbol), r: (Float)
+  # @return [Hash] index: nil, type: nil, r: 0.0 if invalid input (see logs)
+  def insulatingLayer(lc = nil)
+    mth = "OSut::#{__callee__}"
+    cl  = OpenStudio::Model::LayeredConstruction
+    res = { index: nil, type: nil, r: 0.0 }
+    i   = 0 # iterator
+    return invalid("lc", mth, 1, DBG, res) unless lc.respond_to?(NS)
+    return mismatch(lc.nameString, lc, cl, mth, DBG, res) unless lc.is_a?(cl)
+
+    lc.layers.each do |m|
+      unless m.to_MasslessOpaqueMaterial.empty?
+        m = m.to_MasslessOpaqueMaterial.get
+
+        if m.thermalResistance < RMIN || m.thermalResistance < res[:r]
+          i += 1
+          next
+        else
+          res[:r    ] = m.thermalResistance
+          res[:index] = i
+          res[:type ] = :massless
+        end
+      end
+
+      unless m.to_StandardOpaqueMaterial.empty?
+        m = m.to_StandardOpaqueMaterial.get
+        k = m.thermalConductivity
+        d = m.thickness
+
+        if d < DMIN || k > KMAX || d / k < res[:r]
+          i += 1
+          next
+        else
+          res[:r    ] = d / k
+          res[:index] = i
+          res[:type ] = :standard
+        end
+      end
+
+      i += 1
+    end
+
+    res
+  end
+
+  ##
+  # Validates whether a material is both uniquely reserved to a single layered
+  # construction in a model, and referenced only once in the construction.
+  # Limited to 'standard' or 'massless' materials.
+  #
+  # @param m [OpenStudio::Model::OpaqueMaterial] a material
+  #
+  # @return [Boolean] whether material is unique
+  # @return [false] if missing)
+  def uniqueMaterial?(m = nil)
+    mth = "OSut::#{__callee__}"
+    cl1 = OpenStudio::Model::OpaqueMaterial
+    return invalid("mat", mth, 1, DBG, false) unless m.respond_to?(NS)
+    return mismatch(m.nameString, m, cl1, mth, DBG, false) unless m.is_a?(cl1)
+
+    num = 0
+    lcs = m.model.getLayeredConstructions
+
+    unless m.to_MasslessOpaqueMaterial.empty?
+      m = m.to_MasslessOpaqueMaterial.get
+
+      lcs.each { |lc| num += lc.getLayerIndices(m).size }
+
+      return true if num == 1
+    end
+
+    unless m.to_StandardOpaqueMaterial.empty?
+      m = m.to_StandardOpaqueMaterial.get
+
+      lcs.each { |lc| num += lc.getLayerIndices(m).size }
+
+      return true if num == 1
+    end
+
+    false
+  end
+
+  ##
+  # Sets a layered construction material as unique. Solution similar to
+  # OpenStudio::Model::LayeredConstruction's 'ensureUniqueLayers', yet limited
+  # here to a single indexed OpenStudio material, typically the principal
+  # insulating material. Returns true if the indexed material is already unique.
+  # Limited to 'standard' or 'massless' materials.
+  #
+  # @param lc [OpenStudio::Model::LayeredConstruction] a construction
+  # @param index [Integer] the construction layer index of the material
+  #
+  # @return [Boolean] if assigned as unique
+  # @return [false] if invalid inputs
+  def assignUniqueMaterial(lc = nil, index = nil)
+    mth = "OSut::#{__callee__}"
+    cl1 = OpenStudio::Model::LayeredConstruction
+    cl2 = Integer
+    return invalid("lc", mth, 1, DBG, false) unless lc.respond_to?(NS)
+    return mismatch(lc.nameString, lc, cl1, mth, DBG, false) unless lc.is_a?(cl1)
+    return mismatch("index", index, cl2, mth, DBG, false) unless index.is_a?(cl2)
+    return invalid("index", mth, 0, DBG, false) unless index.between?(0, lc.numLayers - 1)
+
+    m = lc.getLayer(index)
+
+    unless m.to_MasslessOpaqueMaterial.empty?
+      m = m.to_MasslessOpaqueMaterial.get
+      return true if uniqueMaterial?(m)
+
+      mat = m.clone(m.model).to_MasslessOpaqueMaterial.get
+      return lc.setLayer(index, mat)
+    end
+
+    unless m.to_StandardOpaqueMaterial.empty?
+      m = m.to_StandardOpaqueMaterial.get
+      return true if uniqueMaterial?(m)
+
+      mat = m.clone(m.model).to_StandardOpaqueMaterial.get
+      return lc.setLayer(index, mat)
+    end
+
+    false
+  end
+
+  ##
+  # Resets a construction's Uo factor by adjusting its insulating layer
+  # thermal conductivity, then if needed its thickness (or its RSi value if
+  # massless). Unless material uniquness is requested, a matching material is
+  # recovered instead of instantiating a new one. The latter is renamed
+  # according to its adjusted conductivity/thickness (or RSi value).
+  #
+  # @param lc [OpenStudio::Model::LayeredConstruction] a construction
+  # @param film [Float] construction air film resistance
+  # @param index [Integer] the insulating layer's array index
+  # @param uo [Float] desired Uo factor (with air film resistance)
+  # @param uniq [Boolean] whether to enforce material uniqueness
+  #
+  # @return [Float] new layer RSi [RMIN, RMAX]
+  # @return [0.0] if invalid input
+  def resetUo(lc = nil, film = nil, index = nil, uo = nil, uniq = false)
+    mth = "OSut::#{__callee__}"
+    r   = 0.0 # thermal resistance of new material
+    cl1 = OpenStudio::Model::LayeredConstruction
+    cl2 = Numeric
+    cl3 = Integer
+    return invalid("lc", mth, 1, DBG, r) unless lc.respond_to?(NS)
+    return mismatch(lc.nameString, lc, cl1, mth, DBG, r) unless lc.is_a?(cl1)
+    return mismatch("film", film, cl2, mth, DBG, r) unless film.is_a?(cl2)
+    return negative("film", mth, DBG, r) if film.negative?
+    return mismatch("index", index, cl3, mth, DBG, r) unless index.is_a?(cl3)
+    return invalid("index", mth, 3, DBG, r) unless index.between?(0, lc.numLayers - 1)
+    return mismatch("uo", uo, cl2, mth, DBG, r) unless uo.is_a?(cl2)
+
+    unless uo.between?(UMIN, UMAX)
+      uo = clamp(UMIN, UMAX)
+      log(WRN, "Resetting Uo (#{lc.nameString}) to #{uo.round(3)} (#{mth})")
+    end
+
+    uniq = false unless [true, false].include?(uniq)
+    r0 = rsi(lc, film) # current construction RSi value
+    ro = 1 / uo        # desired construction RSi value
+    dR = ro - r0       # desired increase in construction RSi
+    m  = lc.getLayer(index)
+
+    unless m.to_MasslessOpaqueMaterial.empty?
+      m = m.to_MasslessOpaqueMaterial.get
+      r = m.thermalResistance
+      return r if dR.abs.round(2) == 0.00
+
+      r  = (r + dR).clamp(RMIN, RMAX)
+      id = "OSut:RSi#{r.round(2)}"
+      mt = lc.model.getMasslessOpaqueMaterialByName(id)
+
+      # Existing material?
+      unless mt.empty?
+        mt = mt.get
+
+        if r.round(2) == mt.thermalResistance.round(2) && uniq == false
+          lc.setLayer(index, mt)
+          return r
+        end
+      end
+
+      mt = m.clone(m.model).to_MasslessOpaqueMaterial.get
+      mt.setName(id)
+
+      unless mt.setThermalResistance(r)
+        return invalid("Failed #{id}: RSi#{de_r.round(2)}", mth)
+      end
+
+      lc.setLayer(index, mt)
+
+      return r
+    end
+
+    unless m.to_StandardOpaqueMaterial.empty?
+      m = m.to_StandardOpaqueMaterial.get
+      r = m.thickness / m.conductivity
+      return r if dR.abs.round(2) == 0.00
+
+      k = (m.thickness / (r + dR)).clamp(KMIN, KMAX)
+      d = (k * (r + dR)).clamp(DMIN, DMAX)
+      r  = d / k
+      id = "OSUT:K#{format('%4.3f', k)}:#{format('%03d', d*1000)[-3..-1]}"
+      mt = lc.model.getStandardOpaqueMaterialByName(id)
+
+      # Existing material?
+      unless mt.empty?
+        mt = mt.get
+        rt = mt.thickness / mt.conductivity
+
+        if r.round(2) == rt.round(2) && uniq == false
+          lc.setLayer(index, mt)
+          return r
+        end
+      end
+
+      mt = m.clone(m.model).to_StandardOpaqueMaterial.get
+      mt.setName(id)
+
+      unless mt.setThermalConductivity(k)
+        return invalid("Failed #{id}: K#{k.round(3)}", mth)
+      end
+
+      unless mt.setThickness(d)
+        return invalid("Failed #{id}: #{(d*1000).to_i}mm", mth)
+      end
+
+      lc.setLayer(index, mt)
+
+      return r
+    end
+
+    0
+  end
+
+  ##
   # Generates an OpenStudio multilayered construction, + materials if needed.
   #
   # @param model [OpenStudio::Model::Model] a model
@@ -214,20 +602,27 @@ module OSut
 
     specs[:id] = "" unless specs.key?(:id)
     id = trim(specs[:id])
-    id = "OSut|CON|#{specs[:type]}" if id.empty?
+    id = "OSut:CON:#{specs[:type]}" if id.empty?
 
-    specs[:type] = :wall unless specs.key?(:type)
-    chk = @@uo.keys.include?(specs[:type])
-    return invalid("surface type", mth, 2, ERR) unless chk
+    if specs.key?(:type)
+      unless @@uo.keys.include?(specs[:type])
+        return invalid("surface type", mth, 2, ERR)
+      end
+    else
+      specs[:type] = :wall
+    end
 
     specs[:uo] = @@uo[ specs[:type] ] unless specs.key?(:uo) # can be nil
     u = specs[:uo]
 
-    if u
-      return mismatch("#{id} Uo", u, Numeric, mth)     unless u.is_a?(Numeric)
-      return invalid("#{id} Uo (> 5.678)",    mth, 2, ERR) if u > 5.678
-      return zero("#{id} Uo",                 mth,    ERR) if u.round(2) == 0.00
-      return negative("#{id} Uo",             mth,    ERR) if u < 0
+    unless u.nil?
+      return mismatch("#{id} Uo", u, Numeric, mth) unless u.is_a?(Numeric)
+
+      unless u.between?(UMIN, 5.678)
+        uO = u
+        u  = uO.clamp(UMIN, 5.678)
+        log(ERR, "Resetting Uo #{uO.round(3)} to #{u.round(3)} (#{mth})")
+      end
     end
 
     # Optional specs. Log/reset if invalid.
@@ -256,14 +651,14 @@ module OSut
       d  = 0.015
       a[:compo][:mat] = @@mats[mt]
       a[:compo][:d  ] = d
-      a[:compo][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+      a[:compo][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
     when :partition
       unless specs[:clad] == :none
         d  = 0.015
         mt = :drywall
         a[:clad][:mat] = @@mats[mt]
         a[:clad][:d  ] = d
-        a[:clad][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+        a[:clad][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
       end
 
       d  = 0.015
@@ -275,14 +670,14 @@ module OSut
       mt = :mineral   if u
       a[:compo][:mat] = @@mats[mt]
       a[:compo][:d  ] = d
-      a[:compo][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+      a[:compo][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
 
       unless specs[:finish] == :none
         d  = 0.015
         mt = :drywall
         a[:finish][:mat] = @@mats[mt]
         a[:finish][:d  ] = d
-        a[:finish][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+        a[:finish][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
       end
     when :wall
       unless specs[:clad] == :none
@@ -293,7 +688,7 @@ module OSut
         d  = 0.015     if specs[:clad] == :light
         a[:clad][:mat] = @@mats[mt]
         a[:clad][:d  ] = d
-        a[:clad][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+        a[:clad][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
       end
 
       mt = :drywall
@@ -303,7 +698,7 @@ module OSut
       d  = 0.015       if specs[:frame] == :light
       a[:sheath][:mat] = @@mats[mt]
       a[:sheath][:d  ] = d
-      a[:sheath][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+      a[:sheath][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
 
       mt = :mineral
       mt = :cellulose if specs[:frame] == :medium
@@ -315,7 +710,7 @@ module OSut
 
       a[:compo][:mat] = @@mats[mt]
       a[:compo][:d  ] = d
-      a[:compo][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+      a[:compo][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
 
       unless specs[:finish] == :none
         mt = :concrete
@@ -325,7 +720,7 @@ module OSut
         d  = 0.200      if specs[:finish] == :heavy
         a[:finish][:mat] = @@mats[mt]
         a[:finish][:d  ] = d
-        a[:finish][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+        a[:finish][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
       end
     when :roof
       unless specs[:clad] == :none
@@ -336,7 +731,7 @@ module OSut
         d  = 0.200     if specs[:clad] == :heavy  # e.g. parking garage
         a[:clad][:mat] = @@mats[mt]
         a[:clad][:d  ] = d
-        a[:clad][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+        a[:clad][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
       end
 
       mt = :mineral
@@ -347,7 +742,7 @@ module OSut
       d  = 0.015      unless u
       a[:compo][:mat] = @@mats[mt]
       a[:compo][:d  ] = d
-      a[:compo][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+      a[:compo][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
 
       unless specs[:finish] == :none
         mt = :concrete
@@ -357,7 +752,7 @@ module OSut
         d  = 0.200      if specs[:finish] == :heavy
         a[:finish][:mat] = @@mats[mt]
         a[:finish][:d  ] = d
-        a[:finish][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+        a[:finish][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
       end
     when :floor
       unless specs[:clad] == :none
@@ -365,7 +760,7 @@ module OSut
         d  = 0.015
         a[:clad][:mat] = @@mats[mt]
         a[:clad][:d  ] = d
-        a[:clad][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+        a[:clad][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
       end
 
       mt = :mineral
@@ -376,7 +771,7 @@ module OSut
       d  = 0.015      unless u
       a[:compo][:mat] = @@mats[mt]
       a[:compo][:d  ] = d
-      a[:compo][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+      a[:compo][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
 
       unless specs[:finish] == :none
         mt = :concrete
@@ -386,21 +781,21 @@ module OSut
         d  = 0.200      if specs[:finish] == :heavy
         a[:finish][:mat] = @@mats[mt]
         a[:finish][:d  ] = d
-        a[:finish][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+        a[:finish][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
       end
     when :slab
       mt = :sand
       d  = 0.100
       a[:clad][:mat] = @@mats[mt]
       a[:clad][:d  ] = d
-      a[:clad][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+      a[:clad][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
 
       unless specs[:frame] == :none
         mt = :polyiso
         d  = 0.025
         a[:sheath][:mat] = @@mats[mt]
         a[:sheath][:d  ] = d
-        a[:sheath][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+        a[:sheath][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
       end
 
       mt = :concrete
@@ -408,14 +803,14 @@ module OSut
       d  = 0.200      if specs[:frame] == :heavy
       a[:compo][:mat] = @@mats[mt]
       a[:compo][:d  ] = d
-      a[:compo][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+      a[:compo][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
 
       unless specs[:finish] == :none
         mt = :material
         d  = 0.015
         a[:finish][:mat] = @@mats[mt]
         a[:finish][:d  ] = d
-        a[:finish][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+        a[:finish][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
       end
     when :basement
       unless specs[:clad] == :none
@@ -425,38 +820,38 @@ module OSut
         d  = 0.015     if specs[:clad] == :light
         a[:clad][:mat] = @@mats[mt]
         a[:clad][:d  ] = d
-        a[:clad][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+        a[:clad][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
 
         mt = :polyiso
         d  = 0.025
         a[:sheath][:mat] = @@mats[mt]
         a[:sheath][:d  ] = d
-        a[:sheath][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+        a[:sheath][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
 
         mt = :concrete
         d  = 0.200
         a[:compo][:mat] = @@mats[mt]
         a[:compo][:d  ] = d
-        a[:compo][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+        a[:compo][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
       else
         mt = :concrete
         d  = 0.200
         a[:sheath][:mat] = @@mats[mt]
         a[:sheath][:d  ] = d
-        a[:sheath][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+        a[:sheath][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
 
         unless specs[:finish] == :none
           mt = :mineral
           d  = 0.075
           a[:compo][:mat] = @@mats[mt]
           a[:compo][:d  ] = d
-          a[:compo][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+          a[:compo][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
 
           mt = :drywall
           d  = 0.015
           a[:finish][:mat] = @@mats[mt]
           a[:finish][:d  ] = d
-          a[:finish][:id ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+          a[:finish][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
         end
       end
     when :door
@@ -465,27 +860,25 @@ module OSut
 
       a[:compo  ][:mat ] = @@mats[mt]
       a[:compo  ][:d   ] = d
-      a[:compo  ][:id  ] = "OSut|#{mt}|#{format('%03d', d*1000)[-3..-1]}"
+      a[:compo  ][:id  ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
     when :window
       a[:glazing][:u   ]  = u ? u : @@uo[:window]
       a[:glazing][:shgc]  = 0.450
       a[:glazing][:shgc]  = specs[:shgc] if specs.key?(:shgc)
-      a[:glazing][:id  ]  = "OSut|window"
-      a[:glazing][:id  ] += "|U#{format('%.1f', a[:glazing][:u])}"
-      a[:glazing][:id  ] += "|SHGC#{format('%d', a[:glazing][:shgc]*100)}"
+      a[:glazing][:id  ]  = "OSut:window"
+      a[:glazing][:id  ] += ":U#{format('%.1f', a[:glazing][:u])}"
+      a[:glazing][:id  ] += ":SHGC#{format('%d', a[:glazing][:shgc]*100)}"
     when :skylight
       a[:glazing][:u   ] = u ? u : @@uo[:skylight]
       a[:glazing][:shgc] = 0.450
       a[:glazing][:shgc] = specs[:shgc] if specs.key?(:shgc)
-      a[:glazing][:id  ]  = "OSut|skylight"
-      a[:glazing][:id  ] += "|U#{format('%.1f', a[:glazing][:u])}"
-      a[:glazing][:id  ] += "|SHGC#{format('%d', a[:glazing][:shgc]*100)}"
+      a[:glazing][:id  ]  = "OSut:skylight"
+      a[:glazing][:id  ] += ":U#{format('%.1f', a[:glazing][:u])}"
+      a[:glazing][:id  ] += ":SHGC#{format('%d', a[:glazing][:shgc]*100)}"
     end
 
     # Initiate layers.
-    unglazed = a[:glazing].empty? ? true : false
-
-    if unglazed
+    if a[:glazing].empty?
       layers = OpenStudio::Model::OpaqueMaterialVector.new
 
       # Loop through each layer spec, and generate construction.
@@ -528,14 +921,15 @@ module OSut
       layers << lyr
     end
 
-    c  = OpenStudio::Model::Construction.new(layers)
+    c = OpenStudio::Model::Construction.new(layers)
     c.setName(id)
 
-    # Adjust insulating layer thickness or conductivity to match requested Uo.
-    if u and unglazed
+    # Adjust insulating layer conductivity (maybe thickness) to match Uo.
+    if u and a[:glazing].empty?
       ro = 1 / u - film
 
-      if ro > 0
+
+      if ro > RMIN
         if specs[:type] == :door # 1x layer, adjust conductivity
           layer = c.getLayer(0).to_StandardOpaqueMaterial
           return invalid("#{id} standard material?", mth, 0) if layer.empty?
@@ -543,34 +937,33 @@ module OSut
           layer = layer.get
           k     = layer.thickness / ro
           layer.setConductivity(k)
-        else # multiple layers, adjust insulating layer thickness
+        else # multiple layers, adjust layer conductivity, then thickness
           lyr = insulatingLayer(c)
           return invalid("#{id} construction", mth, 0) if lyr[:index].nil?
           return invalid("#{id} construction", mth, 0) if lyr[:type ].nil?
-          return invalid("#{id} construction", mth, 0) if lyr[:r    ].zero?
+          return invalid("#{id} construction", mth, 0) if lyr[:r    ].to_i.zero?
 
           index = lyr[:index]
           layer = c.getLayer(index).to_StandardOpaqueMaterial
           return invalid("#{id} material @#{index}", mth, 0) if layer.empty?
 
           layer = layer.get
-          k     = layer.conductivity
-          d     = (ro - rsi(c) + lyr[:r]) * k
-          return invalid("#{id} adjusted m", mth, 0) if d < 0.03
 
-          nom   = "OSut|"
-          nom  += layer.nameString.gsub(/[^a-z]/i, "").gsub("OSut", "")
-          nom  += "|"
-          nom  += format("%03d", d*1000)[-3..-1]
+          k = (layer.thickness / (ro - rsi(c) + lyr[:r])).clamp(KMIN, KMAX)
+          d = (k * (ro - rsi(c) + lyr[:r])).clamp(DMIN, DMAX)
+
+          nom  = "OSut:"
+          nom += layer.nameString.gsub(/[^a-z]/i, "").gsub("OSut", "")
+          nom += ":K#{format('%4.3f', k)}:#{format('%03d', d*1000)[-3..-1]}"
 
           lyr = model.getStandardOpaqueMaterialByName(nom)
 
           if lyr.empty?
             layer.setName(nom)
+            layer.setConductivity(k)
             layer.setThickness(d)
           else
-            omat = lyr.get
-            c.setLayer(index, omat)
+            c.setLayer(index, lyr.get)
           end
         end
       end
@@ -619,20 +1012,20 @@ module OSut
     end
 
     # Shading schedule.
-    id  = "OSut|SHADE|Ruleset"
+    id  = "OSut:SHADE:Ruleset"
     sch = mdl.getScheduleRulesetByName(id)
 
     if sch.empty?
       sch = OpenStudio::Model::ScheduleRuleset.new(mdl, 0)
       sch.setName(id)
       sch.setScheduleTypeLimits(onoff)
-      sch.defaultDaySchedule.setName("OSut|Shade|Ruleset|Default")
+      sch.defaultDaySchedule.setName("OSut:Shade:Ruleset:Default")
     else
       sch = sch.get
     end
 
     # Summer cooling rule.
-    id   = "OSut|SHADE|ScheduleRule"
+    id   = "OSut:SHADE:ScheduleRule"
     rule = mdl.getScheduleRuleByName(id)
 
     if rule.empty?
@@ -646,14 +1039,14 @@ module OSut
       rule.setStartDate(start)
       rule.setEndDate(finish)
       rule.setApplyAllDays(true)
-      rule.daySchedule.setName("OSut|Shade|Rule|Default")
+      rule.daySchedule.setName("OSut:Shade:Rule:Default")
       rule.daySchedule.addValue(OpenStudio::Time.new(0,24,0,0), 1)
     else
       rule = rule.get
     end
 
     # Shade object.
-    id  = "OSut|Shade"
+    id  = "OSut:Shade"
     shd = mdl.getShadeByName(id)
 
     if shd.empty?
@@ -664,7 +1057,7 @@ module OSut
     end
 
     # Shading control (unique to each call).
-    id  = "OSut|ShadingControl"
+    id  = "OSut:ShadingControl"
     ctl = OpenStudio::Model::ShadingControl.new(shd)
     ctl.setName(id)
     ctl.setSchedule(sch)
@@ -700,7 +1093,7 @@ module OSut
 
     # A single material.
     mdl = sps.first.model
-    id  = "OSut|MASS|Material"
+    id  = "OSut:MASS:Material"
     mat = mdl.getOpaqueMaterialByName(id)
 
     if mat.empty?
@@ -719,7 +1112,7 @@ module OSut
     end
 
     # A single, 1x layered construction.
-    id  = "OSut|MASS|Construction"
+    id  = "OSut:MASS:Construction"
     con = mdl.getConstructionByName(id)
 
     if con.empty?
@@ -732,7 +1125,7 @@ module OSut
       con = con.get
     end
 
-    id = "OSut|InternalMassDefinition|" + (format "%.2f", ratio)
+    id = "OSut:InternalMassDefinition:" + (format "%.2f", ratio)
     df = mdl.getInternalMassDefinitionByName(id)
 
     if df.empty?
@@ -746,7 +1139,7 @@ module OSut
 
     sps.each do |sp|
       mass = OpenStudio::Model::InternalMass.new(df)
-      mass.setName("OSut|InternalMass|#{sp.nameString}")
+      mass.setName("OSut:InternalMass:#{sp.nameString}")
       mass.setSpace(sp)
     end
 
@@ -754,13 +1147,13 @@ module OSut
   end
 
   ##
-  # Validates if a default construction set holds a base construction.
+  # Validates if a default construction set holds an opaque base construction.
   #
   # @param set [OpenStudio::Model::DefaultConstructionSet] a default set
-  # @param bse [OpenStudio::Model::ConstructionBase] a construction base
+  # @param bse [OpenStudio::Model::ConstructionBase] an opaque construction base
   # @param gr [Bool] if ground-facing surface
   # @param ex [Bool] if exterior-facing surface
-  # @param tp [#to_s] a surface type
+  # @param tp [#to_sym] surface type: "floor", "wall" or "roofceiling"
   #
   # @return [Bool] whether default set holds construction
   # @return [false] if invalid input (see logs)
@@ -779,7 +1172,7 @@ module OSut
     ck2 = bse.is_a?(cl2)
     ck3 = [true, false].include?(gr)
     ck4 = [true, false].include?(ex)
-    ck5 = tp.respond_to?(:to_s)
+    ck5 = tp.respond_to?(:to_sym)
     return mismatch(id1, set, cl1, mth,    DBG, false) unless ck1
     return mismatch(id2, bse, cl2, mth,    DBG, false) unless ck2
     return invalid("ground"      , mth, 3, DBG, false) unless ck3
@@ -859,6 +1252,9 @@ module OSut
     type     = s.surfaceType
     ground   = false
     exterior = false
+    adjacent = s.adjacentSurface.empty? ? nil : s.adjacentSurface.get
+    aspace   = adjacent.nil? || adjacent.space.empty? ? nil : adjacent.space.get
+    typ      = adjacent.nil? ? nil : adjacent.surfaceType
 
     if s.isGroundSurface
       ground = true
@@ -866,7 +1262,14 @@ module OSut
       exterior = true
     end
 
-    unless space.defaultConstructionSet.empty?
+    if space.defaultConstructionSet.empty?
+      unless aspace.nil?
+        unless aspace.defaultConstructionSet.empty?
+          set = aspace.defaultConstructionSet.get
+          return set if holdsConstruction?(set, base, ground, exterior, typ)
+        end
+      end
+    else
       set = space.defaultConstructionSet.get
       return set if holdsConstruction?(set, base, ground, exterior, type)
     end
@@ -880,12 +1283,32 @@ module OSut
       end
     end
 
+    unless aspace.nil? || aspace.spaceType.empty?
+      unless aspace.spaceType.empty?
+        spacetype = aspace.spaceType.get
+
+        unless spacetype.defaultConstructionSet.empty?
+          set = spacetype.defaultConstructionSet.get
+          return set if holdsConstruction?(set, base, ground, exterior, typ)
+        end
+      end
+    end
+
     unless space.buildingStory.empty?
       story = space.buildingStory.get
 
       unless story.defaultConstructionSet.empty?
         set = story.defaultConstructionSet.get
         return set if holdsConstruction?(set, base, ground, exterior, type)
+      end
+    end
+
+    unless aspace.nil? || aspace.buildingStory.empty?
+      story = aspace.buildingStory.get
+
+      unless spacetype.defaultConstructionSet.empty?
+        set = spacetype.defaultConstructionSet.get
+        return set if holdsConstruction?(set, base, ground, exterior, typ)
       end
     end
 
@@ -897,203 +1320,6 @@ module OSut
     end
 
     nil
-  end
-
-  ##
-  # Validates if every material in a layered construction is standard & opaque.
-  #
-  # @param lc [OpenStudio::LayeredConstruction] a layered construction
-  #
-  # @return [Bool] whether all layers are valid
-  # @return [false] if invalid input (see logs)
-  def standardOpaqueLayers?(lc = nil)
-    mth = "OSut::#{__callee__}"
-    cl  = OpenStudio::Model::LayeredConstruction
-    return invalid("lc", mth, 1, DBG, false) unless lc.respond_to?(NS)
-    return mismatch(lc.nameString, lc, cl, mth, DBG, false) unless lc.is_a?(cl)
-
-    lc.layers.each { |m| return false if m.to_StandardOpaqueMaterial.empty? }
-
-    true
-  end
-
-  ##
-  # Returns total (standard opaque) layered construction thickness (m).
-  #
-  # @param lc [OpenStudio::LayeredConstruction] a layered construction
-  #
-  # @return [Float] construction thickness
-  # @return [0.0] if invalid input (see logs)
-  def thickness(lc = nil)
-    mth = "OSut::#{__callee__}"
-    cl  = OpenStudio::Model::LayeredConstruction
-    return invalid("lc", mth, 1, DBG, 0.0) unless lc.respond_to?(NS)
-
-    id = lc.nameString
-    return mismatch(id, lc, cl, mth, DBG, 0.0) unless lc.is_a?(cl)
-
-    ok = standardOpaqueLayers?(lc)
-    log(ERR, "'#{id}' holds non-StandardOpaqueMaterial(s) (#{mth})")  unless ok
-    return 0.0                                                        unless ok
-
-    thickness = 0.0
-    lc.layers.each { |m| thickness += m.thickness }
-
-    thickness
-  end
-
-  ##
-  # Returns total air film resistance of a fenestrated construction (m2•K/W)
-  #
-  # @param usi [Numeric] a fenestrated construction's U-factor (W/m2•K)
-  #
-  # @return [Float] total air film resistances
-  # @return [0.1216] if invalid input (see logs)
-  def glazingAirFilmRSi(usi = 5.85)
-    # The sum of thermal resistances of calculated exterior and interior film
-    # coefficients under standard winter conditions are taken from:
-    #
-    #   https://bigladdersoftware.com/epx/docs/9-6/engineering-reference/
-    #   window-calculation-module.html#simple-window-model
-    #
-    # These remain acceptable approximations for flat windows, yet likely
-    # unsuitable for subsurfaces with curved or projecting shapes like domed
-    # skylights. The solution here is considered an adequate fix for reporting,
-    # awaiting eventual OpenStudio (and EnergyPlus) upgrades to report NFRC 100
-    # (or ISO) air film resistances under standard winter conditions.
-    #
-    # For U-factors above 8.0 W/m2•K (or invalid input), the function returns
-    # 0.1216 m2•K/W, which corresponds to a construction with a single glass
-    # layer thickness of 2mm & k = ~0.6 W/m.K.
-    #
-    # The EnergyPlus Engineering calculations were designed for vertical
-    # windows - not horizontal, slanted or domed surfaces - use with caution.
-    mth = "OSut::#{__callee__}"
-    cl  = Numeric
-    return mismatch("usi", usi, cl, mth,    DBG, 0.1216)  unless usi.is_a?(cl)
-    return invalid("usi",           mth, 1, WRN, 0.1216)      if usi > 8.0
-    return negative("usi",          mth,    WRN, 0.1216)      if usi < 0
-    return zero("usi",              mth,    WRN, 0.1216)      if usi.abs < TOL
-
-    rsi = 1 / (0.025342 * usi + 29.163853) # exterior film, next interior film
-    return rsi + 1 / (0.359073 * Math.log(usi) + 6.949915) if usi < 5.85
-    return rsi + 1 / (1.788041 * usi - 2.886625)
-  end
-
-  ##
-  # Returns a construction's 'standard calc' thermal resistance (m2•K/W), which
-  # includes air film resistances. It excludes insulating effects of shades,
-  # screens, etc. in the case of fenestrated constructions.
-  #
-  # @param lc [OpenStudio::Model::LayeredConstruction] a layered construction
-  # @param film [Numeric] thermal resistance of surface air films (m2•K/W)
-  # @param t [Numeric] gas temperature (°C) (optional)
-  #
-  # @return [Float] layered construction's thermal resistance
-  # @return [0.0] if invalid input (see logs)
-  def rsi(lc = nil, film = 0.0, t = 0.0)
-    # This is adapted from BTAP's Material Module "get_conductance" (P. Lopez)
-    #
-    #   https://github.com/NREL/OpenStudio-Prototype-Buildings/blob/
-    #   c3d5021d8b7aef43e560544699fb5c559e6b721d/lib/btap/measures/
-    #   btap_equest_converter/envelope.rb#L122
-    mth = "OSut::#{__callee__}"
-    cl1 = OpenStudio::Model::LayeredConstruction
-    cl2 = Numeric
-    return invalid("lc", mth, 1, DBG, 0.0) unless lc.respond_to?(NS)
-
-    id = lc.nameString
-    return mismatch(id,       lc, cl1, mth, DBG, 0.0) unless lc.is_a?(cl1)
-    return mismatch("film", film, cl2, mth, DBG, 0.0) unless film.is_a?(cl2)
-    return mismatch("temp K",  t, cl2, mth, DBG, 0.0) unless t.is_a?(cl2)
-
-    t += 273.0 # °C to K
-    return negative("temp K", mth, ERR, 0.0) if t < 0
-    return negative("film",   mth, ERR, 0.0) if film < 0
-
-    rsi = film
-
-    lc.layers.each do |m|
-      # Fenestration materials first.
-      empty = m.to_SimpleGlazing.empty?
-      return 1 / m.to_SimpleGlazing.get.uFactor                     unless empty
-
-      empty = m.to_StandardGlazing.empty?
-      rsi += m.to_StandardGlazing.get.thermalResistance             unless empty
-      empty = m.to_RefractionExtinctionGlazing.empty?
-      rsi += m.to_RefractionExtinctionGlazing.get.thermalResistance unless empty
-      empty = m.to_Gas.empty?
-      rsi += m.to_Gas.get.getThermalResistance(t)                   unless empty
-      empty = m.to_GasMixture.empty?
-      rsi += m.to_GasMixture.get.getThermalResistance(t)            unless empty
-
-      # Opaque materials next.
-      empty = m.to_StandardOpaqueMaterial.empty?
-      rsi += m.to_StandardOpaqueMaterial.get.thermalResistance      unless empty
-      empty = m.to_MasslessOpaqueMaterial.empty?
-      rsi += m.to_MasslessOpaqueMaterial.get.thermalResistance      unless empty
-      empty = m.to_RoofVegetation.empty?
-      rsi += m.to_RoofVegetation.get.thermalResistance              unless empty
-      empty = m.to_AirGap.empty?
-      rsi += m.to_AirGap.get.thermalResistance                      unless empty
-    end
-
-    rsi
-  end
-
-  ##
-  # Identifies a layered construction's (opaque) insulating layer. The method
-  # returns a 3-keyed hash :index, the insulating layer index [0, n layers)
-  # within the layered construction; :type, either :standard or :massless; and
-  # :r, material thermal resistance in m2•K/W.
-  #
-  # @param lc [OpenStudio::Model::LayeredConstruction] a layered construction
-  #
-  # @return [Hash] index: (Integer), type: (Symbol), r: (Float)
-  # @return [Hash] index: nil, type: nil, r: 0 if invalid input (see logs)
-  def insulatingLayer(lc = nil)
-    mth = "OSut::#{__callee__}"
-    cl  = OpenStudio::Model::LayeredConstruction
-    res = { index: nil, type: nil, r: 0.0 }
-    i   = 0  # iterator
-    return invalid("lc", mth, 1, DBG, res) unless lc.respond_to?(NS)
-
-    id   = lc.nameString
-    return mismatch(id, lc, cl, mth, DBG, res) unless lc.is_a?(cl)
-
-    lc.layers.each do |m|
-      unless m.to_MasslessOpaqueMaterial.empty?
-        m             = m.to_MasslessOpaqueMaterial.get
-
-        if m.thermalResistance < 0.001 || m.thermalResistance < res[:r]
-          i += 1
-          next
-        else
-          res[:r    ] = m.thermalResistance
-          res[:index] = i
-          res[:type ] = :massless
-        end
-      end
-
-      unless m.to_StandardOpaqueMaterial.empty?
-        m             = m.to_StandardOpaqueMaterial.get
-        k             = m.thermalConductivity
-        d             = m.thickness
-
-        if d < 0.003 || k > 3.0 || d / k < res[:r]
-          i += 1
-          next
-        else
-          res[:r    ] = d / k
-          res[:index] = i
-          res[:type ] = :standard
-        end
-      end
-
-      i += 1
-    end
-
-    res
   end
 
   ##
@@ -2216,7 +2442,7 @@ module OSut
     cl     = OpenStudio::Model::Model
     limits = nil
     return mismatch("model",     model, cl, mth) unless model.is_a?(cl)
-    return invalid("availability", avl,  2, mth) unless avl.respond_to?(:to_s)
+    return invalid("availability", avl,  2, mth) unless avl.respond_to?(:to_sym)
 
     # Either fetch availability ScheduleTypeLimits object, or create one.
     model.getScheduleTypeLimitss.each do |l|
@@ -4648,7 +4874,7 @@ module OSut
   #
   # @param s [Set<OpenStudio::Point3d>] a (larger) parent set of points
   # @param [Array<Hash>] set a collection of (smaller) sequenced points
-  # @option [Symbol] tag sequence of subset vertices to target
+  # @option [#to_sym] tag sequence of subset vertices to target
   #
   # @return [Integer] number of successfully anchored subsets (see logs)
   def genAnchors(s = nil, set = [], tag = :box)
@@ -4656,18 +4882,20 @@ module OSut
     n   = 0
     id  = s.respond_to?(:nameString) ? "#{s.nameString}: " : ""
     pts = poly(s)
-    return invalid("#{id} polygon", mth, 1, DBG, n) if pts.empty?
-    return mismatch("set", set, Array, mth, DBG, n) unless set.respond_to?(:to_a)
+    return invalid("#{id} polygon", mth, 1, DBG, n)  if pts.empty?
+    return mismatch("set", set,  Array, mth, DBG, n) unless set.respond_to?(:to_a)
+    return mismatch("tag", tag, Symbol, mth, DBG, n) unless tag.respond_to?(:to_sym)
 
     origin = OpenStudio::Point3d.new(0,0,0)
     zenith = OpenStudio::Point3d.new(0,0,1)
     ray    = zenith - origin
     set    = set.to_a
+    tag    = tag.to_sym
 
     # Validate individual subsets. Purge surface-specific leader line anchors.
     set.each_with_index do |st, i|
       str1 = id + "subset ##{i+1}"
-      str2 = str1 + " #{tag.to_s}"
+      str2 = str1 + " #{trim(tag)}"
       return mismatch(str1, st, Hash,  mth, DBG, n) unless st.respond_to?(:key?)
       return hashkey( str1, st,  tag,  mth, DBG, n) unless st.key?(tag)
       return empty("#{str2} vertices", mth, DBG, n) if st[tag].empty?
@@ -4810,7 +5038,7 @@ module OSut
   # @param s [Set<OpenStudio::Point3d>] a larger (parent) set of points
   # @param [Array<Hash>] set a collection of (smaller) sequenced vertices
   # @option set [Hash] :ld a polygon-specific leader line anchors
-  # @option [Symbol] tag sequence of set vertices to target
+  # @option [#to_sym] tag sequence of set vertices to target
   #
   # @return [OpenStudio::Point3dVector] extended vertices (see logs if empty)
   def genExtendedVertices(s = nil, set = [], tag = :vtx)
@@ -4822,14 +5050,16 @@ module OSut
     a   = OpenStudio::Point3dVector.new
     v   = []
     return a if pts.empty?
-    return mismatch("set", set, Array, mth, DBG, a) unless set.respond_to?(:to_a)
+    return mismatch("set", set,  Array, mth, DBG, a) unless set.respond_to?(:to_a)
+    return mismatch("tag", tag, Symbol, mth, DBG, n) unless tag.respond_to?(:to_sym)
 
     set = set.to_a
+    tag = tag.to_sym
 
     # Validate individual sets.
     set.each_with_index do |st, i|
       str1 = id + "subset ##{i+1}"
-      str2 = str1 + " #{tag.to_s}"
+      str2 = str1 + " #{trim(tag)}"
       return mismatch(str1, st,  Hash, mth, DBG, a) unless st.respond_to?(:key?)
       next if st.key?(:void) && st[:void]
 
@@ -5121,8 +5351,8 @@ module OSut
   # surface type filters if 'type' argument == "all".
   #
   # @param spaces [Set<OpenStudio::Model::Space>] target spaces
-  # @param boundary [#to_s] OpenStudio outside boundary condition
-  # @param type [#to_s] OpenStudio surface (or subsurface) type
+  # @param boundary [#to_sym] OpenStudio outside boundary condition
+  # @param type [#to_sym] OpenStudio surface (or subsurface) type
   # @param sides [Set<Symbols>] direction keys, e.g. :north (see OSut::SIDZ)
   #
   # @return [Array<OpenStudio::Model::Surface>] surfaces (may be empty, no logs)
@@ -5131,7 +5361,7 @@ module OSut
     spaces = spaces.respond_to?(:to_a) ? spaces.to_a : []
     return [] if spaces.empty?
 
-    sides = sides.respond_to?(:to_sym) ? [sides] : sides
+    sides = sides.respond_to?(:to_sym) ? [trim(sides).to_sym] : sides
     sides = sides.respond_to?(:to_a) ? sides.to_a : []
 
     faces    = []
@@ -5405,7 +5635,7 @@ module OSut
   # @param s [OpenStudio::Model::Surface] a model surface
   # @param [Array<Hash>] subs requested attributes
   # @option subs [#to_s] :id identifier e.g. "Window 007"
-  # @option subs [#to_s] :type ("FixedWindow") OpenStudio subsurface type
+  # @option subs [#to_sym] :type ("FixedWindow") OpenStudio subsurface type
   # @option subs [#to_i] :count (1) number of individual subs per array
   # @option subs [#to_i] :multiplier (1) OpenStudio subsurface multiplier
   # @option subs [#frameWidth] :frame (nil) OpenStudio frame & divider object
@@ -5534,12 +5764,13 @@ module OSut
       return mismatch("sub", sub, cl4, mth, DBG, no) unless sub.is_a?(cl3)
 
       # Required key:value pairs (either set by the user or defaulted).
-      sub[:frame     ] = nil  unless sub.key?(:frame     )
-      sub[:assembly  ] = nil  unless sub.key?(:assembly  )
-      sub[:count     ] = 1    unless sub.key?(:count     )
+      sub[:frame     ] = nil  unless sub.key?(:frame)
+      sub[:assembly  ] = nil  unless sub.key?(:assembly)
+      sub[:count     ] = 1    unless sub.key?(:count)
       sub[:multiplier] = 1    unless sub.key?(:multiplier)
-      sub[:id        ] = ""   unless sub.key?(:id        )
-      sub[:type      ] = type unless sub.key?(:type      )
+      sub[:id        ] = ""   unless sub.key?(:id)
+      sub[:type      ] = type unless sub.key?(:type)
+      sub[:type      ] = type unless sub[:type].respond_to?(:to_sym)
       sub[:type      ] = trim(sub[:type])
       sub[:id        ] = trim(sub[:id])
       sub[:type      ] = type                   if sub[:type].empty?
@@ -6368,7 +6599,7 @@ module OSut
   # @option opts [Bool] :sloped (true) whether to consider sloped roof surfaces
   # @option opts [Bool] :plenum (true) whether to consider plenum wells
   # @option opts [Bool] :attic (true) whether to consider attic wells
-  # @option opts [Array<#to_s>] :patterns requested skylight allocation (3x)
+  # @option opts [Array<#to_sym>] :patterns requested skylight allocation (3x)
   # @example (a) consider 2D array of individual skylights, e.g. n(1.22m x 1.22m)
   #   opts[:patterns] = ["array"]
   # @example (b) consider 'a', then array of 1x(size) x n(size) skylight strips
@@ -6685,7 +6916,7 @@ module OSut
     if opts.key?(:patterns)
       if opts[:patterns].is_a?(Array)
         opts[:patterns].each_with_index do |pattern, i|
-          pattern = trim(pattern).downcase
+          pattern = pattern.respond_to?(:to_sym) ? trim(pattern).downcase : ""
 
           if pattern.empty?
             invalid("pattern #{i+1}", mth, 0, ERR)
