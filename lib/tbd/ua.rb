@@ -341,13 +341,18 @@ module TBD
 
             if sss.isConstructionDefaulted
               set = defaultConstructionSet(sss) # building? story?
-              constructions = set.defaultExteriorSurfaceConstructions
 
-              unless constructions.empty?
-                constructions = constructions.get
-                constructions.setWallConstruction(lc)        if typ == :wall
-                constructions.setFloorConstruction(lc)       if typ == :floor
-                constructions.setRoofCeilingConstruction(lc) if typ == :ceiling
+              if set.nil?
+                sss.setConstruction(lc)
+              else
+                constructions = set.defaultExteriorSurfaceConstructions
+
+                unless constructions.empty?
+                  constructions = constructions.get
+                  constructions.setWallConstruction(lc)        if typ == :wall
+                  constructions.setFloorConstruction(lc)       if typ == :floor
+                  constructions.setRoofCeilingConstruction(lc) if typ == :ceiling
+                end
               end
             else
               sss.setConstruction(lc)
