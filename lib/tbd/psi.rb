@@ -37,6 +37,22 @@ module TBD
   #
   #   www.rbq.gouv.qc.ca/domaines-dintervention/efficacite-energetique/
   #   la-formation/autres-batiments-outils-educatifs.html
+  DBG  = OSut::DEBUG.dup
+  INF  = OSut::INFO.dup
+  WRN  = OSut::WARN.dup
+  ERR  = OSut::ERR.dup
+  FTL  = OSut::FATAL.dup
+  NS   = OSut::NS.dup
+  TOL  = OSut::TOL.dup
+  TOL2 = OSut::TOL2.dup
+  DMIN = OSut::DMIN.dup
+  DMAX = OSut::DMAX.dup
+  KMIN = OSut::KMIN.dup
+  KMAX = OSut::KMAX.dup
+  UMAX = OSut::UMAX.dup
+  UMIN = OSut::UMIN.dup
+  RMIN = OSut::RMIN.dup
+  RMAX = OSut::RMAX.dup
 
   ##
   # Library of point thermal bridges (e.g. columns). Each key:value entry
@@ -1399,7 +1415,7 @@ module TBD
       else
         return mismatch(tag, s[k], Numeric, mth) unless s[k].is_a?(Numeric)
         next if k == :heatloss
-        
+
         return negative(tag, mth, 2) if s[k] < 0
         return zero(tag, mth) if s[k].abs < 0.001
       end

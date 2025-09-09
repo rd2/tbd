@@ -3072,6 +3072,9 @@ RSpec.describe TBD do
 
     puts TBD.logs unless TBD.logs.empty?
     expect(TBD.status).to be_zero
+
+    file = File.join(__dir__, "files/osms/out/seb2_sky2.osm")
+    model.save(file, true)
   end
 
   it "can factor in negative PSI-factors (JSON input)" do

@@ -59,23 +59,5 @@ end
 
 module TBD
   extend OSut # OpenStudio utilities (github.com/rd2/oslg)
-
-  DBG  = OSut::DEBUG.dup
-  INF  = OSut::INFO.dup
-  WRN  = OSut::WARN.dup
-  ERR  = OSut::ERR.dup
-  FTL  = OSut::FATAL.dup
-  NS   = OSut::NS.dup
-  TOL  = OSut::TOL.dup
-  TOL2 = OSut::TOL2.dup
-  DMIN = OSut::DMIN.dup
-  DMAX = OSut::DMAX.dup
-  KMIN = OSut::KMIN.dup
-  KMAX = OSut::KMAX.dup
-  UMAX = OSut::UMAX.dup
-  UMIN = OSut::UMIN.dup
-  RMIN = OSut::RMIN.dup
-  RMAX = OSut::RMAX.dup
-
   extend TBD
 end
