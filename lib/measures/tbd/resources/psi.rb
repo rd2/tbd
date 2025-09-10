@@ -1941,14 +1941,38 @@ module TBD
             ids = windows.keys + doors.keys + skylights.keys
           end
 
-          unless ids.include?(i)
-            log(ERR, "Orphaned subsurface #{i} (mth)")
+          adj = nil
+
+          unless ids.include?(i) # adjacent sub surface?
+            sb = model.getSubSurfaceByName(i)
+
+            if sb.empty?
+              log(DBG, "Orphaned subsurface #{i} (#{mth})?")
+            else
+              sb  = sb.get
+              adj = sb.adjacentSubSurface
+
+              if adj.empty?
+                log(DBG, "Orphaned sub #{i} (#{mth})?")
+              end
+            end
+
             next
           end
 
-          window   =   windows.key?(i) ?   windows[i] : {}
-          door     =     doors.key?(i) ?     doors[i] : {}
-          skylight = skylights.key?(i) ? skylights[i] : {}
+          if adj
+            window   =   windows.key?(i) ?   windows[i] : {}
+            door     =     doors.key?(i) ?     doors[i] : {}
+            skylight = skylights.key?(i) ? skylights[i] : {}
+          else
+            window   =   windows.key?(i) ?   windows[i] : {}
+            door     =     doors.key?(i) ?     doors[i] : {}
+            skylight = skylights.key?(i) ? skylights[i] : {}
+          end
+
+          # window   =   windows.key?(i) ?   windows[i] : {}
+          # door     =     doors.key?(i) ?     doors[i] : {}
+          # skylight = skylights.key?(i) ? skylights[i] : {}
 
           sub = window   unless window.empty?
           sub = door     unless door.empty?

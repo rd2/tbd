@@ -2006,7 +2006,6 @@ RSpec.describe TBD do
   it "can check for attics vs plenums" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     TBD.clean!
-
     # Outdoor-facing surfaces of UNCONDITIONED spaces are never derated by TBD.
     # Yet determining whether an OpenStudio space should be considered
     # UNCONDITIONED (e.g. an attic), rather than INDIRECTLYCONDITIONED
@@ -2138,6 +2137,58 @@ RSpec.describe TBD do
     end
 
     expect(attic.additionalProperties.resetFeature(key)).to be true
+
+    # Adding a sub surface between UNCONDITIONED Attic & CONDITIONED Core.
+    file  = File.join(__dir__, "files/osms/in/smalloffice.osm")
+    path  = OpenStudio::Path.new(file)
+    model = translator.loadModel(path)
+    expect(model).to_not be_empty
+    model = model.get
+
+    floor = model.getSurfaceByName("Attic_floor_core")
+    expect(floor).to_not be_empty
+    floor = floor.get
+
+    ceiling = floor.adjacentSurface
+    expect(ceiling).to_not be_empty
+    ceiling = ceiling.get
+
+    # Adding a trap door, linking the core to the attic.
+    sub            = {}
+    sub[:id      ] = "attic trap door"
+    sub[:type    ] = "Door"
+    sub[:assembly] = TBD.genConstruction(model, {type: :door})
+    sub[:width   ] = 1.0
+    sub[:height  ] = 1.0
+    expect(TBD.addSubs(floor, sub, false, true, true)).to be true
+    expect(TBD.addSubs(ceiling, sub, false, true, false)).to be true
+    expect(floor.subSurfaces.size).to eq(1)
+    expect(ceiling.subSurfaces.size).to eq(1)
+    trap = floor.subSurfaces.first
+    door = ceiling.subSurfaces.first
+    expect(trap.setAdjacentSubSurface(door)).to be true
+    expect(door.setAdjacentSubSurface(trap)).to be true
+    expect(trap.adjacentSubSurface).to_not be_empty
+    expect(door.adjacentSubSurface).to_not be_empty
+    expect(trap.adjacentSubSurface.get).to eq(door)
+    expect(door.adjacentSubSurface.get).to eq(trap)
+
+    argh = { option: "code (Quebec)" }
+    json = TBD.process(model, argh)
+    puts TBD.logs
+    expect(TBD.status).to be_zero
+    expect(json).to be_a(Hash)
+    expect(json).to have_key(:io)
+    expect(json).to have_key(:surfaces)
+    io       = json[:io      ]
+    surfaces = json[:surfaces]
+    expect(surfaces).to be_a(Hash)
+    expect(surfaces.size).to eq(43)
+    expect(io).to have_key(:edges)
+    expect(io[:edges].size).to eq(109)
+
+    file = File.join(__dir__, "files/osms/out/trapdoor.osm")
+    model.save(file, true)
 
     # -- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- -- #
     # 5Zone_2 test case (as INDIRECTLYCONDITIONED plenum).
