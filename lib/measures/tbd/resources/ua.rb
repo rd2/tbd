@@ -54,12 +54,12 @@ module TBD
     lyr[:index] = nil unless lyr[:index].is_a?(Numeric)
     lyr[:index] = nil unless lyr[:index] >= 0
     lyr[:index] = nil unless lyr[:index] < lc.layers.size
-    return invalid("#{id} layer index", mth, 3, ERR, res) unless lyr[:index]
+    return invalid("#{id} layer index", mth, 3, WRN, res) unless lyr[:index]
     return zero("#{id}: heatloss"     , mth,    WRN, res) unless hloss > TOL
     return zero("#{id}: films"        , mth,    WRN, res) unless film  > TOL
     return zero("#{id}: Ut"           , mth,    WRN, res) unless ut    > UMIN
     return invalid("#{id}: Ut"        , mth, 6, WRN, res) unless ut    < UMAX
-    return zero("#{id}: net area (m2)", mth,    ERR, res) unless area  > TOL
+    return zero("#{id}: net area (m2)", mth,    WRN, res) unless area  > TOL
 
     # First, calculate initial layer RSi to initially meet Ut target.
     rt     = 1 / ut              # target construction Rt
@@ -71,7 +71,7 @@ module TBD
     u_psi  = hloss / area        # from psi+khi
     new_u -= u_psi               # uprated layer USi to counter psi+khi
     new_r  = 1 / new_u           # uprated layer RSi to counter psi+khi
-    return zero("#{id}: new Rsi", mth, ERR, res) unless new_r > RMIN
+    return zero("#{id}: new Rsi", mth, WRN, res) unless new_r > RMIN
 
     if lyr[:type] == :massless
       m = lc.getLayer(lyr[:index]).to_MasslessOpaqueMaterial
@@ -140,9 +140,9 @@ module TBD
   # @option argh [Bool] :uprate_walls (false) whether to uprate walls
   # @option argh [Bool] :uprate_roofs (false) whether to uprate roofs
   # @option argh [Bool] :uprate_floors (false) whether to uprate floors
-  # @option argh [#to_f] :wall_ut (5.678) uprated wall Usi-factor target
-  # @option argh [#to_f] :roof_ut (5.678) uprated roof Usi-factor target
-  # @option argh [#to_f] :floor_ut (5.678) uprated floor Usi-factor target
+  # @option argh [#to_f] :wall_ut (UMAX) uprated wall Usi-factor target
+  # @option argh [#to_f] :roof_ut (UMAX) uprated roof Usi-factor target
+  # @option argh [#to_f] :floor_ut (UMAX) uprated floor Usi-factor target
   # @option argh [#to_s] :wall_option ("") construction to uprate (or "all")
   # @option argh [#to_s] :roof_option ("") construction to uprate (or "all")
   # @option argh [#to_s] :floor_option ("") construction to uprate (or "all")
@@ -167,9 +167,9 @@ module TBD
     argh[:uprate_walls ] = false unless argh.key?(:uprate_walls)
     argh[:uprate_roofs ] = false unless argh.key?(:uprate_roofs)
     argh[:uprate_floors] = false unless argh.key?(:uprate_floors)
-    argh[:wall_ut      ] = 5.678 unless argh.key?(:wall_ut)
-    argh[:roof_ut      ] = 5.678 unless argh.key?(:roof_ut)
-    argh[:floor_ut     ] = 5.678 unless argh.key?(:floor_ut)
+    argh[:wall_ut      ] = UMAX  unless argh.key?(:wall_ut)
+    argh[:roof_ut      ] = UMAX  unless argh.key?(:roof_ut)
+    argh[:floor_ut     ] = UMAX  unless argh.key?(:floor_ut)
     argh[:wall_option  ] = ""    unless argh.key?(:wall_option)
     argh[:roof_option  ] = ""    unless argh.key?(:roof_option)
     argh[:floor_option ] = ""    unless argh.key?(:floor_option)
@@ -192,7 +192,7 @@ module TBD
     groups.each do |type, g|
       next unless g[:up]
       next unless g[:ut].is_a?(Numeric)
-      next unless g[:ut] < 5.678
+      next unless g[:ut] < UMAX
       next     if g[:ut] < 0
 
       typ  = type
@@ -206,7 +206,7 @@ module TBD
       all  = tout.include?(op)
 
       if g[:op].empty?
-        log(ERR, "Construction (#{type}) to uprate? (#{mth})")
+        log(WRN, "Construction (#{type}) to uprate? (#{mth})")
       elsif all
         s.each do |nom, surface|
           next unless surface.key?(:deratable   )
@@ -242,11 +242,11 @@ module TBD
       else
         id = g[:op]
         lc = model.getConstructionByName(id)
-        log(ERR, "Construction '#{id}'? (#{mth})")         if lc.empty?
+        log(WRN, "Construction '#{id}'? (#{mth})")         if lc.empty?
         next                                               if lc.empty?
 
         lc = lc.get.to_LayeredConstruction
-        log(ERR, "'#{id}' layered construction? (#{mth})") if lc.empty?
+        log(WRN, "'#{id}' layered construction? (#{mth})") if lc.empty?
         next                                               if lc.empty?
 
         lc       = lc.get
@@ -277,7 +277,7 @@ module TBD
       end
 
       if coll.empty?
-        log(ERR, "No #{type} construction to uprate - skipping (#{mth})")
+        log(WRN, "No #{type} construction to uprate - skipping (#{mth})")
         next
       elsif lc
         # Valid layered construction - good to uprate!
@@ -286,7 +286,7 @@ module TBD
         lyr[:index] = nil unless lyr[:index] >= 0
         lyr[:index] = nil unless lyr[:index] < lc.layers.size
 
-        log(ERR, "Insulation index for '#{id}'? (#{mth})") unless lyr[:index]
+        log(WRN, "Insulation index for '#{id}'? (#{mth})") unless lyr[:index]
         next                                               unless lyr[:index]
 
         # Ensure lc is exclusively linked to deratable surfaces of right type.
@@ -297,10 +297,10 @@ module TBD
           next unless surface.key?(:construction)
           next unless surface[:construction].is_a?(cl3)
           next unless surface[:construction] == lc
+          next unless surface[:deratable]
 
           ok = true
-          ok = false unless surface[:type     ] == typ
-          ok = false unless surface[:deratable]
+          ok = false unless surface[:type] == typ
           ok = false unless coll.key?(id)
           ok = false unless coll[id][:s].key?(nom)
 
@@ -385,7 +385,7 @@ module TBD
         res = uo(model, lc, id, hloss, film, g[:ut])
 
         unless res[:uo] && res[:m]
-          log(ERR, "Unable to uprate '#{id}' (#{mth})")
+          log(WRN, "Unable to uprate '#{id}' (#{mth})")
           next
         end
 
@@ -407,7 +407,7 @@ module TBD
         argh[:roof_uo ] = res[:uo] if typ == :ceiling
         argh[:floor_uo] = res[:uo] if typ == :floor
       else
-        log(ERR, "Nilled construction to uprate - (#{mth})")
+        log(WRN, "Nilled construction to uprate - (#{mth})")
         return false
       end
     end
@@ -589,7 +589,7 @@ module TBD
       empty  = shorts[:has].empty? && shorts[:val].empty?
       has    = shorts[:has]                      unless empty
       val    = shorts[:val]                      unless empty
-      log(ERR, "Invalid UA' reference set (#{mth})") if empty
+      log(WRN, "Invalid UA' reference set (#{mth})") if empty
 
       unless empty
         ua[:model] += " : Design vs '#{ref}'"
