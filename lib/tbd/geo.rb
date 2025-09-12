@@ -310,23 +310,24 @@ module TBD
     end
 
     unless surface.construction.empty?
-      construction = surface.construction.get.to_LayeredConstruction
+      lc = surface.construction.get.to_LayeredConstruction
 
-      unless construction.empty?
-        construction = construction.get
-        lyr          = insulatingLayer(construction)
-        lyr[:index]  = nil unless lyr[:index].is_a?(Numeric)
-        lyr[:index]  = nil unless lyr[:index] >= 0
-        lyr[:index]  = nil unless lyr[:index] < construction.layers.size
+      unless lc.empty?
+        lc  = lc.get
+        lyr = insulatingLayer(lc)
 
-        if lyr[:index]
-          surf[:construction] = construction
+        if lyr[:index].is_a?(Integer) && lyr[:index].between?(0, lc.numLayers - 1)
+          surf[:construction] = lc
           # index: ... of layer/material (to derate) within construction
           # ltype: either :massless (RSi) or :standard (k + d)
           # r    : initial RSi value of the indexed layer to derate
           surf[:index] = lyr[:index]
           surf[:ltype] = lyr[:type ]
           surf[:r    ] = lyr[:r    ]
+        else
+          surf[:index] = nil
+          surf[:ltype] = nil
+          surf[:r    ] = 0.0
         end
       end
     end

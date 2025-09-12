@@ -58,16 +58,22 @@ rescue LoadError
 end
 
 module TBD
-  extend OSut            # OpenStudio utilities
-
-  TOL  = OSut::TOL.dup   # default distance tolerance (m)
-  TOL2 = OSut::TOL2.dup  # default area tolerance (m2)
-  DBG  = OSut::DEBUG.dup # github.com/rd2/oslg
-  INF  = OSut::INFO.dup  # github.com/rd2/oslg
-  WRN  = OSut::WARN.dup  # github.com/rd2/oslg
-  ERR  = OSut::ERR.dup   # github.com/rd2/oslg
-  FTL  = OSut::FATAL.dup # github.com/rd2/oslg
-  NS   = OSut::NS.dup    # OpenStudio IdfObject nameString method
-
+  extend OSut # OpenStudio utilities (github.com/rd2/oslg)
+  DBG  = OSut::DEBUG.dup
+  INF  = OSut::INFO.dup
+  WRN  = OSut::WARN.dup
+  ERR  = OSut::ERR.dup
+  FTL  = OSut::FATAL.dup
+  NS   = OSut::NS.dup
+  TOL  = OSut::TOL.dup
+  TOL2 = OSut::TOL2.dup
+  DMIN = OSut::DMIN.dup
+  DMAX = OSut::DMAX.dup
+  KMIN = OSut::KMIN.dup
+  KMAX = OSut::KMAX.dup
+  UMAX = OSut::UMAX.dup
+  UMIN = OSut::UMIN.dup
+  RMIN = OSut::RMIN.dup
+  RMAX = OSut::RMAX.dup
   extend TBD
 end
