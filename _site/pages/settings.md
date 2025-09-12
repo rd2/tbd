@@ -93,7 +93,7 @@ What happens if glazed doors aren't along a balcony (like French doors)? When so
 
 ### [Where does one get _psi_ data](#where-does-one-get-psi-data)?
 
-The [BETBG](https://www.bchydro.com/powersmart/business/programs/new-construction.html "Building Envelope Thermal Bridging Guide") & [thermalenvelope.ca](https://thermalenvelope.ca) collections are great resources to start with. They rely in part on past research initiatives, like ASHRAE's RP-1365 (which is also great), and are regularly updated. Building energy codes like ASHRAE 90.1 2022 and ISO standards are also relevant resources. TBD relies on all of these for its built-in _psi_ factor sets (values in W/K per meter):
+The [BETBG](https://research-library.bchousing.org/Home/ResearchItemDetails/722 "Building Envelope Thermal Bridging Guide") & [thermalenvelope.ca](https://thermalenvelope.ca) collections are great resources to start with. They rely in part on past research initiatives, like ASHRAE's RP-1365 (which is also great), and are regularly updated. Building energy codes like ASHRAE 90.1 2022 and ISO standards are also relevant resources. TBD relies on all of these for its built-in _psi_ factor sets (values in W/K per meter):
 
 __poor (BETBG)__  
 ```
