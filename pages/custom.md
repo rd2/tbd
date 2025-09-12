@@ -60,7 +60,7 @@ Notice how the "not bad" _psi_ factor set above is concise, more so than any TBD
 - missing "balconydoorsill" inherits from "balconysill"
 - misisng "balconysill" inherits from "balcony"
 
-It's important to explicitly list specific edge types (in custom _psi_ factor sets), to prevent TBD from applying its default inheritance rules.
+Depending on the objective, it may be necessary to explicitly list specific edge types (in custom _psi_ factor sets), to prevent TBD from applying its default inheritance rules.
 
 ### [Managing multiple custom _psi_ factor sets](#managing-multiple-custom-psi-factor-sets)
 
@@ -253,7 +253,7 @@ If one comes across published _psi_ factor data that distinguishes between fenes
   }
 }
 ```
-There are obviously many, many possible combinations. TBD's GitHub repository contains some additional [examples](https://github.com/rd2/tbd/tree/master/json), yet many more on TBD's dedicated test [repo](https://github.com/rd2/tbd_tests/tree/develop/json). Although this may at first seem complex and intimidating for the average designer or modeller, it remains similar to OpenStudio with regards to default construction sets: it can be very simple, and it only needs to be as complex as the actual design. With such freedom (with both OpenStudio and TBD inputs) comes responsibility - something users and modellers must carefully consider and plan out accordingly.
+There are obviously many, many possible combinations. TBD's GitHub repository contains some additional [examples](https://github.com/rd2/tbd/tree/master/json), many more on TBD's dedicated test [repo](https://github.com/rd2/tbd_tests/tree/develop/json). Although this may at first seem complex and intimidating for the average designer or modeller, it remains similar to OpenStudio with regards to default construction sets: it can be very simple, and it only needs to be as complex as the actual design. With such freedom (with both OpenStudio and TBD inputs) comes responsibility - something users and modellers must carefully consider and plan out accordingly.
 
 ### [A side note on dimensioning](#a-side-note-on-dimensioning)
 
