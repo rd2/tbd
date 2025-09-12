@@ -1,8 +1,10 @@
 ### Launching
 
-OpenStudio users typically first need to specify where downloaded _measures_ are stored on their workstation (_Preferences_ > _Change My Measures Directory_) - just download TBD in there (click on the _download_ links at the top of the page, or download from GitHub or [BCL](https://bcl.nrel.gov/dashboard "OpenStudio's Building Component Library") - search for "tbd" or "rd2"). Then in the _OpenStudio Application_, simply drag & drop TBD in the _Measures_ tab.
+One can access TBD using the [BCL](https://bcl.nrel.gov/dashboard "OpenStudio's Building Component Library") feature in the _OpenStudio Application_'s _Measures_ tab - search for "tbd" or "rd2".  As a fallback, OpenStudio users can also get TBD by clicking on the _download_ links at the top of this page. In such cases, users would first need to specify where downloaded _measures_ should be stored on their workstation (_Preferences_ > _Change My Measures Directory_).
 
-As with other OpenStudio measures, by default TBD does not modify the original OpenStudio model (e.g. with new _derated_ constructions). OpenStudio instead makes a behind-the-scenes copy of the model, which in turn is modified by measures before simulation. Although the terminology may be at first confusing, leave the __Alter OpenStudio model__ option CHECKED for EnergyPlus simulations (see [menu options](./settings.html#tbd-menu-options "TBD settings")). This checkbox option is really there for _Apply Measures Now_ cases, as detailed below. Once the __Default thermal bridge set__ is selected, save the model and run the simulation.
+Once downloaded, simply drag & drop TBD under _OpenStudio Measures_, in the _Measures_ tab.
+
+As with other OpenStudio measures, TBD does not modify the original OpenStudio model (e.g. with new _derated_ constructions). OpenStudio instead makes a behind-the-scenes copy of the model, which in turn is modified by one or more measures before simulation. Although the terminology may be at first confusing, leave the __Alter OpenStudio model__ option CHECKED for EnergyPlus simulations (see [menu options](./settings.html#tbd-menu-options "TBD settings")). This checkbox option is really there for _Apply Measures Now_ cases, as detailed below. Once the __Default thermal bridge set__ is selected, save the model and run the simulation.
 
 ### [Apply Measures Now](#apply-measures-now)
 
