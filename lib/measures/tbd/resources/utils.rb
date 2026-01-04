@@ -1,6 +1,6 @@
 # BSD 3-Clause License
 #
-# Copyright (c) 2022-2025, Denis Bourgeois
+# Copyright (c) 2022-2026, Denis Bourgeois
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -530,7 +530,7 @@ module OSut
       mt.setName(id)
 
       unless mt.setThermalResistance(r)
-        return invalid("Failed #{id}: RSi#{de_r.round(2)}", mth)
+        return invalid("Failed #{id}: RSi#{r.round(2)}", mth)
       end
 
       lc.setLayer(index, mt)
@@ -546,7 +546,7 @@ module OSut
       k = (m.thickness / (r + dR)).clamp(KMIN, KMAX)
       d = (k * (r + dR)).clamp(DMIN, DMAX)
       r  = d / k
-      id = "OSUT:K#{format('%4.3f', k)}:#{format('%03d', d*1000)[-3..-1]}"
+      id = "OSut:K#{format('%4.3f', k)}:#{format('%03d', d*1000)[-3..-1]}"
       mt = lc.model.getStandardOpaqueMaterialByName(id)
 
       # Existing material?
@@ -928,7 +928,6 @@ module OSut
     if u and a[:glazing].empty?
       ro = 1 / u - film
 
-
       if ro > RMIN
         if specs[:type] == :door # 1x layer, adjust conductivity
           layer = c.getLayer(0).to_StandardOpaqueMaterial
@@ -944,27 +943,7 @@ module OSut
           return invalid("#{id} construction", mth, 0) if lyr[:r    ].to_i.zero?
 
           index = lyr[:index]
-          layer = c.getLayer(index).to_StandardOpaqueMaterial
-          return invalid("#{id} material @#{index}", mth, 0) if layer.empty?
-
-          layer = layer.get
-
-          k = (layer.thickness / (ro - rsi(c) + lyr[:r])).clamp(KMIN, KMAX)
-          d = (k * (ro - rsi(c) + lyr[:r])).clamp(DMIN, DMAX)
-
-          nom  = "OSut:"
-          nom += layer.nameString.gsub(/[^a-z]/i, "").gsub("OSut", "")
-          nom += ":K#{format('%4.3f', k)}:#{format('%03d', d*1000)[-3..-1]}"
-
-          lyr = model.getStandardOpaqueMaterialByName(nom)
-
-          if lyr.empty?
-            layer.setName(nom)
-            layer.setConductivity(k)
-            layer.setThickness(d)
-          else
-            c.setLayer(index, lyr.get)
-          end
+          resetUo(c, film, index, u)
         end
       end
     end

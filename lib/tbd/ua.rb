@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2020-2025 Denis Bourgeois & Dan Macumber
+# Copyright (c) 2020-2026 Denis Bourgeois & Dan Macumber
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -1000,7 +1000,7 @@ module TBD
       model  = "* modèle : #{ua[:file]}"    if ua.key?(:file)  && lang == :fr
       model += " (v#{ua[:version]})"        if ua.key?(:version)
       report << model                   unless model.empty?
-      report << "* TBD : v3.5.0"
+      report << "* TBD : v3.5.1"
       report << "* date : #{ua[:date]}"
 
       if lang == :en
