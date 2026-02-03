@@ -1,5 +1,5 @@
 source "https://rubygems.org"
 
-gem "osut", git: "https://github.com/rd2/osut", branch: "width"
+# gem "osut", git: "https://github.com/rd2/osut", branch: "width"
 
 gemspec
