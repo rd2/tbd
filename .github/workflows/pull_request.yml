@@ -70,22 +70,6 @@ jobs:
         docker exec -t test bundle update
         docker exec -t test bundle exec rake
         docker kill test
-  test_380x:
-    runs-on: ubuntu-22.04
-    steps:
-    - name: Check out repository
-      uses: actions/checkout@v2
-    - name: Run Tests
-      run: |
-        echo $(pwd)
-        echo $(ls)
-        docker pull nrel/openstudio:3.8.0
-        docker run --name test --rm -d -t -v $(pwd):/work -w /work nrel/openstudio:3.8.0
-        docker exec -t test pwd
-        docker exec -t test ls
-        docker exec -t test bundle update
-        docker exec -t test bundle exec rake
-        docker kill test
   test_390x:
     runs-on: ubuntu-22.04
     steps:
@@ -102,7 +86,7 @@ jobs:
         docker exec -t test bundle update
         docker exec -t test bundle exec rake
         docker kill test
-  test_3100x:
+  test_310x:
     runs-on: ubuntu-22.04
     steps:
     - name: Check out repository
@@ -113,6 +97,22 @@ jobs:
         echo $(ls)
         docker pull nrel/openstudio:3.10.0
         docker run --name test --rm -d -t -v $(pwd):/work -w /work nrel/openstudio:3.10.0
+        docker exec -t test pwd
+        docker exec -t test ls
+        docker exec -t test bundle update
+        docker exec -t test bundle exec rake
+        docker kill test
+  test_311x:
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+    - name: Run Tests
+      run: |
+        echo $(pwd)
+        echo $(ls)
+        docker pull nrel/openstudio:3.11.0
+        docker run --name test --rm -d -t -v $(pwd):/work -w /work nrel/openstudio:3.11.0
         docker exec -t test pwd
         docker exec -t test ls
         docker exec -t test bundle update

@@ -4825,7 +4825,7 @@ module OSut
       end
     end
 
-    res = realignedFace(polyg.to_a.reverse)
+    res = realignedFace(polyg.to_a.reverse, true)
     return 0 if res[:box].nil?
 
     # A bounded box's 'height', at its narrowest, is its 'width'.
@@ -4904,7 +4904,7 @@ module OSut
       # to 'genAnchors'), it inherits key :out - a Hash holding (among others) a
       # 'realigned' set of points (by default a 'realigned' :box). The latter is
       # typically generated from an outdoor-facing roof (e.g. when called from
-      # 'lights'). Subsequent calls to 'genAnchors' may send (as first
+      # 'addSkylights'). Subsequent calls to 'genAnchors' may send (as first
       # argument) a corresponding ceiling tile below (also from 'addSkylights').
       # Roof vs ceiling may neither share alignment transformation nor space
       # site transformation identities. All subsequent calls to 'genAnchors'
