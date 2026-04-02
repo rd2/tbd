@@ -2174,7 +2174,7 @@ RSpec.describe TBD do
 
     argh = { option: "code (Quebec)" }
     json = TBD.process(model, argh)
-    puts TBD.logs
+    puts TBD.logs unless TBD.logs.empty?
     expect(TBD.status).to be_zero
     expect(json).to be_a(Hash)
     expect(json).to have_key(:io)
@@ -2559,7 +2559,13 @@ RSpec.describe TBD do
         c = c.get.to_LayeredConstruction
         expect(c).to_not be_empty
         c = c.get
-        expect(TBD.rsi(c, s.filmResistance)).to be_within(TOL).of(6.38)
+
+        rsi1 = s.filmResistance
+        rsi2 = TBD.filmResistances(:roof)
+        rsi3 = TBD.filmResistances(:roof, s.tilt)
+        expect(TBD.rsi(c, rsi1)).to be_within(TOL).of(6.38)
+        expect(TBD.rsi(c, rsi2)).to be_within(TOL).of(6.31)
+        expect(TBD.rsi(c, rsi3)).to be_within(TOL).of(6.31)
 
         construction = c if construction.nil?
         expect(c).to eq(construction)
