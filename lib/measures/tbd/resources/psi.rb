@@ -1555,7 +1555,7 @@ module TBD
       next unless surface[:conditioned]
       next     if surface[:ground     ]
 
-      unless surface[:boundary].downcase == "outdoors"
+      unless surface[:boundary] == "outdoors"
         next unless tbd[:surfaces].key?(surface[:boundary])
         next     if tbd[:surfaces][surface[:boundary]][:conditioned]
       end
@@ -2202,7 +2202,7 @@ module TBD
           next      if holes.key?(i)
           next      if shades.key?(i)
 
-          facing = tbd[:surfaces][i][:boundary].downcase
+          facing = tbd[:surfaces][i][:boundary]
           next unless facing == "othersidecoefficients"
 
           s1      = edge[:surfaces][id]
@@ -2971,6 +2971,7 @@ module TBD
     # derate a construction/material pair having " tbd" in their OpenStudio name.
     tbd[:surfaces].each do |id, surface|
       next unless surface.key?(:construction)
+      next unless surface.key?(:filmRSI)
       next unless surface.key?(:index)
       next unless surface.key?(:ltype)
       next unless surface.key?(:r)
@@ -2995,7 +2996,8 @@ module TBD
       if m
         c.setLayer(index, m)
         c.setName("#{id} c tbd")
-        current_R = rsi(current_c, s.filmResistance)
+        # current_R = rsi(current_c, s.filmResistance)
+        current_R = rsi(current_c, surface[:filmRSI])
 
         # In principle, the derated "ratio" could be calculated simply by
         # accessing a surface's uFactor. Yet air layers within constructions
@@ -3035,7 +3037,8 @@ module TBD
 
         # Compute updated RSi value from layers.
         updated_c = s.construction.get.to_LayeredConstruction.get
-        updated_R = rsi(updated_c, s.filmResistance)
+        # updated_R = rsi(updated_c, s.filmResistance)
+        updated_R = rsi(updated_c, surface[:filmRSI])
         ratio     = -(current_R - updated_R) * 100 / current_R
 
         surface[:ratio] = ratio if ratio.abs > TOL
@@ -3047,14 +3050,16 @@ module TBD
     tbd[:surfaces].each do |id, surface|
       next unless surface[:deratable]
       next unless surface.key?(:construction)
+      next unless surface.key?(:filmRSI)
       next     if surface.key?(:u)
 
-      s   = model.getSurfaceByName(id)
-      msg = "Skipping missing surface '#{id}' (#{mth})"
-      log(ERR, msg) if s.empty?
-      next          if s.empty?
+      # s   = model.getSurfaceByName(id)
+      # msg = "Skipping missing surface '#{id}' (#{mth})"
+      # log(ERR, msg) if s.empty?
+      # next          if s.empty?
 
-      surface[:u] = 1.0 / rsi(surface[:construction], s.get.filmResistance)
+      # surface[:u] = 1.0 / rsi(surface[:construction], s.get.filmResistance)
+      surface[:u] = 1.0 / rsi(surface[:construction], surface[:filmRSI])
     end
 
     json[:io][:edges] = []

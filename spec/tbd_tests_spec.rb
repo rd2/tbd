@@ -336,7 +336,7 @@ RSpec.describe TBD do
     # entry for "Entryway  Wall 5" : "bad" fenestration perimeters, which
     # only derates the host wall itself
     surfaces.each do |id, surface|
-      next unless surface[:boundary].downcase == "outdoors"
+      next unless surface[:boundary] == "outdoors"
 
       expect(surface).to_not have_key(:ratio)           unless id == name
       expect(surface[:heatloss]).to be_within(TOL).of(8.89) if id == name
@@ -2659,6 +2659,7 @@ RSpec.describe TBD do
         expect(surface).to be_a(Hash)
 
         expect(surface).to have_key(:conditioned)
+        expect(surface).to have_key(:filmRSI)
         expect(surface).to have_key(:deratable)
         expect(surface).to have_key(:construction)
         expect(surface).to have_key(:ground)
@@ -2687,7 +2688,8 @@ RSpec.describe TBD do
 
         expect(c.nameString).to include("c tbd") # TBD-derated
         a  += surface[:net]
-        ua += 1 / TBD.rsi(c, s.filmResistance) * surface[:net]
+        # ua += 1 / TBD.rsi(c, s.filmResistance) * surface[:net]
+        ua += 1 / TBD.rsi(c, surface[:filmRSI]) * surface[:net]
       end
 
       expect(ua / a).to be_within(TOL).of(argh[:roof_ut])
@@ -2956,6 +2958,7 @@ RSpec.describe TBD do
       surfaces.each do |nom, surface|
         expect(surface).to be_a(Hash)
         expect(surface).to have_key(:conditioned)
+        expect(surface).to have_key(:filmRSI)
         expect(surface).to have_key(:deratable)
         expect(surface).to have_key(:construction)
         expect(surface).to have_key(:ground)
@@ -2988,7 +2991,8 @@ RSpec.describe TBD do
         expect(c.nameString).to include("c tbd") # TBD-derated
 
         a  += surface[:net]
-        ua += 1 / TBD.rsi(c, s.filmResistance) * surface[:net]
+        # ua += 1 / TBD.rsi(c, s.filmResistance) * surface[:net]
+        ua += 1 / TBD.rsi(c, surface[:filmRSI]) * surface[:net]
       end
 
       expect(ua / a).to be_within(TOL).of(argh[:roof_ut])
@@ -3219,7 +3223,7 @@ RSpec.describe TBD do
     end
 
     surfaces.each do |id, surface|
-      next unless surface[:boundary].downcase == "outdoors"
+      next unless surface[:boundary] == "outdoors"
       next unless surface.key?(:ratio)
 
       expect(ids).to have_value(id)
@@ -3768,7 +3772,7 @@ RSpec.describe TBD do
         expect(surface[:ratio]).to be_within(0.2).of( -1.3) if id == ids[:i] #  -7.3%
         expect(surface[:ratio]).to be_within(0.2).of( -1.5) if id == ids[:j]
       else
-        expect(surface[:boundary].downcase).to_not eq("outdoors")
+        expect(surface[:boundary]).to_not eq("outdoors")
       end
     end
 
@@ -3843,7 +3847,7 @@ RSpec.describe TBD do
         expect(surface[:ratio]).to be_within(0.2).of( -0.1) if id == ids[:j] # -1.3%
         # ! office walls: same results ... no parapet/roof
       else
-        expect(surface[:boundary].downcase).to_not eq("outdoors")
+        expect(surface[:boundary]).to_not eq("outdoors")
       end
     end
 
@@ -3923,7 +3927,7 @@ RSpec.describe TBD do
         expect(surface[:ratio]).to be_within(0.2).of( -0.1) if id == ids[:j] # Bulk Rear
         # ! office walls: same results ... no parapet/roof
       else
-        expect(surface[:boundary].downcase).to_not eq("outdoors")
+        expect(surface[:boundary]).to_not eq("outdoors")
       end
     end
 
@@ -4011,7 +4015,7 @@ RSpec.describe TBD do
         expect(surface[:ratio]).to be_within(0.2).of( -1.5) if id == ids[:j] # Bulk Rear
         # ! office walls: same results ... no parapet/roof
       else
-        expect(surface[:boundary].downcase).to_not eq("outdoors")
+        expect(surface[:boundary]).to_not eq("outdoors")
       end
     end
   end
