@@ -1610,14 +1610,13 @@ RSpec.describe TBD do
     insulation = construction.layers[2].to_StandardOpaqueMaterial
     expect(insulation).to_not be_empty
     insulation = insulation.get
-    expect(insulation.thickness).to be_within(0.0001).of(0.0794)
-    expect(insulation.thermalConductivity).to be_within(0.0001).of(0.0432)
+    expect(insulation.thickness.round(4)).to eq(0.0794)
+    expect(insulation.thermalConductivity.round(4)).to eq(0.0432)
     original_r = insulation.thickness / insulation.thermalConductivity
-    expect(original_r).to be_within(TOL).of(1.8380)
+    expect(original_r.round(4)).to eq(1.8380)
 
     argh = { option: "efficient (BETBG)" } # all PSI-factors @ 0.2 W/K•m
-
-    json     = TBD.process(model, argh)
+    json = TBD.process(model, argh)
     expect(json).to be_a(Hash)
     expect(json).to have_key(:io)
     expect(json).to have_key(:surfaces)
@@ -1731,14 +1730,19 @@ RSpec.describe TBD do
     surfaces = json[:surfaces]
     expect(TBD.warn?).to be true
     expect(TBD.logs.size).to eq(2)
-    expect(TBD.logs.first[:message]).to include("Zero")
-    expect(TBD.logs.first[:message]).to include(": new Rsi")
-    expect(TBD.logs.last[ :message]).to include("Unable to uprate")
-
-    expect(argh).to_not have_key(:wall_uo)
-    expect(argh).to     have_key(:roof_uo)
+    expect(TBD.logs.first[:message]).to include("Negative ")
+    expect(TBD.logs.first[:message]).to include(" new Uo' (TBD::uo)")
+    expect(TBD.logs.last[:message]).to include("Unable to completely uprate ")
+    expect(argh).to have_key(:wall_uo)
+    expect(argh).to have_key(:roof_uo)
+    expect(argh[:wall_uo]).to_not be_nil
     expect(argh[:roof_uo]).to_not be_nil
-    expect(argh[:roof_uo]).to be_within(TOL).of(0.118) # RSi 8.47 (R48)
+
+    # Although the roof construction is correctly uprated, it is not possible to
+    # completely uprate the wall construction. It is therefore capped at the
+    # minimum allowed Uo-factor, or ~9 ft of XPS insulation.
+    expect(argh[:wall_uo].round(3)).to eq(0.010) # RSi 100.00 (R568)
+    expect(argh[:roof_uo].round(3)).to eq(0.121) # RSi   8.26 ( R47)
 
     # -- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- -- #
     # Final attempt, with PSI-factors of 0.09 W/K per linear metre (JSON file).
@@ -1759,52 +1763,70 @@ RSpec.describe TBD do
     argh[:wall_ut     ] = 0.210 # NECB CZ7 2017 (RSi 4.76 / R27)
     argh[:roof_ut     ] = 0.138 # NECB CZ7 2017 (RSi 7.25 / R41)
 
-    json      = TBD.process(model, argh)
+    json     = TBD.process(model, argh)
     expect(json).to be_a(Hash)
     expect(json).to have_key(:io)
     expect(json).to have_key(:surfaces)
-    io        = json[:io      ]
-    surfaces  = json[:surfaces]
+    io       = json[:io      ]
+    surfaces = json[:surfaces]
     expect(TBD.status).to be_zero
 
     expect(argh).to have_key(:wall_uo)
     expect(argh).to have_key(:roof_uo)
     expect(argh[:wall_uo]).to_not be_nil
     expect(argh[:roof_uo]).to_not be_nil
-    expect(argh[:wall_uo]).to be_within(TOL).of(0.086) # RSi 11.63 (R66)
-    expect(argh[:roof_uo]).to be_within(TOL).of(0.129) # RSi  7.75 (R44)
+    expect(argh[:wall_uo].round(3)).to eq(0.089) # RSi 11.24 (R64)
+    expect(argh[:roof_uo].round(3)).to eq(0.132) # RSi  7.58 (R43)
+
+    uA = 0
+    m2 = 0
 
     model.getSurfaces.each do |s|
+      id = s.nameString
       next unless s.surfaceType == "Wall"
       next unless s.outsideBoundaryCondition == "Outdoors"
 
-      walls << s.nameString
+      walls << id
+
+      expect(s.isConstructionDefaulted).to be false
       c = s.construction
       expect(c).to_not be_empty
       c = c.get.to_LayeredConstruction
       expect(c).to_not be_empty
       c = c.get
-
       expect(c.nameString).to include(" c tbd")
       expect(c.layers.size).to eq(4)
+
+      r = TBD.rsi(c, TBD.filmResistances(:wall))
+      expect(r.round(3)).to eq(4.805) if id == "Surface 20" || id == "Surface 8"
+      expect(r.round(3)).to eq(4.679) if id == "Surface 14" || id == "Surface 2"
+      m2 += s.netArea
+      uA += s.netArea / r
 
       insul = c.layers[2].to_StandardOpaqueMaterial
       expect(insul).to_not be_empty
       insul = insul.get
       expect(insul.nameString).to include(" uprated m tbd")
 
-      k1 = (insul.thermalConductivity - 0.0261).round(4) == 0
-      k2 = (insul.thermalConductivity - 0.0253).round(4) == 0
-      expect(k1 || k2).to be true
-      expect(insul.thickness).to be_within(0.0001).of(0.1120)
+      k = insul.thermalConductivity
+      expect(k.round(3)).to eq(0.025) if id == "Surface 20" || id == "Surface 8"
+      expect(k.round(3)).to eq(0.026) if id == "Surface 14" || id == "Surface 2"
+      expect(insul.thickness.round(4)).to eq(0.1120)
     end
+
+    expect(m2.round(2)).to eq(273.60)
+    expect(uA.round(2)).to eq(57.45)
+
+    # Reach NECB required Ut for walls?
+    ut = uA/m2
+    expect(ut.round(3)).to eq(argh[:wall_ut].round(3)) # 0.210
 
     walls.each do |wall|
       expect(surfaces).to have_key(wall)
       expect(surfaces[wall]).to have_key(:r) # uprated, non-derated layer Rsi
       expect(surfaces[wall]).to have_key(:u) # uprated, non-derated assembly
-      expect(surfaces[wall][:r]).to be_within(0.001).of(11.205) # R64
-      expect(surfaces[wall][:u]).to be_within(0.001).of( 0.086) # R66
+      expect(surfaces[wall][:r].round(3)).to eq(11.205) # R64
+      expect(surfaces[wall][:u].round(3)).to eq( 0.086) # R66
     end
 
     # -- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- -- #
@@ -1863,7 +1885,14 @@ RSpec.describe TBD do
     argh[:wall_ut     ] = 0.210 # NECB CZ7 2017 (RSi 4.76 / R41)
 
     TBD.process(model, argh)
+    expect(TBD.warn?).to be true
+    expect(TBD.logs.size).to eq(2)
+    expect(TBD.logs.first[:message]).to include("Negative ")
+    expect(TBD.logs.first[:message]).to include(" new Uo' (TBD::uo)")
+    expect(TBD.logs.last[:message]).to include("Unable to completely uprate ")
+
     expect(argh).to_not have_key(:roof_uo)
+    expect(argh).to     have_key(:wall_uo)
 
     # OpenStudio prior to v3.5.X had a 3m maximum layer thickness, reflecting a
     # previous v8.8 EnergyPlus constraint. TBD caught such cases when uprating
@@ -1876,8 +1905,6 @@ RSpec.describe TBD do
     # calculations - happens with very thick materials. Recent 2025 TBD changes
     # have removed this check. Users of pre-v3.5.X OpenStudio should expect
     # OS-generated simulation failures when uprating (extremes cases). Achtung!
-    expect(TBD.status).to be_zero
-    expect(argh).to have_key(:wall_uo)
     expect(argh[:wall_uo]).to be_within(0.0001).of(UMIN) # RSi 100 (R568)
 
     nb = 0
@@ -1904,7 +1931,7 @@ RSpec.describe TBD do
       insul = insul.to_StandardOpaqueMaterial
       expect(insul).to_not be_empty
       insul = insul.get
-      expect(insul.thickness).to be_within(TOL).of(1.00)
+      expect(insul.thickness.round(3)).to eq(0.079)
 
       nb += 1
     end
@@ -2068,8 +2095,7 @@ RSpec.describe TBD do
     expect(TBD.status).to be_zero
 
     argh = { option: "code (Quebec)" }
-
-    json     = TBD.process(model, argh)
+    json = TBD.process(model, argh)
     expect(TBD.status).to be_zero
     expect(json).to be_a(Hash)
     expect(json).to have_key(:io)
@@ -2112,8 +2138,7 @@ RSpec.describe TBD do
     expect(TBD.status).to be_zero
 
     argh = { option: "code (Quebec)" }
-
-    json     = TBD.process(model, argh)
+    json = TBD.process(model, argh)
     expect(json).to be_a(Hash)
     expect(json).to have_key(:io)
     expect(json).to have_key(:surfaces)
@@ -2174,7 +2199,6 @@ RSpec.describe TBD do
 
     argh = { option: "code (Quebec)" }
     json = TBD.process(model, argh)
-    puts TBD.logs unless TBD.logs.empty?
     expect(TBD.status).to be_zero
     expect(json).to be_a(Hash)
     expect(json).to have_key(:io)
@@ -2200,7 +2224,6 @@ RSpec.describe TBD do
     gra = TBD.grossRoofArea(model.getSpaces)
     tm2 = srr * gra
     rm2 = TBD.addSkyLights(model.getSpaces, {area: tm2})
-    puts TBD.logs unless TBD.logs.empty?
     expect(TBD.status).to be_zero
     expect(rm2.round(2)).to eq(gra.round(2))
 
@@ -2213,7 +2236,14 @@ RSpec.describe TBD do
     argh[:wall_ut     ] = 0.215 # NECB 2020 CZ7A (RSi 4.65 / R26)
     argh[:roof_ut     ] = 0.121 # NECB 2020 CZ7A (RSi 8.26 / R47)
     json = TBD.process(model, argh)
-    expect(TBD.status).to be_zero
+    expect(TBD.warn?).to be true
+    expect(TBD.logs.size).to eq(4)
+    expect(TBD.logs[0][:message]).to include("Negative ")
+    expect(TBD.logs[2][:message]).to include("Negative ")
+    expect(TBD.logs[0][:message]).to include(" new Uo' (TBD::uo)")
+    expect(TBD.logs[2][:message]).to include(" new Uo' (TBD::uo)")
+    expect(TBD.logs[1][:message]).to include("Unable to completely uprate ")
+    expect(TBD.logs[3][:message]).to include("Unable to completely uprate ")
     expect(json).to be_a(Hash)
     expect(json).to have_key(:io)
     expect(json).to have_key(:surfaces)
@@ -2226,6 +2256,8 @@ RSpec.describe TBD do
 
     file = File.join(__dir__, "files/osms/out/office_attic_sky.osm")
     model.save(file, true)
+
+    TBD.clean!
 
     # -- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- -- #
     # 5Zone_2 test case (as INDIRECTLYCONDITIONED plenum).
@@ -2254,11 +2286,11 @@ RSpec.describe TBD do
     expect(TBD.unconditioned?(plnum)).to be true
     expect(TBD.setpoints(plnum)[:heating]).to be_nil
     expect(TBD.setpoints(plnum)[:cooling]).to be_nil
+    puts TBD.logs
     expect(TBD.status).to be_zero
 
-    argh  = { option: "uncompliant (Quebec)" }
-
-    json     = TBD.process(model, argh)
+    argh = { option: "uncompliant (Quebec)" }
+    json = TBD.process(model, argh)
     expect(json).to be_a(Hash)
     expect(json).to have_key(:io)
     expect(json).to have_key(:surfaces)
@@ -2316,8 +2348,7 @@ RSpec.describe TBD do
     model.save(file, true)
 
     argh = { option: "uncompliant (Quebec)" }
-
-    json     = TBD.process(model, argh)
+    json = TBD.process(model, argh)
     expect(json).to be_a(Hash)
     expect(json).to have_key(:io)
     expect(json).to have_key(:surfaces)
@@ -2462,9 +2493,8 @@ RSpec.describe TBD do
       expect(heated).to be false
       expect(cooled).to be false
 
-      argh  = { option: "code (Quebec)" }
-
-      json     = TBD.process(model, argh)
+      argh = { option: "code (Quebec)" }
+      json = TBD.process(model, argh)
       expect(json).to be_a(Hash)
       expect(json).to have_key(:io)
       expect(json).to have_key(:surfaces)
@@ -2688,7 +2718,6 @@ RSpec.describe TBD do
 
         expect(c.nameString).to include("c tbd") # TBD-derated
         a  += surface[:net]
-        # ua += 1 / TBD.rsi(c, s.filmResistance) * surface[:net]
         ua += 1 / TBD.rsi(c, surface[:filmRSI]) * surface[:net]
       end
 
@@ -2785,8 +2814,7 @@ RSpec.describe TBD do
       expect(TBD.plenum?(attic)).to be true # works ...
 
       argh = { option: "code (Quebec)" }
-
-      json     = TBD.process(model, argh)
+      json = TBD.process(model, argh)
       expect(json ).to be_a(Hash)
       expect(json).to have_key(:io)
       expect(json).to have_key(:surfaces)
@@ -2991,7 +3019,6 @@ RSpec.describe TBD do
         expect(c.nameString).to include("c tbd") # TBD-derated
 
         a  += surface[:net]
-        # ua += 1 / TBD.rsi(c, s.filmResistance) * surface[:net]
         ua += 1 / TBD.rsi(c, surface[:filmRSI]) * surface[:net]
       end
 
@@ -3271,8 +3298,7 @@ RSpec.describe TBD do
     model = model.get
 
     argh = { option: "90.1.22|steel.m|default" }
-
-    json     = TBD.process(model, argh)
+    json = TBD.process(model, argh)
     expect(json).to be_a(Hash)
     expect(json).to have_key(:io)
     expect(json).to have_key(:surfaces)
@@ -3505,8 +3531,7 @@ RSpec.describe TBD do
     #
     # ... as per 90.1 2022 (non-"parapet" admisible thresholds are much lower).
     argh = { option: "90.1.22|steel.m|default", parapet: false }
-
-    json     = TBD.process(model, argh)
+    json = TBD.process(model, argh)
     expect(json).to be_a(Hash)
     expect(json).to have_key(:io)
     expect(json).to have_key(:surfaces)
@@ -3623,8 +3648,7 @@ RSpec.describe TBD do
     model = model.get
 
     argh = {option: "90.1.22|steel.m|default", parapet: false}
-
-    json     = TBD.process(model, argh)
+    json = TBD.process(model, argh)
     expect(json).to be_a(Hash)
     expect(json).to have_key(:io)
     expect(json).to have_key(:surfaces)
@@ -3711,8 +3735,7 @@ RSpec.describe TBD do
     model = model.get
 
     argh = {option: "90.1.22|steel.m|default"}
-
-    json     = TBD.process(model, argh)
+    json = TBD.process(model, argh)
     expect(json).to be_a(Hash)
     expect(json).to have_key(:io)
     expect(json).to have_key(:surfaces)
@@ -3784,8 +3807,7 @@ RSpec.describe TBD do
     model = model.get
 
     argh = {option: "90.1.22|steel.m|default", parapet: false}
-
-    json     = TBD.process(model, argh)
+    json = TBD.process(model, argh)
     expect(json).to be_a(Hash)
     expect(json).to have_key(:io)
     expect(json).to have_key(:surfaces)
