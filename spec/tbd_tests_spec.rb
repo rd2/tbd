@@ -1818,7 +1818,7 @@ RSpec.describe TBD do
     expect(uA.round(2)).to eq(57.45)
 
     # Reach NECB required Ut for walls?
-    ut = uA/m2
+    ut = uA / m2
     expect(ut.round(3)).to eq(argh[:wall_ut].round(3)) # 0.210
 
     walls.each do |wall|
@@ -1905,12 +1905,15 @@ RSpec.describe TBD do
     # calculations - happens with very thick materials. Recent 2025 TBD changes
     # have removed this check. Users of pre-v3.5.X OpenStudio should expect
     # OS-generated simulation failures when uprating (extremes cases). Achtung!
-    expect(argh[:wall_uo]).to be_within(0.0001).of(UMIN) # RSi 100 (R568)
+    expect(argh[:wall_uo].round(4)).to eq(UMIN) # RSi 100 (R568)
 
     nb = 0
+    m2 = 0
+    uA = 0
 
     model.getSurfaces.each do |s|
       next unless s.surfaceType.downcase == "wall"
+      next unless s.outsideBoundaryCondition.downcase == "outdoors"
 
       c = s.construction
       expect(c).to_not be_empty
@@ -1918,7 +1921,7 @@ RSpec.describe TBD do
       next if c.empty?
 
       c = c.get
-      next unless c.nameString.include?("c tbd")
+      expect(c.nameString).to include("c tbd")
 
       lyr = TBD.insulatingLayer(c)
       expect(lyr).to be_a(Hash)
@@ -1931,11 +1934,16 @@ RSpec.describe TBD do
       insul = insul.to_StandardOpaqueMaterial
       expect(insul).to_not be_empty
       insul = insul.get
-      expect(insul.thickness.round(3)).to eq(0.079)
+      expect(insul.thickness.round(3)).to eq(DMAX) # 1m
 
+      r   = TBD.rsi(c, s.filmResistance)
+      m2 += s.netArea
+      uA += s.netArea / r
       nb += 1
     end
 
+    ut = uA / m2
+    expect((uA/m2).round(2)).to eq(argh[:wall_ut].round(2))
     expect(nb).to eq(4)
   end
 

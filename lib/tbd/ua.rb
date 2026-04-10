@@ -32,7 +32,7 @@ module TBD
   # @param hloss [Numeric] heat loss from major thermal bridging, in W/K
   # @param ut [Numeric] target overall Ut for lc, in W/m2•K
   #
-  # @return [Float] Uo [W/m2•K] required to meet Ut (see logs if 0)
+  # @return [Float] Uo [W/m2•K] required to meet Ut (see logs if 0 or UMIN)
   def uo(id = "", lc = nil, area = 0, film = 0, hloss = 0, ut = 0)
     mth = "TBD::#{__callee__}"
     cl1 = OpenStudio::Model::LayeredConstruction
@@ -57,8 +57,8 @@ module TBD
     lyr[:index] = nil unless lyr[:index] < lc.layers.size
     return invalid("#{id} layer index", mth, 3, WRN, 0) unless lyr[:index]
     return zero("#{id}: net area (m2)", mth,    WRN, 0) unless area  > TOL
-    return zero("#{id}: film RSI"     , mth,    WRN, 0) unless film  > 0
-    return zero("#{id}: heatloss"     , mth,    WRN, 0) unless hloss > TOL
+    return negative("#{id}: film RSI" , mth,    WRN, 0)     if film  < 0
+    return zero("#{id}: heatloss"     , mth,    WRN, 0)     if hloss < TOL
     return zero("#{id}: Ut"           , mth,    WRN, 0) unless ut    > UMIN
     return invalid("#{id}: Ut"        , mth, 4, WRN, 0) unless ut    < UMAX
 
@@ -66,12 +66,22 @@ module TBD
     rt = 1 / ut            # target construction Rt
     r0 = rsi(lc, film)     # current construction R0
     r  = lyr[:r] + rt - r0 # new, un-derated layer RSi
-    return zero("#{id}: layer RSI", mth, WRN, 0) unless r.abs > 0
+
+    # Adjust if below admissible threshold.
+    if r < 0
+      zero("#{id}: layer RSI", mth, WRN)
+      r = RMIN
+    end
 
     # Uprate to counter heat loss from thermal bridging.
     u  = 1 / r
     u -= hloss / area
-    return negative("#{id}: new Uo", mth, WRN, 0) if u < UMIN
+
+    # Adjust if beyond admissible range.
+    if u < UMIN
+      negative("#{id}: new Uo", mth, WRN)
+      u = UMIN
+    end
 
     r = 1 / u
 
@@ -359,7 +369,7 @@ module TBD
           # Fetch required, uprated Uo.
           u = uo(id, col[:lc], col[:area], col[:film], col[:hloss], g[:ut])
 
-          if u < UMIN
+          unless u > UMIN
             log(WRN, "Unable to completely uprate '#{id}' (#{mth})")
             u = UMIN
           end
