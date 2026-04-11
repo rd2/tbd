@@ -849,7 +849,7 @@ RSpec.describe TBD do
     # "code"). So far so good. However, when "(non thermal bridging)" is
     # retained as a default PSI design set (not as a reference set), all edge
     # types will necessarily have PSI-factors of 0 W/K per metre. To minimize
-    # the issue, slight variations (e.g. +/- 0.000001 W/K per inear meter) have
+    # the issue, slight variations (e.g. +/- 0.000001 W/K per linear meter) have
     # been added to TBD built-in PSI-factor sets (where required). Without this
     # fix, undesirable variations in reference UA' tallies may occur.
     #
@@ -1699,7 +1699,8 @@ RSpec.describe TBD do
     #
     #   Uo = 0.277 - ( ∑psi • L )/A
     #
-    # The method exits with an ERROR in 2x cases:
+    # If impossible to meet the requested Ut, TBD hardsets Uo to UMIN while
+    # raising warnings, namely when:
     #   - calculated Uo is negative, i.e. ( ∑psi • L )/A > 0.277
     #   - calculated layer r violates E+ material constraints, e.g.
     #     - too conductive
@@ -1741,7 +1742,7 @@ RSpec.describe TBD do
     # Although the roof construction is correctly uprated, it is not possible to
     # completely uprate the wall construction. It is therefore capped at the
     # minimum allowed Uo-factor, or ~9 ft of XPS insulation.
-    expect(argh[:wall_uo].round(3)).to eq(0.010) # RSi 100.00 (R568)
+    expect(argh[:wall_uo].round(3)).to eq(UMIN)  # RSi 100.00 (R568)
     expect(argh[:roof_uo].round(3)).to eq(0.121) # RSi   8.26 ( R47)
 
     # -- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- -- #
@@ -3292,7 +3293,7 @@ RSpec.describe TBD do
     end
   end
 
-  it "can check for balcony sills (ASHRAE 90.1 2022)" do
+  it "can check for balcony sills (ASHRAE 90.1 2022/25)" do
     translator = OpenStudio::OSVersion::VersionTranslator.new
     TBD.clean!
 
@@ -3409,32 +3410,26 @@ RSpec.describe TBD do
     # Turin. The model nonetheless remains an interesting (~extreme) test case
     # for TBD. Except along the South parapet, the transition from "wall-to-roof"
     # and "roof-to-skylight" are one and the same. So is the edge a :skylight
-    # edge? or a :parapet (or :roof) edge? They're both. In such cases, the final
-    # selection in TBD is based on the greatest PSI-factor. In ASHRAE 90.1 2022,
-    # only "vertical fenestration" edge PSI-factors are explicitely
-    # stated/published. For this reason, the 8x TBD-built-in ASHRAE PSI sets
-    # have 0 W/K per meter assigned for any non-regulated edge, e.g.:
+    # edge? or a :parapet (or :roof) edge? They're both. In such cases, the
+    # final selection in TBD is based on the greatest PSI-factor.
+    #
+    # In ASHRAE 90.1 2022/2025, only "vertical fenestration" edge PSI-factors
+    # are explicitely stated/published. Many other edges, such as:
     #
     #   - skylight perimeters
     #   - non-fenestrated door perimeters
     #   - corners
     #
-    # There are (possibly) 2x admissible interpretations of how to treat
-    # non-regulated heat losss (edges as linear thermal bridges) in 90.1:
-    #   1. assign 0 W/K•m for both proposed design and budget building models
-    #   2. assign more realistic PSI-factors, equally to both proposed/budget
+    # ... fall under the scope of requirement 5.5.5.5. There is much uncertainty
+    # on how to model items falling under 5.5.5.5. For this reason, the 8x
+    # TBD-built-in ASHRAE PSI sets have 0 W/K per meter assigned for edges under
+    # 5.5.5.5. This is discussed here:
     #
-    # In both cases, the treatment of non-regulated heat loss remains "neutral"
-    # between both proposed design and budget building models. Option #2 remains
-    # closer to reality (more heat loss in winter, likely more heat gain in
-    # summer), which is preferable for HVAC autosizing. Yet 90.1 (2022) ECB
-    # doesn't seem to afford this type of flexibility, contrary to the "neutral"
-    # treatment of (non-regulated) miscellaneous (process) loads. So for now,
-    # TBD's built-in ASHRAE 90.1 2022 (A10) PSI-factor sets recflect option #1.
+    # unmethours.com/question/97085/901-2022-requirements-for-linear-thermal-bridges
     #
-    # Users who choose option #2 can always write up a custom ASHRAE 90.1 (A10)
-    # PSI-factor set on file (tbd.json), initially based on the built-in 90.1
-    # sets while resetting non-zero PSI-factors.
+    # Users can always write up a custom ASHRAE 90.1 (A10) PSI-factor set on
+    # file (tbd.json), initially based on the built-in 90.1 sets while resetting
+    # non-zero PSI-factors.
     expect(n_edges_at_grade            ).to eq( 0)
     expect(n_edges_as_balconies        ).to eq( 2)
     expect(n_edges_as_balconysills     ).to eq( 2) # (2x instances of GlassDoor)
