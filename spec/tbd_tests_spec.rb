@@ -1,5 +1,4 @@
 require "tbd"
-require "fileutils"
 
 RSpec.describe TBD do
   TOL  = TBD::TOL.dup
