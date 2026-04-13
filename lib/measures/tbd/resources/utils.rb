@@ -527,7 +527,7 @@ module OSut
   ##
   # Resets a construction's Uo factor by adjusting its insulating layer
   # thermal conductivity, then if needed its thickness (or its RSi value if
-  # massless). Unless material uniquness is requested, a matching material is
+  # massless). Unless material uniqueness is requested, a matching material is
   # recovered instead of instantiating a new one. The latter is renamed
   # according to its adjusted conductivity/thickness (or RSi value).
   #
