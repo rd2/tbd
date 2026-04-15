@@ -1678,8 +1678,7 @@ RSpec.describe TBD do
     # Long story short: there will inevitably be cases where TBD is unable to
     # "uprate" a construction prior to "derating". This is neither a TBD bug
     # nor an RP-1365/ISO model limitation. It is simply "bad" input, although
-    # likely unintentional. Nevertheless, TBD should exit in such cases with
-    # an ERROR message.
+    # likely unintentional.
     #
     # And if one were to instead model each of the OpenStudio walls described
     # above as 2x distinct OpenStudio surfaces? e.g.:
@@ -1742,7 +1741,7 @@ RSpec.describe TBD do
     # completely uprate the wall construction. It is therefore capped at the
     # minimum allowed Uo-factor, or ~9 ft of XPS insulation.
     expect(argh[:wall_uo].round(3)).to eq(UMIN)  # RSi 100.00 (R568)
-    expect(argh[:roof_uo].round(3)).to eq(0.121) # RSi   8.26 ( R47)
+    expect(argh[:roof_uo].round(3)).to eq(0.118) # RSi   8.47 ( R48)
 
     # -- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- -- #
     # Final attempt, with PSI-factors of 0.09 W/K per linear metre (JSON file).
@@ -1775,8 +1774,8 @@ RSpec.describe TBD do
     expect(argh).to have_key(:roof_uo)
     expect(argh[:wall_uo]).to_not be_nil
     expect(argh[:roof_uo]).to_not be_nil
-    expect(argh[:wall_uo].round(3)).to eq(0.089) # RSi 11.24 (R64)
-    expect(argh[:roof_uo].round(3)).to eq(0.132) # RSi  7.58 (R43)
+    expect(argh[:wall_uo].round(3)).to eq(0.086) # RSi 11.63 (R66)
+    expect(argh[:roof_uo].round(3)).to eq(0.129) # RSi  7.75 (R44)
 
     uA = 0
     m2 = 0
@@ -1945,6 +1944,184 @@ RSpec.describe TBD do
     ut = uA / m2
     expect((uA/m2).round(2)).to eq(argh[:wall_ut].round(2))
     expect(nb).to eq(4)
+
+    # --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- #
+    # Side test, simple model:
+    #   - 3x roofceiling surfaces
+    #   - different tilts
+    #   - different outside boundary conditions
+    TBD.clean!
+    area  = 0
+    fA    = 0
+    model = OpenStudio::Model::Model.new
+
+    # Surface 1: Flat roof, outdoor-facing.
+    vtx  = OpenStudio::Point3dVector.new
+    vtx << OpenStudio::Point3d.new( 2, 9, 10)
+    vtx << OpenStudio::Point3d.new( 2, 2, 10)
+    vtx << OpenStudio::Point3d.new( 9, 2, 10)
+    vtx << OpenStudio::Point3d.new( 9, 9, 10)
+    roof = OpenStudio::Model::Surface.new(vtx, model)
+    roof.setName("Roof")
+    expect(roof.netArea.round).to eq(49)
+    area += roof.netArea
+    fA   += roof.netArea / TBD.filmResistances(:roof, roof.tilt)
+
+    # Surface 2: Flat ceiling, interzone.
+    vtx  = OpenStudio::Point3dVector.new
+    vtx << OpenStudio::Point3d.new( 2,12, 10)
+    vtx << OpenStudio::Point3d.new( 2, 9, 10)
+    vtx << OpenStudio::Point3d.new( 9, 9, 10)
+    vtx << OpenStudio::Point3d.new( 9,12, 10)
+    clng = OpenStudio::Model::Surface.new(vtx, model)
+    clng.setName("Ceiling")
+    expect(clng.netArea.round).to eq(21)
+    area += clng.netArea
+    fA   += clng.netArea / TBD.filmResistances(:ceiling, clng.tilt)
+
+    # Surface 3: Sloped roof, outdoor-facing.
+    vtx  = OpenStudio::Point3dVector.new
+    vtx << OpenStudio::Point3d.new( 9,12, 10)
+    vtx << OpenStudio::Point3d.new( 9, 2, 10)
+    vtx << OpenStudio::Point3d.new(12, 2,  8)
+    vtx << OpenStudio::Point3d.new(12,12,  8)
+    slpe = OpenStudio::Model::Surface.new(vtx, model)
+    slpe.setName("Sloped Roof")
+    expect((slpe.tilt * 180/Math::PI).round(1)).to eq(33.7) # deg (2:3 slope)
+    expect(slpe.netArea.round(1)).to eq(36.1)
+    area += slpe.netArea
+    fA   += slpe.netArea / TBD.filmResistances(:roof, slpe.tilt)
+
+    # Area-weighted average of surface air film resistances.
+    fR = 1 / ( fA / area )
+    expect(fR.round(4)).to eq(0.1514)
+
+    # NECB 2025 prescriptive target (CZ7), ~R47.
+    u = 0.121
+
+    # Shared layered construction.
+    specs = {type: :roof}
+    lc    = TBD.genConstruction(model, specs)
+    id    = lc.nameString
+    expect(lc).to_not be_nil
+    expect(lc).to be_a(OpenStudio::Model::LayeredConstruction)
+    expect(lc.layers.size).to eq(3)
+
+    # Assign shared construction to each surface.
+    expect(roof.setConstruction(lc)).to be true
+    expect(clng.setConstruction(lc)).to be true
+    expect(slpe.setConstruction(lc)).to be true
+
+    # Uprated Uo to meet NECB 2025 prescriptive requirements.
+    u0 = TBD.uo(id, lc, area, fR, 5.0, u)
+    expect(TBD.status).to be_zero
+    expect(TBD.logs).to be_empty
+    expect(u0.round(4)).to eq(0.0773) # R73, not R47
+
+    insulation = TBD.insulatingLayer(lc)
+    expect(insulation).to be_a(Hash)
+    expect(insulation).to have_key(:r)
+    expect(insulation).to have_key(:type)
+    expect(insulation).to have_key(:index)
+    expect(insulation[:index]).to eq(1)
+
+    # TBD's 'uo' alters the shared construction.
+    lc1 = roof.construction
+    lc2 = clng.construction
+    lc3 = slpe.construction
+    expect(lc1).to_not be_empty
+    expect(lc2).to_not be_empty
+    expect(lc3).to_not be_empty
+    expect(lc1.get.to_LayeredConstruction).to_not be_empty
+    expect(lc2.get.to_LayeredConstruction).to_not be_empty
+    expect(lc3.get.to_LayeredConstruction).to_not be_empty
+    lc1 = lc1.get.to_LayeredConstruction.get
+    lc2 = lc2.get.to_LayeredConstruction.get
+    lc3 = lc3.get.to_LayeredConstruction.get
+    expect(lc1).to eq(lc2)
+    expect(lc2).to eq(lc3)
+
+    # Ensure uniqueness.
+    lc1 = lc1.clone(model).to_LayeredConstruction.get
+    lc2 = lc2.clone(model).to_LayeredConstruction.get
+    lc3 = lc3.clone(model).to_LayeredConstruction.get
+    expect(lc1).to_not eq(lc2)
+    expect(lc2).to_not eq(lc3)
+    lc1.setName("Roof construction")
+    lc2.setName("Ceiling construction")
+    lc3.setName("Sloped Roof construction")
+    expect(roof.setConstruction(lc1)).to be true
+    expect(clng.setConstruction(lc2)).to be true
+    expect(slpe.setConstruction(lc3)).to be true
+    u1 = 1 / TBD.rsi(lc1, TBD.filmResistances(:roof, roof.tilt))
+    u2 = 1 / TBD.rsi(lc2, TBD.filmResistances(:ceiling, clng.tilt))
+    u3 = 1 / TBD.rsi(lc3, TBD.filmResistances(:roof, slpe.tilt))
+    expect(u1.round(5)).to eq(0.07740) # R73.36
+    expect(u2.round(5)).to eq(0.07662) # R74.11
+    expect(u3.round(5)).to eq(0.07738) # R73.38
+
+    # Matains overall area-weighted (uprated) u0.
+    uA  = 0
+    uA += roof.netArea * u1
+    uA += clng.netArea * u2
+    uA += slpe.netArea * u3
+    uU  = uA / area
+    expect(uU.round(2)).to eq(u0.round(2))
+
+    spc1 = {}
+    spc2 = {}
+    spc3 = {}
+
+    # Generate new derated insulation materials.
+    spc1[:heatloss] = 2.0 # W/K, larger flat roof
+    spc2[:heatloss] = 1.0 # W/K, smaller interzone ceiling
+    spc3[:heatloss] = 2.0 # W/K, larger sloped roof
+    spc1[:net     ] = roof.netArea
+    spc2[:net     ] = clng.netArea
+    spc3[:net     ] = slpe.netArea
+    spc1[:index   ] = 1
+    spc2[:index   ] = 1
+    spc3[:index   ] = 1
+    spc1[:r       ] = insulation[:r]
+    spc2[:r       ] = insulation[:r]
+    spc3[:r       ] = insulation[:r]
+    spc1[:ltype   ] = :standard
+    spc2[:ltype   ] = :standard
+    spc3[:ltype   ] = :standard
+
+    m1 = TBD.derate(roof.nameString, spc1, lc1)
+    m2 = TBD.derate(clng.nameString, spc2, lc2)
+    m3 = TBD.derate(slpe.nameString, spc3, lc3)
+    expect(m1.nameString).to eq("Roof uprated m tbd")
+    expect(m2.nameString).to eq("Ceiling uprated m tbd")
+    expect(m3.nameString).to eq("Sloped Roof uprated m tbd")
+    expect(m1.thickness.round(4)).to eq(0.1256)
+    expect(m2.thickness.round(4)).to eq(0.1256)
+    expect(m3.thickness.round(4)).to eq(0.1256)
+    expect(m1.thermalConductivity.round(4)).to eq(0.0151)
+    expect(m2.thermalConductivity.round(4)).to eq(0.0160)
+    expect(m3.thermalConductivity.round(4)).to eq(0.0170)
+
+    # Assign new derated material to each construction.
+    expect(lc1.setLayer(1, m1)).to be true
+    expect(lc2.setLayer(1, m2)).to be true
+    expect(lc3.setLayer(1, m3)).to be true
+
+    # Derated construction RSi values.
+    dR1 = TBD.rsi(lc1, TBD.filmResistances(:roof, roof.tilt))
+    dR2 = TBD.rsi(lc2, TBD.filmResistances(:ceiling, clng.tilt))
+    dR3 = TBD.rsi(lc3, TBD.filmResistances(:roof, slpe.tilt))
+
+    uA  = 0
+    uA += roof.netArea / dR1
+    uA += clng.netArea / dR2
+    uA += slpe.netArea / dR3
+    uT  = uA / area
+
+    # Area-weighted Ut factors meet NECB requirement.
+    expect(uT.round(3)).to eq(u.round(3))
+    expect(TBD.logs).to be_empty
+    expect(TBD.status).to be_zero
   end
 
   it "can test Hash inputs" do

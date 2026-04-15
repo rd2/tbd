@@ -128,7 +128,7 @@ module TBD
     h = format "%.3f", loss
     log(WRN, "Can't set #{h} W/K to #{id} #{mth}") if loss > TOL
 
-    u
+    uo
   end
 
   ##
