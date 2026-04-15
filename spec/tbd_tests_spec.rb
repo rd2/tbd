@@ -2060,7 +2060,7 @@ RSpec.describe TBD do
     expect(u2.round(5)).to eq(0.07662) # R74.11
     expect(u3.round(5)).to eq(0.07738) # R73.38
 
-    # Matains overall area-weighted (uprated) u0.
+    # Maintains overall area-weighted (uprated) u0.
     uA  = 0
     uA += roof.netArea * u1
     uA += clng.netArea * u2
