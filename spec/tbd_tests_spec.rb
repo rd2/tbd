@@ -152,7 +152,6 @@ RSpec.describe TBD do
     file = File.join(__dir__, "files/osms/out/seb2.osm")
     model.save(file, true)
 
-
     argh               = {}
     argh[:option     ] = "(non thermal bridging)"
     argh[:io_path    ] = File.join(__dir__, "../json/tbd_seb_n2.json")
@@ -204,6 +203,45 @@ RSpec.describe TBD do
     expect(roof_edges.size).to eq(parapets.size + transitions.size)
 
     roof_edges.each { |edg| expect(edg[:surfaces].size).to eq(2) }
+  end
+
+  it "can uprate selected construction" do
+    translator = OpenStudio::OSVersion::VersionTranslator.new
+    TBD.clean!
+
+    name  = "Typical Insulated Metal Building Wall R-11.9 1"
+    file  = File.join(__dir__, "files/osms/in/warehouse.osm")
+    path  = OpenStudio::Path.new(file)
+    model = translator.loadModel(path)
+    expect(model).to_not be_empty
+    model = model.get
+
+    lc = model.getLayeredConstructionByName(name)
+    expect(lc).to_not be_empty
+    lc = lc.get
+    expect(lc.getNetArea.round).to eq(126)
+
+    argh                = {}
+    argh[:option      ] = "spandrel HP (BETBG)"
+    argh[:uprate_walls] = true
+    argh[:wall_option ] = name
+    argh[:wall_ut     ] = 0.210 # NECB CZ7 2017 (RSi 4.76 / R27)
+
+    json     = TBD.process(model, argh)
+    expect(json).to be_a(Hash)
+    expect(json).to have_key(:io)
+    expect(json).to have_key(:surfaces)
+    io       = json[:io      ]
+    surfaces = json[:surfaces]
+    expect(TBD.warn?).to be true
+    expect(TBD.logs.size).to eq(2)
+    expect(TBD.logs.first[:message]).to include("Negative ")
+    expect(TBD.logs.first[:message]).to include(" new Uo' (TBD::uo)")
+    expect(TBD.logs.last[:message]).to include("Unable to completely uprate ")
+    expect(argh).to have_key(:wall_uo)
+    expect(argh).to_not have_key(:roof_uo)
+    expect(argh[:wall_uo]).to_not be_nil
+    expect(argh[:wall_uo].round(2)).to eq(UMIN)
   end
 
   it "can process JSON surface KHI & PSI entries + building & edge" do
@@ -2471,7 +2509,7 @@ RSpec.describe TBD do
     expect(TBD.unconditioned?(plnum)).to be true
     expect(TBD.setpoints(plnum)[:heating]).to be_nil
     expect(TBD.setpoints(plnum)[:cooling]).to be_nil
-    puts TBD.logs
+    puts TBD.logs unless TBD.logs.empty?
     expect(TBD.status).to be_zero
 
     argh = { option: "uncompliant (Quebec)" }

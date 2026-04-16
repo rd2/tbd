@@ -55,12 +55,12 @@ module TBD
     lyr[:index] = nil unless lyr[:index].is_a?(Numeric)
     lyr[:index] = nil unless lyr[:index] >= 0
     lyr[:index] = nil unless lyr[:index] < lc.layers.size
-    return invalid("#{id} layer index", mth, 3, WRN, 0) unless lyr[:index]
-    return zero("#{id}: net area (m2)", mth,    WRN, 0) unless area  > TOL
-    return negative("#{id}: film RSI" , mth,    WRN, 0)     if film  < 0
-    return zero("#{id}: heatloss"     , mth,    WRN, 0)     if hloss < TOL
-    return zero("#{id}: Ut"           , mth,    WRN, 0) unless ut    > UMIN
-    return invalid("#{id}: Ut"        , mth, 4, WRN, 0) unless ut    < UMAX
+    return invalid("#{id} layer index", mth, 3, DBG, 0) unless lyr[:index]
+    return zero("#{id}: net area (m2)", mth,    DBG, 0) unless area  > TOL
+    return negative("#{id}: film RSI" , mth,    DBG, 0)     if film  < 0
+    return zero("#{id}: heatloss"     , mth,    DBG, 0)     if hloss < TOL
+    return zero("#{id}: Ut"           , mth,    DBG, 0) unless ut    > UMIN
+    return invalid("#{id}: Ut"        , mth, 4, DBG, 0) unless ut    < UMAX
 
     # Calculate initial layer RSi to initially meet Ut target.
     rt = 1 / ut            # target construction Rt
@@ -69,17 +69,17 @@ module TBD
 
     # Adjust if below admissible threshold.
     if r < 0
-      zero("#{id}: layer RSI", mth, WRN)
+      zero("#{id}: layer RSI", mth, INF)
       r = RMIN
     end
 
     # Uprate to counter heat loss from thermal bridging.
     u  = 1 / r
-    u -= hloss / area
+    u -= (hloss / area)
 
     # Adjust if beyond admissible range.
     if u < UMIN
-      negative("#{id}: new Uo", mth, WRN)
+      negative("#{id}: new Uo", mth, INF)
       u = UMIN
     end
 
@@ -92,8 +92,10 @@ module TBD
       m = m.get.clone(model).to_MasslessOpaqueMaterial.get
       m.setName("#{id} uprated")
 
-      r    = RMIN               if r < RMIN
-      loss = (u - 1 / r) * area if r < RMIN
+      if r < RMIN
+        r    = RMIN
+        loss = (u - 1 / r) * area
+      end
 
       unless m.setThermalResistance(r)
         return invalid("Can't uprate #{id}: RSi#{r.round(2)}", mth, 0, DBG, 0)
@@ -123,10 +125,11 @@ module TBD
     return invalid("Can't ID insulating layer", mth, 0, DBG, 0) unless m
 
     lc.setLayer(lyr[:index], m)
-    uo = 1 / rsi(lc, film)
+    ro = rsi(lc, film)
+    uo = ro < RMIN ? UMIN : 1 / ro
 
     h = format "%.3f", loss
-    log(WRN, "Can't set #{h} W/K to #{id} #{mth}") if loss > TOL
+    log(INF, "Can't set #{h} W/K to #{id} #{mth}") if loss > TOL
 
     uo
   end
@@ -208,9 +211,10 @@ module TBD
 
       # Collection of one or several constructions to uprate.
       coll = {}
-      op   = g[:op].downcase
+      op   = g[:op]
 
-      if tout.include?(op) # uprate all constructions of same type, e.g. walls
+      # Uprate ALL constructions of same type, e.g. walls.
+      if tout.include?(op.downcase)
         s.each do |nom, surface|
           next unless surface.key?(:deratable)
           next unless surface.key?(:type)
@@ -273,11 +277,11 @@ module TBD
           next
         end
 
-        coll[id] = {}
+        lc = lc.get
+
+        coll[id]         = {}
         coll[id][:lc   ] = lc
         coll[id][:s    ] = {}
-        coll[id][:idx  ] = surface[:index]
-        coll[id][:ltp  ] = surface[:ltype]
         coll[id][:hloss] = 0
         coll[id][:area ] = 0
         coll[id][:film ] = 0
@@ -344,7 +348,7 @@ module TBD
             next     if surface[:type        ] == typ
             next     if coll[id][:s].key?(nom)
 
-            log(WRN, "Cloning '#{nom}' construction - not '#{id}' (#{mth})")
+            log(INF, "Cloning '#{nom}' construction - not '#{id}' (#{mth})")
             srf = model.getSurfaceByName(nom)
             next if srf.empty?
 
@@ -360,11 +364,16 @@ module TBD
           col[:s].values.each do |item|
             col[:hloss] += item[:h]
             col[:area ] += item[:a]
-            col[:fA   ] += item[:a] / item[:f]
+            col[:fA   ] += item[:a] / item[:f] unless item[:f] < 0
+          end
+
+          if col[:area] < TOL
+            empty("#{id} area", mth, WRN)
+            next
           end
 
           # Area-weighted surface air film resistances.
-          col[:film] = 1 / ( col[:fA] / col[:area] )
+          col[:film] = 1 / (col[:fA] / col[:area])
 
           # Fetch required, uprated Uo.
           u = uo(id, col[:lc], col[:area], col[:film], col[:hloss], g[:ut])
@@ -394,9 +403,11 @@ module TBD
         area = coll.values.sum { |col| col[:area] }
         uA   = coll.values.sum { |col| col[:uA  ] }
 
-        argh[:wall_uo ] = uA / area if typ == :wall
-        argh[:roof_uo ] = uA / area if typ == :ceiling
-        argh[:floor_uo] = uA / area if typ == :floor
+        if area > TOL
+          argh[:wall_uo ] = uA / area if typ == :wall
+          argh[:roof_uo ] = uA / area if typ == :ceiling
+          argh[:floor_uo] = uA / area if typ == :floor
+        end
       end
     end
 
@@ -455,20 +466,28 @@ module TBD
       ref = 1 / 3.60 if surface[:type] == :wall
 
       # Adjust for lower heating setpoint (assumes -25C design conditions).
-      ref *= 43 / (heating + 25) if heating < 18 && cooling > 40
+      if heating > -25 && heating < 18 && cooling > 40
+        ref *= 43 / (heating + 25)
+      end
 
       surface[:ref] = ref
 
       if surface.key?(:skylights) # loop through subsurfaces
         ref = 2.85
-        ref *= 43 / (heating + 25) if heating < 18 && cooling > 40
+
+        if heating > -25 && heating < 18 && cooling > 40
+          ref *= 43 / (heating + 25)
+        end
 
         surface[:skylights].values.map { |skylight| skylight[:ref] = ref }
       end
 
       if surface.key?(:windows)
         ref = 2.0
-        ref *= 43 / (heating + 25) if heating < 18 && cooling > 40
+
+        if heating > -25 && heating < 18 && cooling > 40
+          ref *= 43 / (heating + 25)
+        end
 
         surface[:windows].values.map { |window| window[:ref] = ref }
       end
@@ -477,7 +496,11 @@ module TBD
         surface[:doors].each do |i, door|
           ref = 0.9
           ref = 2.0 if door.key?(:glazed) && door[:glazed]
-          ref *= 43 / (heating + 25) if heating < 18 && cooling > 40
+
+          if heating > -25 && heating < 18 && cooling > 40
+            ref *= 43 / (heating + 25)
+          end
+
           door[:ref] = ref
         end
       end

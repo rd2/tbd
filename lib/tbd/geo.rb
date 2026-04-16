@@ -517,7 +517,6 @@ module TBD
       end
 
       unless u.is_a?(Numeric)
-        # r = rsi(c, surface.filmResistance)
         r = rsi(c, surf[:filmRSI])
 
         if r < TOL

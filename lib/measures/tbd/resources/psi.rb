@@ -1424,8 +1424,10 @@ module TBD
       m  = m.clone(model).to_MasslessOpaqueMaterial.get
       m.setName("#{id} #{up}m tbd")
 
-      de_r = RMIN                    unless de_r > RMIN
-      loss = (de_u - 1 / de_r) * net unless de_r > RMIN
+      if de_r < RMIN
+        de_r = RMIN
+        loss = (de_u - 1 / de_r) * net
+      end
 
       unless m.setThermalResistance(de_r)
         return invalid("Can't derate #{id}: RSi#{de_r.round(2)}", mth)
@@ -2982,8 +2984,7 @@ module TBD
       s = model.getSurfaceByName(id)
       next if s.empty?
 
-      s = s.get
-
+      s         = s.get
       index     = surface[:index       ]
       current_c = surface[:construction]
       c         = current_c.clone(model).to_LayeredConstruction.get
@@ -2996,7 +2997,6 @@ module TBD
       if m
         c.setLayer(index, m)
         c.setName("#{id} c tbd")
-        # current_R = rsi(current_c, s.filmResistance)
         current_R = rsi(current_c, surface[:filmRSI])
 
         # In principle, the derated "ratio" could be calculated simply by
@@ -3037,7 +3037,6 @@ module TBD
 
         # Compute updated RSi value from layers.
         updated_c = s.construction.get.to_LayeredConstruction.get
-        # updated_R = rsi(updated_c, s.filmResistance)
         updated_R = rsi(updated_c, surface[:filmRSI])
         ratio     = -(current_R - updated_R) * 100 / current_R
 
@@ -3053,12 +3052,6 @@ module TBD
       next unless surface.key?(:filmRSI)
       next     if surface.key?(:u)
 
-      # s   = model.getSurfaceByName(id)
-      # msg = "Skipping missing surface '#{id}' (#{mth})"
-      # log(ERR, msg) if s.empty?
-      # next          if s.empty?
-
-      # surface[:u] = 1.0 / rsi(surface[:construction], s.get.filmResistance)
       surface[:u] = 1.0 / rsi(surface[:construction], surface[:filmRSI])
     end
 
@@ -3209,8 +3202,8 @@ module TBD
 
       uo     = format("%.3f", g[:uo])
       ut     = format("%.3f", g[:ut])
-      output = "An initial #{label.to_s} Uo of #{uo} W/m2•K is required to " \
-               "achieve an overall Ut of #{ut} W/m2•K for #{g[:op]}"
+      output = "An area-weighted #{label.to_s} Uo of #{uo} W/m2•K is " \
+               "required to meet an overall Ut of #{ut} W/m2•K for #{g[:op]}"
       u_t << output
       runner.registerInfo(output)
     end
