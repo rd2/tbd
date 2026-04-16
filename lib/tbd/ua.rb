@@ -454,7 +454,7 @@ module TBD
       next unless surface[:deratable]
       next unless surface.key?(:type)
 
-      heating = -50     if spts
+      heating = -24     if spts
       cooling =  50     if spts
       heating =  21 unless spts
       cooling =  24 unless spts
