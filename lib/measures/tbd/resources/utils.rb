@@ -106,26 +106,28 @@ module OSut
   # default inside + outside air film resistances (m2.K/W)
   @@film = {
       shading: 0.000, # NA
-    partition: 0.150, # uninsulated wood- or steel-framed wall
-         wall: 0.150, # un/insulated wall
-         roof: 0.140, # un/insulated roof
-        floor: 0.190, # un/insulated (exposed) floor
-     basement: 0.120, # un/insulated basement wall
-         slab: 0.160, # un/insulated basement slab or slab-on-grade
+      ceiling: 0.266, # interzone floor/ceiling
+    partition: 0.239, # interzone wall partition
+         wall: 0.150, # exposed wall
+         roof: 0.135, # exposed roof
+        floor: 0.192, # exposed floor
+     basement: 0.120, # basement wall
+         slab: 0.162, # basement slab or slab-on-grade
          door: 0.150, # standard, 45mm insulated steel (opaque) door
        window: 0.150, # vertical fenestration, e.g. glazed doors, windows
-     skylight: 0.140  # e.g. domed 4' x 4' skylight
+     skylight: 0.135  # e.g. domed 4' x 4' skylight
   }.freeze
 
   # default (~1980s) envelope Uo (W/m2•K), based on surface type
   @@uo = {
       shading: nil,   # N/A
+      ceiling: nil,   # N/A
     partition: nil,   # N/A
          wall: 0.384, # rated R14.8 hr•ft2F/Btu
          roof: 0.327, # rated R17.6 hr•ft2F/Btu
         floor: 0.317, # rated R17.9 hr•ft2F/Btu (exposed floor)
-     basement: nil,
-         slab: nil,
+     basement: nil,   # N/A
+         slab: nil,   # N/A
          door: 1.800, # insulated, unglazed steel door (single layer)
        window: 2.800, # e.g. patio doors (simple glazing)
      skylight: 3.500  # all skylight technologies
@@ -196,6 +198,61 @@ module OSut
   @@mats[:door     ][:k  ] =    0.080
   @@mats[:door     ][:rho] =  600.000
   @@mats[:door     ][:cp ] = 1000.000
+
+  ##
+  # Returns surface air film resistance(s). Surface tilt-dependent values are
+  # returned if a valid surface tilt [0, PI] is provided. Otherwise, generic
+  # tilt-independent air film resistances are returned instead.
+  #
+  # @param [:to_sym] surface type, e.g. :roof, :wall, :partition, :ceiling
+  # @param [Numeric] surface tilt (in rad), optional
+  #
+  # @return [Float] surface air film resistance(s)
+  # @return [0.0] if invalid input (see logs)
+  def filmResistances(type = :wall, tilt = 2 * Math::PI)
+    mth = "OSut::#{__callee__}"
+
+    unless tilt.is_a?(Numeric)
+      return mismatch("tilt", tilt, Float, mth, DBG, 0.0)
+    end
+
+    unless type.respond_to?(:to_sym)
+      return mismatch("type", type, Symbol, mth, DBG, 0.0)
+    end
+
+    type = type.to_s.downcase.to_sym
+
+    unless @@film.key?(type)
+      return invalid("type", mth, 1, DBG, 0.0)
+    end
+
+    # Generic, tilt-independent values.
+    r = @@film[type]
+    return r if type == :shading
+
+    # Valid tilt?
+    if tilt.between?(0, Math::PI)
+      r = OpenStudio::Model::PlanarSurface.stillAirFilmResistance(tilt)
+      return r if type == :basement || type == :slab
+
+      if type == :ceiling || type == :partition
+        # Interzone. Fetch reciprocal tilt, e.g. if tilt == 0°, tiltx = 180°
+        tiltx = tilt + Math::PI
+
+        # Assuming tilt is contrained [0°, 180°] - constrain tiltx [0° 180°]:
+        #   e.g. tiltx == 210° if tilt ==  30°, so convert tiltx to 150°
+        #   e.g. tiltx == 330° if tilt == 150°, so convert tiltx to  30°
+        #   e.g. tiltx == 275° if tilt ==  95°, so convert tiltx to  85°
+        tiltx = Math::PI - tilt if tiltx > Math::PI
+
+        r += OpenStudio::Model::PlanarSurface.stillAirFilmResistance(tiltx)
+      else
+        r += 0.03 # "MOVINGAIR_15MPH"
+      end
+    end
+
+    r
+  end
 
   ##
   # Validates if every material in a layered construction is standard & opaque.
@@ -470,7 +527,7 @@ module OSut
   ##
   # Resets a construction's Uo factor by adjusting its insulating layer
   # thermal conductivity, then if needed its thickness (or its RSi value if
-  # massless). Unless material uniquness is requested, a matching material is
+  # massless). Unless material uniqueness is requested, a matching material is
   # recovered instead of instantiating a new one. The latter is renamed
   # according to its adjusted conductivity/thickness (or RSi value).
   #
@@ -600,10 +657,6 @@ module OSut
     return mismatch("model", model, cl1, mth) unless model.is_a?(cl1)
     return mismatch("specs", specs, cl2, mth) unless specs.is_a?(cl2)
 
-    specs[:id] = "" unless specs.key?(:id)
-    id = trim(specs[:id])
-    id = "OSut:CON:#{specs[:type]}" if id.empty?
-
     if specs.key?(:type)
       unless @@uo.keys.include?(specs[:type])
         return invalid("surface type", mth, 2, ERR)
@@ -611,6 +664,10 @@ module OSut
     else
       specs[:type] = :wall
     end
+
+    specs[:id] = "" unless specs.key?(:id)
+    id = trim(specs[:id])
+    id = "OSut:CON:#{specs[:type]}" if id.empty?
 
     specs[:uo] = @@uo[ specs[:type] ] unless specs.key?(:uo) # can be nil
     u = specs[:uo]
@@ -652,6 +709,35 @@ module OSut
       a[:compo][:mat] = @@mats[mt]
       a[:compo][:d  ] = d
       a[:compo][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
+    when :ceiling
+      unless specs[:clad] == :none
+        mt = :concrete
+        mt = :material  if specs[:clad] == :light
+        d  = 0.015
+        d  = 0.100      if specs[:clad] == :medium
+        d  = 0.200      if specs[:clad] == :heavy
+        a[:clad][:mat] = @@mats[mt]
+        a[:clad][:d  ] = d
+        a[:clad][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
+      end
+
+      mt = :mineral
+      mt = :polyiso   if specs[:frame] == :medium
+      mt = :cellulose if specs[:frame] == :heavy
+      mt = :material  unless u
+      d  = 0.100
+      d  = 0.015      unless u
+      a[:compo][:mat] = @@mats[mt]
+      a[:compo][:d  ] = d
+      a[:compo][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
+
+      unless specs[:finish] == :none
+        mt = :material
+        d  = 0.015
+        a[:finish][:mat] = @@mats[mt]
+        a[:finish][:d  ] = d
+        a[:finish][:id ] = "OSut:#{mt}:#{format('%03d', d*1000)[-3..-1]}"
+      end
     when :partition
       unless specs[:clad] == :none
         d  = 0.015

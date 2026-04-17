@@ -25,103 +25,113 @@ module TBD
   # Calculates construction Uo (including surface film resistances) to meet Ut.
   #
   # @param model [OpenStudio::Model::Model] a model
-  # @param lc [OpenStudio::Model::LayeredConstruction] a layered construction
   # @param id [#to_s] layered construction identifier
-  # @param hloss [Numeric] heat loss from major thermal bridging, in W/K
+  # @param lc [OpenStudio::Model::LayeredConstruction] a layered construction
+  # @param area [Numeric] net surface area covered by layered construction
   # @param film [Numeric] target surface film resistance, in m2•K/W
+  # @param hloss [Numeric] heat loss from major thermal bridging, in W/K
   # @param ut [Numeric] target overall Ut for lc, in W/m2•K
   #
-  # @return [Hash] uo: lc Uo [W/m2•K] to meet Ut, m: uprated lc layer
-  # @return [Hash] uo: (nil), m: (nil) if invalid input (see logs)
-  def uo(model = nil, lc = nil, id = "", hloss = 0.0, film = 0.0, ut = 0.0)
+  # @return [Float] Uo [W/m2•K] required to meet Ut (see logs if 0 or UMIN)
+  def uo(id = "", lc = nil, area = 0, film = 0, hloss = 0, ut = 0)
     mth = "TBD::#{__callee__}"
-    res = { uo: nil, m: nil }
-    cl1 = OpenStudio::Model::Model
-    cl2 = OpenStudio::Model::LayeredConstruction
-    cl3 = Numeric
-    cl4 = String
+    cl1 = OpenStudio::Model::LayeredConstruction
+    cl2 = Numeric
+    cl3 = String
     id  = trim(id)
-    return mismatch("model", model, cl1, mth, DBG, res) unless model.is_a?(cl1)
-    return mismatch("id"   ,    id, cl4, mth, DBG, res)     if id.empty?
-    return mismatch("lc"   ,    lc, cl2, mth, DBG, res) unless lc.is_a?(cl2)
-    return mismatch("hloss", hloss, cl3, mth, DBG, res) unless hloss.is_a?(cl3)
-    return mismatch("film" ,  film, cl3, mth, DBG, res) unless film.is_a?(cl3)
-    return mismatch("Ut"   ,    ut, cl3, mth, DBG, res) unless ut.is_a?(cl3)
+    return mismatch("id"   ,    id, cl3, mth, DBG, 0)     if id.empty?
+    return mismatch("lc"   ,    lc, cl1, mth, DBG, 0) unless lc.is_a?(cl1)
+    return mismatch("area" ,  area, cl2, mth, DBG, 0) unless area.is_a?(cl2)
+    return mismatch("film" ,  film, cl2, mth, DBG, 0) unless film.is_a?(cl2)
+    return mismatch("hloss", hloss, cl2, mth, DBG, 0) unless hloss.is_a?(cl2)
+    return mismatch("Ut"   ,    ut, cl2, mth, DBG, 0) unless ut.is_a?(cl2)
 
-    loss        = 0.0 # residual heatloss (not assigned) [W/K]
-    area        = lc.getNetArea
-    lyr         = insulatingLayer(lc)
+    # Residual heatloss (not assigned) [W/K].
+    model = lc.model
+    loss  = 0
+    lyr   = insulatingLayer(lc)
+
+    # Validate insulating layer.
     lyr[:index] = nil unless lyr[:index].is_a?(Numeric)
     lyr[:index] = nil unless lyr[:index] >= 0
     lyr[:index] = nil unless lyr[:index] < lc.layers.size
-    return invalid("#{id} layer index", mth, 3, WRN, res) unless lyr[:index]
-    return zero("#{id}: heatloss"     , mth,    WRN, res) unless hloss > TOL
-    return zero("#{id}: films"        , mth,    WRN, res) unless film  > TOL
-    return zero("#{id}: Ut"           , mth,    WRN, res) unless ut    > UMIN
-    return invalid("#{id}: Ut"        , mth, 6, WRN, res) unless ut    < UMAX
-    return zero("#{id}: net area (m2)", mth,    WRN, res) unless area  > TOL
+    return invalid("#{id} layer index", mth, 3, DBG, 0) unless lyr[:index]
+    return zero("#{id}: net area (m2)", mth,    DBG, 0) unless area  > TOL
+    return negative("#{id}: film RSI" , mth,    DBG, 0)     if film  < 0
+    return zero("#{id}: heatloss"     , mth,    DBG, 0)     if hloss < TOL
+    return zero("#{id}: Ut"           , mth,    DBG, 0) unless ut    > UMIN
+    return invalid("#{id}: Ut"        , mth, 4, DBG, 0) unless ut    < UMAX
 
-    # First, calculate initial layer RSi to initially meet Ut target.
-    rt     = 1 / ut              # target construction Rt
-    ro     = rsi(lc, film)       # current construction Ro
-    new_r  = lyr[:r] + (rt - ro) # new, un-derated layer RSi
-    new_u  = 1 / new_r
+    # Calculate initial layer RSi to initially meet Ut target.
+    rt = 1 / ut            # target construction Rt
+    r0 = rsi(lc, film)     # current construction R0
+    r  = lyr[:r] + rt - r0 # new, un-derated layer RSi
 
-    # Then, uprate (if possible) to counter expected thermal bridging effects.
-    u_psi  = hloss / area        # from psi+khi
-    new_u -= u_psi               # uprated layer USi to counter psi+khi
-    new_r  = 1 / new_u           # uprated layer RSi to counter psi+khi
-    return zero("#{id}: new Rsi", mth, WRN, res) unless new_r > RMIN
+    # Adjust if below admissible threshold.
+    if r < 0
+      zero("#{id}: layer RSI", mth, INF)
+      r = RMIN
+    end
+
+    # Uprate to counter heat loss from thermal bridging.
+    u  = 1 / r
+    u -= (hloss / area)
+
+    # Adjust if beyond admissible range.
+    if u < UMIN
+      negative("#{id}: new Uo", mth, INF)
+      u = UMIN
+    end
+
+    r = 1 / u
 
     if lyr[:type] == :massless
       m = lc.getLayer(lyr[:index]).to_MasslessOpaqueMaterial
-      return invalid("#{id} massless layer?", mth, 0, DBG, res) if m.empty?
+      return invalid("#{id} massless layer?", mth, 0, DBG, 0) if m.empty?
 
       m = m.get.clone(model).to_MasslessOpaqueMaterial.get
       m.setName("#{id} uprated")
 
-      new_r = RMIN                       unless new_r > RMIN
-      loss  = (new_u - 1 / new_r) * area unless new_r > RMIN
+      if r < RMIN
+        r    = RMIN
+        loss = (u - 1 / r) * area
+      end
 
-      unless m.setThermalResistance(new_r)
-        return invalid("Can't uprate #{id}: RSi#{new_r.round(2)}", mth, 0, DBG, res)
+      unless m.setThermalResistance(r)
+        return invalid("Can't uprate #{id}: RSi#{r.round(2)}", mth, 0, DBG, 0)
       end
     else
       m = lc.getLayer(lyr[:index]).to_StandardOpaqueMaterial
-      return invalid("#{id} standard layer?", mth, 0, DBG, res) if m.empty?
+      return invalid("#{id} standard layer?", mth, 0, DBG, 0) if m.empty?
 
       m = m.get.clone(model).to_StandardOpaqueMaterial.get
       m.setName("#{id} uprated")
 
       d = m.thickness
-      k = (d / new_r).clamp(KMIN, KMAX)
-      d = (k * new_r).clamp(DMIN, DMAX)
+      k = (d / r).clamp(KMIN, KMAX)
+      d = (k * r).clamp(DMIN, DMAX)
 
-      loss = (new_u - k / d) * area unless d / k > RMIN
+      loss = (u - k / d) * area if d / k < RMIN
 
       unless m.setThermalConductivity(k)
-        return invalid("Can't uprate #{id}: K#{k.round(3)}", mth, 0, DBG, res)
+        return invalid("Can't uprate #{id}: K#{k.round(3)}", mth, 0, DBG, 0)
       end
 
       unless m.setThickness(d)
-        return invalid("Can't uprate #{id}: #{(d*1000).to_i}mm", mth, 0, DBG, res)
+        return invalid("Can't uprate #{id}: #{(d*1000).to_i}mm", mth, 0, DBG, 0)
       end
     end
 
-    return invalid("Can't ID insulating layer", mth, 0, DBG, res) unless m
+    return invalid("Can't ID insulating layer", mth, 0, DBG, 0) unless m
 
     lc.setLayer(lyr[:index], m)
-    uo = 1 / rsi(lc, film)
+    ro = rsi(lc, film)
+    uo = ro < RMIN ? UMIN : 1 / ro
 
-    if loss > TOL
-      h_loss = format "%.3f", loss
-      return invalid("Can't assign #{h_loss} W/K to #{id}", mth, 0, DBG, res)
-    end
+    h = format "%.3f", loss
+    log(INF, "Can't set #{h} W/K to #{id} #{mth}") if loss > TOL
 
-    res[:uo] = uo
-    res[:m ] = m
-
-    res
+    uo
   end
 
   ##
@@ -185,230 +195,219 @@ module TBD
     groups[:roof ][:ut] = argh[:roof_ut      ]
     groups[:floor][:ut] = argh[:floor_ut     ]
 
-    groups[:wall ][:op] = trim(argh[:wall_option  ])
-    groups[:roof ][:op] = trim(argh[:roof_option  ])
-    groups[:floor][:op] = trim(argh[:floor_option ])
+    groups[:wall ][:op] = trim(argh[:wall_option ])
+    groups[:roof ][:op] = trim(argh[:roof_option ])
+    groups[:floor][:op] = trim(argh[:floor_option])
 
+    # Group and process walls, roofs and floors sequentially/independently.
     groups.each do |type, g|
       next unless g[:up]
       next unless g[:ut].is_a?(Numeric)
       next unless g[:ut] < UMAX
-      next     if g[:ut] < 0
+      next unless g[:ut] > UMIN
 
-      typ  = type
-      typ  = :ceiling if typ == :roof
+      typ = type
+      typ = :ceiling if typ == :roof
+
+      # Collection of one or several constructions to uprate.
       coll = {}
-      area = 0
-      film = 100000000000000
-      lc   = nil
-      id   = ""
-      op   = g[:op].downcase
-      all  = tout.include?(op)
+      op   = g[:op]
 
-      if g[:op].empty?
-        log(WRN, "Construction (#{type}) to uprate? (#{mth})")
-      elsif all
+      # Uprate ALL constructions of same type, e.g. walls.
+      if tout.include?(op.downcase)
         s.each do |nom, surface|
-          next unless surface.key?(:deratable   )
-          next unless surface.key?(:type        )
+          next unless surface.key?(:deratable)
+          next unless surface.key?(:type)
           next unless surface.key?(:construction)
-          next unless surface.key?(:filmRSI     )
-          next unless surface.key?(:index       )
-          next unless surface.key?(:ltype       )
-          next unless surface.key?(:r           )
+          next unless surface.key?(:filmRSI)
+          next unless surface.key?(:ltype)
+          next unless surface.key?(:r)
+          next unless surface.key?(:index)
+          next unless surface.key?(:net)
           next unless surface[:deratable   ]
           next unless surface[:type        ] == typ
           next unless surface[:construction].is_a?(cl3)
           next     if surface[:index       ].nil?
 
-          # Retain lowest surface film resistance (e.g. tilted surfaces).
-          c    = surface[:construction]
-          i    = c.nameString
-          aire = c.getNetArea
-          film = surface[:filmRSI] if surface[:filmRSI] < film
+          # Collect constructions to uprate.
+          lc = surface[:construction]
+          id = lc.nameString
 
-          # Retain construction covering largest area. The following conditional
-          # is reliable UNLESS linked to other deratable surface types e.g. both
-          # floors AND walls (see "elsif lc" corrections below).
-          if aire > area
-            lc   = c
-            area = aire
-            id   = i
+          # Track construction-specific parameters.
+          unless coll.key?(id)
+            coll[id] = {}
+            coll[id][:lc   ] = lc
+            coll[id][:s    ] = {}
+            coll[id][:hloss] = 0
+            coll[id][:area ] = 0
+            coll[id][:film ] = 0
+            coll[id][:fA   ] = 0
+            coll[id][:uA   ] = 0
+            coll[id][:u0   ] = 0
           end
 
-          coll[i] = { area: aire, lc: c, s: {} }  unless coll.key?(i)
-          coll[i][:s][nom] = { a: surface[:net] } unless coll[i][:s].key?(nom)
+          coll[id][:idx] = surface[:index] unless coll[id].key?(:idx)
+          coll[id][:ltp] = surface[:ltype] unless coll[id].key?(:ltp)
+
+          # Track surface-specific parameters.
+          unless coll[id][:s].key?(nom)
+            coll[id][:s][nom]     = {}
+            coll[id][:s][nom][:a] = surface[:net]
+            coll[id][:s][nom][:f] = surface[:filmRSI]
+            coll[id][:s][nom][:h] = 0
+            next unless surface.key?(:heatloss)
+            next unless surface[:heatloss].abs > TOL
+
+            coll[id][:s][nom][:h] = surface[:heatloss]
+          end
         end
       else
-        id = g[:op]
+        id = op # single, user-selected construction
         lc = model.getConstructionByName(id)
-        log(WRN, "Construction '#{id}'? (#{mth})")         if lc.empty?
-        next                                               if lc.empty?
+
+        if lc.empty?
+          log(WRN, "Construction '#{id}'? (#{mth})")
+          next
+        end
 
         lc = lc.get.to_LayeredConstruction
-        log(WRN, "'#{id}' layered construction? (#{mth})") if lc.empty?
-        next                                               if lc.empty?
 
-        lc       = lc.get
-        area     = lc.getNetArea
-        coll[id] = { area: area, lc: lc, s: {} }
+        if lc.empty?
+          log(WRN, "'#{id}' layered construction? (#{mth})")
+          next
+        end
+
+        lc = lc.get
+
+        coll[id]         = {}
+        coll[id][:lc   ] = lc
+        coll[id][:s    ] = {}
+        coll[id][:hloss] = 0
+        coll[id][:area ] = 0
+        coll[id][:film ] = 0
+        coll[id][:fA   ] = 0
+        coll[id][:uA   ] = 0
+        coll[id][:u0   ] = 0
 
         s.each do |nom, surface|
-          next unless surface.key?(:deratable   )
-          next unless surface.key?(:type        )
+          next unless surface.key?(:deratable)
+          next unless surface.key?(:type)
           next unless surface.key?(:construction)
-          next unless surface.key?(:filmRSI     )
-          next unless surface.key?(:index       )
-          next unless surface.key?(:ltype       )
-          next unless surface.key?(:r           )
+          next unless surface.key?(:filmRSI)
+          next unless surface.key?(:ltype)
+          next unless surface.key?(:r)
+          next unless surface.key?(:index)
+          next unless surface.key?(:net)
           next unless surface[:deratable   ]
           next unless surface[:type        ] == typ
           next unless surface[:construction].is_a?(cl3)
+          next unless surface[:construction].nameString == id
           next     if surface[:index       ].nil?
 
-          i = surface[:construction].nameString
-          next unless i == id
+          coll[id][:idx] = surface[:index] unless coll[id].key?(:idx)
+          coll[id][:ltp] = surface[:ltype] unless coll[id].key?(:ltp)
 
-          # Retain lowest surface film resistance (e.g. tilted surfaces).
-          film = surface[:filmRSI] if surface[:filmRSI] < film
+          # Track (for surfaces of targeted type):
+          #   - net area
+          #   - air film resistances
+          unless coll[id][:s].key?(nom)
+            coll[id][:s][nom]     = {}
+            coll[id][:s][nom][:a] = surface[:net]
+            coll[id][:s][nom][:f] = surface[:filmRSI]
+            coll[id][:s][nom][:h] = 0
+            next unless surface.key?(:heatloss)
+            next unless surface[:heatloss].abs > TOL
 
-          coll[i][:s][nom] = { a: surface[:net] } unless coll[i][:s].key?(nom)
+            coll[id][:s][nom][:h] = surface[:heatloss]
+          end
         end
       end
 
       if coll.empty?
-        log(WRN, "No #{type} construction to uprate - skipping (#{mth})")
+        log(WRN, "Unable to uprate #{type} construction - skipping (#{mth})")
         next
-      elsif lc
-        # Valid layered construction - good to uprate!
-        lyr         = insulatingLayer(lc)
-        lyr[:index] = nil unless lyr[:index].is_a?(Numeric)
-        lyr[:index] = nil unless lyr[:index] >= 0
-        lyr[:index] = nil unless lyr[:index] < lc.layers.size
+      else
+        coll.each do |id, col|
+          lc = col[:lc]
 
-        log(WRN, "Insulation index for '#{id}'? (#{mth})") unless lyr[:index]
-        next                                               unless lyr[:index]
+          # Ensure lc is exclusively linked to deratable surfaces of targeted
+          # type. If not, assign new lc clone to non-targeted surfaces.
+          s.each do |nom, surface|
+            next unless surface.key?(:deratable)
+            next unless surface.key?(:type)
+            next unless surface.key?(:construction)
+            next unless surface.key?(:filmRSI)
+            next unless surface.key?(:ltype)
+            next unless surface.key?(:r)
+            next unless surface.key?(:index)
+            next unless surface.key?(:net)
+            next unless surface[:deratable]
+            next unless surface[:construction].is_a?(cl3)
+            next unless surface[:construction] == lc
+            next     if surface[:index       ].nil?
+            next     if surface[:type        ] == typ
+            next     if coll[id][:s].key?(nom)
 
-        # Ensure lc is exclusively linked to deratable surfaces of right type.
-        # If not, assign new lc clone to non-targeted surfaces.
-        s.each do |nom, surface|
-          next unless surface.key?(:type        )
-          next unless surface.key?(:deratable   )
-          next unless surface.key?(:construction)
-          next unless surface[:construction].is_a?(cl3)
-          next unless surface[:construction] == lc
-          next unless surface[:deratable]
+            log(INF, "Cloning '#{nom}' construction - not '#{id}' (#{mth})")
+            srf = model.getSurfaceByName(nom)
+            next if srf.empty?
 
-          ok = true
-          ok = false unless surface[:type] == typ
-          ok = false unless coll.key?(id)
-          ok = false unless coll[id][:s].key?(nom)
-
-          unless ok
-            log(WRN, "Cloning '#{nom}' construction - not '#{id}' (#{mth})")
-            sss = model.getSurfaceByName(nom)
-            next if sss.empty?
-
-            sss    = sss.get
+            srf    = srf.get
             cloned = lc.clone(model).to_LayeredConstruction.get
             cloned.setName("#{nom} - cloned")
-            sss.setConstruction(cloned)
+            srf.setConstruction(cloned)
             surface[:construction] = cloned
-            coll[id][:s].delete(nom)
           end
         end
 
-        hloss = 0 # sum of applicable psi+khi-related losses [W/K]
+        coll.each do |id, col|
+          col[:s].values.each do |item|
+            col[:hloss] += item[:h]
+            col[:area ] += item[:a]
+            col[:fA   ] += item[:a] / item[:f] unless item[:f] < 0
+          end
 
-        # Tally applicable psi+khi losses. Possible construction reassignment.
-        coll.each do |i, col|
+          if col[:area] < TOL
+            empty("#{id} area", mth, WRN)
+            next
+          end
+
+          # Area-weighted surface air film resistances.
+          col[:film] = 1 / (col[:fA] / col[:area])
+
+          # Fetch required, uprated Uo.
+          u = uo(id, col[:lc], col[:area], col[:film], col[:hloss], g[:ut])
+
+          unless u > UMIN
+            log(WRN, "Unable to completely uprate '#{id}' (#{mth})")
+            u = UMIN
+          end
+
+          col[:u ] = u
+          col[:uA] = u * col[:area]
+
+          # Recoup uprated construction and insulating layer.
+          lc  = col[:lc]
+          lyr = insulatingLayer(lc)
+
+          # Reset surface :r (uprated RSi of insulation, before derating).
           col[:s].keys.each do |nom|
             next unless s.key?(nom)
-            next unless s[nom].key?(:construction)
-            next unless s[nom].key?(:index)
-            next unless s[nom].key?(:ltype)
             next unless s[nom].key?(:r)
 
-            # Tally applicable psi+khi.
-            hloss += s[nom][:heatloss    ] if s[nom].key?(:heatloss)
-            next  if s[nom][:construction] == lc
-
-            # Reassign construction unless referencing lc.
-            sss = model.getSurfaceByName(nom)
-            next if sss.empty?
-
-            sss = sss.get
-
-            if sss.isConstructionDefaulted
-              set = defaultConstructionSet(sss) # building? story?
-
-              if set.nil?
-                sss.setConstruction(lc)
-              else
-                constructions = set.defaultExteriorSurfaceConstructions
-
-                unless constructions.empty?
-                  constructions = constructions.get
-                  constructions.setWallConstruction(lc)        if typ == :wall
-                  constructions.setFloorConstruction(lc)       if typ == :floor
-                  constructions.setRoofCeilingConstruction(lc) if typ == :ceiling
-                end
-              end
-            else
-              sss.setConstruction(lc)
-            end
-
-            s[nom][:construction] = lc          # reset TBD attributes
-            s[nom][:index       ] = lyr[:index]
-            s[nom][:ltype       ] = lyr[:type ]
-            s[nom][:r           ] = lyr[:r    ] # temporary
+            s[nom][:r] = lyr[:r]
           end
         end
 
-        # Merge to ensure a single entry for coll Hash.
-        coll.each do |i, col|
-          next if i == id
+        # Store UA-averaged, upgraded Uo-factor per type.
+        area = coll.values.sum { |col| col[:area] }
+        uA   = coll.values.sum { |col| col[:uA  ] }
 
-          col[:s].each do |nom, sss|
-            coll[id][:s][nom] = sss unless coll[id][:s].key?(nom)
-          end
+        if area > TOL
+          argh[:wall_uo ] = uA / area if typ == :wall
+          argh[:roof_uo ] = uA / area if typ == :ceiling
+          argh[:floor_uo] = uA / area if typ == :floor
         end
-
-        coll.delete_if { |i, _| i != id }
-
-        unless coll.size == 1
-          log(DBG, "Collection == 1? for '#{id}' (#{mth})")
-          next
-        end
-
-        coll[id][:area] = lc.getNetArea
-        res = uo(model, lc, id, hloss, film, g[:ut])
-
-        unless res[:uo] && res[:m]
-          log(WRN, "Unable to uprate '#{id}' (#{mth})")
-          next
-        end
-
-        lyr = insulatingLayer(lc)
-
-        # Loop through coll :s, and reset :r - likely modified by uo().
-        coll.values.first[:s].keys.each do |nom|
-          next unless s.key?(nom)
-          next unless s[nom].key?(:index)
-          next unless s[nom].key?(:ltype)
-          next unless s[nom].key?(:r    )
-          next unless s[nom][:index] == lyr[:index]
-          next unless s[nom][:ltype] == lyr[:type ]
-
-          s[nom][:r] = lyr[:r] # uprated insulating RSi factor, before derating
-        end
-
-        argh[:wall_uo ] = res[:uo] if typ == :wall
-        argh[:roof_uo ] = res[:uo] if typ == :ceiling
-        argh[:floor_uo] = res[:uo] if typ == :floor
-      else
-        log(WRN, "Nilled construction to uprate - (#{mth})")
-        return false
       end
     end
 
@@ -442,54 +441,57 @@ module TBD
     return mismatch("sets",  sets, cl1, mth, DBG, false) unless sets.is_a?(cl2)
 
     shorts = sets.shorthands("code (Quebec)")
-    empty  = shorts[:has].empty? || shorts[:val].empty?
-    log(DBG, "Missing QC PSI set for 3.3 UA' tradeoff (#{mth})") if empty
-    return false                                                 if empty
 
-    ok = [true, false].include?(spts)
-    log(DBG, "setpoints must be true or false for 3.3 UA' tradeoff") unless ok
-    return false                                                     unless ok
+    if shorts[:has].empty? || shorts[:val].empty?
+      log(DBG, "Missing QC PSI set for 3.3 UA' tradeoff (#{mth})")
+      return false
+    end
+
+    unless [true, false].include?(spts)
+      log(DBG, "setpoints must be true or false for 3.3 UA' tradeoff")
+      return false
+    end
 
     s.each do |id, surface|
       next unless surface.key?(:deratable)
       next unless surface[:deratable]
       next unless surface.key?(:type)
 
-      heating = -50     if spts
-      cooling =  50     if spts
-      heating =  21 unless spts
-      cooling =  24 unless spts
-      heating = surface[:heating] if surface.key?(:heating)
-      cooling = surface[:cooling] if surface.key?(:cooling)
+      htng = spts ? -24 : 21
+      clng = spts ?  50 : 24
+      htng = surface[:heating] if surface.key?(:heating)
+      clng = surface[:cooling] if surface.key?(:cooling)
 
-      # Start with surface U-factors.
-      ref = 1 / 5.46
-      ref = 1 / 3.60 if surface[:type] == :wall
+      # Avoid 'divide by zero' case.
+      htng = -24 if htng < -24
 
-      # Adjust for lower heating setpoint (assumes -25C design conditions).
-      ref *= 43 / (heating + 25) if heating < 18 && cooling > 40
+      # Start with surface U-factors. Adjust for lower heating setpoint.
+      # Assumes -25C design conditions.
+      ref  = ( surface[:type] == :wall ) ? (1 / 3.60) : (1 / 5.46)
+      ref *= 43 / (htng + 25) if htng > -25 && htng < 18 && clng > 40
 
       surface[:ref] = ref
 
-      if surface.key?(:skylights) # loop through subsurfaces
-        ref = 2.85
-        ref *= 43 / (heating + 25) if heating < 18 && cooling > 40
+      # Loop through subsurfaces.
+      if surface.key?(:skylights)
+        ref  = 2.85
+        ref *= 43 / (htng + 25) if htng > -25 && htng < 18 && clng > 40
 
         surface[:skylights].values.map { |skylight| skylight[:ref] = ref }
       end
 
       if surface.key?(:windows)
-        ref = 2.0
-        ref *= 43 / (heating + 25) if heating < 18 && cooling > 40
+        ref  = 2.0
+        ref *= 43 / (htng + 25) if htng > -25 && htng < 18 && clng > 40
 
         surface[:windows].values.map { |window| window[:ref] = ref }
       end
 
       if surface.key?(:doors)
-        surface[:doors].each do |i, door|
-          ref = 0.9
-          ref = 2.0 if door.key?(:glazed) && door[:glazed]
-          ref *= 43 / (heating + 25) if heating < 18 && cooling > 40
+        surface[:doors].values.each do |door|
+          ref  = ( door.key?(:glazed) && door[:glazed] ) ? 2.0 : 0.9
+          ref *= 43 / (htng + 25) if htng > -25 && htng < 18 && clng > 40
+
           door[:ref] = ref
         end
       end
@@ -1000,7 +1002,7 @@ module TBD
       model  = "* modèle : #{ua[:file]}"    if ua.key?(:file)  && lang == :fr
       model += " (v#{ua[:version]})"        if ua.key?(:version)
       report << model                   unless model.empty?
-      report << "* TBD : v3.5.2"
+      report << "* TBD : v3.6.0"
       report << "* date : #{ua[:date]}"
 
       if lang == :en

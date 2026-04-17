@@ -299,14 +299,16 @@ module TBD
     return   invalid("#{nom} normal", mth, 0, ERR) unless n
 
     type   = surface.surfaceType.downcase
-    facing = surface.outsideBoundaryCondition
+    facing = surface.outsideBoundaryCondition.downcase
+    interz = false
     setpts = setpoints(space)
 
-    if facing.downcase == "surface"
-      empty = surface.adjacentSurface.empty?
-      return invalid("#{nom}: adjacent surface", mth, 0, ERR) if empty
+    if facing == "surface"
+      adj = surface.adjacentSurface
+      return invalid("#{nom}: adjacent surface", mth, 0, ERR) if adj.empty?
 
-      facing = surface.adjacentSurface.get.nameString
+      facing = adj.get.nameString
+      interz = true
     end
 
     unless surface.construction.empty?
@@ -315,8 +317,9 @@ module TBD
       unless lc.empty?
         lc  = lc.get
         lyr = insulatingLayer(lc)
+        idx = lyr[:index]
 
-        if lyr[:index].is_a?(Integer) && lyr[:index].between?(0, lc.numLayers - 1)
+        if idx.is_a?(Integer) && idx.between?(0, lc.numLayers - 1)
           surf[:construction] = lc
           # index: ... of layer/material (to derate) within construction
           # ltype: either :massless (RSi) or :standard (k + d)
@@ -358,8 +361,14 @@ module TBD
     surf[:story      ] = story.get unless story.empty?
     surf[:n          ] = n
     surf[:gross      ] = surface.grossArea
-    surf[:filmRSI    ] = surface.filmResistance
     surf[:spandrel   ] = spandrel?(surface)
+    surf[:filmRSI    ] = surface.filmResistance
+
+    if interz
+      typ = :ceiling # interzone roof or ceiling
+      typ = :partition if surf[:type] == :wall
+      surf[:filmRSI] = TBD.filmResistances(typ, surface.tilt)
+    end
 
     surface.subSurfaces.sort_by { |s| s.nameString }.each do |s|
       next if poly(s).empty?
@@ -508,7 +517,7 @@ module TBD
       end
 
       unless u.is_a?(Numeric)
-        r = rsi(c, surface.filmResistance)
+        r = rsi(c, surf[:filmRSI])
 
         if r < TOL
           log(ERR, "Skipping '#{id}': U-factor unavailable (#{mth})")
@@ -831,7 +840,7 @@ module TBD
       edge[:surfaces].keys.each do |id|
         next unless floors.key?(id)
 
-        next unless floors[id][:boundary].downcase == "foundation"
+        next unless floors[id][:boundary] == "foundation"
         next     if floors[id].key?(:kiva)
 
         # Initially set as slab-on-grade. Track 'exposed foundation perimeter'.
@@ -845,7 +854,7 @@ module TBD
         edge[:surfaces].keys.each do |i|
           next     if i == id
           next unless walls.key?(i)
-          next unless walls[i][:boundary].downcase == "foundation"
+          next unless walls[i][:boundary] == "foundation"
           next     if walls[i].key?(:kiva)
 
           floors[id][:kiva   ]  = :basement
@@ -857,7 +866,7 @@ module TBD
         edge[:surfaces].keys.each do |i|
           next     if i == id
           next unless walls.key?(i)
-          next unless walls[i][:boundary].downcase == "outdoors"
+          next unless walls[i][:boundary] == "outdoors"
 
           floors[id][:exposed] += edge[:length]
         end
@@ -872,7 +881,7 @@ module TBD
             e[:surfaces].keys.each do |ii|
               next     if i == ii
               next unless walls.key?(ii)
-              next unless walls[ii][:boundary].downcase == "foundation"
+              next unless walls[ii][:boundary] == "foundation"
               next     if walls[ii].key?(:kiva)
 
               floors[id][:kiva   ]  = :basement
@@ -883,7 +892,7 @@ module TBD
             e[:surfaces].keys.each do |ii|
               next    if i == ii
               next unless walls.key?(ii)
-              next unless walls[ii][:boundary].downcase == "outdoors"
+              next unless walls[ii][:boundary] == "outdoors"
 
               floors[id][:exposed] += e[:length]
             end

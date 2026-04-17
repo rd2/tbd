@@ -1424,8 +1424,10 @@ module TBD
       m  = m.clone(model).to_MasslessOpaqueMaterial.get
       m.setName("#{id} #{up}m tbd")
 
-      de_r = RMIN                    unless de_r > RMIN
-      loss = (de_u - 1 / de_r) * net unless de_r > RMIN
+      if de_r < RMIN
+        de_r = RMIN
+        loss = (de_u - 1 / de_r) * net
+      end
 
       unless m.setThermalResistance(de_r)
         return invalid("Can't derate #{id}: RSi#{de_r.round(2)}", mth)
@@ -1555,7 +1557,7 @@ module TBD
       next unless surface[:conditioned]
       next     if surface[:ground     ]
 
-      unless surface[:boundary].downcase == "outdoors"
+      unless surface[:boundary] == "outdoors"
         next unless tbd[:surfaces].key?(surface[:boundary])
         next     if tbd[:surfaces][surface[:boundary]][:conditioned]
       end
@@ -2202,7 +2204,7 @@ module TBD
           next      if holes.key?(i)
           next      if shades.key?(i)
 
-          facing = tbd[:surfaces][i][:boundary].downcase
+          facing = tbd[:surfaces][i][:boundary]
           next unless facing == "othersidecoefficients"
 
           s1      = edge[:surfaces][id]
@@ -2971,6 +2973,7 @@ module TBD
     # derate a construction/material pair having " tbd" in their OpenStudio name.
     tbd[:surfaces].each do |id, surface|
       next unless surface.key?(:construction)
+      next unless surface.key?(:filmRSI)
       next unless surface.key?(:index)
       next unless surface.key?(:ltype)
       next unless surface.key?(:r)
@@ -2981,8 +2984,7 @@ module TBD
       s = model.getSurfaceByName(id)
       next if s.empty?
 
-      s = s.get
-
+      s         = s.get
       index     = surface[:index       ]
       current_c = surface[:construction]
       c         = current_c.clone(model).to_LayeredConstruction.get
@@ -2995,7 +2997,7 @@ module TBD
       if m
         c.setLayer(index, m)
         c.setName("#{id} c tbd")
-        current_R = rsi(current_c, s.filmResistance)
+        current_R = rsi(current_c, surface[:filmRSI])
 
         # In principle, the derated "ratio" could be calculated simply by
         # accessing a surface's uFactor. Yet air layers within constructions
@@ -3035,7 +3037,7 @@ module TBD
 
         # Compute updated RSi value from layers.
         updated_c = s.construction.get.to_LayeredConstruction.get
-        updated_R = rsi(updated_c, s.filmResistance)
+        updated_R = rsi(updated_c, surface[:filmRSI])
         ratio     = -(current_R - updated_R) * 100 / current_R
 
         surface[:ratio] = ratio if ratio.abs > TOL
@@ -3047,14 +3049,10 @@ module TBD
     tbd[:surfaces].each do |id, surface|
       next unless surface[:deratable]
       next unless surface.key?(:construction)
+      next unless surface.key?(:filmRSI)
       next     if surface.key?(:u)
 
-      s   = model.getSurfaceByName(id)
-      msg = "Skipping missing surface '#{id}' (#{mth})"
-      log(ERR, msg) if s.empty?
-      next          if s.empty?
-
-      surface[:u] = 1.0 / rsi(surface[:construction], s.get.filmResistance)
+      surface[:u] = 1.0 / rsi(surface[:construction], surface[:filmRSI])
     end
 
     json[:io][:edges] = []
@@ -3204,8 +3202,8 @@ module TBD
 
       uo     = format("%.3f", g[:uo])
       ut     = format("%.3f", g[:ut])
-      output = "An initial #{label.to_s} Uo of #{uo} W/m2•K is required to " \
-               "achieve an overall Ut of #{ut} W/m2•K for #{g[:op]}"
+      output = "An area-weighted #{label.to_s} Uo of #{uo} W/m2•K is " \
+               "required to meet an overall Ut of #{ut} W/m2•K for #{g[:op]}"
       u_t << output
       runner.registerInfo(output)
     end
