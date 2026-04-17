@@ -441,65 +441,56 @@ module TBD
     return mismatch("sets",  sets, cl1, mth, DBG, false) unless sets.is_a?(cl2)
 
     shorts = sets.shorthands("code (Quebec)")
-    empty  = shorts[:has].empty? || shorts[:val].empty?
-    log(DBG, "Missing QC PSI set for 3.3 UA' tradeoff (#{mth})") if empty
-    return false                                                 if empty
 
-    ok = [true, false].include?(spts)
-    log(DBG, "setpoints must be true or false for 3.3 UA' tradeoff") unless ok
-    return false                                                     unless ok
+    if shorts[:has].empty? || shorts[:val].empty?
+      log(DBG, "Missing QC PSI set for 3.3 UA' tradeoff (#{mth})")
+      return false
+    end
+
+    unless [true, false].include?(spts)
+      log(DBG, "setpoints must be true or false for 3.3 UA' tradeoff")
+      return false
+    end
 
     s.each do |id, surface|
       next unless surface.key?(:deratable)
       next unless surface[:deratable]
       next unless surface.key?(:type)
 
-      heating = -24     if spts
-      cooling =  50     if spts
-      heating =  21 unless spts
-      cooling =  24 unless spts
-      heating = surface[:heating] if surface.key?(:heating)
-      cooling = surface[:cooling] if surface.key?(:cooling)
+      htng = spts ? -24 : 21
+      clng = spts ?  50 : 24
+      htng = surface[:heating] if surface.key?(:heating)
+      clng = surface[:cooling] if surface.key?(:cooling)
 
-      # Start with surface U-factors.
-      ref = 1 / 5.46
-      ref = 1 / 3.60 if surface[:type] == :wall
+      # Avoid 'divide by zero' case.
+      htng = -24 if htng < -24
 
-      # Adjust for lower heating setpoint (assumes -25C design conditions).
-      if heating > -25 && heating < 18 && cooling > 40
-        ref *= 43 / (heating + 25)
-      end
+      # Start with surface U-factors. Adjust for lower heating setpoint.
+      # Assumes -25C design conditions.
+      ref  = ( surface[:type] == :wall ) ? (1 / 3.60) : (1 / 5.46)
+      ref *= 43 / (htng + 25) if htng > -25 && htng < 18 && clng > 40
 
       surface[:ref] = ref
 
-      if surface.key?(:skylights) # loop through subsurfaces
-        ref = 2.85
-
-        if heating > -25 && heating < 18 && cooling > 40
-          ref *= 43 / (heating + 25)
-        end
+      # Loop through subsurfaces.
+      if surface.key?(:skylights)
+        ref  = 2.85
+        ref *= 43 / (htng + 25) if htng > -25 && htng < 18 && clng > 40
 
         surface[:skylights].values.map { |skylight| skylight[:ref] = ref }
       end
 
       if surface.key?(:windows)
-        ref = 2.0
-
-        if heating > -25 && heating < 18 && cooling > 40
-          ref *= 43 / (heating + 25)
-        end
+        ref  = 2.0
+        ref *= 43 / (htng + 25) if htng > -25 && htng < 18 && clng > 40
 
         surface[:windows].values.map { |window| window[:ref] = ref }
       end
 
       if surface.key?(:doors)
-        surface[:doors].each do |i, door|
-          ref = 0.9
-          ref = 2.0 if door.key?(:glazed) && door[:glazed]
-
-          if heating > -25 && heating < 18 && cooling > 40
-            ref *= 43 / (heating + 25)
-          end
+        surface[:doors].values.each do |door|
+          ref  = ( door.key?(:glazed) && door[:glazed] ) ? 2.0 : 0.9
+          ref *= 43 / (htng + 25) if htng > -25 && htng < 18 && clng > 40
 
           door[:ref] = ref
         end
