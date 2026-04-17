@@ -1,4 +1,4 @@
-### [KIVA](https://bigladdersoftware.com/epx/docs/25-1/engineering-reference/ground-heat-transfer-calculations-using-kiva.html)
+### [KIVA](https://bigladdersoftware.com/epx/docs/25-2/engineering-reference/ground-heat-transfer-calculations-using-kiva.html)
 
 A specialized library that accurately - and very efficiently - handles foundation heat transfer within EnergyPlus. For designers, it offers several practical features that make it a one-stop solution for most projects:  
 

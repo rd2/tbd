@@ -1,4 +1,4 @@
-A guide to [TBD](https://github.com/rd2/tbd "TBD source code repository on GitHub") - a Ruby [gem](https://rubygems.org/gems/tbd) and [OpenStudio Measure](https://nrel.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/ "A guide to writing OpenStudio Measures") that auto-detects __major__ linear thermal bridges (like balconies, parapets and corners), then __derates__ outdoor-facing opaque surface constructions (of walls, roofs and exposed floors). The guide is mainly written for architects, technologists and envelope consultants who are new to energy simulation, and to OpenStudio in particular.
+A guide to [TBD](https://github.com/rd2/tbd "TBD source code repository on GitHub") - a Ruby [gem](https://rubygems.org/gems/tbd) and [OpenStudio Measure](https://natlabrockies.github.io/OpenStudio-user-documentation/reference/measure_writing_guide/ "A guide to writing OpenStudio Measures") that auto-detects __major__ linear thermal bridges (like balconies, parapets and corners), then __derates__ outdoor-facing opaque surface constructions (of walls, roofs and exposed floors). The guide is mainly written for architects, technologists and envelope consultants who are new to energy simulation, and to OpenStudio in particular.
 
 ### [In a nutshell ...](#in-a-nutshell)
 
@@ -16,7 +16,7 @@ Contrary to _minor_ thermal bridging, changing a room's height or adding windows
 
 ----
 
-Relying on the OpenStudio [SDK](https://openstudio-sdk-documentation.s3.amazonaws.com/index.html "OpenStudio SDK") and the [Topolys](https://github.com/automaticmagic/topolys "Topolys source code repository on GitHub") gem, TBD automatically - and pretty instantaneously - identifies and manages _major_ thermal bridges behind the scenes for OpenStudio users. For ASHRAE climate zone 7, enabling TBD should increase annual heating requirements between 5% to 15% (depending on building type) for "poor" to "regular" thermal bridging details in an otherwise well-insulated envelope.
+Relying on the OpenStudio [SDK](https://openstudio-sdk-documentation.s3.amazonaws.com/index.html "OpenStudio SDK") and the [Topolys](https://github.com/automaticmagic/topolys "Topolys source code repository on GitHub") gem, TBD automatically identifies and manages _major_ thermal bridges behind the scenes for OpenStudio users. For ASHRAE climate zone 7, enabling TBD should increase annual heating requirements between 5% to 15% (depending on building type) for "poor" to "regular" thermal bridging details in an otherwise well-insulated envelope.
 
 ### [Building energy modelling](#building-energy-modelling)
 

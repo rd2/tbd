@@ -32,7 +32,7 @@ _Sections 2.3.2 to 2.3.4 of this PNNL [report](https://www.pnnl.gov/main/publica
 
 ### [TBD menu options](#tbd-menu-options)
 
-Whether TBD is accessed from the _OpenStudio Application_ Measures' tab, through a [CLI](https://nrel.github.io/OpenStudio-user-documentation/reference/command_line_interface/ "OpenStudio CLI") _workflow_, or as a Ruby [gem](https://rubygems.org/gems/tbd), users have access to the same __17__ menu options ("Inputs", shown here with their default values):
+Whether TBD is accessed from the _OpenStudio Application_ Measures' tab, through a [CLI](https://natlabrockies.github.io/OpenStudio-user-documentation/reference/command_line_interface/ "OpenStudio CLI") _workflow_, or as a Ruby [gem](https://rubygems.org/gems/tbd), users have access to the same __17__ menu options ("Inputs", shown here with their default values):
 
 ![TBD Menu Options](../assets/images/TBD-inputs.png "TBD Menu Options")
 
@@ -68,7 +68,7 @@ Some _flat_ edges aren't mild "transitions" at all, like "__spandrel__" panel pe
 TBD considers an edge as delineating a demising (or "__party__") partition, when it links both:  
 
 - a single _exposed_ surface
-- another surface referencing an [OtherSideCoefficients](https://bigladdersoftware.com/epx/docs/25-1/input-output-reference/group-advanced-surface-concepts.html#surfacepropertyothersidecoefficients) object  
+- another surface referencing an [OtherSideCoefficients](https://bigladdersoftware.com/epx/docs/25-2/input-output-reference/group-advanced-surface-concepts.html#surfacepropertyothersidecoefficients) object  
 
 If the latter instead faces adiabatic conditions or references _itself_ (often used in conjunction with space multipliers), TBD usually maintains a "transition" tag (which can also be [reset](./custom.html "TBD customization") if needed). In the 5-story building illustrated below, only 3 stories would need to be modelled (saving on simulation run times), as long as the intermediate story holds spaces and loads with multipliers (here, __3x__). Two groups of surfaces would need to be modelled as adiabatic:  
 

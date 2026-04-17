@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="/assets/css/style.css?v=2dd70d14343f48e4df3e4de4a07e6891848a65b5">
+    <link rel="stylesheet" href="/assets/css/style.css?v=ac7cd7aa2631eb280b8265435b2c39e50a029641">
     <link rel="stylesheet" type="text/css" href="/assets/css/print.css" media="print">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -50,8 +50,8 @@
         </header>
         <section id="downloads" class="clearfix">
           
-          <a href="https://github.com/rd2/tbd/releases/download/v3.5.2/tbd.zip" id="download-zip" class="button"><span>Download .zip</span></a>
-          <a href="https://github.com/rd2/tbd/releases/download/v3.5.2/tbd.tar.gz" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
+          <a href="https://github.com/rd2/tbd/releases/download/v3.6.0/tbd.zip" id="download-zip" class="button"><span>Download .zip</span></a>
+          <a href="https://github.com/rd2/tbd/releases/download/v3.6.0/tbd.tar.gz" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
           
 	
         </section>
@@ -91,7 +91,7 @@
 
 <h3 id="tbd-menu-options"><a href="#tbd-menu-options">TBD menu options</a></h3>
 
-<p>Whether TBD is accessed from the <em>OpenStudio Application</em> Measures’ tab, through a <a href="https://nrel.github.io/OpenStudio-user-documentation/reference/command_line_interface/" title="OpenStudio CLI">CLI</a> <em>workflow</em>, or as a Ruby <a href="https://rubygems.org/gems/tbd">gem</a>, users have access to the same <strong>17</strong> menu options (“Inputs”, shown here with their default values):</p>
+<p>Whether TBD is accessed from the <em>OpenStudio Application</em> Measures’ tab, through a <a href="https://natlabrockies.github.io/OpenStudio-user-documentation/reference/command_line_interface/" title="OpenStudio CLI">CLI</a> <em>workflow</em>, or as a Ruby <a href="https://rubygems.org/gems/tbd">gem</a>, users have access to the same <strong>17</strong> menu options (“Inputs”, shown here with their default values):</p>
 
 <p><img src="../assets/images/TBD-inputs.png" alt="TBD Menu Options" title="TBD Menu Options" /></p>
 
@@ -127,7 +127,7 @@
 
 <ul>
   <li>a single <em>exposed</em> surface</li>
-  <li>another surface referencing an <a href="https://bigladdersoftware.com/epx/docs/25-1/input-output-reference/group-advanced-surface-concepts.html#surfacepropertyothersidecoefficients">OtherSideCoefficients</a> object</li>
+  <li>another surface referencing an <a href="https://bigladdersoftware.com/epx/docs/25-2/input-output-reference/group-advanced-surface-concepts.html#surfacepropertyothersidecoefficients">OtherSideCoefficients</a> object</li>
 </ul>
 
 <p>If the latter instead faces adiabatic conditions or references <em>itself</em> (often used in conjunction with space multipliers), TBD usually maintains a “transition” tag (which can also be <a href="./custom.html" title="TBD customization">reset</a> if needed). In the 5-story building illustrated below, only 3 stories would need to be modelled (saving on simulation run times), as long as the intermediate story holds spaces and loads with multipliers (here, <strong>3x</strong>). Two groups of surfaces would need to be modelled as adiabatic:</p>
