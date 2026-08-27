@@ -1,6 +1,6 @@
 ### Launching
 
-One can access TBD using the [BCL](https://bcl.nrel.gov/dashboard "OpenStudio's Building Component Library") feature in the _OpenStudio Application_'s _Measures_ tab - search for "tbd" or "rd2".  As a fallback, OpenStudio users can also get TBD by clicking on the _download_ links at the top of this page. In such cases, users would first need to specify where downloaded _measures_ should be stored on their workstation (_Preferences_ > _Change My Measures Directory_).
+One can access TBD using the [BCL](https://bcl.nlr.gov/dashboard "OpenStudio's Building Component Library") feature in the _OpenStudio Application_'s _Measures_ tab - search for "tbd" or "rd2".  As a fallback, OpenStudio users can also get TBD by clicking on the _download_ links at the top of this page. In such cases, users would first need to specify where downloaded _measures_ should be stored on their workstation (_Preferences_ > _Change My Measures Directory_).
 
 Once downloaded, simply drag & drop TBD under _OpenStudio Measures_, in the _Measures_ tab.
 
