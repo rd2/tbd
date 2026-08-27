@@ -542,7 +542,7 @@ module TBD
       h[:partyconcave          ] = @set[id].key?(:partyconcave)
       h[:partyconvex           ] = @set[id].key?(:partyconvex)
       h[:parapet               ] = @set[id].key?(:parapet)
-      h[:partyconcave          ] = @set[id].key?(:parapetconcave)
+      h[:parapetconcave        ] = @set[id].key?(:parapetconcave)
       h[:parapetconvex         ] = @set[id].key?(:parapetconvex)
       h[:roof                  ] = @set[id].key?(:roof)
       h[:roofconcave           ] = @set[id].key?(:roofconcave)
@@ -557,10 +557,10 @@ module TBD
       h[:balconyconcave        ] = @set[id].key?(:balconyconcave)
       h[:balconyconvex         ] = @set[id].key?(:balconyconvex)
       h[:balconysill           ] = @set[id].key?(:balconysill)
-      h[:balconysillconcave    ] = @set[id].key?(:balconysillconvex)
+      h[:balconysillconcave    ] = @set[id].key?(:balconysillconcave)
       h[:balconysillconvex     ] = @set[id].key?(:balconysillconvex)
       h[:balconydoorsill       ] = @set[id].key?(:balconydoorsill)
-      h[:balconydoorsillconcave] = @set[id].key?(:balconydoorsillconvex)
+      h[:balconydoorsillconcave] = @set[id].key?(:balconydoorsillconcave)
       h[:balconydoorsillconvex ] = @set[id].key?(:balconydoorsillconvex)
       h[:rimjoist              ] = @set[id].key?(:rimjoist)
       h[:rimjoistconcave       ] = @set[id].key?(:rimjoistconcave)
@@ -572,10 +572,10 @@ module TBD
       v[:head           ] = 0; v[:headconcave           ] = 0; v[:headconvex           ] = 0
       v[:sill           ] = 0; v[:sillconcave           ] = 0; v[:sillconvex           ] = 0
       v[:jamb           ] = 0; v[:jambconcave           ] = 0; v[:jambconvex           ] = 0
-      v[:doorhead       ] = 0; v[:doorheadconcave       ] = 0; v[:doorconvex           ] = 0
+      v[:doorhead       ] = 0; v[:doorheadconcave       ] = 0; v[:doorheadconvex       ] = 0
       v[:doorsill       ] = 0; v[:doorsillconcave       ] = 0; v[:doorsillconvex       ] = 0
       v[:doorjamb       ] = 0; v[:doorjambconcave       ] = 0; v[:doorjambconvex       ] = 0
-      v[:skylighthead   ] = 0; v[:skylightheadconcave   ] = 0; v[:skylightconvex       ] = 0
+      v[:skylighthead   ] = 0; v[:skylightheadconcave   ] = 0; v[:skylightheadconvex   ] = 0
       v[:skylightsill   ] = 0; v[:skylightsillconcave   ] = 0; v[:skylightsillconvex   ] = 0
       v[:skylightjamb   ] = 0; v[:skylightjambconcave   ] = 0; v[:skylightjambconvex   ] = 0
       v[:spandrel       ] = 0; v[:spandrelconcave       ] = 0; v[:spandrelconvex       ] = 0
@@ -712,7 +712,7 @@ module TBD
       v[:roofconcave           ] = @set[id][:parapet               ] if h[:parapet               ]
       v[:roofconvex            ] = @set[id][:parapet               ] if h[:parapet               ]
       v[:roofconcave           ] = @set[id][:parapetconcave        ] if h[:parapetconcave        ]
-      v[:roofconvex            ] = @set[id][:parapetxonvex         ] if h[:parapetconvex         ]
+      v[:roofconvex            ] = @set[id][:parapetconvex         ] if h[:parapetconvex         ]
       v[:roof                  ] = @set[id][:roof                  ] if h[:roof                  ]
       v[:roofconcave           ] = @set[id][:roof                  ] if h[:roof                  ]
       v[:roofconvex            ] = @set[id][:roof                  ] if h[:roof                  ]
@@ -758,12 +758,12 @@ module TBD
       v[:balconysillconcave    ] = @set[id][:balcony               ] if h[:balcony               ]
       v[:balconysillconvex     ] = @set[id][:balcony               ] if h[:balcony               ]
       v[:balconysillconcave    ] = @set[id][:balconyconcave        ] if h[:balconyconcave        ]
-      v[:balconysillconvex     ] = @set[id][:balconyconvex         ] if h[:balconycinvex         ]
+      v[:balconysillconvex     ] = @set[id][:balconyconvex         ] if h[:balconyconvex         ]
       v[:balconydoorsill       ] = @set[id][:balcony               ] if h[:balcony               ]
       v[:balconydoorsillconcave] = @set[id][:balcony               ] if h[:balcony               ]
       v[:balconydoorsillconvex ] = @set[id][:balcony               ] if h[:balcony               ]
       v[:balconydoorsillconcave] = @set[id][:balconyconcave        ] if h[:balconyconcave        ]
-      v[:balconydoorsillconvex ] = @set[id][:balconyconvex         ] if h[:balconycinvex         ]
+      v[:balconydoorsillconvex ] = @set[id][:balconyconvex         ] if h[:balconyconvex         ]
       v[:balconysill           ] = @set[id][:balconysill           ] if h[:balconysill           ]
       v[:balconysillconcave    ] = @set[id][:balconysill           ] if h[:balconysill           ]
       v[:balconysillconvex     ] = @set[id][:balconysill           ] if h[:balconysill           ]
@@ -786,10 +786,10 @@ module TBD
       v[:rimjoistconvex        ] = @set[id][:rimjoistconvex        ] if h[:rimjoistconvex        ]
 
       max = [v[:parapetconcave], v[:parapetconvex]].max
-      v[:parapet] = max unless @has[:parapet]
+      v[:parapet] = max unless h[:parapet]
 
       max = [v[:roofconcave], v[:roofconvex]].max
-      v[:roof] = max unless @has[:roof]
+      v[:roof] = max unless h[:roof]
 
       @val[id] = v
 
@@ -982,7 +982,7 @@ module TBD
       mth = "TBD::#{__callee__}"
       sh  = { has: {}, val: {} }
       id  = trim(id)
-      return mismatch("set ID", id, String, mth, ERR, a)      if id.empty?
+      return mismatch("set ID", id, String, mth, ERR, sh)     if id.empty?
       return hashkey(id, @set , id,         mth, ERR, sh) unless @set.key?(id)
       return hashkey(id, @has , id,         mth, ERR, sh) unless @has.key?(id)
       return hashkey(id, @val , id,         mth, ERR, sh) unless @val.key?(id)
@@ -1736,9 +1736,9 @@ module TBD
             next unless point_V_mag > TOL
             next unless point_V_mag > farthest_mag
 
-            farthest    = point
-            farthest_V  = origin_point_V
-            fathest_mag = point_V_mag
+            farthest     = point
+            farthest_V   = origin_point_V
+            farthest_mag = point_V_mag
           end
 
           angle  = reference_V.angle(farthest_V)

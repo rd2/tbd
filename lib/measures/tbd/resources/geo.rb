@@ -38,7 +38,6 @@ module TBD
     a   = false
     return mismatch("e1", e1, Hash, mth, DBG, a)       unless e1.is_a?(Hash)
     return mismatch("e2", e2, Hash, mth, DBG, a)       unless e2.is_a?(Hash)
-    return mismatch("e2", e2, Hash, mth, DBG, a)       unless e2.is_a?(Hash)
 
     return hashkey("e1", e1, :v0, mth, DBG, a)         unless e1.key?(:v0)
     return hashkey("e1", e1, :v1, mth, DBG, a)         unless e1.key?(:v1)
@@ -644,8 +643,8 @@ module TBD
 
     valid1 = s1[:angle].is_a?(Numeric)
     valid2 = s2[:angle].is_a?(Numeric)
-    return mismatch("s1 angle", s1[:angle], Numeric, DBG, false) unless valid1
-    return mismatch("s1 angle", s1[:angle], Numeric, DBG, false) unless valid2
+    return mismatch("s1 angle", s1[:angle], Numeric, mth, DBG, false) unless valid1
+    return mismatch("s2 angle", s2[:angle], Numeric, mth, DBG, false) unless valid2
 
     angle = 0
     angle = s2[:angle] - s1[:angle] if s2[:angle] > s1[:angle]
@@ -687,8 +686,8 @@ module TBD
 
     valid1 = s1[:angle].is_a?(Numeric)
     valid2 = s2[:angle].is_a?(Numeric)
-    return mismatch("s1 angle", s1[:angle], Numeric, DBG, false) unless valid1
-    return mismatch("s1 angle", s1[:angle], Numeric, DBG, false) unless valid2
+    return mismatch("s1 angle", s1[:angle], Numeric, mth, DBG, false) unless valid1
+    return mismatch("s2 angle", s2[:angle], Numeric, mth, DBG, false) unless valid2
 
     angle = 0
     angle = s2[:angle] - s1[:angle] if s2[:angle] > s1[:angle]
@@ -761,8 +760,8 @@ module TBD
   # boundary conditions.
   #
   # @param model [OpenStudio::Model::Model] a model
-  # @param floors [Hash] TBD floors
   # @param walls [Hash] TBD walls
+  # @param floors [Hash] TBD floors
   # @param edges [Hash] TBD edges (many linking floors & walls
   #
   # @return [Bool] true if Kiva foundations are successfully generated

@@ -204,8 +204,8 @@ module OSut
   # returned if a valid surface tilt [0, PI] is provided. Otherwise, generic
   # tilt-independent air film resistances are returned instead.
   #
-  # @param [:to_sym] surface type, e.g. :roof, :wall, :partition, :ceiling
-  # @param [Numeric] surface tilt (in rad), optional
+  # @param type [:to_sym] surface type, e.g. :roof, :wall, :partition, :ceiling
+  # @param tilt [Numeric] surface tilt (in rad), optional
   #
   # @return [Float] surface air film resistance(s)
   # @return [0.0] if invalid input (see logs)
@@ -587,7 +587,7 @@ module OSut
       mt.setName(id)
 
       unless mt.setThermalResistance(r)
-        return invalid("Failed #{id}: RSi#{r.round(2)}", mth)
+        return invalid("Failed #{id}: RSi#{r.round(2)}", mth, 0, DBG, 0.0)
       end
 
       lc.setLayer(index, mt)
@@ -621,11 +621,11 @@ module OSut
       mt.setName(id)
 
       unless mt.setThermalConductivity(k)
-        return invalid("Failed #{id}: K#{k.round(3)}", mth)
+        return invalid("Failed #{id}: K#{k.round(3)}", mth, 0, DBG, 0.0)
       end
 
       unless mt.setThickness(d)
-        return invalid("Failed #{id}: #{(d*1000).to_i}mm", mth)
+        return invalid("Failed #{id}: #{(d*1000).to_i}mm", mth, 0, DBG, 0.0)
       end
 
       lc.setLayer(index, mt)
